@@ -1,16 +1,19 @@
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Save, Loader2, Link as LinkIcon, Link2Off } from 'lucide-react';
-import { useAdmin, User, ChildProfile } from '../../contexts/AdminContext.tsx';
+import { useAdminAllChildProfiles } from '../../hooks/queries.ts';
+import { useAppMutations } from '../../hooks/mutations.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
+import type { UserProfile as User } from '../../contexts/AuthContext.tsx';
 
-interface LinkStudentModalProps {
+const LinkStudentModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
     user: User | null;
-}
-
-const LinkStudentModal: React.FC<LinkStudentModalProps> = ({ isOpen, onClose, user }) => {
-    const { allChildProfiles, linkStudentToChildProfile, unlinkStudentFromChildProfile } = useAdmin();
+}> = ({ isOpen, onClose, user }) => {
+    const { data: allChildProfiles = [] } = useAdminAllChildProfiles();
+    const { linkStudentToChildProfile, unlinkStudentFromChildProfile } = useAppMutations();
     const { addToast } = useToast();
 
     const [selectedChildId, setSelectedChildId] = useState<string>('');
@@ -40,7 +43,8 @@ const LinkStudentModal: React.FC<LinkStudentModalProps> = ({ isOpen, onClose, us
         }
         setIsSaving(true);
         try {
-            await linkStudentToChildProfile(user.id, parseInt(selectedChildId, 10));
+            // Correctly call the mutation function using `.mutateAsync`.
+            await linkStudentToChildProfile.mutateAsync({ studentUserId: user.id, childProfileId: parseInt(selectedChildId, 10) });
             onClose();
         } catch (error) {
             // Toast is handled in context
@@ -53,7 +57,8 @@ const LinkStudentModal: React.FC<LinkStudentModalProps> = ({ isOpen, onClose, us
         if (!linkedChild) return;
         setIsSaving(true);
         try {
-            await unlinkStudentFromChildProfile(linkedChild.id);
+            // Correctly call the mutation function using `.mutateAsync`.
+            await unlinkStudentFromChildProfile.mutateAsync({childProfileId: linkedChild.id});
             onClose();
         } catch(error) {
              // Toast is handled in context

@@ -1,214 +1,157 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, X, Loader2, Share2 } from 'lucide-react';
-// FIX: Added .tsx extension to the import of AdminContext to resolve module loading error.
-import { useAdmin, TextContent } from '../../contexts/AdminContext.tsx';
-// FIX: Added .ts extension to database.types import to resolve module error.
-import type { SocialLinks } from '../../lib/database.types.ts';
-import { useToast } from '../../contexts/ToastContext.tsx';
-// FIX: Added .tsx extension to ProductContext import to resolve module error.
+import { Settings, Save, Loader2, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext.tsx';
+import { useAdminSocialLinks } from '../../hooks/queries.ts';
+import { useAppMutations } from '../../hooks/mutations.ts';
+import { useToast } from '../../contexts/ToastContext.tsx';
+import AdminSection from '../../components/admin/AdminSection.tsx';
 import { supabase } from '../../lib/supabaseClient.ts';
+import { SocialLinks } from '../../lib/database.types.ts';
 
-const ImageUploadControl: React.FC<{
+interface ImageUploadFieldProps {
     label: string;
-    currentImage: string;
-    newImagePreview: string | null;
+    currentUrl: string | null;
     onFileSelect: (file: File) => void;
-    onCancel: () => void;
-    disabled: boolean;
-}> = ({ label, currentImage, newImagePreview, onFileSelect, onCancel, disabled }) => {
-    
+    isSaving: boolean;
+}
+
+const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ label, currentUrl, onFileSelect, isSaving }) => {
+    const [preview, setPreview] = useState<string | null>(currentUrl);
+
+    useEffect(() => {
+        setPreview(currentUrl);
+    }, [currentUrl]);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if(e.target.files && e.target.files[0]) {
-            onFileSelect(e.target.files[0]);
+        const file = e.target.files?.[0];
+        if (file) {
+            setPreview(URL.createObjectURL(file));
+            onFileSelect(file);
         }
     };
 
     return (
-        <div className="p-4 bg-gray-50 rounded-lg border">
-            <label className="block text-sm font-bold text-gray-700 mb-3">{label}</label>
+        <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">{label}</label>
             <div className="flex items-center gap-4">
-                <img src={newImagePreview || currentImage} alt={label} className="w-24 h-24 object-contain rounded-md bg-white shadow-sm" />
-                <div className="flex-grow">
-                    <input type="file" disabled={disabled} accept="image/png, image/jpeg, image/webp" onChange={handleFileChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"/>
-                     {newImagePreview && (
-                        <button onClick={onCancel} disabled={disabled} type="button" className="mt-2 flex items-center gap-1 text-sm text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1 rounded-full disabled:opacity-50">
-                            <X size={14} /> إلغاء التغيير
-                        </button>
-                    )}
+                <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                    {preview ? <img src={preview} alt="Preview" className="h-full w-full object-contain" /> : <ImageIcon className="text-gray-400" />}
                 </div>
+                <input type="file" id={label} onChange={handleFileChange} accept="image/*" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" disabled={isSaving}/>
             </div>
         </div>
     );
 };
 
-const TextInput: React.FC<{label: string; value: string; onChange: (val: string) => void; disabled: boolean; placeholder?: string;}> = ({ label, value, onChange, disabled, placeholder }) => (
-    <div>
-        <label className="block text-sm font-bold text-gray-700 mb-2">{label}</label>
-        <input
-            type="text"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            disabled={disabled}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-            placeholder={placeholder}
-        />
-    </div>
-);
 
 const AdminSettingsPage: React.FC = () => {
-    const { socialLinks, updateSocialLinks, loading: isContentLoading } = useAdmin();
-    const { siteBranding, setSiteBranding, loading: isBrandingLoading } = useProduct();
+    const { siteBranding, setSiteBranding, loading: productLoading } = useProduct();
+    const { data: socialLinks, isLoading: adminLoading } = useAdminSocialLinks();
+    const { updateSocialLinks } = useAppMutations();
     const { addToast } = useToast();
+    
     const [isSaving, setIsSaving] = useState(false);
+    const [filesToUpload, setFilesToUpload] = useState<{ [key in keyof SiteBranding]?: File }>({});
+    const [socials, setSocials] = useState<Partial<SocialLinks>>({});
+
+    useEffect(() => {
+        if(socialLinks) {
+            setSocials(socialLinks);
+        }
+    }, [socialLinks]);
     
-    const [editableBranding, setEditableBranding] = useState<SiteBranding | null>(siteBranding);
-    const [imageFiles, setImageFiles] = useState<{ logo?: File, hero?: File, about?: File, creativeWritingLogo?: File, creativeWritingPortal?: File }>({});
-    const [imagePreviews, setImagePreviews] = useState<{ logo?: string, hero?: string, about?: string, creativeWritingLogo?: string, creativeWritingPortal?: string }>({});
+    const loading = productLoading || adminLoading;
 
-    const [editableSocials, setEditableSocials] = useState<SocialLinks>(socialLinks);
-    
-    useEffect(() => { setEditableBranding(siteBranding); }, [siteBranding]);
-    useEffect(() => { setEditableSocials(socialLinks); }, [socialLinks]);
+    if (loading) return <Loader2 className="animate-spin" />;
 
-
-    const handleSocialChange = (key: keyof Omit<SocialLinks, 'id'>, value: string) => {
-        setEditableSocials(prev => ({ ...prev, [key]: value }));
+    const handleFileSelect = (key: keyof SiteBranding, file: File) => {
+        setFilesToUpload(prev => ({...prev, [key]: file}));
     };
 
-    const handleImageSelect = (key: 'logo' | 'hero' | 'about' | 'creativeWritingLogo' | 'creativeWritingPortal', file: File) => {
-        setImageFiles(prev => ({ ...prev, [key]: file }));
-        setImagePreviews(prev => ({ ...prev, [key]: URL.createObjectURL(file) }));
-    };
+    const handleSocialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const {name, value} = e.target;
+        setSocials(prev => ({...prev, [name]: value}));
+    }
 
-    const handleCancelImage = (key: 'logo' | 'hero' | 'about' | 'creativeWritingLogo' | 'creativeWritingPortal') => {
-        setImageFiles(prev => { const newFiles = {...prev}; delete newFiles[key]; return newFiles; });
-        setImagePreviews(prev => { const newPreviews = {...prev}; delete newPreviews[key]; return newPreviews; });
+    const uploadFile = async (file: File): Promise<string> => {
+        const filePath = `public/${Date.now()}-${file.name}`;
+        const { error: uploadError } = await supabase.storage.from('site_assets').upload(filePath, file);
+        if (uploadError) throw uploadError;
+        const { data } = supabase.storage.from('site_assets').getPublicUrl(filePath);
+        return data.publicUrl;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
-
         try {
-            const brandingUpdates: Partial<SiteBranding> = {};
-            for (const key of Object.keys(imageFiles) as Array<keyof typeof imageFiles>) {
-                const file = imageFiles[key];
-                if (!file) continue;
-                
-                const filePath = `public/${key}-${Date.now()}-${file.name}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('site_assets')
-                    .upload(filePath, file);
-
-                if (uploadError) throw new Error(`فشل رفع الصورة: ${uploadError.message}`);
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('site_assets')
-                    .getPublicUrl(filePath);
-
-                if (key === 'logo') brandingUpdates.logoUrl = publicUrl;
-                if (key === 'hero') brandingUpdates.heroImageUrl = publicUrl;
-                if (key === 'about') brandingUpdates.aboutImageUrl = publicUrl;
-                if (key === 'creativeWritingLogo') brandingUpdates.creativeWritingLogoUrl = publicUrl;
-                if (key === 'creativeWritingPortal') brandingUpdates.creativeWritingPortalImageUrl = publicUrl;
+            // Branding
+            const brandingChanges: Partial<SiteBranding> = {};
+            for (const key in filesToUpload) {
+                const file = filesToUpload[key as keyof SiteBranding];
+                if (file) {
+                    const newUrl = await uploadFile(file);
+                    brandingChanges[key as keyof SiteBranding] = newUrl;
+                }
             }
-
-            if (Object.keys(brandingUpdates).length > 0) {
-                await setSiteBranding(brandingUpdates);
+            if(Object.keys(brandingChanges).length > 0) {
+                 await setSiteBranding(brandingChanges);
             }
-            if(JSON.stringify(editableSocials) !== JSON.stringify(socialLinks)) {
-                await updateSocialLinks(editableSocials);
-            }
+            setFilesToUpload({});
 
-            addToast('تم حفظ التغييرات بنجاح!', 'success');
-            setImageFiles({});
-            setImagePreviews({});
-            
-        } catch (error: any) {
-            addToast(error.message || 'حدث خطأ أثناء حفظ التغييرات.', 'error');
+            // Social links
+            // Correctly call the mutation function using `.mutateAsync`.
+            await updateSocialLinks.mutateAsync(socials);
+
+            addToast('تم حفظ الإعدادات بنجاح', 'success');
+
+        } catch(err: any) {
+             addToast(`فشل الحفظ: ${err.message}`, 'error');
         } finally {
             setIsSaving(false);
         }
     };
 
-    const isContextLoading = isBrandingLoading || isContentLoading;
-
-    if (isContextLoading || !editableBranding) {
-      return <div className="flex justify-center items-center h-full"><Loader2 className="w-12 h-12 animate-spin text-blue-500" /></div>;
-    }
-
     return (
-    <div className="animate-fadeIn">
-      <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-8">إدارة الموقع</h1>
-      
-      <form onSubmit={handleSubmit}>
-        <div className="bg-white p-8 rounded-2xl shadow-md">
-                <div className="space-y-10">
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">تعديل الصور والشعار</h2>
-                        <div className="space-y-6">
-                            <ImageUploadControl 
-                                label="شعار موقع 'إنها لك' (الرئيسي)" 
-                                currentImage={editableBranding.logoUrl || ''}
-                                newImagePreview={imagePreviews.logo || null}
-                                onFileSelect={(file) => handleImageSelect('logo', file)}
-                                onCancel={() => handleCancelImage('logo')}
-                                disabled={isSaving}
-                            />
-                             <ImageUploadControl 
-                                label="شعار برنامج الكتابة الإبداعية" 
-                                currentImage={editableBranding.creativeWritingLogoUrl || ''}
-                                newImagePreview={imagePreviews.creativeWritingLogo || null}
-                                onFileSelect={(file) => handleImageSelect('creativeWritingLogo', file)}
-                                onCancel={() => handleCancelImage('creativeWritingLogo')}
-                                disabled={isSaving}
-                            />
-                            <ImageUploadControl 
-                                label="صورة بوابة 'إنها لك'" 
-                                currentImage={editableBranding.heroImageUrl || ''}
-                                newImagePreview={imagePreviews.hero || null}
-                                onFileSelect={(file) => handleImageSelect('hero', file)}
-                                onCancel={() => handleCancelImage('hero')}
-                                disabled={isSaving}
-                            />
-                            <ImageUploadControl 
-                                label="صورة بوابة 'بداية الرحلة'" 
-                                currentImage={editableBranding.creativeWritingPortalImageUrl || ''}
-                                newImagePreview={imagePreviews.creativeWritingPortal || null}
-                                onFileSelect={(file) => handleImageSelect('creativeWritingPortal', file)}
-                                onCancel={() => handleCancelImage('creativeWritingPortal')}
-                                disabled={isSaving}
-                            />
-                            <ImageUploadControl 
-                                label="صورة صفحة 'عنا'" 
-                                currentImage={editableBranding.aboutImageUrl || ''}
-                                newImagePreview={imagePreviews.about || null}
-                                onFileSelect={(file) => handleImageSelect('about', file)}
-                                onCancel={() => handleCancelImage('about')}
-                                disabled={isSaving}
-                            />
-                        </div>
+        <div className="animate-fadeIn space-y-12">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إعدادات الموقع العامة</h1>
+            <form onSubmit={handleSubmit}>
+                <AdminSection title="العلامة التجارية" icon={<Settings />}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <ImageUploadField label="الشعار الرئيسي" currentUrl={siteBranding?.logoUrl || null} onFileSelect={(file) => handleFileSelect('logoUrl', file)} isSaving={isSaving}/>
+                        <ImageUploadField label="شعار بداية الرحلة" currentUrl={siteBranding?.creativeWritingLogoUrl || null} onFileSelect={(file) => handleFileSelect('creativeWritingLogoUrl', file)} isSaving={isSaving}/>
+                        <ImageUploadField label="صورة الهيرو (الرئيسية)" currentUrl={siteBranding?.heroImageUrl || null} onFileSelect={(file) => handleFileSelect('heroImageUrl', file)} isSaving={isSaving}/>
+                        <ImageUploadField label="صورة قسم (عنا)" currentUrl={siteBranding?.aboutImageUrl || null} onFileSelect={(file) => handleFileSelect('aboutImageUrl', file)} isSaving={isSaving}/>
+                        <ImageUploadField label="صورة بوابة بداية الرحلة" currentUrl={siteBranding?.creativeWritingPortalImageUrl || null} onFileSelect={(file) => handleFileSelect('creativeWritingPortalImageUrl', file)} isSaving={isSaving}/>
                     </div>
-                     <div className="p-4 bg-gray-50 rounded-lg border">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2"><Share2 size={20}/> تعديل روابط التواصل الاجتماعي</h2>
-                        <div className="space-y-4">
-                           <TextInput label="رابط صفحة فيسبوك" value={editableSocials.facebook_url || ''} onChange={val => handleSocialChange('facebook_url', val)} disabled={isSaving} placeholder="اتركه فارغاً لإخفاء الأيقونة" />
-                           <TextInput label="رابط صفحة تويتر" value={editableSocials.twitter_url || ''} onChange={val => handleSocialChange('twitter_url', val)} disabled={isSaving} placeholder="اتركه فارغاً لإخفاء الأيقونة" />
-                           <TextInput label="رابط صفحة انستغرام" value={editableSocials.instagram_url || ''} onChange={val => handleSocialChange('instagram_url', val)} disabled={isSaving} placeholder="اتركه فارغاً لإخفاء الأيقونة" />
-                        </div>
+                </AdminSection>
+                
+                 <AdminSection title="روابط التواصل الاجتماعي" icon={<LinkIcon />}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">رابط فيسبوك</label>
+                            <input type="url" name="facebook_url" value={socials.facebook_url || ''} onChange={handleSocialChange} className="w-full p-2 border rounded-lg" />
+                         </div>
+                         <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">رابط تويتر</label>
+                            <input type="url" name="twitter_url" value={socials.twitter_url || ''} onChange={handleSocialChange} className="w-full p-2 border rounded-lg" />
+                         </div>
+                         <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">رابط انستغرام</label>
+                            <input type="url" name="instagram_url" value={socials.instagram_url || ''} onChange={handleSocialChange} className="w-full p-2 border rounded-lg" />
+                         </div>
                     </div>
+                </AdminSection>
+
+
+                 <div className="flex justify-end sticky bottom-6 mt-8">
+                    <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-3 px-8 rounded-full hover:bg-blue-700 transition-colors shadow-lg disabled:bg-blue-400 disabled:cursor-not-allowed">
+                        {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                        <span>{isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}</span>
+                    </button>
                 </div>
+            </form>
         </div>
-        
-        <div className="flex justify-end sticky bottom-6 mt-8">
-            <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-3 px-8 rounded-full hover:bg-blue-700 transition-colors shadow-lg disabled:bg-blue-400 disabled:cursor-not-allowed">
-                {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                <span>{isSaving ? 'جاري الحفظ...' : 'حفظ كل التغييرات'}</span>
-            </button>
-        </div>
-      </form>
-    </div>
     );
 };
 

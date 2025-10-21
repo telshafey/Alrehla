@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, AlertCircle } from 'lucide-react';
-import { User } from '../../contexts/AdminContext.tsx';
+import type { UserProfile as User } from '../../contexts/AuthContext.tsx';
 
 interface EditUserModalProps {
     isOpen: boolean;

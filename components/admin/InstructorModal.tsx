@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
 import { Instructor } from '../../lib/database.types.ts';
+import { useModalAccessibility } from '../../hooks/useModalAccessibility.ts';
 
 // InstructorModal Component
 const InstructorModal: React.FC<{
@@ -19,70 +20,27 @@ const InstructorModal: React.FC<{
     const modalRef = useRef<HTMLDivElement>(null);
     const closeButtonRef = useRef<HTMLButtonElement>(null);
 
+    useModalAccessibility({ modalRef, isOpen, onClose, initialFocusRef: closeButtonRef });
+
     useEffect(() => {
-        if (instructor) {
-            setName(instructor.name);
-            setSpecialty(instructor.specialty || '');
-            setSlug(instructor.slug || '');
-            setBio(instructor.bio || '');
-            setPreview(instructor.avatar_url || null);
-        } else {
-            setName('');
-            setSpecialty('');
-            setSlug('');
-            setBio('');
-            setPreview(null);
+        if (isOpen) {
+            if (instructor) {
+                setName(instructor.name);
+                setSpecialty(instructor.specialty || '');
+                setSlug(instructor.slug || '');
+                setBio(instructor.bio || '');
+                setPreview(instructor.avatar_url || null);
+            } else {
+                setName('');
+                setSpecialty('');
+                setSlug('');
+                setBio('');
+                setPreview(null);
+            }
+            setAvatarFile(null);
         }
-        setAvatarFile(null);
     }, [instructor, isOpen]);
     
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                onClose();
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown);
-
-        const focusableElements = modalRef.current?.querySelectorAll(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (!focusableElements || focusableElements.length === 0) return;
-
-        const firstElement = focusableElements[0] as HTMLElement;
-        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-        
-        closeButtonRef.current?.focus();
-
-        const handleTabKeyPress = (event: KeyboardEvent) => {
-            if (event.key === 'Tab') {
-                if (event.shiftKey) { 
-                    if (document.activeElement === firstElement) {
-                        lastElement.focus();
-                        event.preventDefault();
-                    }
-                } else {
-                    if (document.activeElement === lastElement) {
-                        firstElement.focus();
-                        event.preventDefault();
-                    }
-                }
-            }
-        };
-        
-        const currentModalRef = modalRef.current;
-        currentModalRef?.addEventListener('keydown', handleTabKeyPress);
-
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-            currentModalRef?.removeEventListener('keydown', handleTabKeyPress);
-        };
-    }, [isOpen, onClose]);
-
-
     if (!isOpen) return null;
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

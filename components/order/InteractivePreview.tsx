@@ -1,7 +1,6 @@
 import React from 'react';
 import { Package, User, Palette, Sparkles } from 'lucide-react';
-// FIX: Added .tsx extension to the import of PersonalizedProduct from AdminContext to resolve module loading error.
-import { PersonalizedProduct } from '../../contexts/AdminContext.tsx';
+import { PersonalizedProduct } from '../../lib/database.types.ts';
 
 const storyGoals = [
     { key: 'respect', title: 'الاستئذان والاحترام' },
@@ -22,9 +21,12 @@ interface InteractivePreviewProps {
         customGoal: string;
     };
     product: PersonalizedProduct | null;
+    basePrice: number;
+    addons: { key: string; title: string; price: number }[];
+    totalPrice: number;
 }
 
-const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, product }) => {
+const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, product, basePrice, addons, totalPrice }) => {
     const { childName, childTraits, storyValue, customGoal } = formData;
     
     if (!product) {
@@ -47,22 +49,10 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, produ
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
             <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-3 border-b-2 border-blue-100 flex items-center gap-3">
                 <Package className="text-blue-500" />
-                معاينة طلبك
+                ملخص الطلب
             </h2>
 
             <div className="space-y-6">
-                <div>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                        <Package size={18} />
-                        المنتج المطلوب
-                    </h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="text-xl font-bold text-blue-600 text-center">
-                            {product.title}
-                        </p>
-                    </div>
-                </div>
-
                 <div>
                     <h3 className="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
                         <User size={18} />
@@ -98,8 +88,22 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, produ
                 )}
             </div>
 
-            <div className="mt-6 pt-4 border-t text-center text-sm text-gray-500">
-                <p>يتم تحديث الملخص تلقائياً أثناء ملء النموذج.</p>
+            <div className="mt-8 pt-6 border-t space-y-2">
+                <div className="flex justify-between items-center text-gray-600">
+                    <span>{product.title}</span>
+                    <span className="font-semibold">{basePrice} ج.م</span>
+                </div>
+                {addons.map(addon => (
+                    <div key={addon.key} className="flex justify-between items-center text-gray-600 animate-fadeIn">
+                        <span>+ {addon.title}</span>
+                        <span className="font-semibold">{addon.price} ج.م</span>
+                    </div>
+                ))}
+                <div className="border-t my-2"></div>
+                <div className="flex justify-between items-center text-xl font-bold text-gray-800">
+                    <span>الإجمالي</span>
+                    <span>{totalPrice} ج.م</span>
+                </div>
             </div>
         </div>
     );

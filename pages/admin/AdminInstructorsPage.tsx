@@ -1,20 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Users, Plus, Edit, X, Save, Loader2, Calendar, Check, XCircle } from 'lucide-react';
-// FIX: Corrected import path for useCreativeWritingAdmin.
-import { useCreativeWritingAdmin } from '../../contexts/admin/CreativeWritingAdminContext.tsx';
-// FIX: Added .tsx extension to AdminSection import to resolve module error.
+
+
+import React, { useState } from 'react';
+import { Users, Plus, Edit, Calendar, Check, XCircle } from 'lucide-react';
+import { useAdminInstructors } from '../../hooks/queries.ts';
+import { useAppMutations } from '../../hooks/mutations.ts';
 import AdminSection from '../../components/admin/AdminSection.tsx';
-// FIX: Added .tsx extension to PageLoader import to resolve module error.
 import PageLoader from '../../components/ui/PageLoader.tsx';
-// FIX: Added .tsx extension to AvailabilityManager import to resolve module error.
 import AvailabilityManager from '../../components/admin/AvailabilityManager.tsx';
-// FIX: Added .ts extension to resolve module error.
-import { WeeklySchedule, Instructor } from '../../lib/database.types.ts';
+import type { WeeklySchedule, Instructor } from '../../lib/database.types.ts';
 import InstructorModal from '../../components/admin/InstructorModal.tsx';
 
 // Main Page Component
 const AdminInstructorsPage: React.FC = () => {
-    const { instructors, loading, error, addInstructor, updateInstructor, approveInstructorSchedule, rejectInstructorSchedule } = useCreativeWritingAdmin();
+    const { data: instructors = [], isLoading, error } = useAdminInstructors();
+    const { createInstructor, updateInstructor, approveInstructorSchedule, rejectInstructorSchedule } = useAppMutations();
+    
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -24,18 +24,19 @@ const AdminInstructorsPage: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const handleSaveInstructor = async (details: { name: string; specialty: string; slug: string; bio: string; avatarFile: File | null; id?: number }) => {
+    const handleSaveInstructor = async (details: any) => {
         setIsSaving(true);
         try {
             if (details.id) {
-                await updateInstructor({ ...details, id: details.id });
+                // Correctly call the mutation function using `.mutateAsync`.
+                await updateInstructor.mutateAsync(details);
             } else {
-                await addInstructor(details);
+                // Correctly call the mutation function using `.mutateAsync`.
+                await createInstructor.mutateAsync(details);
             }
             setIsModalOpen(false);
         } catch(e) {
             // Error toast is handled in context
-            console.error(e);
         } finally {
             setIsSaving(false);
         }
@@ -43,8 +44,8 @@ const AdminInstructorsPage: React.FC = () => {
     
     const pendingSchedules = instructors.filter(i => i.schedule_status === 'pending');
 
-    if (loading) return <PageLoader text="جاري تحميل بيانات المدربين..." />;
-    if (error) return <div className="text-center text-red-500 text-lg bg-red-50 p-6 rounded-lg">{error}</div>;
+    if (isLoading) return <PageLoader text="جاري تحميل بيانات المدربين..." />;
+    if (error) return <div className="text-center text-red-500 text-lg bg-red-50 p-6 rounded-lg">{error.message}</div>;
 
     const dayNames = {
         sunday: 'الأحد',
@@ -55,7 +56,7 @@ const AdminInstructorsPage: React.FC = () => {
         friday: 'الجمعة',
         saturday: 'السبت',
     };
-
+    
     return (
         <>
             <InstructorModal 
@@ -83,14 +84,15 @@ const AdminInstructorsPage: React.FC = () => {
                                             <h3 className="font-bold text-gray-800">طلب جديد من: {instructor.name}</h3>
                                             <div className="text-sm text-gray-600 mt-2">
                                                 {Object.entries((instructor.weekly_schedule as WeeklySchedule) || {}).map(([day, times]) => (
-// FIX: Added Array.isArray check to prevent runtime error on `.join` if `times` is not an array.
                                                    (Array.isArray(times) && times.length > 0) && <p key={day}><span className="font-semibold">{dayNames[day as keyof typeof dayNames]}:</span> {times.join(', ')}</p>
                                                 ))}
                                             </div>
                                         </div>
                                         <div className="flex gap-2">
-                                            <button onClick={() => approveInstructorSchedule(instructor.id)} className="p-2 bg-green-100 text-green-700 rounded-full hover:bg-green-200"><Check size={20}/></button>
-                                            <button onClick={() => rejectInstructorSchedule(instructor.id)} className="p-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200"><XCircle size={20}/></button>
+                                            {/* Correctly call the mutation function using `.mutate`. */}
+                                            <button onClick={() => approveInstructorSchedule.mutate({instructorId: instructor.id})} className="p-2 bg-green-100 text-green-700 rounded-full hover:bg-green-200"><Check size={20}/></button>
+                                            {/* Correctly call the mutation function using `.mutate`. */}
+                                            <button onClick={() => rejectInstructorSchedule.mutate({instructorId: instructor.id})} className="p-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200"><XCircle size={20}/></button>
                                         </div>
                                     </div>
                                 </div>

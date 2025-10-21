@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -453,7 +452,6 @@ export interface Database {
           order_date?: string
           receipt_url?: string | null
           status?:
-// FIX: Corrected typo in status from "بانتظار الدفع" to "بانتظار الدفع"
             | "بانتظار الدفع"
             | "بانتظار المراجعة"
             | "قيد التجهيز"
@@ -577,6 +575,7 @@ export interface Database {
           child_id: number
           child_name: string
           created_at: string
+          details: Json | null
           id: string
           next_renewal_date: string
           price: number
@@ -589,6 +588,7 @@ export interface Database {
           child_id: number
           child_name: string
           created_at?: string
+          details?: Json | null
           id: string
           next_renewal_date: string
           price: number
@@ -601,6 +601,7 @@ export interface Database {
           child_id?: number
           child_name?: string
           created_at?: string
+          details?: Json | null
           id?: string
           next_renewal_date?: string
           price?: number
@@ -662,13 +663,14 @@ export interface Database {
           name: string
           role:
             | "user"
+            | "guardian"
             | "super_admin"
             | "enha_lak_supervisor"
             | "creative_writing_supervisor"
             | "instructor"
-            | "student"
             | "content_editor"
             | "support_agent"
+            | "student"
         }
         Insert: {
           created_at?: string
@@ -677,13 +679,14 @@ export interface Database {
           name: string
           role?:
             | "user"
+            | "guardian"
             | "super_admin"
             | "enha_lak_supervisor"
             | "creative_writing_supervisor"
             | "instructor"
-            | "student"
             | "content_editor"
             | "support_agent"
+            | "student"
         }
         Update: {
           created_at?: string
@@ -692,13 +695,14 @@ export interface Database {
           name?: string
           role?:
             | "user"
+            | "guardian"
             | "super_admin"
             | "enha_lak_supervisor"
             | "creative_writing_supervisor"
             | "instructor"
-            | "student"
             | "content_editor"
             | "support_agent"
+            | "student"
         }
         Relationships: [
           {
@@ -725,6 +729,7 @@ export interface Database {
   }
 }
 
+export type UserRole = Database["public"]["Tables"]["users"]["Row"]["role"];
 // Re-export specific types for convenience
 export type Order = Database['public']['Tables']['orders']['Row'];
 export type ChildProfile = Database['public']['Tables']['child_profiles']['Row'];
@@ -747,12 +752,21 @@ export type OrderDetailsJson = {
     childAge: string;
     childGender: 'ذكر' | 'أنثى';
     familyNames?: string;
+    friendNames?: string;
     childTraits?: string;
     storyValue?: string;
     customGoal?: string;
     deliveryType?: 'printed' | 'electronic';
+    shippingOption?: 'my_address' | 'gift';
     governorate?: string;
+    giftDetails?: {
+        name: string;
+        address: string;
+        phone: string;
+    };
     images?: { [key: string]: string };
     products?: string;
     shipping?: any;
 };
+
+export type UserOrder = Order & { child_profiles: { name: string } | null };

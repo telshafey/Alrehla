@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Loader2, Upload, Link as LinkIcon, AlertCircle } from 'lucide-react';
-import { useAdmin } from '../contexts/AdminContext';
-import { useToast } from '../contexts/ToastContext';
-
-const PAYMENT_LINK = 'https://ipn.eg/S/gm2000/instapay/0dqErO';
+import { useAppMutations } from '../hooks/mutations.ts';
+import { useToast } from '../contexts/ToastContext.tsx';
+import { useModalAccessibility } from '../hooks/useModalAccessibility.ts';
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  item: { id: string; type: 'order' | 'booking' } | null;
+  item: { id: string; type: 'order' | 'booking' | 'subscription' } | null;
 }
 
 const FileUpload: React.FC<{ file: File | null; setFile: (file: File | null) => void; disabled?: boolean }> = ({ file, setFile, disabled }) => {
@@ -45,65 +44,21 @@ const FileUpload: React.FC<{ file: File | null; setFile: (file: File | null) => 
 
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess, item }) => {
-  const { updateReceipt } = useAdmin();
+  const { updateReceipt } = useAppMutations();
   const { addToast } = useToast();
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
+  useModalAccessibility({ modalRef, isOpen, onClose, initialFocusRef: closeButtonRef });
 
   useEffect(() => {
-    setReceiptFile(null);
-    setIsSubmitting(false);
+    if (isOpen) {
+        setReceiptFile(null);
+        setIsSubmitting(false);
+    }
   }, [isOpen]);
-  
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === 'Escape') {
-            onClose();
-        }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    const focusableElements = modalRef.current?.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    if (!focusableElements || focusableElements.length === 0) return;
-
-    const firstElement = focusableElements[0] as HTMLElement;
-    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-    
-    closeButtonRef.current?.focus();
-
-    const handleTabKeyPress = (event: KeyboardEvent) => {
-        if (event.key === 'Tab') {
-            if (event.shiftKey) { 
-                if (document.activeElement === firstElement) {
-                    lastElement.focus();
-                    event.preventDefault();
-                }
-            } else {
-                if (document.activeElement === lastElement) {
-                    firstElement.focus();
-                    event.preventDefault();
-                }
-            }
-        }
-    };
-    
-    const currentModalRef = modalRef.current;
-    currentModalRef?.addEventListener('keydown', handleTabKeyPress);
-
-    return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        currentModalRef?.removeEventListener('keydown', handleTabKeyPress);
-    };
-  }, [isOpen, onClose]);
-
 
   if (!isOpen || !item) return null;
 
@@ -115,17 +70,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
     
     setIsSubmitting(true);
     try {
-        // FIX: The updateReceipt function expects a single object payload.
-        await updateReceipt({
+        // Correctly call the mutation function using `.mutateAsync`.
+        await updateReceipt.mutateAsync({
             itemId: item.id,
             itemType: item.type,
             receiptFile
         });
-        addToast('تم رفع الإيصال بنجاح! طلبك قيد المراجعة الآن.', 'success');
         onSuccess();
     } catch (error: any) {
-        addToast(`حدث خطأ: ${error.message}`, 'error');
-        console.error("Payment confirmation error:", error);
+        // Error toast handled in hook
     } finally {
         setIsSubmitting(false);
     }
@@ -146,7 +99,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
 
         <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg space-y-4">
             <p className="font-semibold text-gray-700">1. قم بالدفع عبر الرابط التالي:</p>
-            <a href={PAYMENT_LINK} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-full hover:bg-blue-700 transition-colors">
+            <a href={'https://ipn.eg/S/gm2000/instapay/0dqErO'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-full hover:bg-blue-700 transition-colors">
                 <LinkIcon size={18} />
                 <span>افتح رابط الدفع</span>
             </a>

@@ -1,3 +1,5 @@
+
+
 import { GoogleGenAI, Type, Content } from "@google/genai";
 
 export const config = {
@@ -20,60 +22,51 @@ const responseSchema = {
     },
     suggestedProductKey: {
       type: Type.STRING,
-      description: `The unique key of a product to suggest from the list. Must be one of [${productDetails.map(p => `'${p.key}'`).join(', ')}]. Should be an empty string "" if no specific product is relevant.`
+      description: `The unique key of a product to suggest from the list. Can be null. Must be one of [${productDetails.map(p => `'${p.key}'`).join(', ')}, 'creative_writing_booking']`
     }
   },
-  required: ['responseText', 'suggestedProductKey']
+  required: ['responseText']
 };
 
 export default async function handler(request: Request) {
   if (request.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
+      status: 405, headers: { 'Content-Type': 'application/json' }
     });
   }
 
   try {
     const { history, systemInstruction } = await request.json();
 
-    if (!history || !Array.isArray(history)) {
-      return new Response(JSON.stringify({ error: 'Chat history is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    
-    if (!systemInstruction || typeof systemInstruction !== 'string') {
-        return new Response(JSON.stringify({ error: 'System instruction is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
+    if (!history) {
+      return new Response(JSON.stringify({ error: 'History is required' }), {
+        status: 400, headers: { 'Content-Type': 'application/json' }
       });
     }
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
+    
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: history,
-      config: {
-        systemInstruction: systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-      }
+        model: 'gemini-2.5-flash',
+        contents: history as Content[],
+        config: {
+            systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: responseSchema,
+        },
     });
 
-    const responseJson = JSON.parse(response.text.trim());
+    const resultJson = JSON.parse(response.text.trim());
 
-    return new Response(JSON.stringify(responseJson), {
+    return new Response(JSON.stringify(resultJson), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
-    console.error("API Error:", err);
+    console.error("Chat API Error:", err);
     const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
-    return new Response(JSON.stringify({ error: 'Failed to get response from AI model.', details: errorMessage }), {
+    return new Response(JSON.stringify({ error: 'Failed to get response from AI.', details: errorMessage }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

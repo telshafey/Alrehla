@@ -1,289 +1,150 @@
-import React, { useState, useEffect } from 'react';
-// FIX: Replaced namespace import with a named import for 'react-router-dom' to resolve module resolution errors.
-import { useNavigate } from 'react-router-dom';
-import { Save, Calendar, CheckSquare, Package, Settings, Loader2, Video, Eye, Plus } from 'lucide-react';
-import { useCreativeWritingAdmin, CreativeWritingPackage, CreativeWritingBooking, AdditionalService } from '../../contexts/admin/CreativeWritingAdminContext.tsx';
-// FIX: Added .ts extension to resolve module error.
-import { getStatusColor } from '../../utils/helpers.ts';
-import AdminSection from '../../components/admin/AdminSection';
-import PageLoader from '../../components/ui/PageLoader';
-import { useToast } from '../../contexts/ToastContext.tsx';
-// FIX: Added .ts extension to resolve module error.
-import { Instructor } from '../../lib/database.types.ts';
+
+
+import React, { useState, useMemo } from 'react';
+import { CheckSquare, Eye, Search, User } from 'lucide-react';
+import { useAdminCwBookings } from '../../hooks/queries.ts';
+import { useAppMutations } from '../../hooks/mutations.ts';
+import PageLoader from '../../components/ui/PageLoader.tsx';
+import AdminSection from '../../components/admin/AdminSection.tsx';
+import { formatDate, getStatusColor } from '../../utils/helpers.ts';
 import BookingDetailsModal from '../../components/admin/BookingDetailsModal.tsx';
-import CWSettingsModal from '../../components/admin/CWSettingsModal.tsx';
+import StudentProgressModal from '../../components/admin/StudentProgressModal.tsx';
+import type { CreativeWritingBooking } from '../../lib/database.types.ts';
 
-
-const bookingStatusOptions: CreativeWritingBooking['status'][] = ['بانتظار الدفع', 'بانتظار المراجعة', 'مؤكد', 'مكتمل', 'ملغي'];
+interface Student {
+    id: string;
+    name: string;
+    bookings: CreativeWritingBooking[];
+    lastProgressNote: string | null;
+}
 
 const AdminCreativeWritingPage: React.FC = () => {
-    const { 
-        creativeWritingPackages, updateCreativeWritingPackages, addCreativeWritingPackage,
-        creativeWritingBookings, updateBookingStatus, generateAndSetSessionId,
-        additionalServices, updateAdditionalServices, addAdditionalService,
-        loading, error
-    } = useCreativeWritingAdmin();
-    const navigate = useNavigate();
-    const { addToast } = useToast();
+    const { data: bookings = [], isLoading, error } = useAdminCwBookings();
+    const { updateBookingStatus } = useAppMutations();
 
-    const [editablePackages, setEditablePackages] = useState<CreativeWritingPackage[]>([]);
-    const [editableServices, setEditableServices] = useState<AdditionalService[]>([]);
-    const [isSavingPackages, setIsSavingPackages] = useState(false);
-    const [isSavingServices, setIsSavingServices] = useState(false);
-    const [startingSession, setStartingSession] = useState<string | null>(null);
     const [selectedBooking, setSelectedBooking] = useState<CreativeWritingBooking | null>(null);
-    const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-    
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-    const [modalItemType, setModalItemType] = useState<'package' | 'service' | null>(null);
-    const [isSavingModal, setIsSavingModal] = useState(false);
+    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
 
-
-    useEffect(() => {
-        setEditablePackages(JSON.parse(JSON.stringify(creativeWritingPackages)));
-    }, [creativeWritingPackages]);
-    
-    useEffect(() => {
-        setEditableServices(JSON.parse(JSON.stringify(additionalServices)));
-    }, [additionalServices]);
-
-    const handlePackageChange = (index: number, field: keyof CreativeWritingPackage, value: string | number | string[] | boolean) => {
-        const newPackages = [...editablePackages];
-        const currentPackage = newPackages[index];
-        if (!currentPackage) return;
-
-        if(field === 'features' && typeof value === 'string') {
-            currentPackage.features = value.split(',').map(f => f.trim());
-        } else if (field === 'price' && typeof value === 'string') {
-             currentPackage.price = Number(value);
-        } else {
-            (currentPackage as any)[field] = value;
-        }
-        setEditablePackages(newPackages);
-    };
-
-    const handleServiceChange = (index: number, field: keyof AdditionalService, value: string | number) => {
-        const newServices = [...editableServices];
-        const currentService = newServices[index];
-        if (!currentService) return;
-
-        if (field === 'price' && typeof value === 'string') {
-            currentService.price = Number(value);
-        } else {
-             (currentService as any)[field] = value;
-        }
-        setEditableServices(newServices);
-    };
-
-    const handleBookingStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>, bookingId: string, currentStatus: CreativeWritingBooking['status']) => {
-        const newStatus = e.target.value as CreativeWritingBooking['status'];
-
-        if (newStatus === 'ملغي') {
-            const confirmed = window.confirm('هل أنت متأكد من رغبتك في إلغاء هذا الحجز؟ هذا الإجراء لا يمكن التراجع عنه.');
-            if (confirmed) {
-                await updateBookingStatus(bookingId, newStatus);
-            } else {
-                e.target.value = currentStatus;
-            }
-        } else {
-            await updateBookingStatus(bookingId, newStatus);
-        }
-    };
-
-    const handleSavePackages = async () => {
-        setIsSavingPackages(true);
-        await updateCreativeWritingPackages(editablePackages);
-        setIsSavingPackages(false);
-    };
-    
-    const handleSaveServices = async () => {
-        setIsSavingServices(true);
-        await updateAdditionalServices(editableServices);
-        setIsSavingServices(false);
-    };
-    
-    const handleOpenSettingsModal = (type: 'package' | 'service') => {
-        setModalItemType(type);
-        setIsSettingsModalOpen(true);
-    };
-
-    const handleSaveFromModal = async (payload: any) => {
-        setIsSavingModal(true);
-        try {
-            if (modalItemType === 'package') {
-                await addCreativeWritingPackage(payload);
-            } else if (modalItemType === 'service') {
-                await addAdditionalService(payload);
-            }
-            setIsSettingsModalOpen(false);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setIsSavingModal(false);
-        }
-    };
-    
-    const handleViewBooking = (booking: CreativeWritingBooking) => {
+    const handleViewDetails = (booking: CreativeWritingBooking) => {
         setSelectedBooking(booking);
-        setIsBookingModalOpen(true);
+        setIsDetailsModalOpen(true);
+    };
+    
+    const handleViewProgress = (student: Student) => {
+        setSelectedStudent(student);
+        setIsProgressModalOpen(true);
     };
 
-    const handleStartSession = async (booking: CreativeWritingBooking) => {
-        setStartingSession(booking.id);
-        if (booking.session_id) {
-            addToast('جاري الانضمام للجلسة الحالية...', 'info');
-            navigate(`/session/${booking.session_id}`);
-            return;
-        }
-        
-        const newSessionId = await generateAndSetSessionId(booking.id);
-        if (newSessionId) {
-            addToast('تم إنشاء رابط الجلسة، جاري التوجيه...', 'success');
-            navigate(`/session/${newSessionId}`);
-        }
-        setStartingSession(null);
-    };
+    const students = useMemo<Student[]>(() => {
+        const studentMap = new Map<string, Student>();
+        bookings.forEach(booking => {
+            if (!booking.child_profiles) return;
+            const studentId = booking.child_id.toString();
+            const studentName = booking.child_profiles.name;
+            if (!studentMap.has(studentId)) {
+                studentMap.set(studentId, { id: studentId, name: studentName, bookings: [], lastProgressNote: null });
+            }
+            const student = studentMap.get(studentId)!;
+            student.bookings.push(booking);
+            if (booking.progress_notes) {
+                student.lastProgressNote = booking.progress_notes;
+            }
+        });
+        return Array.from(studentMap.values());
+    }, [bookings]);
 
-    if (loading) {
-        return <PageLoader text="جاري تحميل بيانات البرنامج..." />;
-    }
+    const filteredBookings = useMemo(() => {
+        return bookings
+            .filter(b => {
+                if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+                if (searchTerm && !b.user_name.includes(searchTerm) && !(b as any).child_profiles?.name.includes(searchTerm)) return false;
+                return true;
+            })
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    }, [bookings, searchTerm, statusFilter]);
 
-    if (error) {
-        return <div className="text-center text-red-500 text-lg bg-red-50 p-6 rounded-lg">{error}</div>;
-    }
+    const bookingStatuses: CreativeWritingBooking['status'][] = ["بانتظار الدفع", "بانتظار المراجعة", "مؤكد", "مكتمل", "ملغي"];
+
+    if (isLoading) return <PageLoader text="جاري تحميل الحجوزات..." />;
+    if (error) return <div className="text-center text-red-500">{error.message}</div>;
 
     return (
         <>
-            <BookingDetailsModal 
-                isOpen={isBookingModalOpen}
-                onClose={() => setIsBookingModalOpen(false)}
-                booking={selectedBooking}
-            />
-             <CWSettingsModal
-                isOpen={isSettingsModalOpen}
-                onClose={() => setIsSettingsModalOpen(false)}
-                onSave={handleSaveFromModal}
-                isSaving={isSavingModal}
-                itemType={modalItemType!}
-            />
+            <BookingDetailsModal isOpen={isDetailsModalOpen} onClose={() => setIsDetailsModalOpen(false)} booking={selectedBooking} />
+            <StudentProgressModal isOpen={isProgressModalOpen} onClose={() => setIsProgressModalOpen(false)} student={selectedStudent} />
             <div className="animate-fadeIn space-y-12">
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة برنامج "بداية الرحلة"</h1>
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة حجوزات "بداية الرحلة"</h1>
                 
-                <AdminSection title="إدارة الباقات والخدمات" icon={<Package />}>
-                    <div className="space-y-6">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-gray-700">الباقات الرئيسية</h3>
-                            <button onClick={() => handleOpenSettingsModal('package')} className="flex items-center gap-2 text-sm bg-blue-100 text-blue-700 font-semibold px-3 py-1 rounded-full hover:bg-blue-200">
-                                <Plus size={16}/> إضافة باقة
-                            </button>
-                        </div>
-                        {editablePackages.map((pkg, index) => (
-                            <div key={pkg.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center p-4 bg-gray-50 rounded-lg border">
-                                <input type="text" value={pkg.name} onChange={(e) => handlePackageChange(index, 'name', e.target.value)} placeholder="اسم الباقة" className="md:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                                <input type="text" value={pkg.sessions} onChange={(e) => handlePackageChange(index, 'sessions', e.target.value)} placeholder="الجلسات" className="md:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                                <div className="md:col-span-2 relative">
-                                    <input type="number" value={pkg.price} onChange={(e) => handlePackageChange(index, 'price', e.target.value)} placeholder="السعر" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">ج.م</span>
+                <AdminSection title="الطلاب" icon={<User />}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {students.map(student => (
+                            <div key={student.id} className="p-4 bg-gray-50 rounded-lg border flex justify-between items-center">
+                                <div>
+                                    <p className="font-bold">{student.name}</p>
+                                    <p className="text-xs text-gray-500">{student.bookings.length} حجوزات</p>
                                 </div>
-                                <textarea value={(pkg.features || []).join(', ')} onChange={(e) => handlePackageChange(index, 'features', e.target.value)} placeholder="الميزات (افصل بينها بفاصلة)" className="md:col-span-4 w-full px-3 py-2 border border-gray-300 rounded-lg" rows={1}></textarea>
-                                <label className="md:col-span-2 flex items-center justify-center gap-2 cursor-pointer text-sm">
-                                    <input type="checkbox" checked={pkg.popular || false} onChange={(e) => handlePackageChange(index, 'popular', e.target.checked)} className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" />
-                                    <span>الأكثر شيوعاً</span>
-                                </label>
+                                <button onClick={() => handleViewProgress(student)} className="text-sm font-semibold text-blue-600 hover:underline">متابعة التقدم</button>
                             </div>
                         ))}
-                         <div className="mt-4 flex justify-end">
-                            <button onClick={handleSavePackages} disabled={isSavingPackages} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-6 rounded-full hover:bg-blue-700 transition-colors shadow-lg disabled:bg-blue-400 disabled:cursor-not-allowed">
-                                {isSavingPackages ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                                <span>{isSavingPackages ? 'جاري الحفظ...' : 'حفظ تغييرات الباقات'}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="space-y-4 mt-8">
-                         <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-gray-700">الخدمات الإضافية</h3>
-                            <button onClick={() => handleOpenSettingsModal('service')} className="flex items-center gap-2 text-sm bg-blue-100 text-blue-700 font-semibold px-3 py-1 rounded-full hover:bg-blue-200">
-                                <Plus size={16}/> إضافة خدمة
-                            </button>
-                        </div>
-                        {editableServices.map((service, index) => (
-                            <div key={service.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 items-center p-4 bg-gray-50 rounded-lg border">
-                                <input type="text" value={service.name} onChange={(e) => handleServiceChange(index, 'name', e.target.value)} placeholder="اسم الخدمة" className="md:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                                <div className="md:col-span-1 relative">
-                                    <input type="number" value={service.price} onChange={(e) => handleServiceChange(index, 'price', e.target.value)} placeholder="السعر" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">ج.م</span>
-                                </div>
-                                <input type="text" value={service.description || ''} onChange={(e) => handleServiceChange(index, 'description', e.target.value)} placeholder="وصف الخدمة" className="md:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                            </div>
-                        ))}
-                         <div className="mt-4 flex justify-end">
-                            <button onClick={handleSaveServices} disabled={isSavingServices} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-6 rounded-full hover:bg-blue-700 transition-colors shadow-lg disabled:bg-blue-400 disabled:cursor-not-allowed">
-                                {isSavingServices ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                                <span>{isSavingServices ? 'جاري الحفظ...' : 'حفظ تغييرات الخدمات'}</span>
-                            </button>
-                        </div>
                     </div>
                 </AdminSection>
 
-                <AdminSection title="إدارة الحجوزات" icon={<CheckSquare />}>
+                <AdminSection title="جميع الحجوزات" icon={<CheckSquare />}>
+                    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                        <input
+                            type="text"
+                            placeholder="ابحث بالاسم..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full p-2 border rounded-full bg-gray-50"
+                        />
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="w-full sm:w-48 p-2 border rounded-full bg-gray-50"
+                        >
+                            <option value="all">كل الحالات</option>
+                            {bookingStatuses.map(status => <option key={status} value={status}>{status}</option>)}
+                        </select>
+                    </div>
+
                     <div className="overflow-x-auto">
                         <table className="w-full text-right">
-                            <thead className="border-b-2 border-gray-200">
+                            <thead className="border-b-2">
                                 <tr>
-                                    <th className="py-3 px-4 font-semibold text-gray-600">المستخدم</th>
-                                    <th className="py-3 px-4 font-semibold text-gray-600">المدرب</th>
-                                    <th className="py-3 px-4 font-semibold text-gray-600">التاريخ والوقت</th>
-                                    <th className="py-3 px-4 font-semibold text-gray-600">الباقة</th>
-                                    <th className="py-3 px-4 font-semibold text-gray-600">الحالة</th>
-                                    <th className="py-3 px-4 font-semibold text-gray-600">الجلسة</th>
-                                    <th className="py-3 px-4 font-semibold text-gray-600">تفاصيل</th>
+                                    <th className="p-3">الطفل</th>
+                                    <th className="p-3">الباقة</th>
+                                    <th className="p-3">تاريخ الجلسة</th>
+                                    <th className="p-3">الحالة</th>
+                                    <th className="p-3">إجراءات</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {creativeWritingBookings.length > 0 ? (
-                                    creativeWritingBookings.map(booking => {
-                                        const instructor = (booking as any).instructors;
-                                        return (
-                                            <tr key={booking.id} className="border-b hover:bg-gray-50">
-                                                <td className="py-4 px-4 font-medium text-gray-800">{booking.user_name}</td>
-                                                <td className="py-4 px-4 text-gray-600">{instructor?.name || 'غير محدد'}</td>
-                                                <td className="py-4 px-4 text-gray-600">{booking.booking_date} - {booking.booking_time}</td>
-                                                <td className="py-4 px-4 text-gray-600">{booking.package_name}</td>
-                                                <td className="py-4 px-4">
-                                                    <select 
-                                                        value={booking.status}
-                                                        onChange={(e) => handleBookingStatusChange(e, booking.id, booking.status)}
-                                                        className={`border-0 rounded-full text-xs font-bold px-3 py-1 appearance-none ${getStatusColor(booking.status)}`}
-                                                    >
-                                                    {bookingStatusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                                    </select>
-                                                </td>
-                                                <td className="py-4 px-4">
-                                                <button
-                                                    onClick={() => handleStartSession(booking)}
-                                                    disabled={booking.status !== 'مؤكد' || startingSession === booking.id}
-                                                    className="flex items-center gap-2 text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full hover:bg-green-200 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
-                                                    >
-                                                    {startingSession === booking.id ? <Loader2 size={16} className="animate-spin" /> : <Video size={16} />}
-                                                    <span>{booking.session_id ? 'الانضمام للجلسة' : 'بدء الجلسة'}</span>
-                                                    </button>
-                                                </td>
-                                                <td className="py-4 px-4">
-                                                    <button onClick={() => handleViewBooking(booking)} className="text-gray-500 hover:text-blue-600">
-                                                        <Eye size={20} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })
-                                ) : (
-                                    <tr>
-                                        <td colSpan={7} className="text-center py-8 text-gray-500">
-                                            لا توجد حجوزات حاليًا.
+                                {filteredBookings.map(b => (
+                                    <tr key={b.id} className="border-b hover:bg-gray-50">
+                                        <td className="p-3 font-semibold">{(b as any).child_profiles?.name || 'غير محدد'}</td>
+                                        <td className="p-3">{b.package_name}</td>
+                                        <td className="p-3">{formatDate(b.booking_date)} - {b.booking_time}</td>
+                                        <td className="p-3">
+                                            <select 
+                                                value={b.status} 
+                                                // Correctly call the mutation function using `.mutate`.
+                                                onChange={(e) => updateBookingStatus.mutate({ bookingId: b.id, newStatus: e.target.value as CreativeWritingBooking['status'] })}
+                                                className={`p-1 text-xs font-bold rounded-full border-2 bg-transparent ${getStatusColor(b.status)}`}
+                                                style={{ WebkitAppearance: 'none', appearance: 'none', paddingRight: '1.5rem' }}
+                                             >
+                                                {bookingStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                        </td>
+                                        <td className="p-3">
+                                            <button onClick={() => handleViewDetails(b)}><Eye size={20} /></button>
                                         </td>
                                     </tr>
-                                )}
+                                ))}
                             </tbody>
                         </table>
                     </div>

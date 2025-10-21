@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, Image as ImageIcon } from 'lucide-react';
 import { PersonalizedProduct } from '../../lib/database.types.ts';
+import { useModalAccessibility } from '../../hooks/useModalAccessibility.ts';
 
 interface ProductModalProps {
     isOpen: boolean;
@@ -19,24 +20,29 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const modalRef = useRef<HTMLDivElement>(null);
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+    useModalAccessibility({ modalRef, isOpen, onClose, initialFocusRef: closeButtonRef });
 
     useEffect(() => {
-        if (product) {
-            setTitle(product.title);
-            setKey(product.key);
-            setDescription(product.description || '');
-            setFeatures((product.features || []).join('\n'));
-            setSortOrder((product.sort_order || 99).toString());
-            setPreview(product.image_url);
-        } else {
-            setTitle('');
-            setKey('');
-            setDescription('');
-            setFeatures('');
-            setSortOrder('99');
-            setPreview(null);
+        if (isOpen) {
+            if (product) {
+                setTitle(product.title);
+                setKey(product.key);
+                setDescription(product.description || '');
+                setFeatures((product.features || []).join('\n'));
+                setSortOrder((product.sort_order || 99).toString());
+                setPreview(product.image_url);
+            } else {
+                setTitle('');
+                setKey('');
+                setDescription('');
+                setFeatures('');
+                setSortOrder('99');
+                setPreview(null);
+            }
+            setImageFile(null);
         }
-        setImageFile(null);
     }, [product, isOpen]);
 
     if (!isOpen) return null;
@@ -80,11 +86,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center" onClick={onClose}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
             <div ref={modalRef} className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8 m-4 animate-fadeIn max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">{product ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+                    <h2 id="product-modal-title" className="text-2xl font-bold text-gray-800">{product ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h2>
+                    <button ref={closeButtonRef} onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>

@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-// FIX: Replaced namespace import with named import for 'react-router-dom' to resolve module resolution errors.
 import { Link } from 'react-router-dom';
-// FIX: Replaced non-existent 'PackageSelect' icon with 'Package'.
 import { Target, Book, Users, ArrowLeft, Calendar, CheckCircle, Package, CalendarCheck, Sparkles, Quote, Star, Award, HeartHandshake } from 'lucide-react';
-// FIX: Added .tsx extension to ShareButtons import to resolve module loading error.
 import ShareButtons from '../components/shared/ShareButtons.tsx';
 import TestimonialCard from '../components/shared/TestimonialCard.tsx';
 import HowItWorksStep from '../components/shared/HowItWorksStep.tsx';

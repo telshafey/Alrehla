@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-// FIX: Added .ts extension to resolve module error.
 import { Instructor, AvailableSlots } from '../lib/database.types.ts';
-// FIX: Added .ts extension to resolve module error.
 import { daysInMonth, firstDayOfMonth } from '../utils/helpers.ts';
 
 interface BookingCalendarProps {

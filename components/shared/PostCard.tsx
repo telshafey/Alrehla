@@ -35,4 +35,4 @@ const PostCard: React.FC<{ post: BlogPost }> = ({ post }) => {
     );
 };
 
-export default PostCard;
+export default React.memo(PostCard);

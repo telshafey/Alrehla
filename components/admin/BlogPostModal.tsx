@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, Image as ImageIcon } from 'lucide-react';
-// FIX: Added .ts extension to resolve module error.
 import { BlogPost } from '../../lib/database.types.ts';
+import { useModalAccessibility } from '../../hooks/useModalAccessibility.ts';
 
 interface BlogPostModalProps {
     isOpen: boolean;
@@ -30,72 +30,28 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({ isOpen, onClose, onSave, 
     const modalRef = useRef<HTMLDivElement>(null);
     const closeButtonRef = useRef<HTMLButtonElement>(null);
 
+    useModalAccessibility({ modalRef, isOpen, onClose, initialFocusRef: closeButtonRef });
 
     useEffect(() => {
-        if (post) {
-            setTitle(post.title);
-            setSlug(post.slug);
-            setContent(post.content);
-            setAuthorName(post.author_name);
-            setStatus(post.status);
-            setPreview(post.image_url);
-        } else {
-            setTitle('');
-            setSlug('');
-            setContent('');
-            setAuthorName('فريق المنصة');
-            setStatus('draft');
-            setPreview(null);
+        if (isOpen) {
+            if (post) {
+                setTitle(post.title);
+                setSlug(post.slug);
+                setContent(post.content);
+                setAuthorName(post.author_name);
+                setStatus(post.status);
+                setPreview(post.image_url);
+            } else {
+                setTitle('');
+                setSlug('');
+                setContent('');
+                setAuthorName('فريق المنصة');
+                setStatus('draft');
+                setPreview(null);
+            }
+            setImageFile(null);
         }
-        setImageFile(null);
     }, [post, isOpen]);
-
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                onClose();
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown);
-
-        const focusableElements = modalRef.current?.querySelectorAll(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (!focusableElements || focusableElements.length === 0) return;
-
-        const firstElement = focusableElements[0] as HTMLElement;
-        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-        
-        closeButtonRef.current?.focus();
-
-        const handleTabKeyPress = (event: KeyboardEvent) => {
-            if (event.key === 'Tab') {
-                if (event.shiftKey) { 
-                    if (document.activeElement === firstElement) {
-                        lastElement.focus();
-                        event.preventDefault();
-                    }
-                } else {
-                    if (document.activeElement === lastElement) {
-                        firstElement.focus();
-                        event.preventDefault();
-                    }
-                }
-            }
-        };
-        
-        const currentModalRef = modalRef.current;
-        currentModalRef?.addEventListener('keydown', handleTabKeyPress);
-
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-            currentModalRef?.removeEventListener('keydown', handleTabKeyPress);
-        };
-    }, [isOpen, onClose]);
-
 
     if (!isOpen) return null;
 

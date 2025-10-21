@@ -19,4 +19,4 @@ const TestimonialCard: React.FC<{ quote: string, author: string, role: string }>
     </div>
 );
 
-export default TestimonialCard;
+export default React.memo(TestimonialCard);

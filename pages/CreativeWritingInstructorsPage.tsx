@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-// FIX: Replaced namespace import with a named import for 'react-router-dom' to resolve module resolution errors.
 import { Link } from 'react-router-dom';
 import { Users, Loader2 } from 'lucide-react';
-// FIX: Corrected import path for useCreativeWritingAdmin.
-import { useCreativeWritingAdmin } from '../contexts/admin/CreativeWritingAdminContext';
+import { usePublicData } from '../hooks/queries.ts';
+import type { Instructor } from '../lib/database.types.ts';
 
-const InstructorCard: React.FC<{ instructor: any }> = ({ instructor }) => {
+const InstructorCard: React.FC<{ instructor: Instructor }> = ({ instructor }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     return (
         <div className="bg-white rounded-2xl p-6 text-center border flex flex-col items-center transform hover:-translate-y-2 transition-transform duration-300 shadow-lg">
@@ -32,7 +31,8 @@ const InstructorCard: React.FC<{ instructor: any }> = ({ instructor }) => {
 };
 
 const CreativeWritingInstructorsPage: React.FC = () => {
-    const { instructors, loading, error } = useCreativeWritingAdmin();
+    const { data, isLoading, error } = usePublicData();
+    const instructors = data?.instructors || [];
 
     return (
          <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
@@ -44,10 +44,10 @@ const CreativeWritingInstructorsPage: React.FC = () => {
                     </p>
                 </div>
 
-                {loading ? (
+                {isLoading ? (
                     <div className="flex justify-center items-center"><Loader2 className="w-12 h-12 animate-spin text-blue-500" /></div>
                 ) : error ? (
-                    <div className="text-center text-red-500 text-lg bg-red-50 p-6 rounded-lg">{error}</div>
+                    <div className="text-center text-red-500 text-lg bg-red-50 p-6 rounded-lg">{error.message}</div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {instructors.map(instructor => (

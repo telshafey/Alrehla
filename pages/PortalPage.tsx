@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Feather, Target, ArrowLeft } from 'lucide-react';
 import { useProduct } from '../contexts/ProductContext.tsx';
-import { useAdmin } from '../contexts/AdminContext.tsx';
+import { usePublicData } from '../hooks/queries.ts';
 import TestimonialCard from '../components/shared/TestimonialCard.tsx';
 import PostCard from '../components/shared/PostCard.tsx';
+import PageLoader from '../components/ui/PageLoader.tsx';
 
 // --- Hero Section ---
 const HeroSection: React.FC<{ backgroundUrl: string | null }> = ({ backgroundUrl }) => (
@@ -18,7 +19,7 @@ const HeroSection: React.FC<{ backgroundUrl: string | null }> = ({ backgroundUrl
                 منصة الرحلة، حيث نحول طفلك إلى بطل قصته في "إنها لك"، ونصقل موهبته ليصبح مبدع عوالمه في "بداية الرحلة".
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fadeIn" style={{ animationDelay: '0.4s' }}>
-                <Link to="/enha-lak/store" className="px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-lg">
+                <Link to="/enha-lak" className="px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-lg">
                     اكتشف قصص "إنها لك"
                 </Link>
                 <Link to="/creative-writing" className="px-8 py-3 border border-gray-300 text-base font-medium rounded-full text-purple-600 bg-white hover:bg-gray-100 transition-transform transform hover:scale-105 shadow-lg">
@@ -65,7 +66,7 @@ const ProjectsSection: React.FC<{ branding: any }> = ({ branding }) => (
                 <ProjectCard
                     title='قصص "إنها لك"'
                     description="عندما يرى طفلك نفسه بطلاً، فإنه لا يقرأ قصة، بل يعيشها. تجربة سحرية تبني ثقته بنفسه وتعزز هويته."
-                    link="/enha-lak/store"
+                    link="/enha-lak"
                     imageUrl={branding?.heroImageUrl}
                     icon={<BookOpen size={32} />}
                 />
@@ -93,7 +94,9 @@ const AboutSection: React.FC<{ branding: any; content: any }> = ({ branding, con
                         <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-6 flex items-center gap-3">
                             <Target className="text-blue-500" /> رسالتنا
                         </h2>
-                        <p className="text-lg text-gray-600 leading-relaxed mb-8">{content?.intro_text}</p>
+                        <p className="text-lg text-gray-600 leading-relaxed mb-8">
+                            بدأت رحلتنا من سؤال بسيط: كيف نجعل أطفالنا يحبون اللغة العربية وينتمون لقصصها؟ فكان الجواب في إنشاء منصة لا تقدم محتوىً تعليمياً فحسب، بل تصنع تجارب سحرية تبقى في ذاكرة الطفل وتساهم في بناء شخصيته، لتكون الرفيق الأمين في رحلته من بطل يكتشف ذاته في قصص 'إنها لك'، إلى مبدع يصنع عوالمه الخاصة في برنامج 'بداية الرحلة'.
+                        </p>
                         <Link to="/about" className="px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-lg">
                             تعرف علينا أكثر
                         </Link>
@@ -169,7 +172,7 @@ const FinalCtaSection: React.FC = () => (
           <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">هل أنت جاهز لبدء الرحلة؟</h2>
           <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">اختر المسار الذي يناسب طفلك اليوم وافتح له بابًا جديدًا من الخيال والمعرفة.</p>
            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link to="/enha-lak/store" className="px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-lg">
+                <Link to="/enha-lak" className="px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-lg">
                     تصفح منتجات "إنها لك"
                 </Link>
                 <Link to="/creative-writing/booking" className="px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-purple-600 hover:bg-purple-700 transition-transform transform hover:scale-105 shadow-lg">
@@ -184,33 +187,20 @@ const FinalCtaSection: React.FC = () => (
 // --- Main Portal Page Component ---
 const PortalPage: React.FC = () => {
     const { siteBranding, loading: productLoading } = useProduct();
-    const { siteContent, blogPosts, loading: adminLoading } = useAdmin();
+    const { data, isLoading: publicDataLoading } = usePublicData();
+    const { blogPosts } = data || {};
 
-    if (productLoading || adminLoading || !siteContent || !blogPosts) {
-        return (
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '50vh',
-                fontFamily: 'Cairo, sans-serif',
-                color: '#4b5563'
-            }}>
-                <p style={{ fontSize: '1.25rem', fontWeight: '600' }}>
-                    جاري تجهيز الصفحة الرئيسية...
-                </p>
-            </div>
-        );
+    if (productLoading || publicDataLoading) {
+        return <PageLoader text="جاري تجهيز الصفحة الرئيسية..." />;
     }
 
-    const publishedPosts = blogPosts.filter(p => p.status === 'published');
+    const publishedPosts = blogPosts || [];
     
     return (
         <div className="bg-white animate-fadeIn">
             <HeroSection backgroundUrl={siteBranding?.heroImageUrl} />
             <ProjectsSection branding={siteBranding} />
-            <AboutSection branding={siteBranding} content={siteContent.about} />
+            <AboutSection branding={siteBranding} content={null} />
             <TestimonialsSection />
             {publishedPosts.length > 0 && <BlogSection posts={publishedPosts} />}
             <FinalCtaSection />

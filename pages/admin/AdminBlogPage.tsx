@@ -1,20 +1,19 @@
 
 
 import React, { useState } from 'react';
-import { BookOpen, Plus, Edit, Trash2 } from 'lucide-react';
-// FIX: Added .tsx extension to the import of AdminContext to resolve module loading error.
-import { useAdmin, BlogPost } from '../../contexts/AdminContext.tsx';
-// FIX: Added .ts extension to resolve module error.
-import { formatDate } from '../../utils/helpers.ts';
-// FIX: Added .tsx extension to AdminSection import to resolve module error.
-import AdminSection from '../../components/admin/AdminSection.tsx';
-// FIX: Added .tsx extension to PageLoader import to resolve module error.
+import { FileText, Plus, Edit, Trash2 } from 'lucide-react';
+import { useAdminBlogPosts } from '../../hooks/queries.ts';
+import { useAppMutations } from '../../hooks/mutations.ts';
 import PageLoader from '../../components/ui/PageLoader.tsx';
-// FIX: Added .tsx extension to BlogPostModal import to resolve module error.
+import AdminSection from '../../components/admin/AdminSection.tsx';
 import BlogPostModal from '../../components/admin/BlogPostModal.tsx';
+import { formatDate } from '../../utils/helpers.ts';
+import type { BlogPost } from '../../lib/database.types.ts';
 
 const AdminBlogPage: React.FC = () => {
-    const { blogPosts, loading, error, createBlogPost, updateBlogPost, deleteBlogPost } = useAdmin();
+    const { data: blogPosts = [], isLoading, error } = useAdminBlogPosts();
+    const { createBlogPost, updateBlogPost, deleteBlogPost } = useAppMutations();
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -28,26 +27,29 @@ const AdminBlogPage: React.FC = () => {
         setIsSaving(true);
         try {
             if (payload.id) {
-                await updateBlogPost(payload);
+                // Correctly call the mutation function using `.mutateAsync`.
+                await updateBlogPost.mutateAsync(payload);
             } else {
-                await createBlogPost(payload);
+                // Correctly call the mutation function using `.mutateAsync`.
+                await createBlogPost.mutateAsync(payload);
             }
             setIsModalOpen(false);
-        } catch(e) {
-            console.error(e); // Toast is handled in context
+        } catch (e) {
+            // Error handled in hook
         } finally {
             setIsSaving(false);
         }
     };
-
+    
     const handleDeletePost = async (postId: number) => {
-        if (window.confirm('هل أنت متأكد من رغبتك في حذف هذا المقال؟')) {
-            await deleteBlogPost(postId);
+        if (window.confirm('هل أنت متأكد من حذف هذا المقال؟')) {
+            // Correctly call the mutation function using `.mutateAsync`.
+            await deleteBlogPost.mutateAsync({ postId });
         }
     };
 
-    if (loading) return <PageLoader text="جاري تحميل المدونة..." />;
-    if (error) return <div className="text-center text-red-500 p-4">{error}</div>;
+    if (isLoading) return <PageLoader text="جاري تحميل المدونة..." />;
+    if (error) return <div className="text-center text-red-500">{error.message}</div>;
 
     return (
         <>
@@ -66,51 +68,36 @@ const AdminBlogPage: React.FC = () => {
                     </button>
                 </div>
 
-                <AdminSection title="جميع المقالات" icon={<BookOpen />}>
-                    {blogPosts.length > 0 ? (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-right">
-                                <thead className="border-b-2 border-gray-200">
-                                    <tr>
-                                        <th className="py-3 px-4 font-semibold text-gray-600">العنوان</th>
-                                        <th className="py-3 px-4 font-semibold text-gray-600">الكاتب</th>
-                                        <th className="py-3 px-4 font-semibold text-gray-600">تاريخ النشر</th>
-                                        <th className="py-3 px-4 font-semibold text-gray-600">الحالة</th>
-                                        <th className="py-3 px-4 font-semibold text-gray-600">إجراءات</th>
+                <AdminSection title="كل المقالات" icon={<FileText />}>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right">
+                            <thead className="border-b-2">
+                                <tr>
+                                    <th className="p-3">العنوان</th>
+                                    <th className="p-3">الحالة</th>
+                                    <th className="p-3">تاريخ النشر</th>
+                                    <th className="p-3">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {blogPosts.map(post => (
+                                    <tr key={post.id} className="border-b hover:bg-gray-50">
+                                        <td className="p-3 font-semibold">{post.title}</td>
+                                        <td className="p-3">
+                                            <span className={`px-2 py-1 text-xs rounded-full ${post.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                {post.status === 'published' ? 'منشور' : 'مسودة'}
+                                            </span>
+                                        </td>
+                                        <td className="p-3">{post.published_at ? formatDate(post.published_at) : '-'}</td>
+                                        <td className="p-3 flex items-center gap-2">
+                                            <button onClick={() => handleOpenModal(post)} className="text-gray-500 hover:text-blue-600"><Edit size={20} /></button>
+                                            <button onClick={() => handleDeletePost(post.id)} className="text-gray-500 hover:text-red-600"><Trash2 size={20} /></button>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {blogPosts.map(post => (
-                                        <tr key={post.id} className="border-b hover:bg-gray-50">
-                                            <td className="py-4 px-4 font-semibold text-gray-800">{post.title}</td>
-                                            <td className="py-4 px-4 text-gray-600">{post.author_name}</td>
-                                            <td className="py-4 px-4 text-gray-600">{post.published_at ? formatDate(post.published_at) : '-'}</td>
-                                            <td className="py-4 px-4">
-                                                <span className={`px-2 py-1 text-xs font-bold rounded-full ${post.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                    {post.status === 'published' ? 'منشور' : 'مسودة'}
-                                                </span>
-                                            </td>
-                                            <td className="py-4 px-4 flex items-center gap-4">
-                                                <button onClick={() => handleOpenModal(post)} className="text-gray-500 hover:text-blue-600"><Edit size={20} /></button>
-                                                <button onClick={() => handleDeletePost(post.id)} className="text-gray-500 hover:text-red-600"><Trash2 size={20} /></button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                         <div className="text-center py-16">
-                            <BookOpen className="mx-auto h-16 w-16 text-gray-400" />
-                            <h3 className="mt-4 text-lg font-semibold text-gray-800">لا توجد مقالات بعد</h3>
-                            <p className="mt-1 text-gray-500">ابدأ بإضافة أول مقال لك لإثراء محتوى الموقع.</p>
-                            <div className="mt-6">
-                               <button onClick={() => handleOpenModal(null)} className="flex items-center mx-auto gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-700">
-                                    <Plus size={18} /><span>إنشاء أول مقال</span>
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </AdminSection>
             </div>
         </>

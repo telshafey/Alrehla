@@ -1,3 +1,5 @@
+
+
 import { GoogleGenAI, Type } from "@google/genai";
 
 // Vercel Edge Functions are type-compatible with the Web API Request and Response objects.
@@ -62,7 +64,7 @@ export default async function handler(request: Request) {
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      contents: userPrompt,
       config: {
         systemInstruction,
         responseMimeType: "application/json",

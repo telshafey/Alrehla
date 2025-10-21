@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
-import { CreativeWritingPackage, AdditionalService } from '../../contexts/admin/CreativeWritingAdminContext';
+import type { CreativeWritingPackage, AdditionalService } from '../../lib/database.types.ts';
 
 interface CWSettingsModalProps {
     isOpen: boolean;

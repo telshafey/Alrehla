@@ -1,121 +1,142 @@
-import React, { useState } from 'react';
-import { Target, BookHeart, Feather, Heart, Rocket, Shield, UserCheck, Award } from 'lucide-react';
-// FIX: Added .tsx extension to useProduct import to resolve module error.
+import React from 'react';
+import { Eye, BookHeart, Feather, CheckCircle } from 'lucide-react';
 import { useProduct } from '../contexts/ProductContext.tsx';
-// FIX: Added .tsx extension to the import of AdminContext to resolve module loading error.
-import { useAdmin } from '../contexts/AdminContext.tsx';
-// FIX: Added .tsx extension to PageLoader import to resolve module error.
 import PageLoader from '../components/ui/PageLoader.tsx';
+import ShareButtons from '../components/shared/ShareButtons.tsx';
+
+// A small reusable component for benefit points
+const BenefitCard: React.FC<{ icon: React.ReactNode; title: string; description: string; }> = ({ icon, title, description }) => (
+    <div className="bg-white p-6 rounded-2xl shadow-lg h-full text-right">
+        <div className="flex items-center gap-4 mb-3">
+            <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 text-blue-600">
+                {icon}
+            </div>
+            <h3 className="text-xl font-bold text-gray-800">{title}</h3>
+        </div>
+        <p className="text-gray-600 leading-relaxed">{description}</p>
+    </div>
+);
+
 
 const AboutPage: React.FC = () => {
-  const { siteBranding, loading: brandingLoading } = useProduct();
-  const { siteContent, loading: contentLoading } = useAdmin();
-  const [imageLoaded, setImageLoaded] = useState(false);
+    // We still need the branding for the image, but not the text content from useAdminData
+    const { siteBranding, loading: isBrandingLoading } = useProduct();
+    const pageUrl = window.location.href;
 
-  const isLoading = brandingLoading || contentLoading;
-  const aboutContent = siteContent.about || {};
-  
-  if (isLoading || !siteBranding) {
-      return <PageLoader text="جاري تحميل صفحة عنا..." />;
-  }
+    if (isBrandingLoading) {
+        return <PageLoader />;
+    }
 
-  return (
-    <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn relative overflow-hidden">
-      <div className="absolute top-0 -right-20 w-72 h-72 bg-blue-50 rounded-full opacity-50 filter blur-2xl"></div>
-      <div className="absolute bottom-0 -left-20 w-72 h-72 bg-yellow-50 rounded-full opacity-50 filter blur-2xl"></div>
-
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-16">
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">{aboutContent.title}</h1>
-            <p className="mt-4 max-w-3xl mx-auto text-lg text-gray-600">{aboutContent.subtitle}</p>
-        </div>
-        
-        <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg p-8 sm:p-10 mb-20 max-w-5xl mx-auto border border-gray-200">
-            <h2 className="text-3xl font-bold text-gray-800 text-center mb-6">{aboutContent.intro_title}</h2>
-            <p className="text-gray-700 leading-relaxed text-lg text-center">{aboutContent.intro_text}</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20 max-w-6xl mx-auto">
-            <div className="relative order-last lg:order-first">
-                {!imageLoaded && <div className="absolute inset-0 bg-gray-200 rounded-2xl animate-pulse"></div>}
-                <img 
-                    src={siteBranding.aboutImageUrl || ''} 
-                    alt="طفلة تقرأ وتتعلم بشغف" 
-                    className={`rounded-2xl shadow-2xl transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                    loading="lazy"
-                    onLoad={() => setImageLoaded(true)}
-                />
-            </div>
-             <div className="p-8 bg-white rounded-2xl shadow-lg border border-gray-200">
-                <div className="space-y-8">
-                    {/* ENHA LAK Section */}
-                    <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-3 flex items-center gap-3">
-                            <BookHeart className="text-blue-500" /> {aboutContent.project1_title || ''}
-                        </h3>
-                        <p className="text-gray-600 leading-relaxed">{aboutContent.project1_text || ''}</p>
-                        
-                        <div className="mt-6">
-                            <h4 className="font-bold text-lg text-gray-700">رسالتنا: أكثر من مجرد قصة</h4>
-                            <ul className="space-y-3 mt-3 text-gray-600">
-                                <li className="flex items-start">
-                                    <Heart className="w-5 h-5 text-pink-500 me-3 mt-1 flex-shrink-0" />
-                                    <span><span className="font-semibold text-gray-800">تعزيز الهوية:</span> نحول الطفل من قارئ إلى بطل، مما يعزز صورته الذاتية الإيجابية.</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <Rocket className="w-5 h-5 text-orange-500 me-3 mt-1 flex-shrink-0" />
-                                    <span><span className="font-semibold text-gray-800">بناء الثقة بالنفس:</span> رؤية نفسه ناجحًا في القصة يمنحه الشجاعة لمواجهة تحديات الواقع.</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <Shield className="w-5 h-5 text-green-500 me-3 mt-1 flex-shrink-0" />
-                                    <span><span className="font-semibold text-gray-800">غرس القيم:</span> نقدم المفاهيم التربوية في سياق قصصي محبب ومؤثر يتقبله الطفل بسهولة.</span>
-                                </li>
-                            </ul>
-                        </div>
+    return (
+        <div className="bg-white animate-fadeIn">
+            {/* Hero Section */}
+            <section className="bg-blue-50 py-20 text-center">
+                <div className="container mx-auto px-4">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">رحلة كل طفل تبدأ بقصة</h1>
+                    <p className="mt-4 max-w-3xl mx-auto text-lg text-gray-600">
+                        نؤمن في منصة الرحلة أن كل طفل هو بطل حكايته. لذلك، نصنع بحب وشغف قصصاً ومنتجات تربوية مخصصة، تكون مرآةً تعكس شخصية الطفل، وتعزز هويته، وتغرس فيه أسمى القيم.
+                    </p>
+                    <div className="mt-8 flex justify-center">
+                        <ShareButtons 
+                            title='تعرف على منصة الرحلة ورسالتنا في إلهام الأطفال' 
+                            url={pageUrl} 
+                            label="شارك الصفحة:"
+                        />
                     </div>
-                    <hr className="border-gray-200" />
-                    {/* BIDAYAT ALREHLA Section */}
-                    <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-3 flex items-center gap-3">
-                            <Feather className="text-purple-500" /> {aboutContent.project2_title || ''}
-                        </h3>
-                        <p className="text-gray-600 leading-relaxed">{aboutContent.project2_text || ''}</p>
-                        
-                        <div className="mt-6">
-                            <h4 className="font-bold text-lg text-gray-700">منهجيتنا: الإلهام قبل القواعد</h4>
-                            <ul className="space-y-3 mt-3 text-gray-600">
-                                <li className="flex items-start">
-                                    <UserCheck className="w-5 h-5 text-indigo-500 me-3 mt-1 flex-shrink-0" />
-                                    <span><span className="font-semibold text-gray-800">جلسات فردية مباشرة:</span> تركيز كامل على صوت الطفل واحتياجاته الإبداعية الفريدة.</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <Shield className="w-5 h-5 text-teal-500 me-3 mt-1 flex-shrink-0" />
-                                    <span><span className="font-semibold text-gray-800">بيئة آمنة وداعمة:</span> مساحة خالية من النقد، تشجع على التجربة والخطأ كجزء من عملية التعلم.</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <Award className="w-5 h-5 text-yellow-500 me-3 mt-1 flex-shrink-0" />
-                                    <span><span className="font-semibold text-gray-800">مخرجات ملموسة:</span> ينهي الطالب البرنامج بمحفظة أعمال رقمية وشهادة إتمام، مما يمنحه شعورًا بالإنجاز.</span>
-                                </li>
-                            </ul>
+                </div>
+            </section>
+
+            {/* Who We Are */}
+            <section className="py-16 sm:py-20">
+                <div className="container mx-auto px-4 max-w-5xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                        <div className="order-last md:order-first">
+                            <h2 className="text-3xl font-bold text-gray-800 mb-4">من نحن؟</h2>
+                            <p className="text-gray-600 leading-relaxed">
+                                منصة الرحلة هي منظومة تربوية إبداعية متكاملة، صُممت لتكون الرفيق الأمين لكل طفل في رحلته نحو اكتشاف ذاته، انطلاقاً من قصص 'إنها لك' التي تجعله بطلاً، وصولاً إلى برنامج 'بداية الرحلة' الذي يمكّنه من صناعة عوالمه الخاصة.
+                            </p>
+                        </div>
+                        <div>
+                            <img src={siteBranding?.aboutImageUrl || "https://i.ibb.co/8XYt2s5/about-us-image.jpg"} alt="طفلة تقرأ وتتعلم بشغف" className="rounded-2xl shadow-xl" />
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </section>
+            
+            {/* Enha Lak Section */}
+            <section className="bg-gray-50 py-16 sm:py-20">
+                <div className="container mx-auto px-4 max-w-5xl text-center">
+                    <BookHeart className="mx-auto h-16 w-16 text-pink-500 mb-4" />
+                    <h2 className="text-3xl font-extrabold text-gray-800">مشروع 'إنها لك'</h2>
+                    <p className="mt-4 max-w-3xl mx-auto text-lg text-gray-600">
+                        هو حجر الأساس في منصتنا، حيث نصنع قصصاً مخصصة ومنتجات تربوية فريدة. الطفل لا يقرأ قصة، بل يعيشها، يرى اسمه، صورته، وتفاصيله منسوجة في حكاية ملهمة.
+                    </p>
+                    <div className="mt-12">
+                        <h3 className="text-2xl font-bold text-gray-800 mb-8">رسالتنا: أكثر من مجرد قصة</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <BenefitCard 
+                                icon={<CheckCircle/>}
+                                title="تعزيز الهوية"
+                                description="نحول الطفل من قارئ إلى بطل، مما يعزز صورته الذاتية الإيجابية."
+                            />
+                             <BenefitCard 
+                                icon={<CheckCircle/>}
+                                title="بناء الثقة بالنفس"
+                                description="رؤية نفسه ناجحًا في القصة يمنحه الشجاعة لمواجهة تحديات الواقع."
+                            />
+                             <BenefitCard 
+                                icon={<CheckCircle/>}
+                                title="غرس القيم"
+                                description="نقدم المفاهيم التربوية في سياق قصصي محبب ومؤثر يتقبله الطفل بسهولة."
+                            />
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            {/* Bidayat Alrehla Section */}
+             <section className="bg-white py-16 sm:py-20">
+                <div className="container mx-auto px-4 max-w-5xl text-center">
+                    <Feather className="mx-auto h-16 w-16 text-purple-500 mb-4" />
+                    <h2 className="text-3xl font-extrabold text-gray-800">برنامج 'بداية الرحلة'</h2>
+                    <p className="mt-4 max-w-3xl mx-auto text-lg text-gray-600">
+                       هو برنامج متكامل لتنمية مهارات الكتابة الإبداعية لدى الأطفال والشباب. في بيئة رقمية آمنة وملهمة، وبإشراف مدربين متخصصين، نأخذ بيد المبدعين الصغار ليصقلوا مواهبهم.
+                    </p>
+                    <div className="mt-12">
+                        <h3 className="text-2xl font-bold text-gray-800 mb-8">منهجيتنا: الإلهام قبل القواعد</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                           <BenefitCard 
+                                icon={<CheckCircle/>}
+                                title="جلسات فردية مباشرة"
+                                description="تركيز كامل على صوت الطفل واحتياجاته الإبداعية الفريدة."
+                            />
+                             <BenefitCard 
+                                icon={<CheckCircle/>}
+                                title="بيئة آمنة وداعمة"
+                                description="مساحة خالية من النقد، تشجع على التجربة والخطأ كجزء من عملية التعلم."
+                            />
+                             <BenefitCard 
+                                icon={<CheckCircle/>}
+                                title="مخرجات ملموسة"
+                                description="ينهي الطالب البرنامج بمحفظة أعمال رقمية وشهادة إتمام، مما يمنحه شعورًا بالإنجاز."
+                            />
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-        <div className="max-w-5xl mx-auto text-center">
-            <div className="inline-block bg-gradient-to-r from-green-400 to-blue-500 p-1 rounded-full mb-4">
-                 <div className="bg-gray-50 rounded-full p-3">
-                    <Target size={32} className="text-green-600" />
-                 </div>
-            </div>
-            <h2 className="text-3xl font-bold text-gray-800">{aboutContent.conclusion_title}</h2>
-            <p className="mt-4 text-gray-700 leading-relaxed text-lg">{aboutContent.conclusion_text}</p>
+            {/* Our Vision */}
+            <section className="bg-blue-50 py-20">
+                <div className="container mx-auto px-4 text-center max-w-3xl">
+                    <Eye className="mx-auto h-16 w-16 text-blue-500 mb-4" />
+                    <h2 className="text-3xl font-bold text-gray-800">رؤيتنا</h2>
+                    <p className="mt-4 text-lg text-gray-600">
+                       أن نكون الوجهة الأولى لكل أسرة عربية تبحث عن محتوى تربوي إبداعي وأصيل ينمّي شخصية الطفل، يعزز ارتباطه بلغته وهويته، ويطلق العنان لخياله.
+                    </p>
+                </div>
+            </section>
         </div>
-
-      </div>
-    </div>
-  );
+    );
 };
 
 export default AboutPage;

@@ -24,4 +24,4 @@ const FloatingAiButton: React.FC<FloatingAiButtonProps> = ({ onClick, isChatOpen
   );
 };
 
-export default FloatingAiButton;
+export default React.memo(FloatingAiButton);

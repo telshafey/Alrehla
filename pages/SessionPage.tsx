@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-// FIX: Added .tsx extension to resolve module error.
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { Loader2, ShieldAlert } from 'lucide-react';
 

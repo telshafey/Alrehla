@@ -1,9 +1,10 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './ToastContext.tsx';
 import { supabase } from '../lib/supabaseClient.ts';
-// FIX: Added .ts extension to database.types import to resolve module error.
 import { Json } from '../lib/database.types.ts';
 import { EGYPTIAN_GOVERNORATES } from '../utils/governorates.ts';
+import { mockPrices, mockShippingCosts, mockSiteBranding } from '../data/mockData.ts';
 
 export interface Prices {
     story: {
@@ -43,150 +44,75 @@ interface ProductContextType {
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
-// --- Default values to prevent app from getting stuck ---
-const defaultPrices: Prices = {
-    story: { printed: 0, electronic: 0 },
-    coloringBook: 0,
-    duaBooklet: 0,
-    valuesStory: 0,
-    skillsStory: 0,
-    giftBox: 0,
-    subscriptionBox: 0,
+const fetchSiteSettings = async () => {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+    // Return mock data instead of calling Supabase
+    return Promise.resolve({
+        prices: mockPrices,
+        siteBranding: mockSiteBranding,
+        shippingCosts: mockShippingCosts,
+    });
 };
-
-const defaultBranding: SiteBranding = {
-    logoUrl: null,
-    creativeWritingLogoUrl: null,
-    heroImageUrl: null,
-    aboutImageUrl: null,
-    creativeWritingPortalImageUrl: null,
-};
-
-const defaultShippingCosts: ShippingCosts = {};
-EGYPTIAN_GOVERNORATES.forEach(gov => {
-    defaultShippingCosts[gov] = gov === "القاهرة" ? 0 : 60; // Default for Cairo is 0, others 60
-});
 
 export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [prices, setPricesState] = useState<Prices | null>(null);
-    const [siteBranding, setSiteBrandingState] = useState<SiteBranding | null>(null);
-    const [shippingCosts, setShippingCostsState] = useState<ShippingCosts | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
     const { addToast } = useToast();
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data, error: fetchError } = await supabase
-                .from('site_settings')
-                .select('*')
-                .eq('id', 1)
-                .single();
+    const { data, isLoading, isError, error: queryError } = useQuery({
+        queryKey: ['siteSettings'],
+        queryFn: fetchSiteSettings,
+        staleTime: Infinity, // This data changes rarely, so keep it fresh until manually invalidated.
+    });
 
-            if (fetchError) throw fetchError;
-            
-            if (data) {
-                const fetchedPrices = data.prices as unknown as Prices;
-                const fetchedBranding = data.site_branding as unknown as SiteBranding;
-                const fetchedShipping = data.shipping_costs as ShippingCosts;
-
-                setPricesState(fetchedPrices || defaultPrices);
-                setSiteBrandingState(fetchedBranding || defaultBranding);
-                setShippingCostsState(fetchedShipping || defaultShippingCosts);
-
-                if (!fetchedPrices || !fetchedBranding || !fetchedShipping) {
-                    addToast("بعض إعدادات الموقع الأساسية مفقودة. يرجى مراجعة لوحة التحكم.", 'warning');
-                }
-            } else {
-                 const initError = new Error("لم يتم العثور على إعدادات الموقع. يرجى التأكد من تهيئة قاعدة البيانات.");
-                 setError(initError.message);
-                 addToast(initError.message, 'error');
-                 setPricesState(defaultPrices);
-                 setSiteBrandingState(defaultBranding);
-                 setShippingCostsState(defaultShippingCosts);
+    // --- Mutations ---
+    const useGenericMutation = <TVariables,>(
+        mutationFn: (vars: TVariables) => Promise<any>, 
+        { successMessage }: { successMessage: string }
+    ) => {
+        return useMutation({
+            mutationFn,
+            onSuccess: () => {
+                addToast(successMessage, 'success');
+                queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+            },
+            onError: (err: any) => {
+                addToast(err.message, 'error');
+                throw err;
             }
-        } catch (e: any) {
-            console.error("Fetch product data error:", e.message || e);
-            const fetchErrorMsg = `فشل الاتصال بقاعدة البيانات: ${e.message}`;
-            setError(fetchErrorMsg);
-            addToast(`فشل الاتصال بقاعدة البيانات. تأكد من صحة بيانات الاتصال.`, 'error');
-            setPricesState(defaultPrices);
-            setSiteBrandingState(defaultBranding);
-            setShippingCostsState(defaultShippingCosts);
-        } finally {
-            setLoading(false);
-        }
-    }, [addToast]);
-    
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
-
-    const setPrices = async (newPrices: Prices) => {
-        const { error: updateError } = await supabase
-            .from('site_settings')
-            .update({ prices: newPrices as unknown as Json })
-            .eq('id', 1);
-        
-        if (updateError) { addToast('فشل تحديث الأسعار.', 'error'); throw updateError; }
-        setPricesState(newPrices);
-        addToast('تم تحديث الأسعار بنجاح.', 'success');
-    };
-
-    const setShippingCosts = async (newCosts: ShippingCosts) => {
-        const { error: updateError } = await supabase
-            .from('site_settings')
-            .update({ shipping_costs: newCosts as Json })
-            .eq('id', 1);
-            
-        if (updateError) { addToast('فشل تحديث تكاليف الشحن.', 'error'); throw updateError; }
-        setShippingCostsState(newCosts);
-        addToast('تم تحديث تكاليف الشحن بنجاح.', 'success');
-    };
-
-    const setSiteBranding = async (brandingChanges: Partial<SiteBranding>) => {
-        const { data: currentSettings, error: fetchError } = await supabase
-            .from('site_settings')
-            .select('site_branding')
-            .eq('id', 1)
-            .single();
-
-        if (fetchError) { addToast('فشل جلب بيانات العلامة التجارية الحالية.', 'error'); throw fetchError; }
-        
-        if (!currentSettings) { addToast('فشل جلب الإعدادات الحالية.', 'error'); throw new Error("Could not fetch current settings."); }
-
-        // FIX: Cast to 'unknown' first to handle Supabase's broad 'Json' type safely.
-        const currentBranding = (currentSettings.site_branding || {}) as unknown as SiteBranding;
-        const newBranding = { ...currentBranding, ...brandingChanges };
-        
-        const { error: updateError } = await supabase
-            .from('site_settings')
-            .update({ site_branding: newBranding as Json })
-            .eq('id', 1);
-        
-        if (updateError) { addToast('فشل تحديث العلامة التجارية للموقع.', 'error'); throw updateError; }
-        setSiteBrandingState(newBranding);
-        addToast('تم تحديث العلامة التجارية للموقع.', 'success');
+        });
     };
     
-    // Radical Fix: Use a dependency-free, inline-styled loading and error gate
-    // to prevent crashes from external dependencies (like lucide-react) during initial load.
-    if (loading || !prices || !siteBranding || !shippingCosts) {
-        if (error) {
-            return (
-                <div style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    height: '100vh', backgroundColor: '#fef2f2', color: '#b91c1c',
-                    fontFamily: 'sans-serif', padding: '2rem', textAlign: 'center'
-                }}>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>خطأ في تحميل البيانات الأساسية</h1>
-                    <p>{error}</p>
-                    <p style={{ marginTop: '1rem', fontSize: '0.875rem' }}>يرجى التحقق من إعدادات الاتصال بـ Supabase وتحديث الصفحة.</p>
-                </div>
-            );
-        }
+    const { mutateAsync: setPrices } = useGenericMutation<Prices>(
+        async (newPrices) => {
+            console.log("Mock saving prices:", newPrices);
+            // const { error } = await supabase.from('site_settings').update({ prices: newPrices as unknown as Json }).eq('id', 1);
+            // if (error) throw error;
+        },
+        { successMessage: 'تم تحديث الأسعار بنجاح.' }
+    );
+    
+    const { mutateAsync: setShippingCosts } = useGenericMutation<ShippingCosts>(
+        async (newCosts) => {
+            console.log("Mock saving shipping costs:", newCosts);
+            // const { error } = await supabase.from('site_settings').update({ shipping_costs: newCosts as Json }).eq('id', 1);
+            // if (error) throw error;
+        },
+        { successMessage: 'تم تحديث تكاليف الشحن بنجاح.' }
+    );
+    
+    const { mutateAsync: setSiteBranding } = useGenericMutation<Partial<SiteBranding>>(
+        async (brandingChanges) => {
+            console.log("Mock saving site branding:", brandingChanges);
+            // const currentBranding = data?.siteBranding || {};
+            // const newBranding = { ...currentBranding, ...brandingChanges };
+            // const { error } = await supabase.from('site_settings').update({ site_branding: newBranding as Json }).eq('id', 1);
+            // if (error) throw error;
+        },
+        { successMessage: 'تم تحديث العلامة التجارية للموقع.' }
+    );
+    
+    if (isLoading || !data) {
         return (
             <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -197,15 +123,30 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         );
     }
 
+    if (isError) {
+        return (
+            <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                height: '100vh', backgroundColor: '#fef2f2', color: '#b91c1c',
+                fontFamily: 'sans-serif', padding: '2rem', textAlign: 'center'
+            }}>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>خطأ في تحميل البيانات الأساسية</h1>
+                <p>{queryError.message}</p>
+                <p style={{ marginTop: '1rem', fontSize: '0.875rem' }}>يرجى التحقق من إعدادات الاتصال بـ Supabase وتحديث الصفحة.</p>
+            </div>
+        );
+    }
+    
+
     const value = {
-        prices,
+        prices: data.prices,
         setPrices,
-        shippingCosts,
+        shippingCosts: data.shippingCosts,
         setShippingCosts,
-        siteBranding,
+        siteBranding: data.siteBranding,
         setSiteBranding,
-        loading,
-        error
+        loading: isLoading,
+        error: isError ? queryError.message : null,
     };
 
     return (

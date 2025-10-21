@@ -1,5 +1,5 @@
 import React from 'react';
-import { SupportTicket } from '../../contexts/admin/CommunicationContext';
+import type { SupportTicket } from '../../lib/database.types.ts';
 
 const ViewTicketModal: React.FC<{
     ticket: SupportTicket | null;

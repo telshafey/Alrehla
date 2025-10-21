@@ -12,4 +12,4 @@ const StatCard: React.FC<{ title: string, value: string | number, icon: React.Re
     </div>
 );
 
-export default StatCard;
+export default React.memo(StatCard);

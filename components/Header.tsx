@@ -54,15 +54,14 @@ const Header: React.FC = () => {
         }
         if (currentSection === 'enha-lak') {
             return [
+                { path: "/enha-lak", label: "عن المشروع" },
                 { path: "/enha-lak/store", label: 'المتجر' },
                 { path: "/enha-lak/subscription", label: "الاشتراك الشهري" },
-                { path: "/blog", label: "المدونة" },
-                { path: "/support", label: "الدعم" },
             ];
         }
         // For Portal
         return [
-            { path: "/enha-lak/store", label: 'قصص "إنها لك"' },
+            { path: "/enha-lak", label: 'قصص "إنها لك"' },
             { path: "/creative-writing", label: "برنامج 'بداية الرحلة'" },
             { path: "/about", label: "عنا" },
             { path: "/blog", label: "المدونة" },
@@ -143,4 +142,4 @@ const Header: React.FC = () => {
     );
 };
 
-export default Header;
+export default React.memo(Header);

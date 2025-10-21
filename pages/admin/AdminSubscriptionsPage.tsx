@@ -1,16 +1,15 @@
+
+
 import React from 'react';
 import { Star } from 'lucide-react';
-// FIX: Added .tsx extension to the import of AdminContext to resolve module loading error.
-import { useAdmin, Subscription } from '../../contexts/AdminContext.tsx';
-// FIX: Added .ts extension to resolve module error.
+import { useAdminSubscriptions } from '../../hooks/queries.ts';
+import type { Subscription } from '../../lib/database.types.ts';
 import { formatDate } from '../../utils/helpers.ts';
-// FIX: Added .tsx extension to AdminSection import to resolve module error.
 import AdminSection from '../../components/admin/AdminSection.tsx';
-// FIX: Added .tsx extension to PageLoader import to resolve module error.
 import PageLoader from '../../components/ui/PageLoader.tsx';
 
 const AdminSubscriptionsPage: React.FC = () => {
-    const { subscriptions, loading, error } = useAdmin();
+    const { data: subscriptions = [], isLoading: loading, error } = useAdminSubscriptions();
 
     const getStatusColor = (status: Subscription['status']) => {
         switch (status) {
@@ -31,12 +30,11 @@ const AdminSubscriptionsPage: React.FC = () => {
     }
 
     if (loading) {
-        // FIX: Replaced empty return with a PageLoader component to ensure a valid React node is always returned, fixing the component type and lazy loading errors.
         return <PageLoader text="جاري تحميل الاشتراكات..." />;
     }
 
     if (error) {
-        return <div className="text-center text-red-500 p-4">{error}</div>;
+        return <div className="text-center text-red-500 p-4">{error.message}</div>;
     }
 
     return (

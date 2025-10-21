@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
-// FIX: Corrected import path for useCreativeWritingAdmin.
-import { useCreativeWritingAdmin, CreativeWritingBooking } from '../../contexts/admin/CreativeWritingAdminContext';
-import { useToast } from '../../contexts/ToastContext';
-import { formatDate } from '../../utils/helpers';
+import { useAppMutations } from '../../hooks/mutations.ts';
+import type { CreativeWritingBooking } from '../../lib/database.types.ts';
+import { useToast } from '../../contexts/ToastContext.tsx';
+import { formatDate } from '../../utils/helpers.ts';
 
 interface Student {
     id: string;
@@ -19,7 +19,7 @@ interface StudentProgressModalProps {
 }
 
 const StudentProgressModal: React.FC<StudentProgressModalProps> = ({ isOpen, onClose, student }) => {
-    const { updateBookingProgressNotes } = useCreativeWritingAdmin();
+    const { updateBookingProgressNotes } = useAppMutations();
     const { addToast } = useToast();
     const [notes, setNotes] = useState<{ [bookingId: string]: string }>({});
     const [isSaving, setIsSaving] = useState(false);
@@ -58,7 +58,8 @@ const StudentProgressModal: React.FC<StudentProgressModalProps> = ({ isOpen, onC
         try {
             const updatePromises = student.bookings
                 .filter(b => notes[b.id] !== (b.progress_notes || ''))
-                .map(b => updateBookingProgressNotes(b.id, notes[b.id]));
+                // Correctly call the mutation function using `.mutateAsync`.
+                .map(b => updateBookingProgressNotes.mutateAsync({ bookingId: b.id, notes: notes[b.id] }));
             
             await Promise.all(updatePromises);
             addToast('تم حفظ ملاحظات التقدم بنجاح.', 'success');

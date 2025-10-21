@@ -1,10 +1,25 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import { Navigate } from 'react-router-dom';
 
 const StudentLoginPage: React.FC = () => {
-    const { signIn, loading } = useAuth();
+    const { signIn, loading, isLoggedIn, currentUser, hasAdminAccess } = useAuth();
     const DEMO_STUDENT_EMAIL = 'student@alrehlah.com';
     const DEMO_PASSWORD = '123456';
+
+    if (isLoggedIn && currentUser) {
+        if (currentUser.role === 'student') {
+            return <Navigate to="/student/dashboard" replace />;
+        }
+        if (hasAdminAccess) {
+            return <Navigate to="/admin" replace />;
+        }
+        if (currentUser.role === 'user') {
+            return <Navigate to="/account" replace />;
+        }
+        // Fallback for any other case
+        return <Navigate to="/" replace />;
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">

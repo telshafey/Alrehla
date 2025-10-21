@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Loader2 } from 'lucide-react';
-// FIX: Added .tsx extension to ProductContext imports to resolve module errors.
 import { useProduct, Prices } from '../../contexts/ProductContext.tsx';
 import { useToast } from '../../contexts/ToastContext.tsx';
 
@@ -17,12 +16,11 @@ const PriceInput: React.FC<PriceInputProps> = ({ label, name, value, onChange })
         <div className="relative">
             <input 
                 type="number" 
-                // FIX: Cast 'name' prop to string to resolve type errors.
                 id={name as string} 
                 name={name as string} 
                 value={value} 
                 onChange={onChange} 
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" 
+                className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" 
                 required
             />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">ج.م</span>
