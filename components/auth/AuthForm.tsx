@@ -90,4 +90,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode, initialRole = 'parent'
                 {isLogin ? 'ليس لديك حساب؟' : 'لديك حساب بالفعل؟'}
                 <Link to={isLogin ? '/register' : '/account'} className="text-blue-600 hover:underline font-semibold ms-2">
                     {isLogin ? 'أنشئ حسابًا' : 'سجل الدخول'}
-                </
+                </Link>
+            </p>
+        </div>
+    );
+};
