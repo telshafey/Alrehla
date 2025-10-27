@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext.tsx';
-import PageLoader from '../ui/PageLoader.tsx';
+import { useAuth } from '../../contexts/AuthContext';
+import PageLoader from '../ui/PageLoader';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

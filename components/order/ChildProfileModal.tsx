@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, User, Image as ImageIcon } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext.tsx';
-import { ChildProfile } from '../../lib/database.types.ts';
-import { useModalAccessibility } from '../../hooks/useModalAccessibility.ts';
+import { useAuth } from '../../contexts/AuthContext';
+import type { ChildProfile } from '../../lib/database.types';
+import { useModalAccessibility } from '../../hooks/useModalAccessibility';
 
 interface ChildProfileModalProps {
     isOpen: boolean;
@@ -66,18 +66,25 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
             const interestsArray = interests.split(',').map(s => s.trim()).filter(Boolean);
             const strengthsArray = strengths.split(',').map(s => s.trim()).filter(Boolean);
 
+            let newAvatarUrl = childToEdit?.avatar_url || null;
+            if (avatarFile) {
+                // In a real app, you would upload avatarFile and get a URL back.
+                newAvatarUrl = 'https://i.ibb.co/2S4xT8w/male-avatar.png'; // Mock URL for now
+            }
+            
             const profileData = {
                 name,
                 age: parseInt(age),
                 gender,
-                avatarFile,
-                interests: interestsArray,
-                strengths: strengthsArray,
+                avatar_url: newAvatarUrl,
+                interests: interestsArray.length > 0 ? interestsArray : null,
+                strengths: strengthsArray.length > 0 ? strengthsArray : null,
             };
+
             if (childToEdit) {
-                await updateChildProfile({ ...profileData, id: childToEdit.id, avatar_url: childToEdit.avatar_url });
+                await updateChildProfile({ ...profileData, id: childToEdit.id });
             } else {
-                await addChildProfile(profileData);
+                await addChildProfile({ ...profileData, student_user_id: null });
             }
             onClose();
         } catch (error) {

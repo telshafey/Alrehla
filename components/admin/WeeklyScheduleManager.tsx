@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Send } from 'lucide-react';
-import { useAppMutations } from '../../hooks/mutations.ts';
-import { Instructor, WeeklySchedule } from '../../lib/database.types.ts';
-import { useToast } from '../../contexts/ToastContext.tsx';
+import { useInstructorMutations } from '../../hooks/mutations';
+import type { Instructor, WeeklySchedule } from '../../lib/database.types';
+import { useToast } from '../../contexts/ToastContext';
+import { Button } from '../ui/Button';
 
 const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const dayNames: { [key: string]: string } = {
@@ -16,7 +17,7 @@ const timeSlots = [
 ];
 
 const WeeklyScheduleManager: React.FC<{ instructor: Instructor }> = ({ instructor }) => {
-    const { requestScheduleChange } = useAppMutations();
+    const { requestScheduleChange } = useInstructorMutations();
     const { addToast } = useToast();
     const [schedule, setSchedule] = useState<WeeklySchedule>({});
     const [isSaving, setIsSaving] = useState(false);
@@ -38,7 +39,6 @@ const WeeklyScheduleManager: React.FC<{ instructor: Instructor }> = ({ instructo
     const handleSubmit = async () => {
         setIsSaving(true);
         try {
-            // Correctly call the mutation function using `.mutateAsync`.
             await requestScheduleChange.mutateAsync({ instructorId: instructor.id, schedule });
         } catch(e) {
              // error handled in hook
@@ -71,10 +71,9 @@ const WeeklyScheduleManager: React.FC<{ instructor: Instructor }> = ({ instructo
                 </div>
             ))}
             <div className="flex justify-end mt-6">
-                 <button onClick={handleSubmit} disabled={isSaving} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-6 rounded-full hover:bg-blue-700 disabled:bg-blue-400">
-                    {isSaving ? <Loader2 className="animate-spin" /> : <Send size={16}/>}
-                    <span>{isSaving ? 'جاري الإرسال...' : 'إرسال طلب التعديل'}</span>
-                </button>
+                 <Button onClick={handleSubmit} loading={isSaving} icon={<Send size={16}/>}>
+                    {isSaving ? 'جاري الإرسال...' : 'إرسال طلب التعديل'}
+                </Button>
             </div>
         </div>
     );

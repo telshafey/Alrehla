@@ -1,213 +1,278 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '../contexts/ToastContext.tsx';
-import { supabase } from '../lib/supabaseClient.ts';
-import type { UserRole, SocialLinks, Order, CreativeWritingBooking, SupportTicket, JoinRequest, WeeklySchedule, AvailableSlots, BlogPost, PersonalizedProduct } from '../lib/database.types.ts';
+import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
+import type { UserRole, OrderStatus, BookingStatus, TicketStatus, RequestStatus, WeeklySchedule, SocialLinks, SiteBranding, ShippingCosts, CreativeWritingPackage, AdditionalService } from '../lib/database.types';
 
-// Helper for mock mutations
-const MOCK_API_DELAY = 500;
-const mockMutation = (successMessage: string) => {
-    return new Promise(resolve => {
-        console.log(`Mock mutation: ${successMessage}`);
-        setTimeout(resolve, MOCK_API_DELAY);
-    });
-};
+// Mock async function to simulate network delay
+const mockApiCall = (data?: any, delay = 500) => new Promise(resolve => setTimeout(() => resolve(data), delay));
 
-export const useAppMutations = () => {
+// Reusable generic mutation hook
+const useGenericMutation = <TVariables = any, TData = unknown>(
+    mutationFn: (variables: TVariables) => Promise<TData>,
+    { successMessage, invalidationKeys }: { successMessage: string; invalidationKeys: string[][] }
+) => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
 
-    // --- Generic Mutation Hook ---
-    const useGenericMutation = <TData, TError, TVariables>(
-        mutationFn: (vars: TVariables) => Promise<any>,
-        { queryKeyToInvalidate, successMessage }: { queryKeyToInvalidate: string[], successMessage: string }
-    ) => {
-        return useMutation<TData, TError, TVariables>({
-            mutationFn: async (variables) => {
-                // In a real app, the mutationFn would contain the Supabase call.
-                // For this mock setup, we just simulate a delay.
-                await mockMutation(successMessage);
-                return variables as any; // Return variables to simulate response
-            },
-            onSuccess: () => {
-                addToast(successMessage, 'success');
-                queryClient.invalidateQueries({ queryKey: queryKeyToInvalidate });
-            },
-            onError: (err: any) => {
-                const errorMessage = err.message || 'حدث خطأ غير متوقع.';
-                addToast(errorMessage, 'error');
-                throw new Error(errorMessage);
-            }
-        });
-    };
-    
-    // --- AUTH & USER MANAGEMENT ---
-    const updateUserRole = useGenericMutation<void, Error, { userId: string; newRole: UserRole }>(
-        async ({ userId, newRole }) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminUsers'], successMessage: 'تم تحديث دور المستخدم بنجاح.' }
-    );
-     const createUser = useGenericMutation<void, Error, { name: string, email: string, password?: string, role?: UserRole }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminUsers'], successMessage: 'تم إنشاء المستخدم بنجاح.' }
-    );
-    const updateUser = useGenericMutation<void, Error, { id: string, name: string }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminUsers'], successMessage: 'تم تحديث بيانات المستخدم.' }
-    );
+    return useMutation({
+        mutationFn: mutationFn,
+        onSuccess: () => {
+            addToast(successMessage, 'success');
+            invalidationKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
+        },
+        onError: (error: any) => {
+            addToast(`Error: ${error.message || 'An unknown error occurred.'}`, 'error');
+        },
+    });
+};
 
-    // --- ORDER & BOOKING MANAGEMENT ---
-    const createOrder = useGenericMutation<any, Error, any>(
-         async (vars) => { return { id: `ord_${Date.now()}` } },
-        { queryKeyToInvalidate: ['userAccountData'], successMessage: 'تم إنشاء الطلب بنجاح.' }
-    );
-    // FIX: Added createBooking mutation.
-    const createBooking = useGenericMutation<any, Error, any>(
-        async (vars) => { return { id: `book_${Date.now()}` } },
-        { queryKeyToInvalidate: ['userAccountData', 'adminCwBookings'], successMessage: 'تم إنشاء الحجز بنجاح.' }
-    );
-    const createSubscription = useGenericMutation<any, Error, any>(
-        async (vars) => { return { id: `sub_${Date.now()}` } },
-        { queryKeyToInvalidate: ['userAccountData'], successMessage: 'تم إنشاء الاشتراك بنجاح.' }
-    );
-    const updateOrderStatus = useGenericMutation<void, Error, { orderId: string, newStatus: Order['status'] }>(
-         async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminOrders', 'userAccountData'], successMessage: 'تم تحديث حالة الطلب.' }
-    );
-    const updateOrderComment = useGenericMutation<void, Error, { orderId: string, comment: string }>(
-         async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminOrders'], successMessage: 'تم حفظ الملاحظة.' }
-    );
-     const updateBookingStatus = useGenericMutation<void, Error, { bookingId: string, newStatus: CreativeWritingBooking['status'] }>(
-         async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminCwBookings', 'userAccountData'], successMessage: 'تم تحديث حالة الحجز.' }
-    );
-    const updateBookingProgressNotes = useGenericMutation<void, Error, { bookingId: string, notes: string }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminCwBookings', 'studentDashboardData'], successMessage: 'تم حفظ ملاحظات التقدم.' }
-    );
-    const updateReceipt = useGenericMutation<void, Error, { itemId: string, itemType: string, receiptFile: File }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminOrders', 'adminCwBookings', 'userAccountData'], successMessage: 'تم رفع الإيصال بنجاح.' }
-    );
-    const confirmPayment = useGenericMutation<void, Error, { itemId: string, itemType: string }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminOrders', 'adminCwBookings', 'userAccountData'], successMessage: 'تم تأكيد الدفع بنجاح.' }
-    );
+// --- SPECIALIZED MUTATION HOOKS ---
 
-
-    // --- SITE & CONTENT MANAGEMENT ---
-    const updateSocialLinks = useGenericMutation<void, Error, Partial<SocialLinks>>(
-         async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminSocialLinks', 'publicData'], successMessage: 'تم تحديث روابط التواصل الاجتماعي.' }
+export const useOrderMutations = () => {
+    const createOrder = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'Order created successfully (mock).', invalidationKeys: [['adminOrders'], ['userAccountData']] }
     );
-    const updateSiteContent = useGenericMutation<void, Error, any>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminSiteContent'], successMessage: 'تم تحديث محتوى الموقع.' }
+    const updateOrderStatus = useGenericMutation(
+        ({ orderId, newStatus }: { orderId: string, newStatus: OrderStatus }) => mockApiCall({ orderId, newStatus }),
+        { successMessage: 'Order status updated.', invalidationKeys: [['adminOrders']] }
     );
-    const createPersonalizedProduct = useGenericMutation<void, Error, Partial<PersonalizedProduct> & { imageFile: File | null }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminPersonalizedProducts'], successMessage: 'تم إضافة المنتج بنجاح.' }
+    const updateOrderComment = useGenericMutation(
+        ({ orderId, comment }: { orderId: string, comment: string }) => mockApiCall({ orderId, comment }),
+        { successMessage: 'Order comment saved.', invalidationKeys: [['adminOrders']] }
     );
-    const updatePersonalizedProduct = useGenericMutation<void, Error, Partial<PersonalizedProduct> & { imageFile: File | null }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminPersonalizedProducts'], successMessage: 'تم تحديث المنتج بنجاح.' }
-    );
-    const createBlogPost = useGenericMutation<void, Error, Partial<BlogPost> & { imageFile: File | null }>(
-         async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminBlogPosts'], successMessage: 'تم إنشاء المقال بنجاح.' }
-    );
-    const updateBlogPost = useGenericMutation<void, Error, Partial<BlogPost> & { imageFile: File | null }>(
-         async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminBlogPosts'], successMessage: 'تم تحديث المقال بنجاح.' }
-    );
-     const deleteBlogPost = useGenericMutation<void, Error, { postId: number }>(
-         async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminBlogPosts'], successMessage: 'تم حذف المقال بنجاح.' }
-    );
-
-    // --- SUPPORT & COMMUNICATION ---
-    const createSupportTicket = useGenericMutation<void, Error, { name: string; email: string; subject: string; message: string }>(
-         async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminSupportTickets'], successMessage: 'تم إرسال رسالتك بنجاح.' }
-    );
-     const updateSupportTicketStatus = useGenericMutation<void, Error, { ticketId: string, newStatus: SupportTicket['status'] }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminSupportTickets'], successMessage: 'تم تحديث حالة الرسالة.' }
-    );
-    const createJoinRequest = useGenericMutation<void, Error, { name: string; email: string; role: string; message: string }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminJoinRequests'], successMessage: 'تم إرسال طلبك للانضمام بنجاح.' }
-    );
-    const updateJoinRequestStatus = useGenericMutation<void, Error, { requestId: string, newStatus: JoinRequest['status'] }>(
-         async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminJoinRequests'], successMessage: 'تم تحديث حالة الطلب.' }
+    const updateReceipt = useGenericMutation(
+        ({ itemId, itemType, receiptFile }: { itemId: string, itemType: string, receiptFile: File }) => mockApiCall({ itemId, itemType, receiptFile: receiptFile.name }),
+        { successMessage: 'Receipt uploaded successfully (mock).', invalidationKeys: [['adminOrders'], ['adminCwBookings'], ['userAccountData']] }
     );
     
-    // --- INSTRUCTOR MANAGEMENT ---
-     const createInstructor = useGenericMutation<void, Error, any>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminInstructors'], successMessage: 'تمت إضافة المدرب بنجاح.' }
+    return { createOrder, updateOrderStatus, updateOrderComment, updateReceipt };
+};
+
+export const useBookingMutations = () => {
+    const createBooking = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'Booking created successfully (mock).', invalidationKeys: [['adminCwBookings'], ['userAccountData']] }
     );
-    const updateInstructor = useGenericMutation<void, Error, any>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminInstructors'], successMessage: 'تم تحديث بيانات المدرب.' }
+    const updateBookingStatus = useGenericMutation(
+        ({ bookingId, newStatus }: { bookingId: string, newStatus: BookingStatus }) => mockApiCall({ bookingId, newStatus }),
+        { successMessage: 'Booking status updated.', invalidationKeys: [['adminCwBookings']] }
     );
-    const requestScheduleChange = useGenericMutation<void, Error, { instructorId: number, schedule: WeeklySchedule }>(
-         async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminInstructors'], successMessage: 'تم إرسال طلب تعديل الجدول للمراجعة.' }
+    const updateBookingProgressNotes = useGenericMutation(
+        ({ bookingId, notes }: { bookingId: string, notes: string }) => mockApiCall({ bookingId, notes }),
+        { successMessage: 'Progress notes updated.', invalidationKeys: [['adminCwBookings'], ['studentDashboardData']] }
     );
-     const approveInstructorSchedule = useGenericMutation<void, Error, { instructorId: number }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminInstructors'], successMessage: 'تم اعتماد الجدول.' }
+    return { createBooking, updateBookingStatus, updateBookingProgressNotes };
+};
+
+export const useSubscriptionMutations = () => {
+    const createSubscription = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'Subscription created successfully (mock).', invalidationKeys: [['adminSubscriptions'], ['userAccountData']] }
     );
-    const rejectInstructorSchedule = useGenericMutation<void, Error, { instructorId: number }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminInstructors'], successMessage: 'تم رفض الجدول.' }
+    const pauseSubscription = useGenericMutation(
+        ({ subscriptionId }: { subscriptionId: string }) => mockApiCall({ subscriptionId }),
+        { successMessage: 'تم إيقاف الاشتراك مؤقتاً.', invalidationKeys: [['adminSubscriptions'], ['userAccountData']] }
     );
-     const updateInstructorAvailability = useGenericMutation<void, Error, { instructorId: number, availability: AvailableSlots }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminInstructors'], successMessage: 'تم تحديث المواعيد المتاحة.' }
+    const cancelSubscription = useGenericMutation(
+        ({ subscriptionId }: { subscriptionId: string }) => mockApiCall({ subscriptionId }),
+        { successMessage: 'تم إلغاء الاشتراك.', invalidationKeys: [['adminSubscriptions'], ['userAccountData']] }
     );
-    const linkStudentToChildProfile = useGenericMutation<void, Error, { studentUserId: string, childProfileId: number }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminAllChildProfiles', 'adminUsers'], successMessage: 'تم ربط الحساب بنجاح.' }
+    const reactivateSubscription = useGenericMutation(
+        ({ subscriptionId }: { subscriptionId: string }) => mockApiCall({ subscriptionId }),
+        { successMessage: 'تم إعادة تفعيل الاشتراك.', invalidationKeys: [['adminSubscriptions'], ['userAccountData']] }
     );
-    const unlinkStudentFromChildProfile = useGenericMutation<void, Error, { childProfileId: number }>(
-        async (vars) => { /* Supabase call here */ },
-        { queryKeyToInvalidate: ['adminAllChildProfiles', 'adminUsers'], successMessage: 'تم إلغاء ربط الحساب.' }
-    );
+    return { createSubscription, pauseSubscription, cancelSubscription, reactivateSubscription };
+};
 
 
-    return {
-        updateUserRole,
-        createUser,
-        updateUser,
-        createOrder,
-        createBooking,
-        createSubscription,
-        updateOrderStatus,
-        updateOrderComment,
-        updateBookingStatus,
-        updateBookingProgressNotes,
-        updateReceipt,
-        confirmPayment,
-        updateSocialLinks,
-        updateSiteContent,
-        createPersonalizedProduct,
-        updatePersonalizedProduct,
-        createBlogPost,
-        updateBlogPost,
-        deleteBlogPost,
-        createSupportTicket,
-        updateSupportTicketStatus,
-        createJoinRequest,
-        updateJoinRequestStatus,
-        createInstructor,
-        updateInstructor,
-        requestScheduleChange,
-        approveInstructorSchedule,
-        rejectInstructorSchedule,
-        updateInstructorAvailability,
-        linkStudentToChildProfile,
-        unlinkStudentFromChildProfile
+// --- USER & AUTH MUTATIONS ---
+export const useUserMutations = () => {
+    const { updateCurrentUser } = useAuth();
+    
+    const updateUserRole = useGenericMutation(
+        ({ userId, newRole }: { userId: string, newRole: UserRole }) => mockApiCall({ userId, newRole }),
+        { successMessage: 'User role updated.', invalidationKeys: [['adminUsersWithRelations']] }
+    );
+    const createUser = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'User created successfully (mock).', invalidationKeys: [['adminUsersWithRelations']] }
+    );
+     const updateUser = useGenericMutation(
+        (payload: { id: string; name: string }) => mockApiCall({ ...payload }).then(updatedUser => {
+            updateCurrentUser({ name: payload.name });
+            return updatedUser;
+        }),
+        { successMessage: 'تم تحديث الاسم بنجاح.', invalidationKeys: [['adminUsersWithRelations']] }
+    );
+    const updateUserPassword = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'تم تغيير كلمة المرور بنجاح.', invalidationKeys: [] }
+    );
+    const linkStudentToChildProfile = useGenericMutation(
+        ({ studentUserId, childProfileId }: { studentUserId: string, childProfileId: number }) => mockApiCall({ studentUserId, childProfileId }),
+        { successMessage: 'Student account linked.', invalidationKeys: [['adminUsersWithRelations'], ['adminAllChildProfiles']] }
+    );
+     const unlinkStudentFromChildProfile = useGenericMutation(
+        ({ childProfileId }: { childProfileId: number }) => mockApiCall({ childProfileId }),
+        { successMessage: 'Student account unlinked.', invalidationKeys: [['adminUsersWithRelations'], ['adminAllChildProfiles']] }
+    );
+    return { updateUserRole, createUser, updateUser, updateUserPassword, linkStudentToChildProfile, unlinkStudentFromChildProfile };
+};
+
+// --- COMMUNICATION MUTATIONS ---
+export const useCommunicationMutations = () => {
+    const createSupportTicket = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'Your message has been sent!', invalidationKeys: [['adminSupportTickets']] }
+    );
+    const createJoinRequest = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'Your application has been submitted!', invalidationKeys: [['adminJoinRequests']] }
+    );
+    const updateSupportTicketStatus = useGenericMutation(
+        ({ ticketId, newStatus }: { ticketId: string, newStatus: TicketStatus }) => mockApiCall({ ticketId, newStatus }),
+        { successMessage: 'Ticket status updated.', invalidationKeys: [['adminSupportTickets']] }
+    );
+    const updateJoinRequestStatus = useGenericMutation(
+        ({ requestId, newStatus }: { requestId: string, newStatus: RequestStatus }) => mockApiCall({ requestId, newStatus }),
+        { successMessage: 'Join request status updated.', invalidationKeys: [['adminJoinRequests']] }
+    );
+    return { createSupportTicket, createJoinRequest, updateSupportTicketStatus, updateJoinRequestStatus };
+};
+
+// --- PRODUCT MUTATIONS ---
+export const useProductMutations = () => {
+    const createPersonalizedProduct = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'Product created successfully.', invalidationKeys: [['adminPersonalizedProducts'], ['publicData']] }
+    );
+    const updatePersonalizedProduct = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'Product updated successfully.', invalidationKeys: [['adminPersonalizedProducts'], ['publicData']] }
+    );
+    const deletePersonalizedProduct = useGenericMutation(
+        ({ productId }: { productId: number }) => mockApiCall({ productId }),
+        { successMessage: 'Product deleted successfully.', invalidationKeys: [['adminPersonalizedProducts'], ['publicData']] }
+    );
+    return { createPersonalizedProduct, updatePersonalizedProduct, deletePersonalizedProduct };
+};
+
+// --- INSTRUCTOR MUTATIONS ---
+export const useInstructorMutations = () => {
+    const createInstructor = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'Instructor created successfully.', invalidationKeys: [['adminInstructors']] }
+    );
+    const updateInstructor = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'Instructor updated successfully.', invalidationKeys: [['adminInstructors']] }
+    );
+    const updateInstructorAvailability = useGenericMutation(
+        ({ instructorId, availability }: { instructorId: number, availability: any }) => mockApiCall({ instructorId, availability }),
+        { successMessage: 'Availability updated.', invalidationKeys: [['adminInstructors']] }
+    );
+    const requestScheduleChange = useGenericMutation(
+        ({ instructorId, schedule }: { instructorId: number, schedule: WeeklySchedule }) => mockApiCall({ instructorId, schedule }),
+        { successMessage: 'Schedule change request submitted.', invalidationKeys: [['adminInstructors']] }
+    );
+    const approveInstructorSchedule = useGenericMutation(
+        ({ instructorId }: { instructorId: number }) => mockApiCall({ instructorId }),
+        { successMessage: 'Schedule approved.', invalidationKeys: [['adminInstructors']] }
+    );
+    const rejectInstructorSchedule = useGenericMutation(
+        ({ instructorId }: { instructorId: number }) => mockApiCall({ instructorId }),
+        { successMessage: 'Schedule rejected.', invalidationKeys: [['adminInstructors']] }
+    );
+    const requestSupportSession = useGenericMutation(
+        ({ instructorId, childId, reason }: { instructorId: number; childId: number; reason: string }) => mockApiCall({ instructorId, childId, reason }),
+        { successMessage: 'تم إرسال طلب جلسة الدعم بنجاح.', invalidationKeys: [['adminSupportSessionRequests']] }
+    );
+    const approveInstructorUpdate = useGenericMutation(
+        ({ instructorId }: { instructorId: number }) => mockApiCall({ instructorId }),
+        { successMessage: 'تمت الموافقة على تحديث ملف المدرب.', invalidationKeys: [['adminInstructors'], ['adminInstructorUpdates']] }
+    );
+    const rejectInstructorUpdate = useGenericMutation(
+        ({ instructorId }: { instructorId: number }) => mockApiCall({ instructorId }),
+        { successMessage: 'تم رفض تحديث ملف المدرب.', invalidationKeys: [['adminInstructors'], ['adminInstructorUpdates']] }
+    );
+     const approveSupportSessionRequest = useGenericMutation(
+        ({ requestId }: { requestId: string }) => mockApiCall({ requestId }),
+        { successMessage: 'تمت الموافقة على جلسة الدعم.', invalidationKeys: [['adminSupportSessionRequests']] }
+    );
+    const rejectSupportSessionRequest = useGenericMutation(
+        ({ requestId }: { requestId: string }) => mockApiCall({ requestId }),
+        { successMessage: 'تم رفض جلسة الدعم.', invalidationKeys: [['adminSupportSessionRequests']] }
+    );
+    const requestProfileUpdate = useGenericMutation(
+        ({ instructorId, bio, rate }: { instructorId: number; bio: string; rate: number }) => mockApiCall({ instructorId, bio, rate }),
+        { successMessage: 'تم إرسال طلب تحديث الملف الشخصي للمراجعة.', invalidationKeys: [['adminInstructors'], ['adminInstructorUpdates']] }
+    );
+
+    return { 
+        createInstructor, updateInstructor, updateInstructorAvailability, requestScheduleChange, 
+        approveInstructorSchedule, rejectInstructorSchedule, requestSupportSession,
+        approveInstructorUpdate, rejectInstructorUpdate,
+        approveSupportSessionRequest, rejectSupportSessionRequest,
+        requestProfileUpdate
     };
+};
+
+// --- CREATIVE WRITING SETTINGS MUTATIONS ---
+export const useCreativeWritingSettingsMutations = () => {
+    const createCreativeWritingPackage = useGenericMutation(
+        (pkg: Partial<CreativeWritingPackage>) => mockApiCall(pkg),
+        { successMessage: 'Package created.', invalidationKeys: [['adminCWSettings'], ['publicData']] }
+    );
+    const updateCreativeWritingPackage = useGenericMutation(
+        (pkg: Partial<CreativeWritingPackage>) => mockApiCall(pkg),
+        { successMessage: 'Package updated.', invalidationKeys: [['adminCWSettings'], ['publicData']] }
+    );
+    const deleteCreativeWritingPackage = useGenericMutation(
+        ({ id }: { id: number }) => mockApiCall({ id }),
+        { successMessage: 'Package deleted.', invalidationKeys: [['adminCWSettings'], ['publicData']] }
+    );
+     const createAdditionalService = useGenericMutation(
+        (srv: Partial<AdditionalService>) => mockApiCall(srv),
+        { successMessage: 'Service created.', invalidationKeys: [['adminCWSettings']] }
+    );
+    const updateAdditionalService = useGenericMutation(
+        (srv: Partial<AdditionalService>) => mockApiCall(srv),
+        { successMessage: 'Service updated.', invalidationKeys: [['adminCWSettings']] }
+    );
+    const deleteAdditionalService = useGenericMutation(
+        ({ id }: { id: number }) => mockApiCall({ id }),
+        { successMessage: 'Service deleted.', invalidationKeys: [['adminCWSettings']] }
+    );
+    return { createCreativeWritingPackage, updateCreativeWritingPackage, deleteCreativeWritingPackage, createAdditionalService, updateAdditionalService, deleteAdditionalService };
+};
+
+// --- CONTENT MUTATIONS ---
+export const useContentMutations = () => {
+    const updateSiteContent = useGenericMutation(
+        (content: any) => mockApiCall(content),
+        { successMessage: 'Site content updated.', invalidationKeys: [['adminSiteContent'], ['publicData']] }
+    );
+    const createBlogPost = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'Blog post created.', invalidationKeys: [['adminBlogPosts'], ['publicData']] }
+    );
+    const updateBlogPost = useGenericMutation(
+        (payload: any) => mockApiCall(payload),
+        { successMessage: 'Blog post updated.', invalidationKeys: [['adminBlogPosts'], ['publicData']] }
+    );
+    const deleteBlogPost = useGenericMutation(
+        ({ postId }: { postId: number }) => mockApiCall({ postId }),
+        { successMessage: 'Blog post deleted.', invalidationKeys: [['adminBlogPosts'], ['publicData']] }
+    );
+    return { updateSiteContent, createBlogPost, updateBlogPost, deleteBlogPost };
+};
+
+// --- GENERAL SETTINGS MUTATIONS ---
+export const useSettingsMutations = () => {
+    const updateSocialLinks = useGenericMutation(
+        (links: Partial<SocialLinks>) => mockApiCall(links),
+        { successMessage: 'Social links updated.', invalidationKeys: [['adminSocialLinks'], ['publicData']] }
+    );
+    return { updateSocialLinks };
 };

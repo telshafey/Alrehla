@@ -1,6 +1,6 @@
 import React from 'react';
-import Accordion from '../ui/Accordion.tsx';
-import ImageUpload from './ImageUpload.tsx';
+import Accordion from '../ui/Accordion';
+import ImageUpload from './ImageUpload';
 
 interface ImageUploadSectionProps {
     files: { [key: string]: File | null };

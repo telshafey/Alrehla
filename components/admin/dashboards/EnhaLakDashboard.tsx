@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
-import { useAdminOrders, useAdminSubscriptions } from '../../../hooks/queries.ts';
-import StatCard from '../StatCard.tsx';
-import BarChart from '../BarChart.tsx';
+import { useAdminOrders, useAdminSubscriptions } from '../../../hooks/adminQueries';
+import StatCard from '../StatCard';
+import BarChart from '../BarChart';
 import { ShoppingBag, Star, DollarSign } from 'lucide-react';
-import PageLoader from '../../ui/PageLoader.tsx';
+import PageLoader from '../../ui/PageLoader';
 
 const EnhaLakDashboard: React.FC = () => {
     const { data: orders = [], isLoading: ordersLoading, error: ordersError } = useAdminOrders();

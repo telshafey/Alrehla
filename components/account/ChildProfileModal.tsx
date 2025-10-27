@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Loader2, User, Image as ImageIcon } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext.tsx';
-import { ChildProfile } from '../../lib/database.types.ts';
-import { useModalAccessibility } from '../../hooks/useModalAccessibility.ts';
+import { X, Save, Image as ImageIcon } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { ChildProfile } from '../../lib/database.types';
+import { useModalAccessibility } from '../../hooks/useModalAccessibility';
+import { Button } from '../ui/Button';
+import FormField from '../ui/FormField';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { Textarea } from '../ui/Textarea';
 
 interface ChildProfileModalProps {
     isOpen: boolean;
@@ -66,18 +71,25 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
             const interestsArray = interests.split(',').map(s => s.trim()).filter(Boolean);
             const strengthsArray = strengths.split(',').map(s => s.trim()).filter(Boolean);
 
+            let newAvatarUrl = childToEdit?.avatar_url || null;
+            if (avatarFile) {
+                // In a real app, this would be an upload. For mock, we use a placeholder.
+                newAvatarUrl = 'https://i.ibb.co/2S4xT8w/male-avatar.png';
+            }
+            
             const profileData = {
                 name,
                 age: parseInt(age),
                 gender,
-                avatarFile,
-                interests: interestsArray,
-                strengths: strengthsArray,
+                avatar_url: newAvatarUrl,
+                interests: interestsArray.length > 0 ? interestsArray : null,
+                strengths: strengthsArray.length > 0 ? strengthsArray : null,
             };
+
             if (childToEdit) {
-                await updateChildProfile({ ...profileData, id: childToEdit.id, avatar_url: childToEdit.avatar_url });
+                await updateChildProfile({ ...profileData, id: childToEdit.id });
             } else {
-                await addChildProfile(profileData);
+                await addChildProfile({ ...profileData, student_user_id: null });
             }
             onClose();
         } catch (error) {
@@ -93,7 +105,9 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
             <div ref={modalRef} className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 m-4 animate-fadeIn max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-6">
                     <h2 id="child-profile-modal-title" className="text-2xl font-bold text-gray-800">{childToEdit ? 'تعديل ملف الطفل' : 'إضافة طفل جديد'}</h2>
-                    <button ref={closeButtonRef} onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+                    <Button ref={closeButtonRef} onClick={onClose} variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600">
+                        <X size={24} />
+                    </Button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="flex flex-col items-center gap-4">
@@ -103,39 +117,36 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
                            <ImageIcon size={16} /> <span>{preview ? 'تغيير الصورة الرمزية' : 'رفع صورة رمزية'}</span>
                         </label>
                     </div>
-                    <div>
-                        <label htmlFor="name" className="block text-sm font-bold text-gray-700 mb-2">اسم الطفل*</label>
-                        <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
-                    </div>
+                    <FormField label="اسم الطفل*" htmlFor="name">
+                        <Input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+                    </FormField>
                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="age" className="block text-sm font-bold text-gray-700 mb-2">العمر*</label>
-                            <input type="number" id="age" value={age} onChange={(e) => setAge(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
-                        </div>
-                        <div>
-                            <label htmlFor="gender" className="block text-sm font-bold text-gray-700 mb-2">الجنس*</label>
-                            <select id="gender" value={gender} onChange={(e) => setGender(e.target.value as 'ذكر' | 'أنثى')} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
+                        <FormField label="العمر*" htmlFor="age">
+                            <Input type="number" id="age" value={age} onChange={(e) => setAge(e.target.value)} required />
+                        </FormField>
+                        <FormField label="الجنس*" htmlFor="gender">
+                            <Select id="gender" value={gender} onChange={(e) => setGender(e.target.value as 'ذكر' | 'أنثى')}>
                                 <option value="ذكر">ذكر</option>
                                 <option value="أنثى">أنثى</option>
-                            </select>
-                        </div>
+                            </Select>
+                        </FormField>
                     </div>
-                     <div>
-                        <label htmlFor="interests" className="block text-sm font-bold text-gray-700 mb-2">اهتمامات الطفل</label>
-                        <textarea id="interests" value={interests} onChange={(e) => setInterests(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="مثال: الديناصورات، الرسم، كرة القدم"></textarea>
+                     <FormField label="اهتمامات الطفل" htmlFor="interests">
+                        <Textarea id="interests" value={interests} onChange={(e) => setInterests(e.target.value)} rows={2} placeholder="مثال: الديناصورات، الرسم، كرة القدم"/>
                         <p className="text-xs text-gray-500 mt-1">افصل بين كل اهتمام بفاصلة (,)</p>
-                    </div>
-                     <div>
-                        <label htmlFor="strengths" className="block text-sm font-bold text-gray-700 mb-2">نقاط قوة الطفل</label>
-                        <textarea id="strengths" value={strengths} onChange={(e) => setStrengths(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="مثال: شجاع، خياله واسع، يحب مساعدة الآخرين"></textarea>
+                    </FormField>
+                     <FormField label="نقاط قوة الطفل" htmlFor="strengths">
+                        <Textarea id="strengths" value={strengths} onChange={(e) => setStrengths(e.target.value)} rows={2} placeholder="مثال: شجاع، خياله واسع، يحب مساعدة الآخرين"/>
                          <p className="text-xs text-gray-500 mt-1">افصل بين كل نقطة قوة بفاصلة (,)</p>
-                    </div>
+                    </FormField>
 
                     <div className="flex justify-end gap-4 pt-4 mt-8 border-t">
-                        <button type="button" onClick={onClose} disabled={isSaving} className="px-6 py-2 rounded-full text-gray-700 bg-gray-100 hover:bg-gray-200">إلغاء</button>
-                        <button type="submit" disabled={isSaving} className="w-32 flex items-center justify-center px-6 py-2 rounded-full text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400">
-                           {isSaving ? <Loader2 className="animate-spin"/> : 'حفظ'}
-                        </button>
+                        <Button type="button" onClick={onClose} disabled={isSaving} variant="ghost">
+                            إلغاء
+                        </Button>
+                        <Button type="submit" loading={isSaving} icon={<Save />}>
+                           {isSaving ? 'جاري الحفظ...' : 'حفظ'}
+                        </Button>
                     </div>
                 </form>
             </div>

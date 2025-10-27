@@ -1,11 +1,13 @@
 
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Save, Loader2, Link as LinkIcon, Link2Off } from 'lucide-react';
-import { useAdminAllChildProfiles } from '../../hooks/queries.ts';
-import { useAppMutations } from '../../hooks/mutations.ts';
-import { useToast } from '../../contexts/ToastContext.tsx';
-import type { UserProfile as User } from '../../contexts/AuthContext.tsx';
+import { X, Loader2, Link as LinkIcon, Link2Off } from 'lucide-react';
+import { useAdminAllChildProfiles } from '../../hooks/adminQueries';
+import { useUserMutations } from '../../hooks/mutations';
+import { useToast } from '../../contexts/ToastContext';
+import type { UserProfile as User } from '../../contexts/AuthContext';
+import { Button } from '../ui/Button';
+import { Select } from '../ui/Select';
+import FormField from '../ui/FormField';
 
 const LinkStudentModal: React.FC<{
     isOpen: boolean;
@@ -13,7 +15,7 @@ const LinkStudentModal: React.FC<{
     user: User | null;
 }> = ({ isOpen, onClose, user }) => {
     const { data: allChildProfiles = [] } = useAdminAllChildProfiles();
-    const { linkStudentToChildProfile, unlinkStudentFromChildProfile } = useAppMutations();
+    const { linkStudentToChildProfile, unlinkStudentFromChildProfile } = useUserMutations();
     const { addToast } = useToast();
 
     const [selectedChildId, setSelectedChildId] = useState<string>('');
@@ -43,7 +45,6 @@ const LinkStudentModal: React.FC<{
         }
         setIsSaving(true);
         try {
-            // Correctly call the mutation function using `.mutateAsync`.
             await linkStudentToChildProfile.mutateAsync({ studentUserId: user.id, childProfileId: parseInt(selectedChildId, 10) });
             onClose();
         } catch (error) {
@@ -57,7 +58,6 @@ const LinkStudentModal: React.FC<{
         if (!linkedChild) return;
         setIsSaving(true);
         try {
-            // Correctly call the mutation function using `.mutateAsync`.
             await unlinkStudentFromChildProfile.mutateAsync({childProfileId: linkedChild.id});
             onClose();
         } catch(error) {
@@ -72,53 +72,52 @@ const LinkStudentModal: React.FC<{
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 m-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold text-gray-800">ربط حساب الطالب</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+                    <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <X size={24} />
+                    </Button>
                 </div>
                 <p className="text-gray-600 mb-6">
                     اختر ملف الطفل الذي تريد ربطه بحساب الطالب <span className="font-bold">{user.name}</span>.
                 </p>
 
                 <div className="space-y-4">
-                    <div>
-                        <label htmlFor="child-select" className="block text-sm font-bold text-gray-700 mb-2">
-                            ملفات الأطفال المتاحة
-                        </label>
-                        <select
+                    <FormField label="ملفات الأطفال المتاحة" htmlFor="child-select">
+                        <Select
                             id="child-select"
                             value={selectedChildId}
                             onChange={(e) => setSelectedChildId(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
                         >
                             <option value="">-- اختر طفلاً --</option>
                             {unlinkedChildren.map(child => (
                                 <option key={child.id} value={child.id}>{child.name}</option>
                             ))}
-                        </select>
+                        </Select>
                          {unlinkedChildren.length === 0 && (
                             <p className="text-xs text-gray-500 mt-2">لا توجد ملفات أطفال غير مرتبطة حاليًا.</p>
                          )}
-                    </div>
+                    </FormField>
                 </div>
 
                 <div className="flex justify-between items-center gap-4 pt-6 mt-8 border-t">
                     {linkedChild && (
-                        <button 
+                        <Button
                             onClick={handleUnlink}
-                            disabled={isSaving} 
-                            className="flex items-center gap-2 px-6 py-2 rounded-full text-red-700 bg-red-100 hover:bg-red-200 disabled:bg-gray-200 disabled:text-gray-500"
+                            loading={isSaving}
+                            variant="subtle"
+                            className="text-red-700 bg-red-100 hover:bg-red-200 disabled:bg-gray-200 disabled:text-gray-500"
+                            icon={<Link2Off size={16} />}
                         >
-                           {isSaving ? <Loader2 className="animate-spin"/> : <Link2Off size={16} />}
-                           <span>إلغاء الربط</span>
-                        </button>
+                           إلغاء الربط
+                        </Button>
                     )}
-                    <button 
+                    <Button 
                         onClick={handleSave}
+                        loading={isSaving}
                         disabled={isSaving || !selectedChildId} 
-                        className="flex items-center gap-2 px-6 py-2 rounded-full text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400"
+                        icon={<LinkIcon size={16} />}
                     >
-                       {isSaving ? <Loader2 className="animate-spin"/> : <LinkIcon size={16} />}
-                       <span>{linkedChild ? 'تغيير الربط' : 'ربط الحساب'}</span>
-                    </button>
+                       {linkedChild ? 'تغيير الربط' : 'ربط الحساب'}
+                    </Button>
                 </div>
             </div>
         </div>

@@ -1,122 +1,129 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext.tsx';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
+import PageLoader from './components/ui/PageLoader';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import { ChatWidget } from './components/ChatWidget';
+import FloatingAiButton from './components/FloatingAiButton';
+import WhatsAppButton from './components/WhatsAppButton';
+import ScrollToTopButton from './components/ScrollToTopButton';
 
-// Layout Components
-import Header from './components/Header.tsx';
-import Footer from './components/Footer.tsx';
-import ScrollToTop from './components/ScrollToTop.tsx';
-import AdminLayout from './components/admin/AdminLayout.tsx';
-import StudentLayout from './components/student/StudentLayout.tsx';
-import ProtectedRoute from './components/auth/ProtectedRoute.tsx';
+// Lazy-loaded components
+const AdminLayout = React.lazy(() => import('./components/admin/AdminLayout'));
+const StudentLayout = React.lazy(() => import('./components/student/StudentLayout'));
+const PortalPage = React.lazy(() => import('./pages/PortalPage'));
+const AboutPage = React.lazy(() => import('./pages/AboutPage'));
+const AccountPage = React.lazy(() => import('./pages/AccountPage'));
+const BlogPage = React.lazy(() => import('./pages/BlogPage'));
+const BlogPostPage = React.lazy(() => import('./pages/BlogPostPage'));
+const CheckoutPage = React.lazy(() => import('./pages/CheckoutPage'));
+const CreativeWritingAboutPage = React.lazy(() => import('./pages/CreativeWritingAboutPage'));
+const CreativeWritingBookingPage = React.lazy(() => import('./pages/CreativeWritingBookingPage'));
+const CreativeWritingCurriculumPage = React.lazy(() => import('./pages/CreativeWritingCurriculumPage'));
+const CreativeWritingInstructorsPage = React.lazy(() => import('./pages/CreativeWritingInstructorsPage'));
+const CreativeWritingPage = React.lazy(() => import('./pages/CreativeWritingPage'));
+const EnhaLakPage = React.lazy(() => import('./pages/EnhaLakPage'));
+const InstructorProfilePage = React.lazy(() => import('./pages/InstructorProfilePage'));
+const JoinUsPage = React.lazy(() => import('./pages/JoinUsPage'));
+const OrderPage = React.lazy(() => import('./pages/OrderPage'));
+const PaymentStatusPage = React.lazy(() => import('./pages/PaymentStatusPage'));
+const PersonalizedStoriesPage = React.lazy(() => import('./pages/PersonalizedStoriesPage'));
+const PrivacyPolicyPage = React.lazy(() => import('./pages/PrivacyPolicyPage'));
+const SessionPage = React.lazy(() => import('./pages/SessionPage'));
+const TrainingJourneyPage = React.lazy(() => import('./pages/TrainingJourneyPage'));
+const StudentDashboardPage = React.lazy(() => import('./pages/student/StudentDashboardPage'));
+const StudentLoginPage = React.lazy(() => import('./pages/StudentLoginPage'));
+const SubscriptionPage = React.lazy(() => import('./pages/SubscriptionPage'));
+const SupportPage = React.lazy(() => import('./pages/SupportPage'));
+const TermsOfUsePage = React.lazy(() => import('./pages/TermsOfUsePage'));
+const GeminiPage = React.lazy(() => import('./pages/GeminiPage'));
+const RegisterPage = React.lazy(() => import('./pages/RegisterPage'));
+const CartPage = React.lazy(() => import('./pages/CartPage'));
 
-// Page Components
-import PortalPage from './pages/PortalPage.tsx';
-import AboutPage from './pages/AboutPage.tsx';
-import EnhaLakPage from './pages/EnhaLakPage.tsx';
-import PersonalizedStoriesPage from './pages/PersonalizedStoriesPage.tsx';
-import OrderPage from './pages/OrderPage.tsx';
-import SubscriptionPage from './pages/SubscriptionPage.tsx';
-import CreativeWritingPage from './pages/CreativeWritingPage.tsx';
-import CreativeWritingAboutPage from './pages/CreativeWritingAboutPage.tsx';
-import CreativeWritingCurriculumPage from './pages/CreativeWritingCurriculumPage.tsx';
-import CreativeWritingInstructorsPage from './pages/CreativeWritingInstructorsPage.tsx';
-import CreativeWritingBookingPage from './pages/CreativeWritingBookingPage.tsx';
-import InstructorProfilePage from './pages/InstructorProfilePage.tsx';
-import SessionPage from './pages/SessionPage.tsx';
-import AccountPage from './pages/AccountPage.tsx';
-import StudentLoginPage from './pages/StudentLoginPage.tsx';
-import StudentDashboardPage from './pages/student/StudentDashboardPage.tsx';
-import CheckoutPage from './pages/CheckoutPage.tsx';
-import PaymentStatusPage from './pages/PaymentStatusPage.tsx';
-import SupportPage from './pages/SupportPage.tsx';
-import JoinUsPage from './pages/JoinUsPage.tsx';
-import BlogPage from './pages/BlogPage.tsx';
-import BlogPostPage from './pages/BlogPostPage.tsx';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage.tsx';
-import TermsOfUsePage from './pages/TermsOfUsePage.tsx';
 
-// AI Chat Components
-import FloatingAiButton from './components/FloatingAiButton.tsx';
-import { ChatWidget } from './components/ChatWidget.tsx';
+function App() {
+  const location = useLocation();
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
-const App: React.FC = () => {
-    const location = useLocation();
-    const { hasAdminAccess } = useAuth();
-    const [isChatOpen, setIsChatOpen] = useState(false);
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isStudentArea = location.pathname.startsWith('/student');
+  const isSessionRoute = location.pathname.startsWith('/session');
+  
+  const showLayout = !isAdminRoute && !isStudentArea && !isSessionRoute;
 
-    const isAdminRoute = location.pathname.startsWith('/admin');
-    const isStudentRoute = location.pathname.startsWith('/student/dashboard');
-    const isFullPage = location.pathname.startsWith('/session') || location.pathname.startsWith('/student/login');
-    const showChatbot = !isAdminRoute && !isStudentRoute && !isFullPage;
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
+      {showLayout && <Header />}
+      <ScrollToTop />
+      <main className="flex-grow">
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<PortalPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
+            <Route path="/support" element={<SupportPage />} />
+            <Route path="/join-us" element={<JoinUsPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfUsePage />} />
+            <Route path="/gemini-test" element={<GeminiPage />} />
+            
+            {/* Enha Lak Project Routes */}
+            <Route path="/enha-lak" element={<EnhaLakPage />} />
+            <Route path="/enha-lak/store" element={<PersonalizedStoriesPage />} />
+            <Route path="/enha-lak/order/:productKey" element={<OrderPage />} />
+            <Route path="/enha-lak/subscription" element={<SubscriptionPage />} />
 
-    if (isFullPage) {
-        return (
-            <Routes>
-                <Route path="/session/:sessionId" element={<ProtectedRoute><SessionPage /></ProtectedRoute>} />
-                <Route path="/student/login" element={<StudentLoginPage />} />
-            </Routes>
-        );
-    }
-    
-    if (isAdminRoute) {
-        return (
-            <ProtectedRoute adminOnly>
-                <AdminLayout />
-            </ProtectedRoute>
-        );
-    }
-    
-    if (isStudentRoute) {
-        return (
-             <ProtectedRoute studentOnly>
+            {/* Creative Writing Project Routes */}
+            <Route path="/creative-writing" element={<CreativeWritingPage />} />
+            <Route path="/creative-writing/about" element={<CreativeWritingAboutPage />} />
+            <Route path="/creative-writing/curriculum" element={<CreativeWritingCurriculumPage />} />
+            <Route path="/creative-writing/instructors" element={<CreativeWritingInstructorsPage />} />
+            <Route path="/instructor/:slug" element={<InstructorProfilePage />} />
+            <Route path="/creative-writing/booking" element={<CreativeWritingBookingPage />} />
+            
+            {/* User Account & Auth Routes */}
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/account" element={<AccountPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+            <Route path="/payment-status" element={<PaymentStatusPage />} />
+            <Route path="/session/:sessionId" element={<ProtectedRoute><SessionPage /></ProtectedRoute>} />
+            <Route path="/journey/:journeyId" element={<ProtectedRoute><TrainingJourneyPage /></ProtectedRoute>} />
+
+            {/* Student Routes */}
+            <Route path="/student/login" element={<StudentLoginPage />} />
+            <Route path="/student/dashboard" element={
+              <ProtectedRoute studentOnly>
                 <StudentLayout>
-                    <Routes>
-                        <Route path="/student/dashboard" element={<StudentDashboardPage />} />
-                    </Routes>
+                  <StudentDashboardPage />
                 </StudentLayout>
-            </ProtectedRoute>
-        );
-    }
+              </ProtectedRoute>
+            }/>
 
-    return (
-        <div className="flex flex-col min-h-screen bg-gray-50 font-sans">
-            <ScrollToTop />
-            <Header />
-            <main className="flex-grow">
-                <Routes>
-                    <Route path="/" element={<PortalPage />} />
-                    <Route path="/about" element={<AboutPage />} />
-                    <Route path="/enha-lak" element={<EnhaLakPage />} />
-                    <Route path="/enha-lak/store" element={<PersonalizedStoriesPage />} />
-                    <Route path="/enha-lak/order/:productKey" element={<ProtectedRoute><OrderPage /></ProtectedRoute>} />
-                    <Route path="/enha-lak/subscription" element={<SubscriptionPage />} />
-                    <Route path="/creative-writing" element={<CreativeWritingPage />} />
-                    <Route path="/creative-writing/about" element={<CreativeWritingAboutPage />} />
-                    <Route path="/creative-writing/curriculum" element={<CreativeWritingCurriculumPage />} />
-                    <Route path="/creative-writing/instructors" element={<CreativeWritingInstructorsPage />} />
-                    <Route path="/creative-writing/booking" element={<CreativeWritingBookingPage />} />
-                    <Route path="/instructor/:slug" element={<InstructorProfilePage />} />
-                    <Route path="/account" element={<AccountPage />} />
-                    <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
-                    <Route path="/payment-status" element={<PaymentStatusPage />} />
-                    <Route path="/support" element={<SupportPage />} />
-                    <Route path="/join-us" element={<JoinUsPage />} />
-                    <Route path="/blog" element={<BlogPage />} />
-                    <Route path="/blog/:slug" element={<BlogPostPage />} />
-                    <Route path="/privacy" element={<PrivacyPolicyPage />} />
-                    <Route path="/terms" element={<TermsOfUsePage />} />
-                </Routes>
-            </main>
-            <Footer />
-            {showChatbot && (
-                <>
-                    <FloatingAiButton onClick={() => setIsChatOpen(true)} isChatOpen={isChatOpen} />
-                    <ChatWidget isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
-                </>
-            )}
-        </div>
-    );
-};
+            {/* Admin Routes */}
+            <Route path="/admin/*" element={
+              <ProtectedRoute adminOnly>
+                <AdminLayout />
+              </ProtectedRoute>
+            }/>
+          </Routes>
+        </Suspense>
+      </main>
+      {showLayout && <Footer />}
+      {showLayout && (
+          <>
+            <FloatingAiButton onClick={() => setIsChatOpen(true)} isChatOpen={isChatOpen} />
+            <ChatWidget isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+            <WhatsAppButton />
+            <ScrollToTopButton />
+          </>
+      )}
+    </div>
+  );
+}
 
 export default App;

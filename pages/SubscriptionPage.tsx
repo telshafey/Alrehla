@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext.tsx';
-import { useAppMutations } from '../hooks/mutations.ts';
-import { useToast } from '../contexts/ToastContext.tsx';
-import { Loader2, Send, Gift, Check, Package } from 'lucide-react';
-import Accordion from '../components/ui/Accordion.tsx';
-import ImageUpload from '../components/order/ImageUpload.tsx';
-import { EGYPTIAN_GOVERNORATES } from '../utils/governorates.ts';
-import ShareButtons from '../components/shared/ShareButtons.tsx';
+import { useCart } from '../contexts/CartContext';
+import { useToast } from '../contexts/ToastContext';
+import { useProduct } from '../contexts/ProductContext';
+import { Send, Gift, Check } from 'lucide-react';
+import Accordion from '../components/ui/Accordion';
+import ImageUpload from '../components/order/ImageUpload';
+import { EGYPTIAN_GOVERNORATES } from '../utils/governorates';
+import ShareButtons from '../components/shared/ShareButtons';
+import { Button } from '../components/ui/Button';
+import FormField from '../components/ui/FormField';
+import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
+import { Textarea } from '../components/ui/Textarea';
 
 const SubscriptionPage: React.FC = () => {
-    const { currentUser, isLoggedIn } = useAuth();
-    const { createSubscription } = useAppMutations();
+    const { addItemToCart } = useCart();
     const navigate = useNavigate();
     const { addToast } = useToast();
+    const { prices } = useProduct();
     const pageUrl = window.location.href;
 
     const [formData, setFormData] = useState({
@@ -32,6 +37,8 @@ const SubscriptionPage: React.FC = () => {
     const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const subscriptionPrice = prices?.subscriptionBox || 250;
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -42,10 +49,6 @@ const SubscriptionPage: React.FC = () => {
     };
 
     const handleSubmit = async () => {
-        if (!isLoggedIn) {
-            navigate('/account', { state: { from: { pathname: '/enha-lak/subscription' } } });
-            return;
-        }
         if (!formData.childName || !formData.childAge) {
             addToast('يرجى إدخال اسم وعمر الطفل للاشتراك.', 'warning');
             return;
@@ -56,15 +59,19 @@ const SubscriptionPage: React.FC = () => {
         }
 
         setIsSubmitting(true);
-        try {
-            // Correctly call the mutation function using `.mutateAsync`.
-            const newSub = await createSubscription.mutateAsync({ formData, imageFiles });
-            navigate(`/checkout?type=subscription&id=${newSub.id}`);
-        } catch (e) {
-            // Error handled in hook
-        } finally {
-            setIsSubmitting(false);
-        }
+        addItemToCart({
+            type: 'subscription',
+            payload: { 
+                formData, 
+                imageFiles,
+                total: subscriptionPrice,
+                summary: 'صندوق الرحلة الشهري',
+            }
+        });
+        
+        addToast('تمت إضافة الاشتراك إلى السلة بنجاح!', 'success');
+        navigate('/cart');
+        setIsSubmitting(false);
     };
 
     return (
@@ -92,38 +99,32 @@ const SubscriptionPage: React.FC = () => {
                          <div>
                             <h3 className="text-lg font-bold text-gray-700 mb-4">1. تفاصيل الطفل الأساسية</h3>
                             <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label htmlFor="childName" className="block text-sm font-bold text-gray-700 mb-2">اسم الطفل*</label>
-                                    <input type="text" id="childName" name="childName" value={formData.childName} onChange={handleChange} className="w-full p-2 border rounded-lg" required />
-                                </div>
-                                <div>
-                                    <label htmlFor="childAge" className="block text-sm font-bold text-gray-700 mb-2">العمر*</label>
-                                    <input type="number" id="childAge" name="childAge" value={formData.childAge} onChange={handleChange} className="w-full p-2 border rounded-lg" required />
-                                </div>
-                                <div className="md:col-span-2">
-                                    <label htmlFor="childGender" className="block text-sm font-bold text-gray-700 mb-2">الجنس*</label>
-                                    <select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange} className="w-full p-2 border rounded-lg bg-white">
+                                <FormField label="اسم الطفل*" htmlFor="childName">
+                                    <Input type="text" id="childName" name="childName" value={formData.childName} onChange={handleChange} required />
+                                </FormField>
+                                <FormField label="العمر*" htmlFor="childAge">
+                                    <Input type="number" id="childAge" name="childAge" value={formData.childAge} onChange={handleChange} required />
+                                </FormField>
+                                <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2">
+                                    <Select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange}>
                                         <option value="ذكر">ذكر</option>
                                         <option value="أنثى">أنثى</option>
-                                    </select>
-                                </div>
+                                    </Select>
+                                </FormField>
                             </div>
                         </div>
 
                         <Accordion title="2. تفاصيل تخصيص القصة">
                            <div className="p-6 space-y-6">
-                                <div>
-                                    <label htmlFor="childTraits" className="block text-sm font-bold text-gray-700 mb-2">أخبرنا عن طفلك</label>
-                                    <textarea id="childTraits" name="childTraits" value={formData.childTraits} onChange={handleChange} rows={4} className="w-full p-2 border rounded-lg" placeholder="مثال: شجاع، يحب الديناصورات..."></textarea>
-                                </div>
-                                <div>
-                                    <label htmlFor="familyNames" className="block text-sm font-bold text-gray-700 mb-2">أسماء أفراد العائلة (اختياري)</label>
-                                    <textarea id="familyNames" name="familyNames" value={formData.familyNames} onChange={handleChange} rows={2} className="w-full p-2 border rounded-lg" placeholder="مثال: الأم: فاطمة، الأب: علي"></textarea>
-                                </div>
-                                <div>
-                                    <label htmlFor="friendNames" className="block text-sm font-bold text-gray-700 mb-2">أسماء الأصدقاء (اختياري)</label>
-                                    <textarea id="friendNames" name="friendNames" value={formData.friendNames} onChange={handleChange} rows={2} className="w-full p-2 border rounded-lg" placeholder="مثال: صديقه المقرب: خالد"></textarea>
-                                </div>
+                                <FormField label="أخبرنا عن طفلك" htmlFor="childTraits">
+                                    <Textarea id="childTraits" name="childTraits" value={formData.childTraits} onChange={handleChange} rows={4} placeholder="مثال: شجاع، يحب الديناصورات..."/>
+                                </FormField>
+                                <FormField label="أسماء أفراد العائلة (اختياري)" htmlFor="familyNames">
+                                    <Textarea id="familyNames" name="familyNames" value={formData.familyNames} onChange={handleChange} rows={2} placeholder="مثال: الأم: فاطمة، الأب: علي"/>
+                                </FormField>
+                                <FormField label="أسماء الأصدقاء (اختياري)" htmlFor="friendNames">
+                                    <Textarea id="friendNames" name="friendNames" value={formData.friendNames} onChange={handleChange} rows={2} placeholder="مثال: صديقه المقرب: خالد"/>
+                                </FormField>
                            </div>
                         </Accordion>
                         
@@ -151,29 +152,23 @@ const SubscriptionPage: React.FC = () => {
 
                                 {formData.shippingOption === 'gift' && (
                                     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4 animate-fadeIn">
-                                        <div className="md:col-span-2">
-                                            <label htmlFor="giftName" className="block text-sm font-bold text-gray-700 mb-2">اسم المستلم*</label>
-                                            <input type="text" id="giftName" name="giftName" value={formData.giftName} onChange={handleChange} className="w-full p-2 border rounded-lg" required={formData.shippingOption === 'gift'} />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <label htmlFor="giftAddress" className="block text-sm font-bold text-gray-700 mb-2">عنوان المستلم*</label>
-                                            <input type="text" id="giftAddress" name="giftAddress" value={formData.giftAddress} onChange={handleChange} className="w-full p-2 border rounded-lg" required={formData.shippingOption === 'gift'} />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="giftPhone" className="block text-sm font-bold text-gray-700 mb-2">هاتف المستلم*</label>
-                                            <input type="tel" id="giftPhone" name="giftPhone" value={formData.giftPhone} onChange={handleChange} className="w-full p-2 border rounded-lg" required={formData.shippingOption === 'gift'} />
-                                        </div>
+                                        <FormField label="اسم المستلم*" htmlFor="giftName" className="md:col-span-2">
+                                            <Input type="text" id="giftName" name="giftName" value={formData.giftName} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                                        </FormField>
+                                        <FormField label="عنوان المستلم*" htmlFor="giftAddress" className="md:col-span-2">
+                                            <Input type="text" id="giftAddress" name="giftAddress" value={formData.giftAddress} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                                        </FormField>
+                                        <FormField label="هاتف المستلم*" htmlFor="giftPhone">
+                                            <Input type="tel" id="giftPhone" name="giftPhone" value={formData.giftPhone} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                                        </FormField>
                                     </div>
                                 )}
                                 
-                                <div>
-                                    <label htmlFor="governorate" className="block text-sm font-bold text-gray-700 mb-2">
-                                        {formData.shippingOption === 'gift' ? 'محافظة المستلم' : 'المحافظة'}
-                                    </label>
-                                    <select id="governorate" name="governorate" value={formData.governorate} onChange={handleChange} className="w-full p-2 border rounded-lg bg-white">
+                                <FormField label={formData.shippingOption === 'gift' ? 'محافظة المستلم' : 'المحافظة'} htmlFor="governorate">
+                                    <Select id="governorate" name="governorate" value={formData.governorate} onChange={handleChange}>
                                         {EGYPTIAN_GOVERNORATES.map(gov => <option key={gov} value={gov}>{gov}</option>)}
-                                    </select>
-                                </div>
+                                    </Select>
+                                </FormField>
                             </div>
                         </Accordion>
                     </div>
@@ -184,20 +179,22 @@ const SubscriptionPage: React.FC = () => {
                             <div className="text-center">
                                 <Gift className="mx-auto h-16 w-16 text-orange-400" />
                                 <h2 className="text-2xl font-bold mt-4">ملخص الاشتراك</h2>
-                                <p className="text-5xl font-extrabold my-4">250 <span className="text-xl font-normal">ج.م/شهرياً</span></p>
+                                <p className="text-5xl font-extrabold my-4">{subscriptionPrice} <span className="text-xl font-normal">ج.م/شهرياً</span></p>
                             </div>
                             <div className="mt-8 space-y-3 pt-4 border-t">
                                 <div className="flex items-center gap-3"><Check className="text-green-500"/><span>قصة مخصصة جديدة كل شهر.</span></div>
                                 <div className="flex items-center gap-3"><Check className="text-green-500"/><span>أنشطة تفاعلية وألعاب تعليمية.</span></div>
                                 <div className="flex items-center gap-3"><Check className="text-green-500"/><span>هدية إضافية مختارة بعناية.</span></div>
                             </div>
-                            <button 
+                            <Button 
                                 onClick={handleSubmit}
-                                disabled={isSubmitting || !formData.childName || !formData.childAge || !imageFiles['child_photo_1']}
-                                className="mt-8 w-full flex items-center justify-center gap-2 bg-orange-500 text-white font-bold py-3 px-4 rounded-full hover:bg-orange-600 transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-400">
-                                 {isSubmitting ? <Loader2 className="animate-spin" /> : <Send />}
-                                <span>{isSubmitting ? 'جاري...' : 'الانتقال إلى الدفع'}</span>
-                            </button>
+                                loading={isSubmitting}
+                                disabled={!formData.childName || !formData.childAge || !imageFiles['child_photo_1']}
+                                variant="special"
+                                icon={<Send />}
+                                className="mt-8 w-full">
+                                 {isSubmitting ? 'جاري...' : 'إضافة إلى السلة'}
+                            </Button>
                         </div>
                     </div>
                 </div>

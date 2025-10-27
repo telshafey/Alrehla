@@ -1,8 +1,20 @@
+
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Loader2 } from 'lucide-react';
-import { usePublicData } from '../hooks/queries.ts';
-import type { Instructor } from '../lib/database.types.ts';
+// FIX: Removed .ts extension from import paths
+import { usePublicData } from '../hooks/publicQueries';
+import type { Instructor } from '../lib/database.types';
+
+const SkeletonInstructorCard: React.FC = () => (
+    <div className="bg-white rounded-2xl p-6 text-center border flex flex-col items-center shadow-lg animate-pulse">
+        <div className="w-24 h-24 rounded-full bg-gray-200 mb-4"></div>
+        <div className="h-6 w-32 bg-gray-200 rounded mb-2"></div>
+        <div className="h-4 w-40 bg-gray-200 rounded mb-4"></div>
+        <div className="h-10 w-full bg-gray-200 rounded-full mt-auto"></div>
+    </div>
+);
 
 const InstructorCard: React.FC<{ instructor: Instructor }> = ({ instructor }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
@@ -19,7 +31,7 @@ const InstructorCard: React.FC<{ instructor: Instructor }> = ({ instructor }) =>
                 />
             </div>
             <h3 className="text-xl font-bold text-gray-800">{instructor.name}</h3>
-            <p className="text-blue-600 font-semibold mb-4 flex-grow">{instructor.specialty}</p>
+            <p className="text-blue-600 font-semibold mb-4 flex-grow text-sm">{instructor.specialty}</p>
             <Link 
                 to={`/instructor/${instructor.slug}`}
                 className="mt-auto w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-700 transition-colors"
@@ -38,21 +50,23 @@ const CreativeWritingInstructorsPage: React.FC = () => {
          <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-16">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">تعرف على مدربينا</h1>
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">رفقاء الرحلة الملهمون</h1>
                     <p className="mt-4 max-w-3xl mx-auto text-lg text-gray-600">
-                        فريقنا مكون من مدربين متخصصين وشغوفين بمساعدة الأطفال على اكتشاف أصواتهم الإبداعية.
+                        نؤمن أن الإبداع لا يُلقّن، بل يُلهم. لذلك، اخترنا بعناية نخبة من الكتّاب والتربويين المتخصصين ليكونوا أكثر من مجرد مدربين؛ إنهم مرشدون وشغوفون يرافقون طفلك في رحلته، ويساعدونه على اكتشاف صوته الفريد وبناء ثقته بنفسه.
                     </p>
                 </div>
 
-                {isLoading ? (
-                    <div className="flex justify-center items-center"><Loader2 className="w-12 h-12 animate-spin text-blue-500" /></div>
-                ) : error ? (
+                {error ? (
                     <div className="text-center text-red-500 text-lg bg-red-50 p-6 rounded-lg">{error.message}</div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {instructors.map(instructor => (
-                           <InstructorCard key={instructor.id} instructor={instructor} />
-                        ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {isLoading ? (
+                            Array.from({ length: 4 }).map((_, index) => <SkeletonInstructorCard key={index} />)
+                        ) : (
+                            instructors.map(instructor => (
+                               <InstructorCard key={instructor.id} instructor={instructor} />
+                            ))
+                        )}
                     </div>
                 )}
             </div>

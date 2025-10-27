@@ -1,12 +1,14 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { FileText, Save, Loader2 } from 'lucide-react';
-import { useAdminSiteContent } from '../../hooks/queries.ts';
-import { useAppMutations } from '../../hooks/mutations.ts';
-import AdminSection from '../../components/admin/AdminSection.tsx';
+import { useAdminSiteContent } from '../../hooks/adminQueries';
+import { useContentMutations } from '../../hooks/mutations';
+import AdminSection from '../../components/admin/AdminSection';
 
 const AdminContentManagementPage: React.FC = () => {
     const { data, isLoading, error } = useAdminSiteContent();
-    const { updateSiteContent } = useAppMutations();
+    const { updateSiteContent } = useContentMutations();
     const [content, setContent] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -30,7 +32,6 @@ const AdminContentManagementPage: React.FC = () => {
         e.preventDefault();
         setIsSaving(true);
         try {
-            // Correctly call the mutation function using `.mutateAsync`.
             await updateSiteContent.mutateAsync(content);
         } catch (err) {
             // Error handled in hook
@@ -46,38 +47,81 @@ const AdminContentManagementPage: React.FC = () => {
         <div className="animate-fadeIn space-y-12">
             <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة محتوى الموقع</h1>
             <form onSubmit={handleSubmit}>
-                <AdminSection title="صفحة (عنا)" icon={<FileText />}>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">النص التعريفي (في الصفحة الرئيسية)</label>
-                            <textarea
-                                value={content.about?.intro_text || ''}
-                                onChange={(e) => handleChange('about', 'intro_text', e.target.value)}
-                                rows={4}
-                                className="w-full p-2 border rounded-lg"
-                            />
+                <div className="space-y-8">
+                    <AdminSection title="محتوى الصفحة الرئيسية" icon={<FileText />}>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">العنوان الرئيسي (Hero)</label>
+                                <textarea value={content.portalPage?.heroTitle || ''} onChange={(e) => handleChange('portalPage', 'heroTitle', e.target.value)} rows={2} className="w-full p-2 border rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">النص الفرعي (Hero)</label>
+                                <textarea value={content.portalPage?.heroSubtitle || ''} onChange={(e) => handleChange('portalPage', 'heroSubtitle', e.target.value)} rows={3} className="w-full p-2 border rounded-lg" />
+                            </div>
+                             <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">عنوان قسم "لماذا نحن"</label>
+                                <input type="text" value={content.portalPage?.valuePropositionTitle || ''} onChange={(e) => handleChange('portalPage', 'valuePropositionTitle', e.target.value)} className="w-full p-2 border rounded-lg" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">وصف قسم "إنها لك"</label>
+                                    <textarea value={content.portalPage?.enhaLakDescription || ''} onChange={(e) => handleChange('portalPage', 'enhaLakDescription', e.target.value)} rows={2} className="w-full p-2 border rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">وصف قسم "بداية الرحلة"</label>
+                                    <textarea value={content.portalPage?.creativeWritingDescription || ''} onChange={(e) => handleChange('portalPage', 'creativeWritingDescription', e.target.value)} rows={2} className="w-full p-2 border rounded-lg" />
+                                </div>
+                            </div>
                         </div>
-                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">عنوان البطل (صفحة عنا)</label>
-                            <input
-                                type="text"
-                                value={content.about?.hero_title || ''}
-                                onChange={(e) => handleChange('about', 'hero_title', e.target.value)}
-                                className="w-full p-2 border rounded-lg"
-                            />
+                    </AdminSection>
+
+                    <AdminSection title="صفحة (عنا)" icon={<FileText />}>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">رسالتنا</label>
+                                <textarea value={content.aboutPage?.missionStatement || ''} onChange={(e) => handleChange('aboutPage', 'missionStatement', e.target.value)} rows={3} className="w-full p-2 border rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">قصتنا</label>
+                                <textarea value={content.aboutPage?.ourStory || ''} onChange={(e) => handleChange('aboutPage', 'ourStory', e.target.value)} rows={4} className="w-full p-2 border rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">رؤيتنا</label>
+                                <textarea value={content.aboutPage?.ourVision || ''} onChange={(e) => handleChange('aboutPage', 'ourVision', e.target.value)} rows={3} className="w-full p-2 border rounded-lg" />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">النص الفرعي للبطل (صفحة عنا)</label>
-                            <textarea
-                                value={content.about?.hero_subtitle || ''}
-                                onChange={(e) => handleChange('about', 'hero_subtitle', e.target.value)}
-                                rows={2}
-                                className="w-full p-2 border rounded-lg"
-                            />
+                    </AdminSection>
+
+                     <AdminSection title='صفحة "إنها لك"' icon={<FileText />}>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">العنوان الرئيسي</label>
+                                <input type="text" value={content.enhaLakPage?.heroTitle || ''} onChange={(e) => handleChange('enhaLakPage', 'heroTitle', e.target.value)} className="w-full p-2 border rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">النص التعريفي</label>
+                                <textarea value={content.enhaLakPage?.heroSubtitle || ''} onChange={(e) => handleChange('enhaLakPage', 'heroSubtitle', e.target.value)} rows={4} className="w-full p-2 border rounded-lg" />
+                            </div>
                         </div>
-                        {/* Add more fields here */}
-                    </div>
-                </AdminSection>
+                    </AdminSection>
+                    
+                    <AdminSection title='صفحة "بداية الرحلة"' icon={<FileText />}>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">العنوان الرئيسي</label>
+                                <input type="text" value={content.creativeWritingPage?.heroTitle || ''} onChange={(e) => handleChange('creativeWritingPage', 'heroTitle', e.target.value)} className="w-full p-2 border rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">النص التعريفي</label>
+                                <textarea value={content.creativeWritingPage?.heroSubtitle || ''} onChange={(e) => handleChange('creativeWritingPage', 'heroSubtitle', e.target.value)} rows={4} className="w-full p-2 border rounded-lg" />
+                            </div>
+                             <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">عنوان قسم المنهجية</label>
+                                <input type="text" value={content.creativeWritingPage?.methodologyTitle || ''} onChange={(e) => handleChange('creativeWritingPage', 'methodologyTitle', e.target.value)} className="w-full p-2 border rounded-lg" />
+                            </div>
+                        </div>
+                    </AdminSection>
+                </div>
                 
                  <div className="flex justify-end sticky bottom-6 mt-8">
                     <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-3 px-8 rounded-full hover:bg-blue-700 transition-colors shadow-lg disabled:bg-blue-400 disabled:cursor-not-allowed">

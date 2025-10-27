@@ -1,12 +1,13 @@
-import { UserRole } from "./database.types.ts";
+import type { UserRole } from "./database.types.ts";
 
 // Re-export UserRole for consistency
 export type { UserRole };
 
 export const roleNames: { [key in UserRole]: string } = {
     user: 'مستخدم عادي',
-    guardian: 'ولي أمر',
+    parent: 'ولي أمر',
     super_admin: 'مدير عام',
+    general_supervisor: 'مشرف عام',
     enha_lak_supervisor: 'مشرف "إنها لك"',
     creative_writing_supervisor: 'مشرف "بداية الرحلة"',
     instructor: 'مدرب',
@@ -17,17 +18,18 @@ export const roleNames: { [key in UserRole]: string } = {
 
 export const staffRoles: UserRole[] = [
     'user',
-    'guardian',
     'super_admin',
+    'general_supervisor',
     'enha_lak_supervisor',
     'creative_writing_supervisor',
     'instructor',
+    'student',
     'content_editor',
     'support_agent',
-    'student'
+    'parent'
 ];
 
-export const adminAccessRoles: UserRole[] = staffRoles.filter(r => r !== 'user' && r !== 'student' && r !== 'guardian');
+export const adminAccessRoles: UserRole[] = staffRoles.filter(r => r !== 'user' && r !== 'student' && r !== 'parent');
 
 
 // --- NEW: Permissions System ---
@@ -42,10 +44,13 @@ export interface Permissions {
     canManageShipping: boolean;
     canManageCreativeWritingBookings: boolean;
     canManageCreativeWritingInstructors: boolean;
+    canManageCreativeWritingSettings: boolean; // New permission
     canManageContent: boolean;
     canManageBlog: boolean;
     canManageSupportTickets: boolean;
     canManageJoinRequests: boolean;
+    canManageInstructorUpdates: boolean;
+    canManageSupportRequests: boolean;
     // Dashboard specific permissions
     canViewDashboard: boolean;
     canViewEnhaLakStats: boolean;
@@ -65,10 +70,13 @@ const defaultPermissions: Permissions = {
     canManageShipping: false,
     canManageCreativeWritingBookings: false,
     canManageCreativeWritingInstructors: false,
+    canManageCreativeWritingSettings: false, // New permission
     canManageContent: false,
     canManageBlog: false,
     canManageSupportTickets: false,
     canManageJoinRequests: false,
+    canManageInstructorUpdates: false,
+    canManageSupportRequests: false,
     canViewDashboard: false,
     canViewEnhaLakStats: false,
     canViewCreativeWritingStats: false,
@@ -79,7 +87,7 @@ const defaultPermissions: Permissions = {
 
 export const ROLES_CONFIG: Record<UserRole, Partial<Permissions>> = {
     user: {},
-    guardian: {},
+    parent: {},
     instructor: { canViewDashboard: true },
     student: {},
     support_agent: {
@@ -98,6 +106,9 @@ export const ROLES_CONFIG: Record<UserRole, Partial<Permissions>> = {
         canViewDashboard: true,
         canManageCreativeWritingBookings: true,
         canManageCreativeWritingInstructors: true,
+        canManageCreativeWritingSettings: true, // New permission
+        canManageInstructorUpdates: true,
+        canManageSupportRequests: true,
         canViewCreativeWritingStats: true,
     },
     enha_lak_supervisor: {
@@ -109,6 +120,22 @@ export const ROLES_CONFIG: Record<UserRole, Partial<Permissions>> = {
         canManageShipping: true,
         canViewEnhaLakStats: true,
     },
+    general_supervisor: {
+        canViewDashboard: true,
+        canManageEnhaLakOrders: true,
+        canManageEnhaLakSubscriptions: true,
+        canManageEnhaLakProducts: true,
+        canManagePrices: true,
+        canManageShipping: true,
+        canManageCreativeWritingBookings: true,
+        canManageCreativeWritingInstructors: true,
+        canManageCreativeWritingSettings: true,
+        canManageInstructorUpdates: true,
+        canManageSupportRequests: true,
+        canViewEnhaLakStats: true,
+        canViewCreativeWritingStats: true,
+        canViewGlobalStats: true,
+    },
     super_admin: {
         canManageUsers: true,
         canManageSettings: true,
@@ -119,10 +146,13 @@ export const ROLES_CONFIG: Record<UserRole, Partial<Permissions>> = {
         canManageShipping: true,
         canManageCreativeWritingBookings: true,
         canManageCreativeWritingInstructors: true,
+        canManageCreativeWritingSettings: true, // New permission
         canManageContent: true,
         canManageBlog: true,
         canManageSupportTickets: true,
         canManageJoinRequests: true,
+        canManageInstructorUpdates: true,
+        canManageSupportRequests: true,
         canViewDashboard: true,
         canViewEnhaLakStats: true,
         canViewCreativeWritingStats: true,

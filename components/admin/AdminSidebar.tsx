@@ -1,130 +1,115 @@
+
+
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext.tsx';
-import { 
-    LayoutDashboard, Users, Settings, ShoppingBag, Gift, Feather, CheckSquare,
-    FileText, MessageSquare, UserPlus, LogOut, X, ChevronLeft, ChevronRight, Star, Truck, FileBarChart, Globe,
+import { NavLink, Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+    LayoutDashboard, Users, Settings, ShoppingBag, Gift, Edit, MessageSquare, UserPlus,
+    BookOpen, UserCheck, FileText, Package, Star, Truck, Home, UserCog, ShieldQuestion
 } from 'lucide-react';
 
-interface NavItemProps {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  isCollapsed: boolean;
-  onClick?: () => void;
-}
-
-const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed, onClick }) => (
-    <NavLink
-        to={to}
-        end
-        onClick={onClick}
-        className={({ isActive }) =>
-            `flex items-center p-3 my-1 rounded-lg transition-colors duration-200 ${
-            isActive
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'text-gray-600 hover:bg-gray-200 hover:text-gray-800'
-            }`
-        }
-    >
-        {icon}
-        {!isCollapsed && <span className="mr-4 whitespace-nowrap">{label}</span>}
-    </NavLink>
-);
-
 interface AdminSidebarProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-  isCollapsed: boolean;
+    isOpen: boolean;
+    setIsOpen: (isOpen: boolean) => void;
+    isCollapsed: boolean;
 }
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen, isCollapsed }) => {
-    const { signOut, permissions } = useAuth();
-    const navigate = useNavigate();
-    
-    const handleSignOut = () => {
-        signOut();
-        navigate('/');
-    };
-    
+    const { permissions, currentUser } = useAuth();
+
     const navLinks = [
-        // Super Admin
-        permissions.canManageUsers && { to: '/admin/users', icon: <Users size={22} />, label: 'المستخدمون' },
-        permissions.canManageSettings && { to: '/admin/settings', icon: <Settings size={22} />, label: 'إعدادات الموقع' },
-        
-        // Enha Lak Supervisor
-        permissions.canManageEnhaLakOrders && { to: '/admin/orders', icon: <ShoppingBag size={22} />, label: 'طلبات "إنها لك"' },
-        permissions.canManageEnhaLakSubscriptions && { to: '/admin/subscriptions', icon: <Star size={22} />, label: 'الاشتراكات' },
-        permissions.canManageEnhaLakProducts && { to: '/admin/personalized-products', icon: <Gift size={22} />, label: 'منتجات مخصصة' },
-        permissions.canManagePrices && { to: '/admin/prices', icon: <FileBarChart size={22} />, label: 'الأسعار' },
-        permissions.canManageShipping && { to: '/admin/shipping', icon: <Truck size={22} />, label: 'الشحن' },
-        
-        // Creative Writing Supervisor
-        permissions.canManageCreativeWritingBookings && { to: '/admin/creative-writing', icon: <CheckSquare size={22} />, label: 'حجوزات الكتابة' },
-        permissions.canManageCreativeWritingInstructors && { to: '/admin/instructors', icon: <Feather size={22} />, label: 'المدربون' },
-        
-        // Content Editor
-        permissions.canManageContent && { to: '/admin/content-management', icon: <FileText size={22} />, label: 'محتوى الموقع' },
-        permissions.canManageBlog && { to: '/admin/blog', icon: <FileText size={22} />, label: 'المدونة' },
+        { to: '/admin', label: 'لوحة التحكم', icon: <LayoutDashboard size={20} />, permission: permissions.canViewDashboard },
+        { to: '/admin/users', label: 'المستخدمون', icon: <Users size={20} />, permission: permissions.canManageUsers },
+        { to: '/admin/settings', label: 'إعدادات الموقع', icon: <Settings size={20} />, permission: permissions.canManageSettings },
+    ];
+    
+    const enhaLakLinks = [
+        { to: '/admin/orders', label: 'الطلبات', icon: <ShoppingBag size={20} />, permission: permissions.canManageEnhaLakOrders },
+        { to: '/admin/subscriptions', label: 'الاشتراكات', icon: <Star size={20} />, permission: permissions.canManageEnhaLakSubscriptions },
+        { to: '/admin/personalized-products', label: 'المنتجات', icon: <Gift size={20} />, permission: permissions.canManageEnhaLakProducts },
+        { to: '/admin/prices', label: 'الأسعار', icon: <Package size={20} />, permission: permissions.canManagePrices },
+        { to: '/admin/shipping', label: 'الشحن', icon: <Truck size={20} />, permission: permissions.canManageShipping },
+    ];
 
-        // Support Agent
-        permissions.canManageSupportTickets && { to: '/admin/support', icon: <MessageSquare size={22} />, label: 'رسائل الدعم' },
-        permissions.canManageJoinRequests && { to: '/admin/join-requests', icon: <UserPlus size={22} />, label: 'طلبات الانضمام' },
-    ].filter(Boolean); // Filter out false values for roles without permission
+    const creativeWritingLinks = [
+        { to: '/admin/creative-writing', label: 'الحجوزات', icon: <BookOpen size={20} />, permission: permissions.canManageCreativeWritingBookings },
+        { to: '/admin/instructors', label: 'المدربون', icon: <UserCheck size={20} />, permission: permissions.canManageCreativeWritingInstructors },
+        { to: '/admin/instructor-updates', label: 'تحديثات المدربين', icon: <UserCog size={20} />, permission: permissions.canManageInstructorUpdates },
+        { to: '/admin/support-requests', label: 'طلبات الدعم', icon: <ShieldQuestion size={20} />, permission: permissions.canManageSupportRequests },
+        { to: '/admin/creative-writing-settings', label: 'الإعدادات', icon: <Settings size={20} />, permission: permissions.canManageCreativeWritingSettings },
+    ];
+    
+    const contentLinks = [
+         { to: '/admin/content-management', label: 'إدارة المحتوى', icon: <FileText size={20} />, permission: permissions.canManageContent },
+         { to: '/admin/blog', label: 'المدونة', icon: <Edit size={20} />, permission: permissions.canManageBlog },
+    ];
+    
+    const communicationLinks = [
+         { to: '/admin/support', label: 'رسائل الدعم', icon: <MessageSquare size={20} />, permission: permissions.canManageSupportTickets },
+         { to: '/admin/join-requests', label: 'طلبات الانضمام', icon: <UserPlus size={20} />, permission: permissions.canManageJoinRequests },
+    ];
 
+    const LinkItem: React.FC<{ to: string, icon: React.ReactNode, label: string }> = ({ to, icon, label }) => (
+        <NavLink
+            to={to}
+            end={to === '/admin'}
+            className={({ isActive }) =>
+                `flex items-center gap-4 px-4 py-3 rounded-lg transition-colors ${
+                isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+                }`
+            }
+            onClick={() => setIsOpen(false)}
+        >
+            {icon}
+            {!isCollapsed && <span className="font-semibold">{label}</span>}
+        </NavLink>
+    );
 
+    const Section: React.FC<{title: string, links: any[]}> = ({title, links}) => {
+        const visibleLinks = links.filter(link => link.permission);
+        if(visibleLinks.length === 0) return null;
+        return (
+            <div>
+                {!isCollapsed && <h3 className="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-4">{title}</h3>}
+                {visibleLinks.map(link => <LinkItem key={link.to} {...link} />)}
+            </div>
+        );
+    }
+    
     const sidebarContent = (
-        <div className="flex flex-col h-full bg-gray-100 border-l border-gray-200">
-            <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} p-4 h-20 border-b`}>
-                 {!isCollapsed && (
-                    <div className="flex items-center gap-2">
-                        <img src="https://i.ibb.co/C0bSJJT/favicon.png" alt="شعار الرحلة" className="h-10 w-auto"/>
-                        <span className="font-bold text-lg">لوحة التحكم</span>
-                    </div>
-                 )}
-                 <button onClick={() => setIsOpen(false)} className="md:hidden text-gray-600">
-                     <X size={24} />
-                 </button>
+        <div className="flex flex-col h-full">
+            <div className="p-4 border-b border-gray-200">
+                <Link to="/" className="flex items-center gap-3">
+                    <img src="https://i.ibb.co/C0bSJJT/favicon.png" alt="شعار الرحلة" className="h-10 w-auto"/>
+                    {!isCollapsed && <span className="text-xl font-bold text-gray-800">منصة الرحلة</span>}
+                </Link>
             </div>
-
-            <nav className="flex-1 px-3 py-4 overflow-y-auto">
-                <NavItem to="/admin" icon={<LayoutDashboard size={22} />} label="الرئيسية" isCollapsed={isCollapsed} onClick={() => setIsOpen(false)} />
-                <NavItem to="/" icon={<Globe size={22} />} label="العودة للموقع" isCollapsed={isCollapsed} onClick={() => setIsOpen(false)} />
-                <div className="my-4 border-t border-gray-200 -mx-3"></div>
-                {navLinks.map(link => link && (
-                    <NavItem key={link.to} to={link.to} icon={link.icon} label={link.label} isCollapsed={isCollapsed} onClick={() => setIsOpen(false)}/>
-                ))}
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                {currentUser?.role === 'instructor' ? (
+                     <LinkItem to="/admin" icon={<LayoutDashboard size={20} />} label="لوحة التحكم" />
+                ) : (
+                    <>
+                        <Section title="رئيسية" links={navLinks} />
+                        <Section title="إنها لك" links={enhaLakLinks} />
+                        <Section title="بداية الرحلة" links={creativeWritingLinks} />
+                        <Section title="المحتوى" links={contentLinks} />
+                        <Section title="التواصل" links={communicationLinks} />
+                    </>
+                )}
             </nav>
-
-            <div className="px-3 py-4 border-t">
-                <button onClick={handleSignOut} className="flex items-center w-full p-3 rounded-lg text-red-500 bg-red-50 hover:bg-red-100">
-                    <LogOut size={22} />
-                    {!isCollapsed && <span className="mr-4 font-semibold">تسجيل الخروج</span>}
-                </button>
-            </div>
         </div>
     );
     
-
     return (
         <>
-            {/* Mobile Sidebar */}
+            {/* Mobile Sidebar Overlay */}
             <div
-                className={`fixed inset-0 z-50 bg-black bg-opacity-50 transition-opacity md:hidden ${
-                isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                }`}
+                className={`fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => setIsOpen(false)}
             ></div>
-            <aside
-                className={`fixed top-0 right-0 h-full w-64 bg-white z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
-                isOpen ? 'translate-x-0' : 'translate-x-full'
-                }`}
-            >
-                {sidebarContent}
-            </aside>
-            
-            {/* Desktop Sidebar */}
-            <aside className={`hidden md:block fixed top-0 right-0 h-full z-40 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+
+            {/* Sidebar */}
+            <aside className={`fixed top-0 right-0 h-full bg-gray-50 border-l z-50 transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 ${isCollapsed ? 'w-20' : 'w-64'}`}>
                 {sidebarContent}
             </aside>
         </>

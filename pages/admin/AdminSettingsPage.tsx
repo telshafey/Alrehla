@@ -1,12 +1,15 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, Loader2, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
-import { useProduct, SiteBranding } from '../../contexts/ProductContext.tsx';
-import { useAdminSocialLinks } from '../../hooks/queries.ts';
-import { useAppMutations } from '../../hooks/mutations.ts';
-import { useToast } from '../../contexts/ToastContext.tsx';
-import AdminSection from '../../components/admin/AdminSection.tsx';
-import { supabase } from '../../lib/supabaseClient.ts';
-import { SocialLinks } from '../../lib/database.types.ts';
+import { useProduct, SiteBranding } from '../../contexts/ProductContext';
+// FIX: Corrected import path from non-existent queries.ts to adminQueries.ts
+import { useAdminSocialLinks } from '../../hooks/adminQueries';
+import { useSettingsMutations } from '../../hooks/mutations';
+import { useToast } from '../../contexts/ToastContext';
+import AdminSection from '../../components/admin/AdminSection';
+import { supabase } from '../../lib/supabaseClient';
+import { SocialLinks } from '../../lib/database.types';
 
 interface ImageUploadFieldProps {
     label: string;
@@ -47,7 +50,7 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ label, currentUrl, 
 const AdminSettingsPage: React.FC = () => {
     const { siteBranding, setSiteBranding, loading: productLoading } = useProduct();
     const { data: socialLinks, isLoading: adminLoading } = useAdminSocialLinks();
-    const { updateSocialLinks } = useAppMutations();
+    const { updateSocialLinks } = useSettingsMutations();
     const { addToast } = useToast();
     
     const [isSaving, setIsSaving] = useState(false);

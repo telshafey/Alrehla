@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../../contexts/AuthContext.tsx';
+import { useAuth } from '../../contexts/AuthContext';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -10,9 +10,9 @@ interface ChildProfileSelectorProps {
 
 const ChildProfileSelector: React.FC<ChildProfileSelectorProps> = ({ selectedChildId, setSelectedChildId }) => {
     const { childProfiles, currentUser } = useAuth();
-    const isGuardian = currentUser?.role === 'guardian';
+    const isParent = currentUser?.role === 'parent';
 
-    if (!isGuardian) {
+    if (!isParent) {
         return null; // Don't show this for regular users
     }
 

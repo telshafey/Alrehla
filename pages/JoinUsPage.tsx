@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { PenTool, Mic, Palette } from 'lucide-react';
-import { useAppMutations } from '../hooks/mutations.ts';
-import { useToast } from '../contexts/ToastContext.tsx';
-import SupportForm from '../components/shared/SupportForm.tsx';
-import OpportunityCard from '../components/shared/OpportunityCard.tsx';
+// FIX: Removed .ts extension from import paths
+import { useCommunicationMutations } from '../hooks/mutations';
+import { useToast } from '../contexts/ToastContext';
+import SupportForm from '../components/shared/SupportForm';
+import OpportunityCard from '../components/shared/OpportunityCard';
 
 const JoinUsPage: React.FC = () => {
-    const { createJoinRequest } = useAppMutations();
+    const { createJoinRequest } = useCommunicationMutations();
     const { addToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -17,14 +18,12 @@ const JoinUsPage: React.FC = () => {
         const data = Object.fromEntries(formData.entries());
 
         try {
-            // Correctly call the mutation function using `.mutateAsync`.
             await createJoinRequest.mutateAsync({
                 name: data.name as string,
                 email: data.email as string,
                 role: data.subject as string, // Using 'subject' field from SupportForm as role
                 message: data.message as string,
             });
-            // Success toast is handled in context
             (e.target as HTMLFormElement).reset();
         } catch (error) {
             // Error toast is handled in context

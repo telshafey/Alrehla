@@ -1,7 +1,9 @@
+
+
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Instructor, AvailableSlots } from '../lib/database.types.ts';
-import { daysInMonth, firstDayOfMonth } from '../utils/helpers.ts';
+import { Instructor, AvailableSlots } from '../lib/database.types';
+import { daysInMonth, firstDayOfMonth } from '../utils/helpers';
 
 interface BookingCalendarProps {
     instructor: Instructor;

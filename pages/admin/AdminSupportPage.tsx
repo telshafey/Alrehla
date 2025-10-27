@@ -1,18 +1,20 @@
 
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, Eye } from 'lucide-react';
-import { useAdminSupportTickets } from '../../hooks/queries.ts';
-import { useAppMutations } from '../../hooks/mutations.ts';
-import PageLoader from '../../components/ui/PageLoader.tsx';
-import AdminSection from '../../components/admin/AdminSection.tsx';
-import { formatDate } from '../../utils/helpers.ts';
-import ViewTicketModal from '../../components/admin/ViewTicketModal.tsx';
-import type { SupportTicket } from '../../lib/database.types.ts';
+import { useAdminSupportTickets } from '../../hooks/adminQueries';
+import { useCommunicationMutations } from '../../hooks/mutations';
+import { useToast } from '../../contexts/ToastContext';
+import PageLoader from '../../components/ui/PageLoader';
+import AdminSection from '../../components/admin/AdminSection';
+import { formatDate } from '../../utils/helpers';
+import ViewTicketModal from '../../components/admin/ViewTicketModal';
+import type { SupportTicket, TicketStatus } from '../../lib/database.types';
 
 const AdminSupportPage: React.FC = () => {
     const { data: supportTickets = [], isLoading, error } = useAdminSupportTickets();
-    const { updateSupportTicketStatus } = useAppMutations();
+    const { updateSupportTicketStatus } = useCommunicationMutations();
     const [statusFilter, setStatusFilter] = useState('all');
     const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
 
@@ -20,15 +22,14 @@ const AdminSupportPage: React.FC = () => {
         return supportTickets.filter(ticket => statusFilter === 'all' || ticket.status === statusFilter);
     }, [supportTickets, statusFilter]);
     
-    const handleStatusChange = async (ticketId: string, newStatus: SupportTicket['status']) => {
-        // Correctly call the mutation function using `.mutateAsync`.
+    const handleStatusChange = async (ticketId: string, newStatus: TicketStatus) => {
         await updateSupportTicketStatus.mutateAsync({ ticketId, newStatus });
     };
 
     if (isLoading) return <PageLoader text="جاري تحميل رسائل الدعم..." />;
     if (error) return <div className="text-center text-red-500">{error.message}</div>;
     
-    const statuses: SupportTicket['status'][] = ["جديدة", "تمت المراجعة", "مغلقة"];
+    const statuses: TicketStatus[] = ["جديدة", "تمت المراجعة", "مغلقة"];
 
     return (
        <>
@@ -54,7 +55,7 @@ const AdminSupportPage: React.FC = () => {
                                     <td className="p-3">{ticket.subject}</td>
                                     <td className="p-3">{formatDate(ticket.created_at)}</td>
                                     <td className="p-3">
-                                        <select value={ticket.status} onChange={e => handleStatusChange(ticket.id, e.target.value as SupportTicket['status'])} className="p-2 border rounded-lg bg-white">
+                                        <select value={ticket.status} onChange={e => handleStatusChange(ticket.id, e.target.value as TicketStatus)} className="p-1 border rounded-md bg-white">
                                             {statuses.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                     </td>

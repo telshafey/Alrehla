@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { formatDate } from '../../utils/helpers.ts';
+import { formatDate } from '../../utils/helpers';
 import { ArrowLeft } from 'lucide-react';
-import { BlogPost } from '../../lib/database.types.ts';
+import type { BlogPost } from '../../lib/database.types';
 
 const PostCard: React.FC<{ post: BlogPost }> = ({ post }) => {
     const [imageLoaded, setImageLoaded] = useState(false);

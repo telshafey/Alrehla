@@ -1,11 +1,10 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
-import { useAdminInstructors } from '../../hooks/queries.ts';
-import { useAppMutations } from '../../hooks/mutations.ts';
-import { Instructor, AvailableSlots } from '../../lib/database.types.ts';
-import BookingCalendar from '../BookingCalendar.tsx'; // Re-using for display
+import { useAdminInstructors } from '../../hooks/adminQueries';
+import { useInstructorMutations } from '../../hooks/mutations';
+import type { Instructor, AvailableSlots } from '../../lib/database.types';
+import BookingCalendar from '../BookingCalendar'; // Re-using for display
 
 const timeSlots = [
   '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30',
@@ -15,7 +14,7 @@ const timeSlots = [
 
 const AvailabilityManager: React.FC<{ instructor?: Instructor }> = ({ instructor: passedInstructor }) => {
     const { data: instructors = [], isLoading, error } = useAdminInstructors();
-    const { updateInstructorAvailability } = useAppMutations();
+    const { updateInstructorAvailability } = useInstructorMutations();
     const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(passedInstructor?.id || null);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isSaving, setIsSaving] = useState(false);
@@ -42,7 +41,6 @@ const AvailabilityManager: React.FC<{ instructor?: Instructor }> = ({ instructor
         };
 
         try {
-            // Correctly call the mutation function using `.mutateAsync`.
             await updateInstructorAvailability.mutateAsync({ instructorId: selectedInstructor.id, availability: newAvailability });
         } catch(e) {
             // error handled by hook

@@ -1,6 +1,9 @@
 import React from 'react';
-import Accordion from '../ui/Accordion.tsx';
-import { EGYPTIAN_GOVERNORATES } from '../../utils/governorates.ts';
+import Accordion from '../ui/Accordion';
+import { EGYPTIAN_GOVERNORATES } from '../../utils/governorates';
+import FormField from '../ui/FormField';
+import { Select } from '../ui/Select';
+import { Input } from '../ui/Input';
 
 interface DeliverySectionProps {
     formData: {
@@ -18,13 +21,12 @@ const DeliverySection: React.FC<DeliverySectionProps> = ({ formData, handleChang
     return (
         <Accordion title="تفاصيل التوصيل">
             <div className="p-6 space-y-6">
-                <div>
-                    <label htmlFor="deliveryType" className="block text-sm font-bold text-gray-700 mb-2">نوع النسخة</label>
-                    <select id="deliveryType" name="deliveryType" value={formData.deliveryType} onChange={handleChange} className="w-full p-2 border rounded-lg bg-white">
+                <FormField label="نوع النسخة" htmlFor="deliveryType">
+                     <Select id="deliveryType" name="deliveryType" value={formData.deliveryType} onChange={handleChange}>
                         <option value="printed">مطبوعة + إلكترونية</option>
                         <option value="electronic">إلكترونية فقط</option>
-                    </select>
-                </div>
+                    </Select>
+                </FormField>
                 {formData.deliveryType === 'printed' && (
                     <div className="space-y-4 pt-4 border-t">
                         <div>
@@ -41,29 +43,23 @@ const DeliverySection: React.FC<DeliverySectionProps> = ({ formData, handleChang
 
                         {formData.shippingOption === 'gift' && (
                             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4 animate-fadeIn">
-                                <div className="md:col-span-2">
-                                    <label htmlFor="giftName" className="block text-sm font-bold text-gray-700 mb-2">اسم المستلم*</label>
-                                    <input type="text" id="giftName" name="giftName" value={formData.giftName} onChange={handleChange} className="w-full p-2 border rounded-lg" required={formData.shippingOption === 'gift'} />
-                                </div>
-                                <div className="md:col-span-2">
-                                    <label htmlFor="giftAddress" className="block text-sm font-bold text-gray-700 mb-2">عنوان المستلم*</label>
-                                    <input type="text" id="giftAddress" name="giftAddress" value={formData.giftAddress} onChange={handleChange} className="w-full p-2 border rounded-lg" required={formData.shippingOption === 'gift'} />
-                                </div>
-                                <div>
-                                    <label htmlFor="giftPhone" className="block text-sm font-bold text-gray-700 mb-2">هاتف المستلم*</label>
-                                    <input type="tel" id="giftPhone" name="giftPhone" value={formData.giftPhone} onChange={handleChange} className="w-full p-2 border rounded-lg" required={formData.shippingOption === 'gift'} />
-                                </div>
+                                <FormField label="اسم المستلم*" htmlFor="giftName" className="md:col-span-2">
+                                    <Input type="text" id="giftName" name="giftName" value={formData.giftName} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                                </FormField>
+                                <FormField label="عنوان المستلم*" htmlFor="giftAddress" className="md:col-span-2">
+                                    <Input type="text" id="giftAddress" name="giftAddress" value={formData.giftAddress} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                                </FormField>
+                                <FormField label="هاتف المستلم*" htmlFor="giftPhone">
+                                    <Input type="tel" id="giftPhone" name="giftPhone" value={formData.giftPhone} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                                </FormField>
                             </div>
                         )}
                         
-                        <div>
-                            <label htmlFor="governorate" className="block text-sm font-bold text-gray-700 mb-2">
-                                {formData.shippingOption === 'gift' ? 'محافظة المستلم' : 'المحافظة'}
-                            </label>
-                            <select id="governorate" name="governorate" value={formData.governorate} onChange={handleChange} className="w-full p-2 border rounded-lg bg-white">
+                        <FormField label={formData.shippingOption === 'gift' ? 'محافظة المستلم' : 'المحافظة'} htmlFor="governorate">
+                            <Select id="governorate" name="governorate" value={formData.governorate} onChange={handleChange}>
                                 {EGYPTIAN_GOVERNORATES.map(gov => <option key={gov} value={gov}>{gov}</option>)}
-                            </select>
-                        </div>
+                            </Select>
+                        </FormField>
                     </div>
                 )}
             </div>

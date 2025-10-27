@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { usePublicData } from '../hooks/queries.ts';
-import PageLoader from '../components/ui/PageLoader.tsx';
-import { formatDate } from '../utils/helpers.ts';
-import ShareButtons from '../components/shared/ShareButtons.tsx';
+import { usePublicData } from '../hooks/publicQueries';
+import PageLoader from '../components/ui/PageLoader';
+import { formatDate } from '../utils/helpers';
+import ShareButtons from '../components/shared/ShareButtons';
 import { Calendar, User, ArrowLeft } from 'lucide-react';
 
 const BlogPostPage: React.FC = () => {

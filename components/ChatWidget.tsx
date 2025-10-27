@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Sparkles, Loader2, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { usePublicData } from '../hooks/queries.ts';
+import { usePublicData } from '../hooks/publicQueries';
 
 interface Message {
     role: 'user' | 'model';

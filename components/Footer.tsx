@@ -1,11 +1,14 @@
+
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Loader2 } from 'lucide-react';
-import { usePublicData } from '../hooks/queries.ts';
+import { usePublicData } from '../hooks/publicQueries';
 
 const Footer: React.FC = () => {
     const { data, isLoading } = usePublicData();
     const socialLinks = data?.socialLinks;
+    const siteContent = data?.siteContent;
 
     return (
         <footer className="bg-gray-800 text-white">
@@ -15,7 +18,7 @@ const Footer: React.FC = () => {
                     <div>
                         <h3 className="text-lg font-bold mb-4">منصة الرحلة</h3>
                         <p className="text-gray-400 text-sm">
-                            حيث نحول طفلك إلى بطل قصته في "إنها لك"، ونصقل موهبته ليصبح مبدع عوالمه في "بداية الرحلة".
+                            {siteContent?.aboutPage.missionStatement || "نؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً، تكون مرآة تعكس شخصية الطفل الفريدة، وتعزز هويته العربية، وتغرس في قلبه أسمى القيم الإنسانية."}
                         </p>
                     </div>
 
@@ -65,4 +68,4 @@ const Footer: React.FC = () => {
     );
 };
 
-export default Footer;
+export default React.memo(Footer);

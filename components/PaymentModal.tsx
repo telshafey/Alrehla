@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Loader2, Upload, Link as LinkIcon, AlertCircle } from 'lucide-react';
-import { useAppMutations } from '../hooks/mutations.ts';
-import { useToast } from '../contexts/ToastContext.tsx';
-import { useModalAccessibility } from '../hooks/useModalAccessibility.ts';
+import { useOrderMutations } from '../hooks/mutations';
+import { useToast } from '../contexts/ToastContext';
+import { useModalAccessibility } from '../hooks/useModalAccessibility';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -44,7 +45,7 @@ const FileUpload: React.FC<{ file: File | null; setFile: (file: File | null) => 
 
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess, item }) => {
-  const { updateReceipt } = useAppMutations();
+  const { updateReceipt } = useOrderMutations();
   const { addToast } = useToast();
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

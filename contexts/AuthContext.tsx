@@ -1,121 +1,170 @@
+import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import { getPermissions, Permissions, UserRole } from '../lib/roles';
+import type { ChildProfile, UserProfile } from '../lib/database.types';
+import { useToast } from './ToastContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { mockUsers, mockChildProfiles } from '../data/mockData';
 
-import React, { createContext, useState, useEffect, ReactNode, useContext, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useToast } from './ToastContext.tsx';
-import { supabase } from '../lib/supabaseClient.ts';
-import { getPermissions, adminAccessRoles } from '../lib/roles.ts';
-import type { Permissions, UserRole } from '../lib/roles.ts';
-import type { ChildProfile, Database } from '../lib/database.types.ts';
-import { mockUsers, mockChildProfiles } from '../data/mockData.ts';
-
-export type UserProfile = Database['public']['Tables']['users']['Row'];
+export type { UserProfile, ChildProfile };
 
 interface AuthContextType {
     currentUser: UserProfile | null;
+    currentChildProfile: ChildProfile | null;
     isLoggedIn: boolean;
+    signOut: () => Promise<void>;
+    signIn: (email: string, password: string) => Promise<boolean>;
+    signUp: (email: string, password: string, name: string, role: UserRole) => Promise<boolean>;
+    updateCurrentUser: (updatedData: Partial<UserProfile>) => void;
     loading: boolean;
     error: string | null;
-    permissions: Permissions;
     hasAdminAccess: boolean;
+    permissions: Permissions;
     childProfiles: ChildProfile[];
-    currentChildProfile: ChildProfile | null;
-    signIn: (email: string, password: string) => Promise<void>;
-    signUp: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
-    signOut: () => Promise<void>;
-    addChildProfile: (profileData: any) => Promise<void>;
-    updateChildProfile: (profileData: any) => Promise<void>;
+    addChildProfile: (profileData: Omit<ChildProfile, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
+    updateChildProfile: (profileData: Partial<ChildProfile> & { id: number }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { addToast } = useToast();
-    const queryClient = useQueryClient();
     const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+    const [currentChildProfile, setCurrentChildProfile] = useState<ChildProfile | null>(null);
+    const [childProfiles, setChildProfiles] = useState<ChildProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { addToast } = useToast();
+    const queryClient = useQueryClient();
 
-    const { data: childProfiles = [] } = useQuery({
-        queryKey: ['childProfiles', currentUser?.id],
-        queryFn: async () => {
-            if (!currentUser) return [];
-            // Mock fetching child profiles for the current user
-            return mockChildProfiles.filter(p => p.user_id === currentUser.id);
-        },
-        enabled: !!currentUser,
-    });
-
-    const currentChildProfile = childProfiles.find(c => c.student_user_id === currentUser?.id) || null;
-
+    // Check for logged-in user in localStorage on initial load
     useEffect(() => {
-        // Mock session check
+        try {
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                const user: UserProfile = JSON.parse(storedUser);
+                setCurrentUser(user);
+                // Load related profiles
+                if (user.role === 'parent') {
+                    setChildProfiles(mockChildProfiles.filter(c => c.user_id === user.id));
+                } else if (user.role === 'student') {
+                     const child = mockChildProfiles.find(c => c.student_user_id === user.id);
+                     setCurrentChildProfile(child || null);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to parse stored user", e);
+            localStorage.removeItem('currentUser');
+        }
         setLoading(false);
     }, []);
 
-    const handleAuthChange = useCallback((user: UserProfile | null) => {
-        setCurrentUser(user);
-        setError(null);
-        if (user) {
-            queryClient.invalidateQueries({ queryKey: ['childProfiles', user.id] });
-        } else {
-            queryClient.removeQueries({ queryKey: ['childProfiles'] });
-        }
-        setLoading(false);
-    }, [queryClient]);
-
-    const signIn = async (email: string, password: string) => {
+    const signIn = async (email: string, password: string): Promise<boolean> => {
         setLoading(true);
         setError(null);
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-        const user = mockUsers.find(u => u.email === email);
+
+        // Note: In mock mode, password check is simplified
+        const user = mockUsers.find(u => u.email === email && u.password === password);
+
         if (user) {
-            handleAuthChange(user);
-            addToast('تم تسجيل الدخول بنجاح!', 'success');
-        } else {
-            setError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
-            addToast('البريد الإلكتروني أو كلمة المرور غير صحيحة.', 'error');
+            const userProfile: UserProfile = {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                created_at: user.created_at,
+                role: user.role,
+            };
+            setCurrentUser(userProfile);
+            localStorage.setItem('currentUser', JSON.stringify(userProfile));
+
+            if (user.role === 'parent') {
+                const profiles = mockChildProfiles.filter(c => c.user_id === user.id);
+                setChildProfiles(profiles);
+            } else if (user.role === 'student') {
+                const child = mockChildProfiles.find(c => c.student_user_id === user.id);
+                setCurrentChildProfile(child || null);
+                if (!child) {
+                    addToast('لم يتم ربط حساب الطالب هذا بأي ملف طفل.', 'warning');
+                }
+            }
             setLoading(false);
+            return true;
+        } else {
+            setError('Invalid email or password');
+            addToast('فشل تسجيل الدخول. تحقق من بريدك وكلمة المرور.', 'error');
+            setLoading(false);
+            return false;
         }
     };
-    
-    const signUp = async (email: string, password: string, name: string, role: UserRole) => {
+
+    const signUp = async (email: string, password: string, name: string, role: UserRole): Promise<boolean> => {
         setLoading(true);
         setError(null);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        addToast('تم إنشاء الحساب. يرجى التحقق من بريدك الإلكتروني (محاكاة).', 'success');
+        
+        if (mockUsers.some(u => u.email === email)) {
+            setError('Email already exists');
+            addToast('فشل إنشاء الحساب. البريد الإلكتروني مستخدم بالفعل.', 'error');
+            setLoading(false);
+            return false;
+        }
+
+        const newUser: UserProfile = {
+            id: `usr_${Math.random().toString(36).substr(2, 9)}`,
+            email,
+            name,
+            role,
+            created_at: new Date().toISOString(),
+        };
+        // In a real app, you'd add the user to the mockUsers array for the session
+        addToast('تم إنشاء الحساب بنجاح! (محاكاة)', 'success');
+        // Automatically sign in the new user
+        setCurrentUser(newUser);
+        localStorage.setItem('currentUser', JSON.stringify(newUser));
         setLoading(false);
+        return true;
     };
 
     const signOut = async () => {
-        handleAuthChange(null);
-        addToast('تم تسجيل الخروج.', 'info');
+        setCurrentUser(null);
+        setChildProfiles([]);
+        setCurrentChildProfile(null);
+        localStorage.removeItem('currentUser');
+        queryClient.clear();
+        addToast('تم تسجيل الخروج بنجاح.', 'info');
     };
     
-    const addChildProfile = async (profileData: any) => {
-        addToast(`تمت إضافة ${profileData.name} بنجاح.`, 'success');
-        queryClient.invalidateQueries({ queryKey: ['childProfiles', currentUser?.id] });
+    const addChildProfile = async (profileData: Omit<ChildProfile, 'id' | 'user_id' | 'created_at'>) => {
+        addToast("ميزة إضافة طفل غير مفعلة بعد (محاكاة).", 'info');
+        // In a real app, you would have mutation logic here.
+        return Promise.resolve();
     };
 
-    const updateChildProfile = async (profileData: any) => {
-        addToast(`تم تحديث ملف ${profileData.name} بنجاح.`, 'success');
-        queryClient.invalidateQueries({ queryKey: ['childProfiles', currentUser?.id] });
+    const updateChildProfile = async (profileData: Partial<ChildProfile> & { id: number }) => {
+        addToast("ميزة تعديل طفل غير مفعلة بعد (محاكاة).", 'info');
+        // In a real app, you would have mutation logic here.
+        return Promise.resolve();
     };
 
-    const permissions = getPermissions(currentUser?.role || 'user');
-    const hasAdminAccess = !!currentUser && adminAccessRoles.includes(currentUser.role);
+    const updateCurrentUser = (updatedData: Partial<UserProfile>) => {
+        setCurrentUser(prevUser => {
+            if (!prevUser) return null;
+            const newUser = { ...prevUser, ...updatedData };
+            localStorage.setItem('currentUser', JSON.stringify(newUser));
+            return newUser;
+        });
+    };
 
-    const value = {
+    const value: AuthContextType = {
         currentUser,
-        isLoggedIn: !!currentUser,
-        loading,
-        error,
-        permissions,
-        hasAdminAccess,
-        childProfiles,
         currentChildProfile,
+        isLoggedIn: !!currentUser,
+        signOut,
         signIn,
         signUp,
-        signOut,
+        updateCurrentUser,
+        loading,
+        error,
+        hasAdminAccess: currentUser ? getPermissions(currentUser.role).canViewDashboard : false,
+        permissions: currentUser ? getPermissions(currentUser.role) : getPermissions('user'),
+        childProfiles,
         addChildProfile,
         updateChildProfile,
     };

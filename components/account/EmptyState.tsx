@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
+import { Button } from '../ui/Button.tsx';
 
 interface EmptyStateProps {
     icon: React.ReactNode;
@@ -18,14 +19,15 @@ const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, message, actionTex
             <h3 className="mt-4 text-xl font-bold text-gray-800">{title}</h3>
             <p className="mt-2 text-gray-500 max-w-md mx-auto">{message}</p>
             <div className="mt-6">
-                <button
+                <Button
                     type="button"
                     onClick={onAction}
-                    className="inline-flex items-center gap-2 px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105"
+                    icon={<Plus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />}
+                    size="lg"
+                    className="shadow-sm transition-transform transform hover:scale-105"
                 >
-                    <Plus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
                     {actionText}
-                </button>
+                </Button>
             </div>
         </div>
     );

@@ -1,15 +1,22 @@
-
-
-import React from 'react';
-import { Star } from 'lucide-react';
-import { useAdminSubscriptions } from '../../hooks/queries.ts';
-import type { Subscription } from '../../lib/database.types.ts';
-import { formatDate } from '../../utils/helpers.ts';
-import AdminSection from '../../components/admin/AdminSection.tsx';
-import PageLoader from '../../components/ui/PageLoader.tsx';
+import React, { useState } from 'react';
+import { Star, Calendar } from 'lucide-react';
+import { useAdminSubscriptions } from '../../hooks/adminQueries';
+import type { Subscription } from '../../lib/database.types';
+import { formatDate } from '../../utils/helpers';
+import AdminSection from '../../components/admin/AdminSection';
+import PageLoader from '../../components/ui/PageLoader';
+import SessionSchedulerModal from '../../components/admin/SessionSchedulerModal';
+import { Button } from '../../components/ui/Button';
 
 const AdminSubscriptionsPage: React.FC = () => {
     const { data: subscriptions = [], isLoading: loading, error } = useAdminSubscriptions();
+    const [isSchedulerOpen, setIsSchedulerOpen] = useState(false);
+    const [selectedSub, setSelectedSub] = useState<Subscription | null>(null);
+
+    const handleOpenScheduler = (sub: Subscription) => {
+        setSelectedSub(sub);
+        setIsSchedulerOpen(true);
+    };
 
     const getStatusColor = (status: Subscription['status']) => {
         switch (status) {
@@ -38,40 +45,58 @@ const AdminSubscriptionsPage: React.FC = () => {
     }
 
     return (
-        <div className="animate-fadeIn space-y-12">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة الاشتراكات</h1>
-            <AdminSection title="جميع الاشتراكات" icon={<Star />}>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-right">
-                        <thead className="border-b-2 border-gray-200">
-                            <tr>
-                                <th className="py-3 px-4 font-semibold text-gray-600">المشترك</th>
-                                <th className="py-3 px-4 font-semibold text-gray-600">الطفل</th>
-                                <th className="py-3 px-4 font-semibold text-gray-600">تاريخ البدء</th>
-                                <th className="py-3 px-4 font-semibold text-gray-600">التجديد القادم</th>
-                                <th className="py-3 px-4 font-semibold text-gray-600">الحالة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {subscriptions.map(sub => (
-                                <tr key={sub.id} className="border-b hover:bg-gray-50">
-                                    <td className="py-4 px-4">{sub.user_name}</td>
-                                    <td className="py-4 px-4">{sub.child_name}</td>
-                                    <td className="py-4 px-4">{formatDate(sub.start_date)}</td>
-                                    <td className="py-4 px-4">{formatDate(sub.next_renewal_date)}</td>
-                                    <td className="py-4 px-4">
-                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${getStatusColor(sub.status)}`}>
-                                            {getStatusText(sub.status)}
-                                        </span>
-                                    </td>
+        <>
+            <SessionSchedulerModal
+                isOpen={isSchedulerOpen}
+                onClose={() => setIsSchedulerOpen(false)}
+                subscription={selectedSub}
+            />
+            <div className="animate-fadeIn space-y-12">
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة الاشتراكات</h1>
+                <AdminSection title="جميع الاشتراكات" icon={<Star />}>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right">
+                            <thead className="border-b-2 border-gray-200">
+                                <tr>
+                                    <th className="py-3 px-4 font-semibold text-gray-600">المشترك</th>
+                                    <th className="py-3 px-4 font-semibold text-gray-600">الطفل</th>
+                                    <th className="py-3 px-4 font-semibold text-gray-600">تاريخ البدء</th>
+                                    <th className="py-3 px-4 font-semibold text-gray-600">التجديد القادم</th>
+                                    <th className="py-3 px-4 font-semibold text-gray-600">الحالة</th>
+                                    <th className="py-3 px-4 font-semibold text-gray-600">إجراءات</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {subscriptions.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد اشتراكات حاليًا.</p>}
-                </div>
-            </AdminSection>
-        </div>
+                            </thead>
+                            <tbody>
+                                {subscriptions.map(sub => (
+                                    <tr key={sub.id} className="border-b hover:bg-gray-50">
+                                        <td className="py-4 px-4">{sub.user_name}</td>
+                                        <td className="py-4 px-4">{sub.child_name}</td>
+                                        <td className="py-4 px-4">{formatDate(sub.start_date)}</td>
+                                        <td className="py-4 px-4">{formatDate(sub.next_renewal_date)}</td>
+                                        <td className="py-4 px-4">
+                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${getStatusColor(sub.status)}`}>
+                                                {getStatusText(sub.status)}
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-4">
+                                            <Button
+                                                onClick={() => handleOpenScheduler(sub)}
+                                                variant="outline"
+                                                size="sm"
+                                                icon={<Calendar size={16} />}
+                                            >
+                                                جدولة الجلسات
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {subscriptions.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد اشتراكات حاليًا.</p>}
+                    </div>
+                </AdminSection>
+            </div>
+        </>
     );
 };
 

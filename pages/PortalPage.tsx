@@ -1,30 +1,36 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Feather, Target, ArrowLeft } from 'lucide-react';
-import { useProduct } from '../contexts/ProductContext.tsx';
-import { usePublicData } from '../hooks/queries.ts';
-import TestimonialCard from '../components/shared/TestimonialCard.tsx';
-import PostCard from '../components/shared/PostCard.tsx';
-import PageLoader from '../components/ui/PageLoader.tsx';
+// FIX: Removed .ts and .tsx extension from import paths
+import { useProduct } from '../contexts/ProductContext';
+import { usePublicData } from '../hooks/publicQueries';
+import TestimonialCard from '../components/shared/TestimonialCard';
+import PostCard from '../components/shared/PostCard';
+import PageLoader from '../components/ui/PageLoader';
+import { Button } from '../components/ui/Button';
 
 // --- Hero Section ---
-const HeroSection: React.FC<{ backgroundUrl: string | null }> = ({ backgroundUrl }) => (
+const HeroSection: React.FC<{ backgroundUrl: string | null; content: any }> = ({ backgroundUrl, content }) => (
     <section className="relative bg-cover bg-center py-20 sm:py-32 lg:py-40" style={{ backgroundImage: `url(${backgroundUrl || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'})` }}>
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/70 via-purple-900/70 to-black/70"></div>
         <div className="container mx-auto px-4 text-center relative z-10">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight animate-fadeIn">
-                هنا تبدأ كل الحكايات
+                {content?.heroTitle || "رحلة كل طفل تبدأ بقصة... وقصته تبدأ هنا"}
             </h1>
             <p className="mt-6 max-w-3xl mx-auto text-lg sm:text-xl text-gray-200 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-                منصة الرحلة، حيث نحول طفلك إلى بطل قصته في "إنها لك"، ونصقل موهبته ليصبح مبدع عوالمه في "بداية الرحلة".
+                {content?.heroSubtitle || "منصة تربوية عربية متكاملة تصنع قصصاً مخصصة تجعل طفلك بطلاً، وتطلق مواهبه في الكتابة الإبداعية"}
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fadeIn" style={{ animationDelay: '0.4s' }}>
-                <Link to="/enha-lak" className="px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-lg">
-                    اكتشف قصص "إنها لك"
-                </Link>
-                <Link to="/creative-writing" className="px-8 py-3 border border-gray-300 text-base font-medium rounded-full text-purple-600 bg-white hover:bg-gray-100 transition-transform transform hover:scale-105 shadow-lg">
-                    انضم لـ "بداية الرحلة"
-                </Link>
+                <Button asChild size="lg" className="shadow-lg transition-transform transform hover:scale-105">
+                    <Link to="/enha-lak/store">اطلب قصتك المخصصة الآن</Link>
+                </Button>
+                <Button asChild size="lg" variant="secondary" className="shadow-lg transition-transform transform hover:scale-105">
+                    <Link to="/creative-writing">اكتشف برنامج الكتابة الإبداعية</Link>
+                </Button>
+                 <Button asChild size="lg" variant="outline" className="bg-white text-gray-700 border-gray-300 shadow-lg transition-transform transform hover:scale-105">
+                    <Link to="/">جرّب المنصة مجاناً</Link>
+                </Button>
             </div>
         </div>
     </section>
@@ -55,7 +61,7 @@ const ProjectCard: React.FC<{ title: string; description: string; link: string; 
     );
 };
 
-const ProjectsSection: React.FC<{ branding: any }> = ({ branding }) => (
+const ProjectsSection: React.FC<{ branding: any; content: any }> = ({ branding, content }) => (
     <section className="bg-gray-50 py-16 sm:py-20 lg:py-24">
         <div className="container mx-auto px-4">
             <div className="text-center mb-16">
@@ -64,15 +70,15 @@ const ProjectsSection: React.FC<{ branding: any }> = ({ branding }) => (
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
                 <ProjectCard
-                    title='قصص "إنها لك"'
-                    description="عندما يرى طفلك نفسه بطلاً، فإنه لا يقرأ قصة، بل يعيشها. تجربة سحرية تبني ثقته بنفسه وتعزز هويته."
+                    title={content?.enhaLakTitle || 'إنها لك'}
+                    description={content?.enhaLakDescription || "قصص مخصصة ومنتجات تربوية فريدة تجعل طفلك بطل الحكاية الحقيقي"}
                     link="/enha-lak"
                     imageUrl={branding?.heroImageUrl}
                     icon={<BookOpen size={32} />}
                 />
                 <ProjectCard
-                    title='برنامج "بداية الرحلة"'
-                    description="نحتفل بالصوت الفريد لكل طفل. إنه المفتاح الذي يفتح أقفال الخيال، والمساحة الآمنة التي تتحول فيها الأفكار إلى قصص."
+                    title={content?.creativeWritingTitle || 'بداية الرحلة'}
+                    description={content?.creativeWritingDescription || "برنامج متكامل لتنمية مهارات الكتابة الإبداعية للأطفال والشباب من 8-18 سنة"}
                     link="/creative-writing"
                     imageUrl={branding?.creativeWritingPortalImageUrl}
                     icon={<Feather size={32} />}
@@ -81,6 +87,62 @@ const ProjectsSection: React.FC<{ branding: any }> = ({ branding }) => (
         </div>
     </section>
 );
+
+
+// --- Value Proposition Section ---
+const ValuePropositionSection: React.FC<{ content: any }> = ({ content }) => {
+    const features = [
+        { icon: '✨', text: 'محتوى عربي أصيل يعزز الهوية والانتماء الثقافي' },
+        { icon: '🎭', text: 'تخصيص كامل: طفلك هو بطل القصة باسمه وصورته الحقيقية' },
+        { icon: '👨‍🏫', text: 'برنامج تدريبي فردي مع مدربين متخصصين في الأدب والتربية' },
+        { icon: '📚', text: 'منتجات تربوية شاملة (قصص، تلوين، أدعية، ألعاب)' },
+        { icon: '🔬', text: 'منهجية علمية تجمع بين المتعة والتطوير الفعلي' },
+    ];
+
+    return (
+        <section className="bg-white py-16 sm:py-20 lg:py-24">
+            <div className="container mx-auto px-4">
+                <div className="text-center mb-16">
+                    <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.valuePropositionTitle || "لماذا منصة الرحلة هي الأفضل لطفلك؟"}</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                    {features.map((feature, index) => (
+                        <div key={index} className="flex items-start gap-4 p-6 bg-gray-50 rounded-2xl border transform hover:scale-105 hover:shadow-lg transition-transform">
+                            <span className="text-3xl mt-1">{feature.icon}</span>
+                            <p className="text-lg text-gray-700 font-semibold">{feature.text}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+};
+
+
+// --- Social Proof Section ---
+const SocialProofSection: React.FC = () => {
+    const stats = [
+        { icon: '📖', value: '1000+', label: 'قصة مخصصة تم إنتاجها' },
+        { icon: '👦', value: '500+', label: 'طالب مبدع في برامجنا' },
+        { icon: '🎓', value: '20+', label: 'مدرب محترف متخصص' },
+        { icon: '⭐', value: '98%', label: 'معدل رضا العملاء' },
+    ];
+    return (
+        <section className="bg-blue-50 py-16 sm:py-20">
+            <div className="container mx-auto px-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                    {stats.map((stat) => (
+                        <div key={stat.label}>
+                            <span className="text-4xl">{stat.icon}</span>
+                            <p className="text-4xl font-extrabold text-blue-600 mt-2">{stat.value}</p>
+                            <p className="text-md font-semibold text-gray-600 mt-1">{stat.label}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+};
 
 
 // --- About Section ---
@@ -92,14 +154,14 @@ const AboutSection: React.FC<{ branding: any; content: any }> = ({ branding, con
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
                     <div className="order-last lg:order-first">
                         <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-6 flex items-center gap-3">
-                            <Target className="text-blue-500" /> رسالتنا
+                            <Target className="text-blue-500" /> قصتنا
                         </h2>
                         <p className="text-lg text-gray-600 leading-relaxed mb-8">
-                            بدأت رحلتنا من سؤال بسيط: كيف نجعل أطفالنا يحبون اللغة العربية وينتمون لقصصها؟ فكان الجواب في إنشاء منصة لا تقدم محتوىً تعليمياً فحسب، بل تصنع تجارب سحرية تبقى في ذاكرة الطفل وتساهم في بناء شخصيته، لتكون الرفيق الأمين في رحلته من بطل يكتشف ذاته في قصص 'إنها لك'، إلى مبدع يصنع عوالمه الخاصة في برنامج 'بداية الرحلة'.
+                            {content?.ourStory || "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة 'منصة الرحلة' - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي."}
                         </p>
-                        <Link to="/about" className="px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-lg">
-                            تعرف علينا أكثر
-                        </Link>
+                        <Button asChild size="lg" className="shadow-lg transition-transform transform hover:scale-105">
+                            <Link to="/about">تعرف علينا أكثر</Link>
+                        </Button>
                     </div>
                     <div className="relative px-8">
                         {!imageLoaded && <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-2xl"></div>}
@@ -126,7 +188,7 @@ const TestimonialsSection: React.FC = () => (
                     role="ولية أمر"
                 />
                 <TestimonialCard
-                    quote="لم أتوقع أن يصبح ابني متحمساً للكتابة بهذا الشكل. برنامج 'بداية الرحلة' ساعده على التعبير عن نفسه بثقة وإبداع."
+                    quote="لم أتوقع أن يصبح ابني متحمساً للكتابة بهذا الشكل. البرنامج ساعده على التعبير عن نفسه بثقة وإبداع."
                     author="خالد عبد الرحمن"
                     role="ولي أمر طالب"
                 />
@@ -172,12 +234,12 @@ const FinalCtaSection: React.FC = () => (
           <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">هل أنت جاهز لبدء الرحلة؟</h2>
           <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">اختر المسار الذي يناسب طفلك اليوم وافتح له بابًا جديدًا من الخيال والمعرفة.</p>
            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link to="/enha-lak" className="px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-lg">
-                    تصفح منتجات "إنها لك"
-                </Link>
-                <Link to="/creative-writing/booking" className="px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-purple-600 hover:bg-purple-700 transition-transform transform hover:scale-105 shadow-lg">
-                    احجز جلسة "بداية الرحلة"
-                </Link>
+                <Button asChild size="lg" className="shadow-lg transition-transform transform hover:scale-105">
+                    <Link to="/enha-lak">تصفح منتجات "إنها لك"</Link>
+                </Button>
+                 <Button asChild size="lg" variant="secondary" className="shadow-lg transition-transform transform hover:scale-105">
+                    <Link to="/creative-writing/booking">احجز جلسة "بداية الرحلة"</Link>
+                </Button>
           </div>
         </div>
       </section>
@@ -188,7 +250,7 @@ const FinalCtaSection: React.FC = () => (
 const PortalPage: React.FC = () => {
     const { siteBranding, loading: productLoading } = useProduct();
     const { data, isLoading: publicDataLoading } = usePublicData();
-    const { blogPosts } = data || {};
+    const { blogPosts, siteContent } = data || {};
 
     if (productLoading || publicDataLoading) {
         return <PageLoader text="جاري تجهيز الصفحة الرئيسية..." />;
@@ -198,9 +260,11 @@ const PortalPage: React.FC = () => {
     
     return (
         <div className="bg-white animate-fadeIn">
-            <HeroSection backgroundUrl={siteBranding?.heroImageUrl} />
-            <ProjectsSection branding={siteBranding} />
-            <AboutSection branding={siteBranding} content={null} />
+            <HeroSection backgroundUrl={siteBranding?.heroImageUrl} content={siteContent?.portalPage} />
+            <ProjectsSection branding={siteBranding} content={siteContent?.portalPage} />
+            <ValuePropositionSection content={siteContent?.portalPage} />
+            <SocialProofSection />
+            <AboutSection branding={siteBranding} content={siteContent?.aboutPage} />
             <TestimonialsSection />
             {publishedPosts.length > 0 && <BlogSection posts={publishedPosts} />}
             <FinalCtaSection />

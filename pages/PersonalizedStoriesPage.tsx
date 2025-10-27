@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+
+
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { usePublicData } from '../hooks/queries.ts';
-import { useProduct } from '../contexts/ProductContext.tsx';
-import PageLoader from '../components/ui/PageLoader.tsx';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
-import type { PersonalizedProduct } from '../lib/database.types.ts';
-import type { Prices } from '../contexts/ProductContext.tsx';
+import { usePublicData } from '../hooks/publicQueries';
+import { useProduct } from '../contexts/ProductContext';
+import SkeletonCard from '../components/ui/SkeletonCard';
+import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle } from 'lucide-react';
+import type { PersonalizedProduct } from '../lib/database.types';
+import type { Prices } from '../contexts/ProductContext';
 
 const getPrice = (key: string, prices: Prices | null): number | null => {
     if (!prices) return null;
@@ -18,11 +20,15 @@ const getPrice = (key: string, prices: Prices | null): number | null => {
     }
 };
 
-const ProductCard: React.FC<{ product: PersonalizedProduct, price: number | null }> = ({ product, price }) => {
+const ProductCard: React.FC<{ product: PersonalizedProduct, price: number | null, featured?: boolean }> = ({ product, price, featured = false }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
 
+    const cardClass = featured 
+        ? "w-80 flex-shrink-0 bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col transform hover:-translate-y-2 transition-transform duration-300 border"
+        : "bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col transform hover:-translate-y-2 transition-transform duration-300 border";
+
     return (
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col transform hover:-translate-y-2 transition-transform duration-300 border">
+        <div className={cardClass}>
             <div className="relative h-64 bg-gray-100">
                  {!imageLoaded && <div className="absolute inset-0 bg-gray-200 animate-pulse"></div>}
                 <img 
@@ -67,9 +73,17 @@ const PersonalizedStoriesPage: React.FC = () => {
   const { prices, loading: pricesLoading } = useProduct();
   const personalizedProducts = data?.personalizedProducts || [];
 
-  if (isLoading || pricesLoading) {
-      return <PageLoader text="جاري تحميل المنتجات..." />;
-  }
+  const { featuredProducts, coreProducts, addonProducts } = useMemo(() => {
+    const sortedProducts = [...personalizedProducts].sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
+    
+    const featured = sortedProducts.filter(p => p.sort_order && p.sort_order <= 2);
+    const core = sortedProducts.filter(p => ['custom_story', 'gift_box'].includes(p.key));
+    const addons = sortedProducts.filter(p => !['custom_story', 'gift_box'].includes(p.key));
+    
+    return { featuredProducts: featured, coreProducts: core, addonProducts: addons };
+  }, [personalizedProducts]);
+
+  const showLoadingState = isLoading || pricesLoading;
 
   if (error) {
       return <div className="text-center text-red-500 py-12">{error.message}</div>;
@@ -85,13 +99,53 @@ const PersonalizedStoriesPage: React.FC = () => {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {personalizedProducts
-                    .sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99))
-                    .map(product => (
-                        <ProductCard key={product.id} product={product} price={getPrice(product.key, prices)} />
-                ))}
-            </div>
+            {/* Featured Products Section */}
+            {(showLoadingState || featuredProducts.length > 0) && (
+                <section className="mb-20">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><Star className="text-yellow-400" /> المنتجات المميزة</h2>
+                    <div className="flex gap-8 pb-4 -mx-4 px-4 overflow-x-auto">
+                        {showLoadingState ? (
+                            Array.from({ length: 2 }).map((_, index) => <div className="w-80 flex-shrink-0" key={index}><SkeletonCard /></div>)
+                        ) : (
+                            featuredProducts.map(product => (
+                                <ProductCard key={`featured-${product.id}`} product={product} price={getPrice(product.key, prices)} featured />
+                            ))
+                        )}
+                    </div>
+                </section>
+            )}
+
+            {/* Core Products */}
+            {(showLoadingState || coreProducts.length > 0) && (
+                <section className="mb-20">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><BookHeart className="text-pink-500" /> القصص الأساسية</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {showLoadingState && !featuredProducts.length ? (
+                            Array.from({ length: 2 }).map((_, index) => <SkeletonCard key={`core-skel-${index}`} />)
+                        ) : (
+                            coreProducts.map(product => (
+                                <ProductCard key={`core-${product.id}`} product={product} price={getPrice(product.key, prices)} />
+                            ))
+                        )}
+                    </div>
+                </section>
+            )}
+
+            {/* Addon Products */}
+            {(showLoadingState || addonProducts.length > 0) && (
+                <section>
+                    <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><Puzzle className="text-green-500" /> إضافات إبداعية</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {showLoadingState && !featuredProducts.length && !coreProducts.length ? (
+                             Array.from({ length: 1 }).map((_, index) => <SkeletonCard key={`addon-skel-${index}`} />)
+                        ) : (
+                            addonProducts.map(product => (
+                                <ProductCard key={`addon-${product.id}`} product={product} price={getPrice(product.key, prices)} />
+                            ))
+                        )}
+                    </div>
+                </section>
+            )}
         </div>
     </div>
   );

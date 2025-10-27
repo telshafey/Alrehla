@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
-import { useAppMutations } from '../../hooks/mutations.ts';
-import type { CreativeWritingBooking } from '../../lib/database.types.ts';
-import { useToast } from '../../contexts/ToastContext.tsx';
-import { formatDate } from '../../utils/helpers.ts';
+// REFACTOR: Use the specialized booking mutations hook.
+import { useBookingMutations } from '../../hooks/mutations';
+import type { CreativeWritingBooking } from '../../lib/database.types';
+import { useToast } from '../../contexts/ToastContext';
+import { formatDate } from '../../utils/helpers';
 
 interface Student {
-    id: string;
+    id: number;
     name: string;
     bookings: CreativeWritingBooking[];
     lastProgressNote: string | null;
@@ -18,8 +20,9 @@ interface StudentProgressModalProps {
     student: Student | null;
 }
 
-const StudentProgressModal: React.FC<StudentProgressModalProps> = ({ isOpen, onClose, student }) => {
-    const { updateBookingProgressNotes } = useAppMutations();
+// FIX: Changed to a named export to resolve module resolution issues.
+export const StudentProgressModal: React.FC<StudentProgressModalProps> = ({ isOpen, onClose, student }) => {
+    const { updateBookingProgressNotes } = useBookingMutations();
     const { addToast } = useToast();
     const [notes, setNotes] = useState<{ [bookingId: string]: string }>({});
     const [isSaving, setIsSaving] = useState(false);
@@ -58,7 +61,6 @@ const StudentProgressModal: React.FC<StudentProgressModalProps> = ({ isOpen, onC
         try {
             const updatePromises = student.bookings
                 .filter(b => notes[b.id] !== (b.progress_notes || ''))
-                // Correctly call the mutation function using `.mutateAsync`.
                 .map(b => updateBookingProgressNotes.mutateAsync({ bookingId: b.id, notes: notes[b.id] }));
             
             await Promise.all(updatePromises);
@@ -115,5 +117,3 @@ const StudentProgressModal: React.FC<StudentProgressModalProps> = ({ isOpen, onC
         </div>
     );
 };
-
-export default StudentProgressModal;

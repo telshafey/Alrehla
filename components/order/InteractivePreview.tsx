@@ -1,6 +1,9 @@
+
+
 import React from 'react';
 import { Package, User, Palette, Sparkles } from 'lucide-react';
-import { PersonalizedProduct } from '../../lib/database.types.ts';
+// FIX: Removed .ts extension from import path
+import type { PersonalizedProduct } from '../../lib/database.types';
 
 const storyGoals = [
     { key: 'respect', title: 'الاستئذان والاحترام' },

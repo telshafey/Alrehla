@@ -1,26 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Target, Book, Users, ArrowLeft, Calendar, CheckCircle, Package, CalendarCheck, Sparkles, Quote, Star, Award, HeartHandshake } from 'lucide-react';
-import ShareButtons from '../components/shared/ShareButtons.tsx';
-import TestimonialCard from '../components/shared/TestimonialCard.tsx';
-import HowItWorksStep from '../components/shared/HowItWorksStep.tsx';
-
-const FeatureCard: React.FC<{ title: string; description: string; link: string; icon: React.ReactNode; }> = ({ title, description, link, icon }) => (
-    <div className="bg-white p-8 rounded-2xl shadow-lg text-center transform hover:-translate-y-2 transition-transform duration-300 h-full flex flex-col">
-        <div className="flex-shrink-0 flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-600 mb-6 mx-auto">
-            {icon}
-        </div>
-        <h3 className="text-2xl font-bold text-gray-800">{title}</h3>
-        <p className="mt-4 text-gray-600 flex-grow">{description}</p>
-        <Link to={link} className="mt-6 inline-flex items-center font-semibold text-lg text-blue-600 hover:text-blue-800 group">
-            <span>اعرف المزيد</span>
-            <ArrowLeft size={22} className="ms-2 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" />
-        </Link>
-    </div>
-);
+import { Target, ArrowLeft, Calendar, CheckCircle, Sparkles, Star, Globe, Palette, Mic } from 'lucide-react';
+import ShareButtons from '../components/shared/ShareButtons';
+import TestimonialCard from '../components/shared/TestimonialCard';
+import { Button } from '../components/ui/Button';
 
 const BenefitCard: React.FC<{ icon: React.ReactNode, title: string, description: string }> = ({ icon, title, description }) => (
-    <div className="bg-white p-8 rounded-2xl shadow-lg text-center transform hover:-translate-y-2 transition-transform duration-300">
+    <div className="bg-white p-8 rounded-2xl shadow-lg text-center transform hover:-translate-y-2 transition-transform duration-300 h-full">
         <div className="flex-shrink-0 flex items-center justify-center h-16 w-16 rounded-full bg-green-100 text-green-600 mb-6 mx-auto">
             {icon}
         </div>
@@ -29,9 +15,49 @@ const BenefitCard: React.FC<{ icon: React.ReactNode, title: string, description:
     </div>
 );
 
+const PackageCard: React.FC<{ title: string; price: string; features: string[]; isFree?: boolean; isPopular?: boolean }> = ({ title, price, features, isFree = false, isPopular = false }) => (
+    <div className={`p-8 rounded-2xl shadow-lg border-2 h-full flex flex-col ${isPopular ? 'border-blue-500 bg-blue-50' : (isFree ? 'border-green-500 bg-green-50' : 'bg-white border-gray-200')}`}>
+        {isPopular && <span className="text-xs font-bold bg-blue-500 text-white px-3 py-1 rounded-full mb-3 inline-block self-start">الأكثر شيوعاً</span>}
+        <h3 className="text-2xl font-bold">{title}</h3>
+        <p className="text-4xl font-extrabold my-4">{price}</p>
+        <ul className="space-y-2 text-gray-600 flex-grow">
+            {features.map((feature, i) => (
+                <li key={i} className="flex items-center gap-2">
+                    <CheckCircle size={16} className="text-green-500" />
+                    <span>{feature}</span>
+                </li>
+            ))}
+        </ul>
+        <Button asChild variant={isFree ? 'success' : 'primary'} className="mt-8 w-full">
+            <Link to="/creative-writing/booking">
+                {isFree ? 'ابدأ جلستك المجانية' : 'اختر هذه الباقة'}
+            </Link>
+        </Button>
+    </div>
+);
+
+const InstructorShowcaseCard: React.FC<{ name: string; specialty: string; points: string[]; avatar: string; }> = ({ name, specialty, points, avatar }) => (
+    <div className="bg-white p-6 rounded-2xl shadow-lg text-center border h-full">
+        <img src={avatar} alt={name} className="w-24 h-24 rounded-full mx-auto object-cover ring-4 ring-blue-100" />
+        <h4 className="text-xl font-bold mt-4">{name}</h4>
+        <p className="text-blue-600 font-semibold text-sm mb-4">{specialty}</p>
+        <ul className="text-sm text-gray-600 space-y-2 text-right">
+            {points.map((point, i) => <li key={i} className="flex items-start gap-2"><Star size={14} className="text-yellow-400 mt-1 flex-shrink-0" /><span>{point}</span></li>)}
+        </ul>
+    </div>
+);
+
+
 const CreativeWritingPage: React.FC = () => {
   const pageUrl = window.location.href;
-  const [aboutImageLoaded, setAboutImageLoaded] = useState(false);
+
+  const methodologyPoints = [
+      { icon: <Target className="w-8 h-8 text-blue-500 flex-shrink-0 mt-1" />, title: "يصطاد الأفكار", description: "يحول المشاهدات اليومية إلى بذور قصص مدهشة." },
+      { icon: <Globe className="w-8 h-8 text-green-500 flex-shrink-0 mt-1" />, title: "يبني العوالم", description: "يخلق شخصيات تتنفس وتعيش في عوالم من صنعه." },
+      { icon: <Palette className="w-8 h-8 text-pink-500 flex-shrink-0 mt-1" />, title: "يرسم بالكلمات", description: "يستخدم اللغة كفرشاة ليرسم الصور والمشاعر." },
+      { icon: <Mic className="w-8 h-8 text-purple-500 flex-shrink-0 mt-1" />, title: "يحرر صوته", description: "يعبر عن نفسه بثقة، ويكتشف قوة كلماته." },
+  ];
+
   return (
     <div className="bg-gray-50 animate-fadeIn">
       <section className="bg-gradient-to-br from-purple-50 via-blue-50 to-white py-16 sm:py-20 lg:py-24 text-center">
@@ -43,11 +69,11 @@ const CreativeWritingPage: React.FC = () => {
                 "بداية الرحلة" ليس برنامجاً لتعليم الكتابة، بل هو احتفال بالصوت الفريد لكل طفل. إنه المفتاح الذي يفتح أقفال الخيال، والمساحة الآمنة التي تتحول فيها الأفكار الخجولة إلى قصص عظيمة.
             </p>
             <div className="mt-10">
-                <Link 
-                    to="/creative-writing/booking"
-                    className="px-8 py-3 border border-transparent text-lg font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-lg">
-                    اكتشف الباقات وابدأ الآن
-                </Link>
+                <Button asChild size="lg" className="shadow-lg transition-transform transform hover:scale-105">
+                    <Link to="/creative-writing/booking">
+                        اكتشف الباقات وابدأ الآن
+                    </Link>
+                </Button>
             </div>
             <div className="mt-8 flex justify-center">
                 <ShareButtons 
@@ -62,50 +88,19 @@ const CreativeWritingPage: React.FC = () => {
       <section className="py-16 sm:py-20 lg:py-24">
         <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">كيف نفعل ذلك؟</h2>
-                <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">من خلال حوار ملهم وتمارين إبداعية، نعلم الطفل كيف:</p>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">منهجيتنا المتميزة: "الإلهام قبل القواعد"</h2>
+                <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">كيف نطلق الإبداع؟</p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                 <div className="px-8 relative">
-                    {!aboutImageLoaded && <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-2xl"></div>}
-                    <img 
-                        src="https://i.ibb.co/8XYt2s5/about-us-image.jpg" 
-                        alt="طفلة تكتب وتتعلم" 
-                        className={`rounded-2xl shadow-2xl transition-opacity duration-500 ${aboutImageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                        loading="lazy"
-                        onLoad={() => setAboutImageLoaded(true)}
-                    />
-                </div>
-                <div className="space-y-6">
-                    <div className="flex items-start gap-4">
-                        <CheckCircle className="w-10 h-10 text-green-500 flex-shrink-0 mt-1" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+                {methodologyPoints.map(point => (
+                    <div key={point.title} className="flex items-start gap-4 p-6 bg-white rounded-2xl border shadow-lg">
+                        {point.icon}
                         <div>
-                            <h3 className="text-xl font-bold text-gray-800">يصطاد الأفكار</h3>
-                            <p className="text-gray-600 mt-1">يحول المشاهدات اليومية إلى بذور لقصص مدهشة.</p>
+                            <h3 className="text-xl font-bold text-gray-800">{point.title}</h3>
+                            <p className="text-gray-600 mt-1">{point.description}</p>
                         </div>
                     </div>
-                    <div className="flex items-start gap-4">
-                        <CheckCircle className="w-10 h-10 text-green-500 flex-shrink-0 mt-1" />
-                        <div>
-                            <h3 className="text-xl font-bold text-gray-800">يبني العوالم</h3>
-                            <p className="text-gray-600 mt-1">يخلق شخصيات تتنفس وتعيش في عوالم من صنعه.</p>
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-4">
-                        <CheckCircle className="w-10 h-10 text-green-500 flex-shrink-0 mt-1" />
-                        <div>
-                            <h3 className="text-xl font-bold text-gray-800">يرسم بالكلمات</h3>
-                            <p className="text-gray-600 mt-1">يستخدم اللغة كفرشاة ليرسم الصور والمشاعر في عقل القارئ.</p>
-                        </div>
-                    </div>
-                     <div className="flex items-start gap-4">
-                        <CheckCircle className="w-10 h-10 text-green-500 flex-shrink-0 mt-1" />
-                        <div>
-                            <h3 className="text-xl font-bold text-gray-800">يحرر صوته</h3>
-                            <p className="text-gray-600 mt-1">يعبر عن نفسه بثقة، ويكتشف أن كلماته قادرة على إحداث تغيير.</p>
-                        </div>
-                    </div>
-                </div>
+                ))}
             </div>
         </div>
       </section>
@@ -118,17 +113,17 @@ const CreativeWritingPage: React.FC = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <BenefitCard 
-                    icon={<Award size={32} />}
+                    icon={<Sparkles size={32} />}
                     title="الثقة للتعبير"
                     description="يصبح أكثر جرأة في مشاركة أفكاره ومشاعره."
                   />
                   <BenefitCard 
-                    icon={<HeartHandshake size={32} />}
+                    icon={<Star size={32} />}
                     title="صديق جديد"
                     description="تصبح الكتابة متنفسًا له، ووسيلة لفهم نفسه والعالم من حوله."
                   />
                   <BenefitCard 
-                    icon={<Sparkles size={32} />}
+                    icon={<Target size={32} />}
                     title="قوة الإبداع"
                     description="يدرك أنه ليس مجرد متلقٍ للقصص، بل هو صانع لها."
                   />
@@ -136,51 +131,39 @@ const CreativeWritingPage: React.FC = () => {
           </div>
       </section>
       
-        <section className="bg-gray-50 py-16 sm:py-20 lg:py-24">
-          <div className="container mx-auto px-4">
-              <div className="text-center mb-16">
-                  <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">رحلتنا في 3 خطوات بسيطة</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-start relative">
-                  <div className="hidden md:block absolute top-12 left-0 right-0 w-full h-1" style={{zIndex: 0}}>
-                      <svg width="100%" height="4" viewBox="0 0 100 4" preserveAspectRatio="none">
-                          <line x1="16.66%" y1="2" x2="83.33%" y2="2" stroke="#a0baf2" strokeWidth="3" strokeDasharray="8 8"/>
-                      </svg>
-                  </div>
-                  <div className="z-10"><HowItWorksStep icon={<Package size={48} className="text-blue-600"/>} title="1. اختر الباقة" description="تصفح باقاتنا واختر ما يناسب مستوى طفلك وأهدافك، ويمكنك أيضاً اختيار مدربك المفضل."/></div>
-                  <div className="z-10"><HowItWorksStep icon={<CalendarCheck size={48} className="text-pink-500"/>} title="2. احجز الموعد" description="اختر اليوم والوقت المناسبين لك من خلال تقويم المواعيد المتاح لكل مدرب."/></div>
-                  <div className="z-10"><HowItWorksStep icon={<Sparkles size={48} className="text-green-500"/>} title="3. ابدأ الإبداع" description="انضم إلى الجلسات الفردية المباشرة وابدأ رحلة طفلك في عالم الكتابة الإبداعية."/></div>
-              </div>
-          </div>
+      <section className="bg-gray-50 py-16 sm:py-20 lg:py-24">
+        <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">باقاتنا المرنة</h2>
+                <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">اختر الباقة التي تناسب رحلة طفلك الإبداعية.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch max-w-7xl mx-auto">
+                <PackageCard title="الباقة التجريبية" price="مجانية" features={['جلسة واحدة تعريفية (30 دقيقة)', 'تقييم مهارات الطفل', 'خطة مخصصة للتطوير']} isFree />
+                <PackageCard title="الباقة الأساسية" price="800 ج.م/شهر" features={['4 جلسات فردية (45 دقيقة)', 'متابعة أسبوعية للتطور', 'تقارير دورية للأهل']} isPopular />
+                <PackageCard title="الباقة المتقدمة" price="1200 ج.م/شهر" features={['6 جلسات فردية (60 دقيقة)', 'ورش عمل جماعية شهرية', 'مراجعة وتحرير الأعمال']} />
+                <PackageCard title="الباقة الشاملة" price="1800 ج.م/شهر" features={['8 جلسات مكثفة (60 دقيقة)', 'متابعة يومية عبر المنصة', 'إنتاج محفظة أعمال', 'شهادة معتمدة']} />
+            </div>
+        </div>
       </section>
 
-
-      <section className="py-16 sm:py-20 bg-white">
+      <section className="bg-white py-16 sm:py-20 lg:py-24">
             <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">استكشف رحلتنا الإبداعية</h2>
-                <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">تعمق في تفاصيل برنامجنا المصمم بعناية لصقل موهبة طفلك.</p>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">مدربونا المتخصصون</h2>
+                <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">نخبة من الخبراء الشغوفين بإلهام العقول المبدعة.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <FeatureCard
-                    title="عن البرنامج"
-                    description="اكتشف رؤيتنا وأهدافنا التعليمية والتربوية التي تشكل أساس برنامجنا."
-                    link="/creative-writing/about"
-                    icon={<Target size={32} />}
-                />
-                    <FeatureCard
-                    title="المنهج الدراسي"
-                    description="تعرف على المراحل التعليمية والمخرجات التي سيحصل عليها طفلك في نهاية الرحلة."
-                    link="/creative-writing/curriculum"
-                    icon={<Book size={32} />}
-                />
-                    <FeatureCard
-                    title="المدربون"
-                    description="قابل فريقنا من المدربين المتخصصين والمستعدين لإلهام وتوجيه طفلك."
-                    link="/creative-writing/instructors"
-                    icon={<Users size={32} />}
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <InstructorShowcaseCard name="أ. نورة القحطاني" specialty="متخصصة في السرد القصصي (8-12 سنة)" points={["ماجستير في أدب الأطفال", "8 سنوات خبرة في التدريب", "أسلوب تفاعلي محبب"]} avatar="https://i.ibb.co/yY3GJk1/female-avatar.png" />
+                <InstructorShowcaseCard name="أ. أحمد المصري" specialty="متخصص في بناء العوالم (13-18 سنة)" points={["كاتب وروائي منشور", "خبير في الأدب الفانتازي", "مدرب معتمد في الكتابة"]} avatar="https://i.ibb.co/2S4xT8w/male-avatar.png" />
+                <InstructorShowcaseCard name="أ. فاطمة الزهراء" specialty="متخصصة في تنمية الخيال" points={["دكتوراه في التربية الإبداعية", "مؤلفة 15+ كتاب للأطفال", "محاضرة دولية في الإبداع"]} avatar="https://i.ibb.co/yY3GJk1/female-avatar.png" />
+                <InstructorShowcaseCard name="أ. تامر محمد" specialty="متخصص في إلهام المبدعين الصغار" points={["رئيس تحرير مجلة أطفال", "12 سنة في مجال الكتابة", "خبير في محتوى الوسائط الرقمية"]} avatar="https://i.ibb.co/2S4xT8w/male-avatar.png" />
             </div>
+             <div className="mt-12 text-center">
+                <Link to="/creative-writing/instructors" className="inline-flex items-center font-semibold text-lg text-blue-600 hover:text-blue-800 group">
+                    <span>عرض كل المدربين</span>
+                    <ArrowLeft size={22} className="ms-2 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" />
+                </Link>
+           </div>
             </div>
       </section>
 
@@ -210,10 +193,11 @@ const CreativeWritingPage: React.FC = () => {
                 <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">هل أنت جاهز لبدء الرحلة؟</h2>
                 <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">اختر الباقة التي تناسب طفلك اليوم وافتح له بابًا جديدًا من الإبداع والتعبير.</p>
                 <div className="mt-8">
-                    <Link to="/creative-writing/booking" className="inline-flex items-center justify-center px-10 py-4 border border-transparent text-lg font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-lg">
-                        <Calendar className="me-3" size={22}/>
-                        عرض الباقات وحجز موعد
-                    </Link>
+                     <Button asChild size="lg" icon={<Calendar className="me-3" size={22}/>} className="shadow-lg transition-transform transform hover:scale-105">
+                        <Link to="/creative-writing/booking">
+                           عرض الباقات وحجز موعد
+                        </Link>
+                    </Button>
                 </div>
             </div>
         </section>

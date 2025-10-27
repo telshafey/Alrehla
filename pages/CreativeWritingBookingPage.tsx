@@ -1,26 +1,24 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import { usePublicData } from '../hooks/queries.ts';
-import { useAuth } from '../contexts/AuthContext.tsx';
-import { useAppMutations } from '../hooks/mutations.ts';
-import { useToast } from '../contexts/ToastContext.tsx';
-import type { CreativeWritingPackage, Instructor, ChildProfile } from '../lib/database.types.ts';
-import BookingStep from '../components/creative-writing/booking/BookingStep.tsx';
-import PackageSelection from '../components/creative-writing/booking/PackageSelection.tsx';
-import InstructorSelection from '../components/creative-writing/booking/InstructorSelection.tsx';
-import ChildSelection from '../components/creative-writing/booking/ChildSelection.tsx';
-import CalendarSelection from '../components/creative-writing/booking/CalendarSelection.tsx';
-import BookingSummary from '../components/creative-writing/BookingSummary.tsx';
+import { usePublicData } from '../hooks/publicQueries';
+import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
+import { useToast } from '../contexts/ToastContext';
+import type { CreativeWritingPackage, Instructor, ChildProfile } from '../lib/database.types';
+import BookingStep from '../components/creative-writing/booking/BookingStep';
+import PackageSelection from '../components/creative-writing/booking/PackageSelection';
+import InstructorSelection from '../components/creative-writing/booking/InstructorSelection';
+import ChildSelection from '../components/creative-writing/booking/ChildSelection';
+import CalendarSelection from '../components/creative-writing/booking/CalendarSelection';
+import BookingSummary from '../components/creative-writing/BookingSummary';
 
 type BookingStepType = 'package' | 'instructor' | 'child' | 'calendar' | 'confirm';
 
 const CreativeWritingBookingPage: React.FC = () => {
     const { data, isLoading: dataLoading } = usePublicData();
-    const { isLoggedIn, currentUser, childProfiles, loading: authLoading } = useAuth();
-    const { createBooking } = useAppMutations();
+    const { currentUser, childProfiles, loading: authLoading } = useAuth();
+    const { addItemToCart } = useCart();
     const { addToast } = useToast();
     const navigate = useNavigate();
     const location = useLocation();
@@ -32,148 +30,154 @@ const CreativeWritingBookingPage: React.FC = () => {
     const [selectedDateTime, setSelectedDateTime] = useState<{ date: Date; time: string } | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Pre-fill from location state (e.g., coming from instructor profile)
     useEffect(() => {
         if (location.state?.instructor && location.state?.selectedDateTime) {
             setSelectedInstructor(location.state.instructor);
             setSelectedDateTime(location.state.selectedDateTime);
-            setStep('package'); // Start from package but with instructor pre-filled
+            setStep('package'); // Still start at package selection, but other steps can be skipped
         }
     }, [location.state]);
 
-    const handlePackageSelect = (pkg: CreativeWritingPackage) => {
-        setSelectedPackage(pkg);
-        if (selectedInstructor) {
-           setStep('calendar');
-        } else {
-           setStep('instructor');
-        }
-    };
 
-    const handleInstructorSelect = (instructor: Instructor) => {
-        setSelectedInstructor(instructor);
-        setStep('calendar');
+    const isLoading = dataLoading || authLoading;
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-96"><Loader2 className="animate-spin h-10 w-10 text-blue-500" /></div>;
+    }
+    
+    const { instructors = [], cw_packages = [] } = data || {};
+    
+    const handleNextStep = () => {
+        switch (step) {
+            case 'package':
+                if (selectedInstructor) setStep('child');
+                else setStep('instructor');
+                break;
+            case 'instructor':
+                setStep('child');
+                break;
+            case 'child':
+                 if (selectedDateTime) setStep('confirm');
+                else setStep('calendar');
+                break;
+            case 'calendar':
+                setStep('confirm');
+                break;
+        }
     };
     
-    const handleDateTimeSelect = (date: Date, time: string) => {
-        setSelectedDateTime({ date, time });
-         if (currentUser?.role === 'guardian') {
-            setStep('child');
-        } else {
-            // For regular users, we might skip child selection or handle it differently
-            // For now, let's assume they need to add a child profile or we create one.
-            addToast("يرجى إنشاء ملف طفل أولاً من حسابك.", "info");
-            navigate('/account', { state: { defaultTab: 'family' } });
+    const handleBackStep = () => {
+         switch (step) {
+            case 'instructor':
+                setStep('package');
+                break;
+            case 'child':
+                 if (location.state?.instructor) setStep('package');
+                 else setStep('instructor');
+                break;
+            case 'calendar':
+                setStep('child');
+                break;
+            case 'confirm':
+                if (location.state?.selectedDateTime) setStep('child');
+                else setStep('calendar');
+                break;
         }
-    };
-    
-    const handleChildSelect = (child: ChildProfile) => {
-        setSelectedChild(child);
-        setStep('confirm');
-    };
+    }
 
-    const handleConfirm = async () => {
-        if (!isLoggedIn || !currentUser) {
-            navigate('/account', { state: { from: location } });
-            return;
-        }
-
-        if (!selectedPackage || !selectedInstructor || !selectedDateTime || !selectedChild) {
-            addToast('يرجى إكمال جميع خطوات الحجز.', 'warning');
+    const handleConfirmBooking = () => {
+        if (!selectedPackage || !selectedInstructor || !selectedChild || !selectedDateTime) {
+            addToast('بيانات الحجز غير مكتملة.', 'error');
             return;
         }
 
         setIsSubmitting(true);
-        try {
-            // FIX: Replaced mock booking creation with actual mutation call.
-            const newBooking = await createBooking.mutateAsync({
-                packageId: selectedPackage.id,
-                packageName: selectedPackage.name,
-                instructorId: selectedInstructor.id,
-                childId: selectedChild.id,
-                userId: currentUser.id,
-                userName: currentUser.name,
+        addItemToCart({
+            type: 'booking',
+            payload: {
+                package: selectedPackage,
+                instructor: selectedInstructor,
+                child: selectedChild,
+                dateTime: selectedDateTime,
                 total: selectedPackage.price,
-                bookingDate: selectedDateTime.date.toISOString().split('T')[0],
-                bookingTime: selectedDateTime.time,
-            });
-            navigate(`/checkout?type=booking&id=${newBooking.id}`);
-        } catch (error) {
-            // Error handled in hook
-        } finally {
-            setIsSubmitting(false);
+                summary: `${selectedPackage.name} مع ${selectedInstructor.name}`,
+            }
+        });
+        addToast('تمت إضافة الحجز إلى السلة بنجاح!', 'success');
+        navigate('/cart');
+        setIsSubmitting(false);
+    };
+
+    const steps = [
+        { key: 'package', title: 'اختر الباقة', stepNumber: 1 },
+        { key: 'instructor', title: 'اختر المدرب', stepNumber: 2 },
+        { key: 'child', title: 'اختر الطفل', stepNumber: 3 },
+        { key: 'calendar', title: 'اختر الموعد', stepNumber: 4 },
+        { key: 'confirm', title: 'التأكيد', stepNumber: 5 },
+    ];
+    
+    const currentStepIndex = steps.findIndex(s => s.key === step);
+
+    const renderStepContent = () => {
+        switch (step) {
+            case 'package':
+                return <PackageSelection packages={cw_packages} onSelect={pkg => { setSelectedPackage(pkg); handleNextStep(); }} />;
+            case 'instructor':
+                return <InstructorSelection instructors={instructors} onSelect={inst => { setSelectedInstructor(inst); handleNextStep(); }} />;
+            case 'child':
+                 if (!currentUser) return <p>Please log in.</p>
+                return <ChildSelection childProfiles={childProfiles} onSelect={child => { setSelectedChild(child); handleNextStep(); }} />;
+            case 'calendar':
+                if (!selectedInstructor) return <p>Please select an instructor first.</p>
+                return <CalendarSelection instructor={selectedInstructor} onSelect={(date, time) => { setSelectedDateTime({ date, time }); handleNextStep(); }} />;
+            case 'confirm':
+                return <div className="text-center"><h2 className="text-2xl font-bold">يرجى مراجعة تفاصيل الحجز.</h2></div>;
+            default:
+                return null;
         }
     };
     
-    const goBack = () => {
-        if (step === 'confirm') setStep('child');
-        else if (step === 'child') setStep('calendar');
-        else if (step === 'calendar') setStep('instructor');
-        else if (step === 'instructor') setStep('package');
-    };
-    
-    const isLoading = dataLoading || authLoading;
-    if (isLoading) return <Loader2 className="animate-spin mx-auto my-12" />;
-
-    const steps: {id: BookingStepType, title: string}[] = [
-        { id: 'package', title: 'اختر الباقة' },
-        { id: 'instructor', title: 'اختر المدرب' },
-        { id: 'calendar', title: 'اختر الموعد' },
-        { id: 'child', title: 'اختر الطفل' },
-        { id: 'confirm', title: 'التأكيد والدفع' },
-    ];
-    const currentStepIndex = steps.findIndex(s => s.id === step);
-
     return (
         <div className="bg-gray-50 py-12 sm:py-16">
             <div className="container mx-auto px-4">
-                <div className="max-w-4xl mx-auto">
-                    {/* Progress Bar */}
-                    <div className="flex justify-between items-start mb-12">
+                 <div className="max-w-4xl mx-auto">
+                    <div className="grid grid-cols-5 gap-2 mb-12">
                          {steps.map((s, index) => (
-                             <BookingStep 
-                                key={s.id}
-                                stepNumber={index + 1}
+                            <BookingStep 
+                                key={s.key}
                                 title={s.title}
+                                stepNumber={s.stepNumber}
                                 isActive={currentStepIndex === index}
                                 isComplete={currentStepIndex > index}
-                             />
+                            />
                          ))}
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-                        <div className="md:col-span-2 bg-white p-8 rounded-2xl shadow-lg">
-                            {step !== 'package' && (
-                                <button onClick={goBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-6">
-                                    <ArrowLeft size={16} className="transform rotate-180" />
-                                    <span>رجوع</span>
+                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                        <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-lg border">
+                           {currentStepIndex > 0 && (
+                                <button onClick={handleBackStep} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-6">
+                                    <ArrowLeft size={16} />
+                                    <span>العودة للخطوة السابقة</span>
                                 </button>
-                            )}
-
-                            {step === 'package' && <PackageSelection packages={data?.cw_packages || []} onSelect={handlePackageSelect} />}
-                            {step === 'instructor' && <InstructorSelection instructors={data?.instructors || []} onSelect={handleInstructorSelect} />}
-                            {step === 'calendar' && selectedInstructor && <CalendarSelection instructor={selectedInstructor} onSelect={handleDateTimeSelect} />}
-                            {step === 'child' && <ChildSelection childProfiles={childProfiles} onSelect={handleChildSelect} />}
-                            {step === 'confirm' && (
-                                <div className="text-center">
-                                    <h2 className="text-2xl font-bold text-gray-800">هل أنت مستعد لتأكيد الحجز؟</h2>
-                                    <p className="text-gray-600 mt-2">يرجى مراجعة تفاصيل الحجز في الملخص على اليسار.</p>
-                                </div>
-                            )}
+                           )}
+                           {renderStepContent()}
                         </div>
-                        
-                        <div className="md:col-span-1 sticky top-24">
+                        <div className="lg:col-span-1 sticky top-24">
                             <BookingSummary 
                                 pkg={selectedPackage}
                                 instructor={selectedInstructor}
-                                dateTime={selectedDateTime}
                                 child={selectedChild}
-                                onConfirm={handleConfirm}
+                                dateTime={selectedDateTime}
+                                onConfirm={handleConfirmBooking}
                                 isSubmitting={isSubmitting}
                                 step={step}
                             />
                         </div>
                     </div>
-                </div>
+
+                 </div>
             </div>
         </div>
     );

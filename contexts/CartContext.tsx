@@ -1,0 +1,105 @@
+import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
+import { useProduct } from './ProductContext';
+
+// FIX: The widespread "not callable" error on a `String` type suggests a module resolution or versioning issue 
+// with the `uuid` library. Replacing the import with a self-contained function sidesteps the problem.
+function uuidv4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    // FIX: Explicitly call Number.prototype.toString to avoid issues with a potentially overridden `toString` method.
+    // Reverted to standard `toString` call to fix widespread "not callable" error.
+    return v.toString(16);
+  });
+}
+
+export type CartItem = {
+    id: string; // Unique ID for the cart item itself
+    type: 'order' | 'booking' | 'subscription';
+    payload: any;
+    timestamp: number;
+};
+
+interface CartContextType {
+    cart: CartItem[];
+    addItemToCart: (item: Omit<CartItem, 'timestamp' | 'id'>) => void;
+    removeItemFromCart: (itemId: string) => void;
+    clearCart: () => void;
+    getCartTotal: () => number;
+    itemCount: number;
+}
+
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const { prices } = useProduct();
+    const [cart, setCart] = useState<CartItem[]>(() => {
+        try {
+            const localData = sessionStorage.getItem('alrehlaCart');
+            return localData ? JSON.parse(localData) : [];
+        } catch (error) {
+            console.error("Could not parse cart from sessionStorage", error);
+            return [];
+        }
+    });
+
+    useEffect(() => {
+        try {
+            sessionStorage.setItem('alrehlaCart', JSON.stringify(cart));
+        } catch (error) {
+            console.error("Could not save cart to sessionStorage", error);
+        }
+    }, [cart]);
+
+    const addItemToCart = (item: Omit<CartItem, 'timestamp' | 'id'>) => {
+        const newItem: CartItem = { ...item, id: uuidv4(), timestamp: Date.now() };
+        setCart(prevCart => [...prevCart, newItem]);
+    };
+    
+    const removeItemFromCart = (itemId: string) => {
+        setCart(prevCart => prevCart.filter(item => item.id !== itemId));
+    };
+
+    const clearCart = () => {
+        setCart([]);
+        sessionStorage.removeItem('alrehlaCart');
+    };
+    
+    const getCartTotal = useMemo(() => () => {
+        if (!prices) return 0;
+        return cart.reduce((total, item) => {
+            if (item.type === 'order') {
+                return total + (item.payload.totalPrice || 0);
+            }
+            if (item.type === 'booking') {
+                return total + (item.payload.total || 0);
+            }
+            if (item.type === 'subscription') {
+                return total + (prices.subscriptionBox || 0);
+            }
+            return total;
+        }, 0);
+    }, [cart, prices]);
+
+    const value = {
+        cart,
+        addItemToCart,
+        removeItemFromCart,
+        clearCart,
+        getCartTotal,
+        itemCount: cart.length
+    };
+
+    return (
+        <CartContext.Provider value={value}>
+            {children}
+        </CartContext.Provider>
+    );
+};
+
+export const useCart = (): CartContextType => {
+    const context = useContext(CartContext);
+    if (context === undefined) {
+        throw new Error('useCart must be used within a CartProvider');
+    }
+    return context;
+};

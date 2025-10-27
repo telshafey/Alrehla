@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Instructor } from '../../../lib/database.types.ts';
+import type { Instructor } from '../../../lib/database.types';
 
 interface InstructorSelectionProps {
     instructors: Instructor[];

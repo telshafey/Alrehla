@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Loader2, Send } from 'lucide-react';
-import type { CreativeWritingPackage, Instructor, ChildProfile } from '../../lib/database.types.ts';
+import type { CreativeWritingPackage, Instructor, ChildProfile } from '../../lib/database.types';
 
 interface BookingSummaryProps {
     pkg: CreativeWritingPackage | null;

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Loader2 } from 'lucide-react';
-import { useProduct, Prices } from '../../contexts/ProductContext.tsx';
-import { useToast } from '../../contexts/ToastContext.tsx';
+import { useProduct, Prices } from '../../contexts/ProductContext';
+import { useToast } from '../../contexts/ToastContext';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import FormField from '../../components/ui/FormField';
 
 interface PriceInputProps {
     label: string;
@@ -11,21 +14,20 @@ interface PriceInputProps {
 }
 
 const PriceInput: React.FC<PriceInputProps> = ({ label, name, value, onChange }) => (
-    <div>
-        <label htmlFor={name as string} className="block text-sm font-bold text-gray-700 mb-2">{label}</label>
+    <FormField label={label} htmlFor={name as string}>
         <div className="relative">
-            <input 
+            <Input 
                 type="number" 
                 id={name as string} 
                 name={name as string} 
                 value={value} 
                 onChange={onChange} 
-                className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" 
+                className="pl-12 pr-4" 
                 required
             />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">ج.م</span>
         </div>
-    </div>
+    </FormField>
 );
 
 const AdminProductsPage: React.FC = () => {
@@ -109,6 +111,7 @@ const AdminProductsPage: React.FC = () => {
                             <PriceInput label="كتيّب الأذكار والأدعية" name="duaBooklet" value={editablePrices.duaBooklet} onChange={handleChange} />
                             <PriceInput label="قصة الآداب والقيم" name="valuesStory" value={editablePrices.valuesStory} onChange={handleChange} />
                             <PriceInput label="قصة المهارات الحياتية" name="skillsStory" value={editablePrices.skillsStory} onChange={handleChange} />
+                            <PriceInput label="التعليق الصوتي للقصة" name="voiceOver" value={editablePrices.voiceOver} onChange={handleChange} />
                         </div>
                     </div>
 
@@ -128,10 +131,9 @@ const AdminProductsPage: React.FC = () => {
                 </div>
 
                 <div className="flex justify-end sticky bottom-6 mt-8">
-                    <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-3 px-8 rounded-full hover:bg-blue-700 transition-colors shadow-lg disabled:bg-blue-400 disabled:cursor-not-allowed">
-                        {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                        <span>{isSaving ? 'جاري الحفظ...' : 'حفظ الأسعار'}</span>
-                    </button>
+                    <Button type="submit" loading={isSaving} size="lg" icon={<Save size={18} />} className="shadow-lg">
+                        حفظ الأسعار
+                    </Button>
                 </div>
             </form>
         </div>

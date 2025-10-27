@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, ShoppingBag, Star, Users, ArrowLeft, Video, CheckCircle } from 'lucide-react';
-import type { UserProfile } from '../../contexts/AuthContext.tsx';
-import type { ChildProfile, Subscription, CreativeWritingBooking } from '../../lib/database.types.ts';
-import { formatDate } from '../../utils/helpers.ts';
+import type { UserProfile } from '../../contexts/AuthContext';
+import type { ChildProfile, Subscription, CreativeWritingBooking } from '../../lib/database.types';
+import { formatDate } from '../../utils/helpers';
 
 // Re-defining UnifiedItem here to avoid complex imports.
 interface UnifiedItem {
@@ -15,8 +14,8 @@ interface UnifiedItem {
 }
 
 // Sub-component for stat cards
-const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; }> = ({ title, value, icon }) => (
-    <div className="bg-gray-50 p-6 rounded-2xl border flex items-center gap-4">
+const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; onClick?: () => void; }> = ({ title, value, icon, onClick }) => (
+    <button onClick={onClick} className="bg-gray-50 p-6 rounded-2xl border flex items-center gap-4 w-full text-right hover:border-blue-300 hover:bg-white transition-colors">
         <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-blue-100 text-blue-600 rounded-full">
             {icon}
         </div>
@@ -24,7 +23,7 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: React.Re
             <p className="text-3xl font-extrabold text-gray-800">{value}</p>
             <p className="text-sm font-medium text-gray-500">{title}</p>
         </div>
-    </div>
+    </button>
 );
 
 
@@ -50,9 +49,9 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
         <div className="space-y-8 animate-fadeIn">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatCard title="الطلبات والحجوزات" value={unifiedItems.length} icon={<ShoppingBag />} />
-                <StatCard title="الاشتراكات النشطة" value={activeSubscriptions.length} icon={<Star />} />
-                <StatCard title="الجلسات القادمة" value={upcomingSessions.length} icon={<Calendar />} />
+                <StatCard title="الطلبات والحجوزات" value={unifiedItems.length} icon={<ShoppingBag />} onClick={() => onNavigateTab('myLibrary')} />
+                <StatCard title="الاشتراكات النشطة" value={activeSubscriptions.length} icon={<Star />} onClick={() => onNavigateTab('myLibrary')} />
+                <StatCard title="الجلسات القادمة" value={upcomingSessions.length} icon={<Calendar />} onClick={() => onNavigateTab('myLibrary')} />
             </div>
 
             {/* Upcoming Sessions */}
@@ -99,8 +98,8 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
                     <p className="text-gray-500 text-center py-4">لا توجد أنشطة مسجلة بعد.</p>
                 )}
                  <div className="mt-4 text-center">
-                    <button onClick={() => onNavigateTab('orders')} className="text-sm font-semibold text-blue-600 hover:underline flex items-center justify-center gap-1">
-                        <span>عرض كل الطلبات</span>
+                    <button onClick={() => onNavigateTab('myLibrary')} className="text-sm font-semibold text-blue-600 hover:underline flex items-center justify-center gap-1 mx-auto">
+                        <span>عرض كل الأنشطة</span>
                         <ArrowLeft size={16}/>
                     </button>
                  </div>

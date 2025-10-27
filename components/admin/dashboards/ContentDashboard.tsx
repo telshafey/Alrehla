@@ -1,9 +1,9 @@
 
 
 import React from 'react';
-import { useAdminBlogPosts } from '../../../hooks/queries.ts';
-import StatCard from '../StatCard.tsx';
-import PageLoader from '../../ui/PageLoader.tsx';
+import { useAdminBlogPosts } from '../../../hooks/adminQueries';
+import StatCard from '../StatCard';
+import PageLoader from '../../ui/PageLoader';
 import { FileText, Edit3 } from 'lucide-react';
 
 const ContentDashboard: React.FC = () => {

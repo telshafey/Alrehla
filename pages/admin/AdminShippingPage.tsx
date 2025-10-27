@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Save, Loader2, Truck } from 'lucide-react';
 import { useProduct, ShippingCosts } from '../../contexts/ProductContext';
 import { useToast } from '../../contexts/ToastContext';
-import { EGYPTIAN_GOVERNORATES } from '../../utils/governorates.ts';
+import { EGYPTIAN_GOVERNORATES } from '../../utils/governorates';
 import AdminSection from '../../components/admin/AdminSection';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import FormField from '../../components/ui/FormField';
 
 const ShippingCostInput: React.FC<{
     label: string;
@@ -11,19 +14,19 @@ const ShippingCostInput: React.FC<{
     onChange: (value: number) => void;
     disabled: boolean;
 }> = ({ label, value, onChange, disabled }) => (
-    <div>
-        <label className="block text-sm font-bold text-gray-700 mb-2">{label}</label>
+    <FormField label={label} htmlFor={label}>
         <div className="relative">
-            <input 
-                type="number" 
+            <Input 
+                type="number"
+                id={label}
                 value={value} 
                 onChange={(e) => onChange(Number(e.target.value))} 
-                className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" 
+                className="pl-12 pr-4" 
                 disabled={disabled}
             />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">ج.م</span>
         </div>
-    </div>
+    </FormField>
 );
 
 const AdminShippingPage: React.FC = () => {
@@ -90,10 +93,9 @@ const AdminShippingPage: React.FC = () => {
                 </AdminSection>
 
                 <div className="flex justify-end sticky bottom-6 mt-8">
-                    <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-3 px-8 rounded-full hover:bg-blue-700 transition-colors shadow-lg disabled:bg-blue-400 disabled:cursor-not-allowed">
-                        {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                        <span>{isSaving ? 'جاري الحفظ...' : 'حفظ التكاليف'}</span>
-                    </button>
+                    <Button type="submit" loading={isSaving} size="lg" icon={<Save size={18} />} className="shadow-lg">
+                        حفظ التكاليف
+                    </Button>
                 </div>
             </form>
         </div>

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, HelpCircle } from 'lucide-react';
-import SupportForm from '../components/shared/SupportForm.tsx';
-import FAQSection from '../components/shared/FAQSection.tsx';
-import { useAppMutations } from '../hooks/mutations.ts';
-import { useToast } from '../contexts/ToastContext.tsx';
+// FIX: Removed .tsx extension from import paths
+import SupportForm from '../components/shared/SupportForm';
+import FAQSection from '../components/shared/FAQSection';
+import { useCommunicationMutations } from '../hooks/mutations';
+import { useToast } from '../contexts/ToastContext';
 
 const faqs = {
   enhaLak: [
@@ -32,7 +33,7 @@ const faqs = {
 };
 
 const SupportPage: React.FC = () => {
-    const { createSupportTicket } = useAppMutations();
+    const { createSupportTicket } = useCommunicationMutations();
     const { addToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -43,7 +44,6 @@ const SupportPage: React.FC = () => {
         const data = Object.fromEntries(formData.entries());
         
         try {
-            // Correctly call the mutation function using `.mutateAsync`.
             await createSupportTicket.mutateAsync({
                 name: data.name as string,
                 email: data.email as string,

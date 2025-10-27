@@ -1,10 +1,10 @@
 import React from 'react';
-import { useAuth } from '../../contexts/AuthContext.tsx';
-import { useStudentDashboardData } from '../../hooks/queries.ts';
-import PageLoader from '../../components/ui/PageLoader.tsx';
+import { useAuth } from '../../contexts/AuthContext';
+import { useStudentDashboardData } from '../../hooks/userQueries';
+import PageLoader from '../../components/ui/PageLoader';
 import { Link } from 'react-router-dom';
-import { Calendar, Video, BookOpen, Clock, Frown, CheckCircle } from 'lucide-react';
-import { formatDate } from '../../utils/helpers.ts';
+import { Calendar, Video, BookOpen, Clock, Frown, CheckCircle, FileText, Gamepad2 } from 'lucide-react';
+import { formatDate } from '../../utils/helpers';
 
 const StudentDashboardPage: React.FC = () => {
     const { currentChildProfile, loading: authLoading } = useAuth();
@@ -50,34 +50,45 @@ const StudentDashboardPage: React.FC = () => {
           )}
         </section>
 
-        {/* Completed Sessions Section */}
+        {/* Digital Portfolio Section */}
         <section className="bg-white p-8 rounded-2xl shadow-lg">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3"><BookOpen className="text-green-500"/> الجلسات المكتملة وملاحظات المدرب</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3"><BookOpen className="text-purple-500"/> محفظتي الرقمية</h2>
           {completedSessions.length > 0 ? (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {completedSessions.map(session => (
-                <div key={session.id} className="p-4 border rounded-lg bg-gray-50">
-                  <div className="flex justify-between items-center">
-                    <p className="font-bold">{session.package_name} - <span className="font-normal text-gray-600">{formatDate(session.booking_date)}</span></p>
-                    <span className="flex items-center gap-1 text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full"><CheckCircle size={14}/> مكتمل</span>
+                <div key={session.id} className="p-6 border rounded-2xl bg-gray-50 flex flex-col hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <FileText className="text-purple-500" />
+                    <h3 className="font-bold text-gray-800">{session.package_name}</h3>
                   </div>
+                  <p className="text-sm text-gray-500 mb-4">{formatDate(session.booking_date)}</p>
+                  
                   {session.progress_notes ? (
-                     <div className="mt-3 pt-3 border-t text-sm text-gray-700 bg-white p-3 rounded-md">
-                        <p className="font-semibold mb-1">ملاحظات المدرب:</p>
-                        <p className="whitespace-pre-wrap">{session.progress_notes}</p>
+                     <div className="mt-auto pt-3 border-t text-sm text-gray-700 bg-white p-4 rounded-md flex-grow">
+                        <p className="font-semibold mb-2">ملاحظات المدرب وإنجازات الجلسة:</p>
+                        <p className="whitespace-pre-wrap text-gray-600 leading-relaxed">{session.progress_notes}</p>
                      </div>
                   ) : (
-                    <p className="mt-2 text-sm text-gray-500 italic">لا توجد ملاحظات لهذه الجلسة بعد.</p>
+                    <p className="mt-auto text-sm text-gray-500 italic">لا توجد ملاحظات لهذه الجلسة بعد.</p>
                   )}
                 </div>
               ))}
             </div>
           ) : (
              <div className="text-center py-8">
-              <p className="text-gray-600">لم تكمل أي جلسات بعد.</p>
+              <p className="text-gray-600">ستظهر أعمالك الإبداعية هنا بعد إكمال الجلسات.</p>
             </div>
           )}
         </section>
+        
+        {/* Interactive Activities Placeholder */}
+        <section className="bg-white p-8 rounded-2xl shadow-lg">
+           <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3"><Gamepad2 className="text-orange-500"/> الأنشطة التفاعلية</h2>
+           <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed">
+                <p className="text-gray-500">ترقبوا قريباً! مساحة جديدة مليئة بالأنشطة والألعاب الإبداعية.</p>
+           </div>
+        </section>
+
       </div>
     );
 };

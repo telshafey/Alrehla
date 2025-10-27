@@ -1,6 +1,6 @@
 import React from 'react';
 import { Edit, Trash2 } from 'lucide-react';
-import type { ChildProfile } from '../../lib/database.types.ts';
+import type { ChildProfile } from '../../lib/database.types';
 
 interface ChildCardProps {
     child: ChildProfile;

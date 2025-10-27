@@ -1,32 +1,35 @@
-import React, { useState, useMemo } from 'react';
+
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { UserPlus, Eye } from 'lucide-react';
-import { useAdminJoinRequests } from '../../hooks/queries.ts';
-import { useAppMutations } from '../../hooks/mutations.ts';
-import PageLoader from '../../components/ui/PageLoader.tsx';
-import AdminSection from '../../components/admin/AdminSection.tsx';
-import { formatDate } from '../../utils/helpers.ts';
-import ViewJoinRequestModal from '../../components/admin/ViewJoinRequestModal.tsx';
-import type { JoinRequest } from '../../lib/database.types.ts';
+import { useAdminJoinRequests } from '../../hooks/adminQueries';
+import { useCommunicationMutations } from '../../hooks/mutations';
+import { useToast } from '../../contexts/ToastContext';
+import PageLoader from '../../components/ui/PageLoader';
+import AdminSection from '../../components/admin/AdminSection';
+import { formatDate } from '../../utils/helpers';
+import ViewJoinRequestModal from '../../components/admin/ViewJoinRequestModal';
+import type { JoinRequest, RequestStatus } from '../../lib/database.types';
 
 const AdminJoinRequestsPage: React.FC = () => {
     const { data: joinRequests = [], isLoading, error } = useAdminJoinRequests();
-    const { updateJoinRequestStatus } = useAppMutations();
+    const { updateJoinRequestStatus } = useCommunicationMutations();
     const [statusFilter, setStatusFilter] = useState('all');
     const [selectedRequest, setSelectedRequest] = useState<JoinRequest | null>(null);
-
+    
     const filteredRequests = useMemo(() => {
-        return joinRequests.filter(req => statusFilter === 'all' || req.status === statusFilter);
+        return joinRequests.filter(req => statusFilter === 'all' || req.status === req.status);
     }, [joinRequests, statusFilter]);
     
-     const handleStatusChange = async (requestId: string, newStatus: JoinRequest['status']) => {
-        // Correctly call the mutation function using `.mutateAsync`.
+     const handleStatusChange = async (requestId: string, newStatus: RequestStatus) => {
         await updateJoinRequestStatus.mutateAsync({ requestId, newStatus });
     };
 
     if (isLoading) return <PageLoader text="جاري تحميل طلبات الانضمام..." />;
     if (error) return <div className="text-center text-red-500">{error.message}</div>;
     
-    const statuses: JoinRequest['status'][] = ["جديد", "تمت المراجعة", "مقبول", "مرفوض"];
+    const statuses: RequestStatus[] = ["جديد", "تمت المراجعة", "مقبول", "مرفوض"];
 
     return (
         <>
@@ -52,7 +55,7 @@ const AdminJoinRequestsPage: React.FC = () => {
                                     <td className="p-3">{req.role}</td>
                                     <td className="p-3">{formatDate(req.created_at)}</td>
                                     <td className="p-3">
-                                        <select value={req.status} onChange={e => handleStatusChange(req.id, e.target.value as JoinRequest['status'])} className="p-2 border rounded-lg bg-white">
+                                        <select value={req.status} onChange={e => handleStatusChange(req.id, e.target.value as RequestStatus)} className="p-1 border rounded-md bg-white">
                                             {statuses.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                     </td>

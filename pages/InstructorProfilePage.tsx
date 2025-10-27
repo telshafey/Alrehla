@@ -1,9 +1,11 @@
+
+
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { usePublicData } from '../hooks/queries.ts';
+import { usePublicData } from '../hooks/publicQueries';
 import { Loader2, Star, Quote, Calendar } from 'lucide-react';
-import BookingCalendar from '../components/BookingCalendar.tsx';
-import ShareButtons from '../components/shared/ShareButtons.tsx';
+import BookingCalendar from '../components/BookingCalendar';
+import ShareButtons from '../components/shared/ShareButtons';
 
 const InstructorProfilePage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();

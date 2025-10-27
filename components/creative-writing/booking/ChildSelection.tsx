@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChildProfile } from '../../../lib/database.types.ts';
+import type { ChildProfile } from '../../../lib/database.types';
 
 interface ChildSelectionProps {
     childProfiles: ChildProfile[];

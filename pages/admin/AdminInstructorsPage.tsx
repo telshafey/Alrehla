@@ -1,19 +1,20 @@
 
-
 import React, { useState } from 'react';
 import { Users, Plus, Edit, Calendar, Check, XCircle } from 'lucide-react';
-import { useAdminInstructors } from '../../hooks/queries.ts';
-import { useAppMutations } from '../../hooks/mutations.ts';
-import AdminSection from '../../components/admin/AdminSection.tsx';
-import PageLoader from '../../components/ui/PageLoader.tsx';
-import AvailabilityManager from '../../components/admin/AvailabilityManager.tsx';
-import type { WeeklySchedule, Instructor } from '../../lib/database.types.ts';
-import InstructorModal from '../../components/admin/InstructorModal.tsx';
+// FIX: Corrected import path from non-existent queries.ts to adminQueries.ts
+import { useAdminInstructors } from '../../hooks/adminQueries';
+import { useInstructorMutations } from '../../hooks/mutations';
+import AdminSection from '../../components/admin/AdminSection';
+import PageLoader from '../../components/ui/PageLoader';
+import AvailabilityManager from '../../components/admin/AvailabilityManager';
+import type { WeeklySchedule, Instructor } from '../../lib/database.types';
+import InstructorModal from '../../components/admin/InstructorModal';
+import { Button } from '../../components/ui/Button';
 
 // Main Page Component
 const AdminInstructorsPage: React.FC = () => {
     const { data: instructors = [], isLoading, error } = useAdminInstructors();
-    const { createInstructor, updateInstructor, approveInstructorSchedule, rejectInstructorSchedule } = useAppMutations();
+    const { createInstructor, updateInstructor, approveInstructorSchedule, rejectInstructorSchedule } = useInstructorMutations();
     
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
@@ -28,10 +29,8 @@ const AdminInstructorsPage: React.FC = () => {
         setIsSaving(true);
         try {
             if (details.id) {
-                // Correctly call the mutation function using `.mutateAsync`.
                 await updateInstructor.mutateAsync(details);
             } else {
-                // Correctly call the mutation function using `.mutateAsync`.
                 await createInstructor.mutateAsync(details);
             }
             setIsModalOpen(false);
@@ -69,9 +68,9 @@ const AdminInstructorsPage: React.FC = () => {
             <div className="animate-fadeIn space-y-12">
                 <div className="flex justify-between items-center">
                     <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة المدربين</h1>
-                    <button onClick={() => handleOpenModal(null)} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-700">
-                        <Plus size={18} /><span>إضافة مدرب</span>
-                    </button>
+                    <Button onClick={() => handleOpenModal(null)} icon={<Plus size={18} />}>
+                        إضافة مدرب
+                    </Button>
                 </div>
                 
                  {pendingSchedules.length > 0 && (
@@ -89,10 +88,8 @@ const AdminInstructorsPage: React.FC = () => {
                                             </div>
                                         </div>
                                         <div className="flex gap-2">
-                                            {/* Correctly call the mutation function using `.mutate`. */}
-                                            <button onClick={() => approveInstructorSchedule.mutate({instructorId: instructor.id})} className="p-2 bg-green-100 text-green-700 rounded-full hover:bg-green-200"><Check size={20}/></button>
-                                            {/* Correctly call the mutation function using `.mutate`. */}
-                                            <button onClick={() => rejectInstructorSchedule.mutate({instructorId: instructor.id})} className="p-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200"><XCircle size={20}/></button>
+                                            <Button variant="subtle" size="icon" onClick={() => approveInstructorSchedule.mutate({instructorId: instructor.id})} className="bg-green-100 text-green-700 hover:bg-green-200"><Check size={20}/></Button>
+                                            <Button variant="subtle" size="icon" onClick={() => rejectInstructorSchedule.mutate({instructorId: instructor.id})} className="bg-red-100 text-red-700 hover:bg-red-200"><XCircle size={20}/></Button>
                                         </div>
                                     </div>
                                 </div>
@@ -133,7 +130,9 @@ const AdminInstructorsPage: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="py-4 px-4">
-                                            <button onClick={() => handleOpenModal(instructor)} className="text-gray-500 hover:text-blue-600"><Edit size={20} /></button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenModal(instructor)}>
+                                                <Edit size={20} />
+                                            </Button>
                                         </td>
                                     </tr>
                                 ))}

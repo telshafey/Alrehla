@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
-import { useAdminCwBookings, useAdminInstructors } from '../../../hooks/queries.ts';
-import StatCard from '../StatCard.tsx';
-import BarChart from '../BarChart.tsx';
+import { useAdminCwBookings, useAdminInstructors } from '../../../hooks/adminQueries';
+import StatCard from '../StatCard';
+import BarChart from '../BarChart';
 import { CheckSquare, Users, UserCheck } from 'lucide-react';
-import PageLoader from '../../ui/PageLoader.tsx';
+import PageLoader from '../../ui/PageLoader';
 
 const CreativeWritingDashboard: React.FC = () => {
     const { data: cw_bookings = [], isLoading: bookingsLoading, error: bookingsError } = useAdminCwBookings();

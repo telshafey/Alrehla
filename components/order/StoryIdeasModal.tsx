@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { X, Lightbulb, Check } from 'lucide-react';
-import { useModalAccessibility } from '../../hooks/useModalAccessibility.ts';
+import { useModalAccessibility } from '../../hooks/useModalAccessibility';
 
 const storyGoals: { [key: string]: string } = {
     respect: 'الاستئذان والاحترام',

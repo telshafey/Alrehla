@@ -1,48 +1,22 @@
+
+
 import { createClient } from '@supabase/supabase-js';
-import { Database } from './database.types.ts';
+import { Database } from './database.types';
 
-// --- Default placeholder values ---
-const defaultUrl = 'https://jltowzypvtheromovlxf.supabase.co';
-const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsdG93enlwdnRoZXJvbW92bHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMzQ1MDksImV4cCI6MjA3MzYxMDUwOX0.IhS3PtrsNen_80Nfdl15aYHlTSKEHX8QdX2kcRxgzX8';
+// Using placeholder credentials to allow the application to start in mock data mode.
+// These are not used for actual data fetching, which is handled by mockData.ts.
+const SUPABASE_URL = 'https://placeholder.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODU1NTI0NjAsImV4cCI6MjAwMTEyODY2MH0.placeholder_signature';
 
-// --- Read from localStorage first ---
-// This allows a non-technical user to configure the app via a UI.
-let supabaseUrl = localStorage.getItem('supabaseUrl') || defaultUrl;
-let supabaseKey = localStorage.getItem('supabaseKey') || defaultKey;
 
-// This check warns the developer if they haven't configured the app yet.
-if (supabaseUrl === defaultUrl || supabaseKey === defaultKey) {
-    console.warn(
-`****************************************************************
-* WARNING: Supabase is not configured.                         *
-*--------------------------------------------------------------*
-* The app will now show a setup screen. Please enter your      *
-* Supabase project credentials there.                          *
-* You can find them in your Supabase dashboard under           *
-* 'Settings' > 'API'.                                          *
-****************************************************************`
-    );
-}
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Initialize the Supabase client with the determined credentials.
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
-
-/**
- * Checks if the Supabase client is configured with actual credentials.
- * @returns {boolean} True if configured, false otherwise.
- */
-export const isSupabaseConfigured = (): boolean => {
-    // We will consider the provided credentials as valid for this context.
-    return true;
+// Mock functions for local development without Supabase
+export const saveSupabaseCredentials = (url: string, key: string) => {
+  localStorage.setItem('supabaseUrl', url);
+  localStorage.setItem('supabaseKey', key);
 };
 
-/**
- * Saves the provided Supabase credentials to localStorage and reloads the page.
- * @param {string} url - The Supabase project URL.
- * @param {string} key - The Supabase anon key.
- */
-export const saveSupabaseCredentials = (url: string, key: string): void => {
-    localStorage.setItem('supabaseUrl', url);
-    localStorage.setItem('supabaseKey', key);
-    window.location.reload();
+export const hasSupabaseCredentials = () => {
+  return localStorage.getItem('supabaseUrl') && localStorage.getItem('supabaseKey');
 };

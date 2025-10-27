@@ -2,17 +2,18 @@
 
 import React, { useState } from 'react';
 import { FileText, Plus, Edit, Trash2 } from 'lucide-react';
-import { useAdminBlogPosts } from '../../hooks/queries.ts';
-import { useAppMutations } from '../../hooks/mutations.ts';
-import PageLoader from '../../components/ui/PageLoader.tsx';
-import AdminSection from '../../components/admin/AdminSection.tsx';
-import BlogPostModal from '../../components/admin/BlogPostModal.tsx';
-import { formatDate } from '../../utils/helpers.ts';
-import type { BlogPost } from '../../lib/database.types.ts';
+import { useAdminBlogPosts } from '../../hooks/adminQueries';
+import { useContentMutations } from '../../hooks/mutations';
+import PageLoader from '../../components/ui/PageLoader';
+import AdminSection from '../../components/admin/AdminSection';
+// FIX: Changed to a named import to resolve the "no default export" error.
+import { BlogPostModal } from '../../components/admin/BlogPostModal';
+import { formatDate } from '../../utils/helpers';
+import type { BlogPost } from '../../lib/database.types';
 
 const AdminBlogPage: React.FC = () => {
     const { data: blogPosts = [], isLoading, error } = useAdminBlogPosts();
-    const { createBlogPost, updateBlogPost, deleteBlogPost } = useAppMutations();
+    const { createBlogPost, updateBlogPost, deleteBlogPost } = useContentMutations();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
@@ -27,10 +28,8 @@ const AdminBlogPage: React.FC = () => {
         setIsSaving(true);
         try {
             if (payload.id) {
-                // Correctly call the mutation function using `.mutateAsync`.
                 await updateBlogPost.mutateAsync(payload);
             } else {
-                // Correctly call the mutation function using `.mutateAsync`.
                 await createBlogPost.mutateAsync(payload);
             }
             setIsModalOpen(false);
@@ -43,7 +42,6 @@ const AdminBlogPage: React.FC = () => {
     
     const handleDeletePost = async (postId: number) => {
         if (window.confirm('هل أنت متأكد من حذف هذا المقال؟')) {
-            // Correctly call the mutation function using `.mutateAsync`.
             await deleteBlogPost.mutateAsync({ postId });
         }
     };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, AlertCircle } from 'lucide-react';
-import { useAppMutations } from '../../hooks/mutations.ts';
+import { useUserMutations } from '../../hooks/mutations.ts';
 import { useModalAccessibility } from '../../hooks/useModalAccessibility.ts';
 
 interface CreateStudentAccountModalProps {
@@ -10,7 +10,7 @@ interface CreateStudentAccountModalProps {
 }
 
 const CreateStudentAccountModal: React.FC<CreateStudentAccountModalProps> = ({ isOpen, onClose, childProfileId }) => {
-    const { createUser } = useAppMutations(); // Assuming createUser can handle student role
+    const { createUser } = useUserMutations(); // Assuming createUser can handle student role
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

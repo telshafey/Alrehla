@@ -1,7 +1,6 @@
-
 import React from 'react';
-import { Instructor } from '../../../lib/database.types.ts';
-import BookingCalendar from '../../BookingCalendar.tsx';
+import type { Instructor } from '../../../lib/database.types';
+import BookingCalendar from '../../BookingCalendar';
 
 interface CalendarSelectionProps {
     instructor: Instructor;

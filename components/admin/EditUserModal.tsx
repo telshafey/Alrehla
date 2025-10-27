@@ -1,6 +1,10 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, AlertCircle } from 'lucide-react';
 import type { UserProfile as User } from '../../contexts/AuthContext.tsx';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import FormField from '../ui/FormField';
 
 interface EditUserModalProps {
     isOpen: boolean;
@@ -44,33 +48,31 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, onSave, 
             <div ref={modalRef} className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 m-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">{isEditMode ? 'تعديل المستخدم' : 'إضافة مستخدم جديد'}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+                    <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <X size={24} />
+                    </Button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">الاسم*</label>
-                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
-                    </div>
-                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">البريد الإلكتروني*</label>
-                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required disabled={isEditMode} />
-                    </div>
+                    <FormField label="الاسم*" htmlFor="name">
+                        <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+                    </FormField>
+                     <FormField label="البريد الإلكتروني*" htmlFor="email">
+                        <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isEditMode} />
+                    </FormField>
                      {!isEditMode && (
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">كلمة المرور*</label>
-                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+                        <FormField label="كلمة المرور*" htmlFor="password">
+                            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                              <div className="mt-2 flex items-start gap-2 text-xs text-yellow-700 bg-yellow-50 p-2 rounded-md">
                                 <AlertCircle size={20} className="flex-shrink-0" />
                                 <span>سيتم إرسال بريد إلكتروني للمستخدم الجديد لتأكيد حسابه.</span>
                             </div>
-                        </div>
+                        </FormField>
                     )}
                     <div className="flex justify-end gap-4 pt-4 mt-8 border-t">
-                        <button type="button" onClick={onClose} disabled={isSaving} className="px-6 py-2 rounded-full text-gray-700 bg-gray-100 hover:bg-gray-200">إلغاء</button>
-                        <button type="submit" disabled={isSaving} className="px-6 py-2 rounded-full text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400">
-                           {isSaving ? <Loader2 className="animate-spin"/> : <Save />}
-                           <span>{isSaving ? 'جاري الحفظ...' : 'حفظ'}</span>
-                        </button>
+                        <Button type="button" onClick={onClose} disabled={isSaving} variant="ghost">إلغاء</Button>
+                        <Button type="submit" loading={isSaving} icon={<Save />}>
+                           {isSaving ? 'جاري الحفظ...' : 'حفظ'}
+                        </Button>
                     </div>
                 </form>
             </div>

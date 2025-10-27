@@ -1,7 +1,10 @@
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, Image as ImageIcon } from 'lucide-react';
-import { BlogPost } from '../../lib/database.types.ts';
-import { useModalAccessibility } from '../../hooks/useModalAccessibility.ts';
+// FIX: Remove .ts extension from import paths
+import type { BlogPost } from '../../lib/database.types';
+import { useModalAccessibility } from '../../hooks/useModalAccessibility';
 
 interface BlogPostModalProps {
     isOpen: boolean;
@@ -19,7 +22,8 @@ interface BlogPostModalProps {
     isSaving: boolean;
 }
 
-const BlogPostModal: React.FC<BlogPostModalProps> = ({ isOpen, onClose, onSave, post, isSaving }) => {
+// FIX: Changed to a named export to resolve module resolution issues.
+export const BlogPostModal: React.FC<BlogPostModalProps> = ({ isOpen, onClose, onSave, post, isSaving }) => {
     const [title, setTitle] = useState('');
     const [slug, setSlug] = useState('');
     const [content, setContent] = useState('');
@@ -66,7 +70,8 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({ isOpen, onClose, onSave, 
     };
     
     const generateSlug = (text: string) => {
-        return text.toString().toLowerCase()
+        // FIX: Removed redundant .toString() call on a string.
+        return text.toLowerCase()
             .replace(/\s+/g, '-')           // Replace spaces with -
             .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
             .replace(/\-\-+/g, '-')         // Replace multiple - with single -
@@ -139,5 +144,3 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({ isOpen, onClose, onSave, 
         </div>
     );
 };
-
-export default BlogPostModal;

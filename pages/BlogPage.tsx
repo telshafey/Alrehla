@@ -1,15 +1,15 @@
+
 import React from 'react';
-import { usePublicData } from '../hooks/queries.ts';
-import PostCard from '../components/shared/PostCard.tsx';
-import PageLoader from '../components/ui/PageLoader.tsx';
-import ShareButtons from '../components/shared/ShareButtons.tsx';
+import { usePublicData } from '../hooks/publicQueries';
+import PostCard from '../components/shared/PostCard';
+import SkeletonCard from '../components/ui/SkeletonCard';
+import ShareButtons from '../components/shared/ShareButtons';
 
 const BlogPage: React.FC = () => {
     const { data, isLoading, error } = usePublicData();
     const blogPosts = data?.blogPosts || [];
     const pageUrl = window.location.href;
 
-    if (isLoading) return <PageLoader />;
     if (error) return <div className="text-center text-red-500 py-12">{error.message}</div>;
 
     const publishedPosts = blogPosts.filter(p => p.status === 'published');
@@ -32,7 +32,9 @@ const BlogPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {publishedPosts.length > 0 ? (
+                    {isLoading ? (
+                        Array.from({ length: 3 }).map((_, index) => <SkeletonCard key={index} />)
+                    ) : publishedPosts.length > 0 ? (
                         publishedPosts.map(post => <PostCard key={post.id} post={post} />)
                     ) : (
                         <p className="col-span-full text-center text-gray-500">لا توجد مقالات منشورة حاليًا.</p>

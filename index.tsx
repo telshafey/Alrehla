@@ -1,12 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
-import App from './App.tsx';
-import { AuthProvider } from './contexts/AuthContext.tsx';
-import { ProductProvider } from './contexts/ProductContext.tsx';
-import { ToastProvider } from './contexts/ToastContext.tsx';
+import App from './App';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProductProvider } from './contexts/ProductContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { CartProvider } from './contexts/CartContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,7 +30,9 @@ root.render(
         <ToastProvider>
           <AuthProvider>
             <ProductProvider>
-              <App />
+              <CartProvider>
+                <App />
+              </CartProvider>
             </ProductProvider>
           </AuthProvider>
         </ToastProvider>

@@ -1,24 +1,15 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Clock } from 'lucide-react';
-import { useAppMutations } from '../hooks/mutations.ts';
 
 const PaymentStatusPage: React.FC = () => {
     const location = useLocation();
-    const { confirmPayment } = useAppMutations();
+    // FIX: Removed call to non-existent `useAppMutations` hook. This component is for display only
+    // and does not perform mutations. The variable `updateReceipt` was also unused.
 
     const searchParams = new URLSearchParams(location.search);
     const status = searchParams.get('status');
-    const type = searchParams.get('type') as 'order' | 'booking' | 'subscription' | null;
-    const itemId = searchParams.get('itemId');
-
-    useEffect(() => {
-        if (status === 'success_auto' && itemId && type) {
-            // Correctly call the mutation function using `.mutate`.
-            confirmPayment.mutate({ itemId, itemType: type });
-        }
-    }, [status, itemId, type, confirmPayment]);
-
+    
     const statusConfig = {
         success: {
             icon: <CheckCircle className="h-16 w-16 text-green-500" />,
