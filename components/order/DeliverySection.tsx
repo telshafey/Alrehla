@@ -1,5 +1,4 @@
 import React from 'react';
-import Accordion from '../ui/Accordion';
 import { EGYPTIAN_GOVERNORATES } from '../../utils/governorates';
 import FormField from '../ui/FormField';
 import { Select } from '../ui/Select';
@@ -19,8 +18,9 @@ interface DeliverySectionProps {
 
 const DeliverySection: React.FC<DeliverySectionProps> = ({ formData, handleChange }) => {
     return (
-        <Accordion title="تفاصيل التوصيل">
-            <div className="p-6 space-y-6">
+        <div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-6">تفاصيل التوصيل</h3>
+            <div className="space-y-6">
                 <FormField label="نوع النسخة" htmlFor="deliveryType">
                      <Select id="deliveryType" name="deliveryType" value={formData.deliveryType} onChange={handleChange}>
                         <option value="printed">مطبوعة + إلكترونية</option>
@@ -63,7 +63,7 @@ const DeliverySection: React.FC<DeliverySectionProps> = ({ formData, handleChang
                     </div>
                 )}
             </div>
-        </Accordion>
+        </div>
     );
 };
 

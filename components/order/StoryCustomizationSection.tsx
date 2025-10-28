@@ -1,7 +1,4 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
-import Accordion from '../ui/Accordion';
-import { Button } from '../ui/Button';
 import FormField from '../ui/FormField';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
@@ -21,58 +18,64 @@ const storyGoals = [
 interface StoryCustomizationSectionProps {
     formData: {
         childTraits: string;
-        storyValue: string;
-        customGoal: string;
         familyNames: string;
         friendNames: string;
+        storyValue: string;
+        customGoal: string;
     };
     handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-    onGenerateIdeas: () => void;
-    isGeneratingIdeas: boolean;
 }
 
-const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({ formData, handleChange, onGenerateIdeas, isGeneratingIdeas }) => {
+const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({
+    formData,
+    handleChange,
+}) => {
     return (
-        <Accordion title="تفاصيل تخصيص القصة">
-            <div className="p-6 space-y-6">
+        <div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-6">تخصيص القصة</h3>
+            <div className="space-y-6">
                 <FormField label="أخبرنا عن طفلك" htmlFor="childTraits">
-                    <Textarea id="childTraits" name="childTraits" value={formData.childTraits} onChange={handleChange} rows={4} placeholder="مثال: شجاع، يحب الديناصورات، خياله واسع، يحب مساعدة والدته..."/>
-                    <p className="text-xs text-gray-500 mt-1">هذا الوصف يساعدنا على كتابة قصة فريدة من نوعها.</p>
+                    <Textarea
+                        id="childTraits"
+                        name="childTraits"
+                        value={formData.childTraits}
+                        onChange={handleChange}
+                        rows={4}
+                        placeholder="مثال: شجاع، يحب الديناصورات واللون الأزرق، ويخاف قليلاً من الظلام."
+                    />
                 </FormField>
-                <div className="mt-4">
-                    <Button
-                        type="button"
-                        onClick={onGenerateIdeas}
-                        loading={isGeneratingIdeas}
-                        variant="outline"
-                        icon={<Sparkles size={18} />}
-                        className="border-purple-600 text-purple-600 hover:bg-purple-50 w-full sm:w-auto"
-                    >
-                        {isGeneratingIdeas ? 'جاري التفكير...' : 'اقترح لي أفكاراً بالذكاء الاصطناعي'}
-                    </Button>
-                </div>
-                <FormField label="أسماء أفراد العائلة (اختياري)" htmlFor="familyNames">
-                    <Textarea id="familyNames" name="familyNames" value={formData.familyNames} onChange={handleChange} rows={2} placeholder="مثال: الأم: فاطمة، الأب: علي" />
-                    <p className="text-xs text-gray-500 mt-1">يمكنك ذكر أسماء أفراد العائلة ليتم إدراجهم في القصة.</p>
-                </FormField>
-                <FormField label="أسماء الأصدقاء (اختياري)" htmlFor="friendNames">
-                    <Textarea id="friendNames" name="friendNames" value={formData.friendNames} onChange={handleChange} rows={2} placeholder="مثال: صديقه المقرب: خالد" />
-                    <p className="text-xs text-gray-500 mt-1">يمكنك ذكر أسماء الأصدقاء ليتم إدراجهم في القصة.</p>
-                </FormField>
-                <FormField label="اختر القيمة أو المهارة التي تركز عليها القصة" htmlFor="storyValue">
-                    <Select id="storyValue" name="storyValue" value={formData.storyValue} onChange={handleChange}>
+
+                <FormField label="اختر الهدف التربوي من القصة*" htmlFor="storyValue">
+                    <Select id="storyValue" name="storyValue" value={formData.storyValue} onChange={handleChange} required>
                         <option value="">-- اختر قيمة --</option>
-                        {storyGoals.map(goal => <option key={goal.key} value={goal.key}>{goal.title}</option>)}
-                        <option value="custom">هدف آخر (أذكره بالأسفل)</option>
+                        {storyGoals.map(goal => (
+                            <option key={goal.key} value={goal.key}>{goal.title}</option>
+                        ))}
+                        <option value="custom">هدف آخر (أكتبه بنفسي)</option>
                     </Select>
                 </FormField>
+
                 {formData.storyValue === 'custom' && (
-                    <FormField label="الهدف المخصص" htmlFor="customGoal">
-                        <Input type="text" id="customGoal" name="customGoal" value={formData.customGoal} onChange={handleChange} placeholder="اكتب الهدف الذي تريده هنا" />
+                    <FormField label="اكتب الهدف التربوي المخصص" htmlFor="customGoal">
+                        <Input
+                            type="text"
+                            id="customGoal"
+                            name="customGoal"
+                            value={formData.customGoal}
+                            onChange={handleChange}
+                            placeholder="مثال: تعلم أهمية مساعدة كبار السن"
+                        />
                     </FormField>
                 )}
+                
+                 <FormField label="أسماء أفراد العائلة (اختياري)" htmlFor="familyNames">
+                    <Textarea id="familyNames" name="familyNames" value={formData.familyNames} onChange={handleChange} rows={2} placeholder="مثال: الأم: فاطمة، الأب: علي"/>
+                </FormField>
+                <FormField label="أسماء الأصدقاء (اختياري)" htmlFor="friendNames">
+                    <Textarea id="friendNames" name="friendNames" value={formData.friendNames} onChange={handleChange} rows={2} placeholder="مثال: صديقه المقرب: خالد"/>
+                </FormField>
             </div>
-        </Accordion>
+        </div>
     );
 };
 

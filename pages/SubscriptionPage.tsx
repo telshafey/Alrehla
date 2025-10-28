@@ -5,7 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useProduct } from '../contexts/ProductContext';
 import { Send, Gift, Check } from 'lucide-react';
 import Accordion from '../components/ui/Accordion';
-import ImageUpload from '../components/order/ImageUpload';
+import ImageUpload from '../components/shared/ImageUpload';
 import { EGYPTIAN_GOVERNORATES } from '../utils/governorates';
 import ShareButtons from '../components/shared/ShareButtons';
 import { Button } from '../components/ui/Button';

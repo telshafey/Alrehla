@@ -1,170 +1,146 @@
-import type { UserRole } from "./database.types.ts";
+import type { UserRole } from './database.types';
 
-// Re-export UserRole for consistency
 export type { UserRole };
 
 export const roleNames: { [key in UserRole]: string } = {
-    user: 'مستخدم عادي',
-    parent: 'ولي أمر',
-    super_admin: 'مدير عام',
-    general_supervisor: 'مشرف عام',
-    enha_lak_supervisor: 'مشرف "إنها لك"',
-    creative_writing_supervisor: 'مشرف "بداية الرحلة"',
-    instructor: 'مدرب',
-    content_editor: 'محرر محتوى',
-    support_agent: 'وكيل دعم',
-    student: 'طالب'
+  user: 'مستخدم عادي',
+  parent: 'ولي أمر',
+  student: 'طالب',
+  super_admin: 'مدير النظام',
+  general_supervisor: 'مشرف عام',
+  enha_lak_supervisor: 'مشرف إنها لك',
+  creative_writing_supervisor: 'مشرف بداية الرحلة',
+  instructor: 'مدرب',
+  content_editor: 'محرر محتوى',
+  support_agent: 'وكيل دعم',
 };
-
-export const staffRoles: UserRole[] = [
-    'user',
-    'super_admin',
-    'general_supervisor',
-    'enha_lak_supervisor',
-    'creative_writing_supervisor',
-    'instructor',
-    'student',
-    'content_editor',
-    'support_agent',
-    'parent'
-];
-
-export const adminAccessRoles: UserRole[] = staffRoles.filter(r => r !== 'user' && r !== 'student' && r !== 'parent');
-
-
-// --- NEW: Permissions System ---
 
 export interface Permissions {
-    canManageUsers: boolean;
-    canManageSettings: boolean;
-    canManageEnhaLakOrders: boolean;
-    canManageEnhaLakSubscriptions: boolean;
-    canManageEnhaLakProducts: boolean;
-    canManagePrices: boolean;
-    canManageShipping: boolean;
-    canManageCreativeWritingBookings: boolean;
-    canManageCreativeWritingInstructors: boolean;
-    canManageCreativeWritingSettings: boolean; // New permission
-    canManageContent: boolean;
-    canManageBlog: boolean;
-    canManageSupportTickets: boolean;
-    canManageJoinRequests: boolean;
-    canManageInstructorUpdates: boolean;
-    canManageSupportRequests: boolean;
-    // Dashboard specific permissions
-    canViewDashboard: boolean;
-    canViewEnhaLakStats: boolean;
-    canViewCreativeWritingStats: boolean;
-    canViewContentStats: boolean;
-    canViewSupportStats: boolean;
-    canViewGlobalStats: boolean;
+  canViewDashboard: boolean;
+  canManageUsers: boolean;
+  canManageSettings: boolean;
+  canManageEnhaLakOrders: boolean;
+  canManageEnhaLakSubscriptions: boolean;
+  canManageEnhaLakProducts: boolean;
+  canManagePrices: boolean;
+  canManageShipping: boolean;
+  canManageCreativeWritingBookings: boolean;
+  canManageCreativeWritingSettings: boolean;
+  canManageCreativeWritingInstructors: boolean;
+  canManageInstructorUpdates: boolean;
+  canManageSupportRequests: boolean;
+  canManageContent: boolean;
+  canManageBlog: boolean;
+  canManageSupportTickets: boolean;
+  canManageJoinRequests: boolean;
+  canManageSchedules: boolean;
+  canViewGlobalStats: boolean;
+  canViewEnhaLakStats: boolean;
+  canViewCreativeWritingStats: boolean;
+  canViewContentStats: boolean;
+  canViewSupportStats: boolean;
 }
 
-const defaultPermissions: Permissions = {
-    canManageUsers: false,
-    canManageSettings: false,
-    canManageEnhaLakOrders: false,
-    canManageEnhaLakSubscriptions: false,
-    canManageEnhaLakProducts: false,
-    canManagePrices: false,
-    canManageShipping: false,
-    canManageCreativeWritingBookings: false,
-    canManageCreativeWritingInstructors: false,
-    canManageCreativeWritingSettings: false, // New permission
-    canManageContent: false,
-    canManageBlog: false,
-    canManageSupportTickets: false,
-    canManageJoinRequests: false,
-    canManageInstructorUpdates: false,
-    canManageSupportRequests: false,
-    canViewDashboard: false,
-    canViewEnhaLakStats: false,
-    canViewCreativeWritingStats: false,
-    canViewContentStats: false,
-    canViewSupportStats: false,
-    canViewGlobalStats: false,
+const allPermissions: Permissions = {
+  canViewDashboard: true,
+  canManageUsers: true,
+  canManageSettings: true,
+  canManageEnhaLakOrders: true,
+  canManageEnhaLakSubscriptions: true,
+  canManageEnhaLakProducts: true,
+  canManagePrices: true,
+  canManageShipping: true,
+  canManageCreativeWritingBookings: true,
+  canManageCreativeWritingSettings: true,
+  canManageCreativeWritingInstructors: true,
+  canManageInstructorUpdates: true,
+  canManageSupportRequests: true,
+  canManageContent: true,
+  canManageBlog: true,
+  canManageSupportTickets: true,
+  canManageJoinRequests: true,
+  canManageSchedules: true,
+  canViewGlobalStats: true,
+  canViewEnhaLakStats: true,
+  canViewCreativeWritingStats: true,
+  canViewContentStats: true,
+  canViewSupportStats: true,
 };
 
-export const ROLES_CONFIG: Record<UserRole, Partial<Permissions>> = {
-    user: {},
-    parent: {},
-    instructor: { canViewDashboard: true },
-    student: {},
-    support_agent: {
-        canViewDashboard: true,
-        canManageSupportTickets: true,
-        canManageJoinRequests: true,
-        canViewSupportStats: true,
-    },
-    content_editor: {
-        canViewDashboard: true,
-        canManageContent: true,
-        canManageBlog: true,
-        canViewContentStats: true,
-    },
-    creative_writing_supervisor: {
-        canViewDashboard: true,
-        canManageCreativeWritingBookings: true,
-        canManageCreativeWritingInstructors: true,
-        canManageCreativeWritingSettings: true, // New permission
-        canManageInstructorUpdates: true,
-        canManageSupportRequests: true,
-        canViewCreativeWritingStats: true,
-    },
-    enha_lak_supervisor: {
-        canViewDashboard: true,
-        canManageEnhaLakOrders: true,
-        canManageEnhaLakSubscriptions: true,
-        canManageEnhaLakProducts: true,
-        canManagePrices: true,
-        canManageShipping: true,
-        canViewEnhaLakStats: true,
-    },
-    general_supervisor: {
-        canViewDashboard: true,
-        canManageEnhaLakOrders: true,
-        canManageEnhaLakSubscriptions: true,
-        canManageEnhaLakProducts: true,
-        canManagePrices: true,
-        canManageShipping: true,
-        canManageCreativeWritingBookings: true,
-        canManageCreativeWritingInstructors: true,
-        canManageCreativeWritingSettings: true,
-        canManageInstructorUpdates: true,
-        canManageSupportRequests: true,
-        canViewEnhaLakStats: true,
-        canViewCreativeWritingStats: true,
-        canViewGlobalStats: true,
-    },
-    super_admin: {
-        canManageUsers: true,
-        canManageSettings: true,
-        canManageEnhaLakOrders: true,
-        canManageEnhaLakSubscriptions: true,
-        canManageEnhaLakProducts: true,
-        canManagePrices: true,
-        canManageShipping: true,
-        canManageCreativeWritingBookings: true,
-        canManageCreativeWritingInstructors: true,
-        canManageCreativeWritingSettings: true, // New permission
-        canManageContent: true,
-        canManageBlog: true,
-        canManageSupportTickets: true,
-        canManageJoinRequests: true,
-        canManageInstructorUpdates: true,
-        canManageSupportRequests: true,
-        canViewDashboard: true,
-        canViewEnhaLakStats: true,
-        canViewCreativeWritingStats: true,
-        canViewContentStats: true,
-        canViewSupportStats: true,
-        canViewGlobalStats: true,
-    },
-};
+const noPermissions: Permissions = Object.keys(allPermissions).reduce((acc, key) => {
+  acc[key as keyof Permissions] = false;
+  return acc;
+}, {} as Permissions);
 
 export const getPermissions = (role: UserRole): Permissions => {
-    return {
-        ...defaultPermissions,
-        ...(ROLES_CONFIG[role] || {}),
-    };
+  switch (role) {
+    case 'super_admin':
+      return { ...allPermissions };
+
+    case 'general_supervisor':
+      return {
+        ...noPermissions,
+        canViewDashboard: true,
+        canViewGlobalStats: true,
+        canViewEnhaLakStats: true,
+        canViewCreativeWritingStats: true,
+        canViewContentStats: true,
+        canViewSupportStats: true,
+        canManageUsers: true,
+        canManageEnhaLakOrders: true,
+        canManageCreativeWritingBookings: true,
+      };
+
+    case 'enha_lak_supervisor':
+      return {
+        ...noPermissions,
+        canViewDashboard: true,
+        canViewEnhaLakStats: true,
+        canManageEnhaLakOrders: true,
+        canManageEnhaLakSubscriptions: true,
+        canManageEnhaLakProducts: true,
+        canManagePrices: true,
+        canManageShipping: true,
+      };
+
+    case 'creative_writing_supervisor':
+      return {
+        ...noPermissions,
+        canViewDashboard: true,
+        canViewCreativeWritingStats: true,
+        canManageCreativeWritingBookings: true,
+        canManageCreativeWritingSettings: true,
+        canManageCreativeWritingInstructors: true,
+        canManageInstructorUpdates: true,
+        canManageSupportRequests: true,
+        canManageSchedules: true,
+      };
+
+    case 'instructor':
+      return {
+        ...noPermissions,
+        canViewDashboard: true,
+      };
+
+    case 'content_editor':
+      return {
+        ...noPermissions,
+        canViewDashboard: true,
+        canViewContentStats: true,
+        canManageContent: true,
+        canManageBlog: true,
+      };
+
+    case 'support_agent':
+      return {
+        ...noPermissions,
+        canViewDashboard: true,
+        canViewSupportStats: true,
+        canManageSupportTickets: true,
+        canManageJoinRequests: true,
+      };
+
+    default:
+      return { ...noPermissions, canViewDashboard: false };
+  }
 };

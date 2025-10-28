@@ -4,9 +4,6 @@ import { CheckCircle, AlertCircle, Clock } from 'lucide-react';
 
 const PaymentStatusPage: React.FC = () => {
     const location = useLocation();
-    // FIX: Removed call to non-existent `useAppMutations` hook. This component is for display only
-    // and does not perform mutations. The variable `updateReceipt` was also unused.
-
     const searchParams = new URLSearchParams(location.search);
     const status = searchParams.get('status');
     

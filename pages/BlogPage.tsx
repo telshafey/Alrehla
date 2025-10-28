@@ -1,5 +1,5 @@
-
 import React from 'react';
+// FIX: Corrected import path
 import { usePublicData } from '../hooks/publicQueries';
 import PostCard from '../components/shared/PostCard';
 import SkeletonCard from '../components/ui/SkeletonCard';

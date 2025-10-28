@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Send } from 'lucide-react';
+// FIX: Corrected import path
 import { useInstructorMutations } from '../../hooks/mutations';
 import type { Instructor, WeeklySchedule } from '../../lib/database.types';
 import { useToast } from '../../contexts/ToastContext';

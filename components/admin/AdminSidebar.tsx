@@ -1,11 +1,13 @@
 
 
+
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
     LayoutDashboard, Users, Settings, ShoppingBag, Gift, Edit, MessageSquare, UserPlus,
-    BookOpen, UserCheck, FileText, Package, Star, Truck, Home, UserCog, ShieldQuestion
+    BookOpen, UserCheck, FileText, Package, Star, Truck, Home, UserCog, ShieldQuestion,
+    Calendar
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -47,6 +49,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen, isCollap
     const communicationLinks = [
          { to: '/admin/support', label: 'رسائل الدعم', icon: <MessageSquare size={20} />, permission: permissions.canManageSupportTickets },
          { to: '/admin/join-requests', label: 'طلبات الانضمام', icon: <UserPlus size={20} />, permission: permissions.canManageJoinRequests },
+    ];
+
+    const schedulingLinks = [
+        { to: '/admin/scheduled-sessions', label: 'الجلسات المجدولة', icon: <Calendar size={20} />, permission: permissions.canManageSchedules },
     ];
 
     const LinkItem: React.FC<{ to: string, icon: React.ReactNode, label: string }> = ({ to, icon, label }) => (
@@ -92,6 +98,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen, isCollap
                         <Section title="رئيسية" links={navLinks} />
                         <Section title="إنها لك" links={enhaLakLinks} />
                         <Section title="بداية الرحلة" links={creativeWritingLinks} />
+                        <Section title="الجدولة" links={schedulingLinks} />
                         <Section title="المحتوى" links={contentLinks} />
                         <Section title="التواصل" links={communicationLinks} />
                     </>

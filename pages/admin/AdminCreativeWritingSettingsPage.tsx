@@ -1,7 +1,5 @@
-
 import React, { useState } from 'react';
-import { Package, Plus, Edit, Trash2, Check, X } from 'lucide-react';
-// FIX: Corrected import path from non-existent queries.ts to adminQueries.ts
+import { Settings, Plus, Edit, Trash2, Package } from 'lucide-react';
 import { useAdminCWSettings } from '../../hooks/adminQueries';
 import { useCreativeWritingSettingsMutations } from '../../hooks/mutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -13,30 +11,35 @@ import type { CreativeWritingPackage, AdditionalService } from '../../lib/databa
 const AdminCreativeWritingSettingsPage: React.FC = () => {
     const { data, isLoading, error } = useAdminCWSettings();
     const { 
-        createCreativeWritingPackage, updateCreativeWritingPackage, deleteCreativeWritingPackage,
-        createAdditionalService, updateAdditionalService, deleteAdditionalService 
+        createCreativeWritingPackage, 
+        updateCreativeWritingPackage, 
+        deleteCreativeWritingPackage,
+        createAdditionalService,
+        updateAdditionalService,
+        deleteAdditionalService
     } = useCreativeWritingSettingsMutations();
-
+    
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalType, setModalType] = useState<'package' | 'service'>('package');
+    const [modalItemType, setModalItemType] = useState<'package' | 'service'>('package');
     const [itemToEdit, setItemToEdit] = useState<CreativeWritingPackage | AdditionalService | null>(null);
+
     const isSaving = createCreativeWritingPackage.isPending || updateCreativeWritingPackage.isPending || createAdditionalService.isPending || updateAdditionalService.isPending;
 
-    const handleOpenModal = (type: 'package' | 'service', item: CreativeWritingPackage | AdditionalService | null) => {
-        setModalType(type);
+    const handleOpenModal = (itemType: 'package' | 'service', item: CreativeWritingPackage | AdditionalService | null) => {
+        setModalItemType(itemType);
         setItemToEdit(item);
         setIsModalOpen(true);
     };
 
     const handleSave = async (payload: any) => {
         try {
-            if (modalType === 'package') {
+            if (modalItemType === 'package') {
                 if (payload.id) {
                     await updateCreativeWritingPackage.mutateAsync(payload);
                 } else {
                     await createCreativeWritingPackage.mutateAsync(payload);
                 }
-            } else { // service
+            } else {
                 if (payload.id) {
                     await updateAdditionalService.mutateAsync(payload);
                 } else {
@@ -49,18 +52,23 @@ const AdminCreativeWritingSettingsPage: React.FC = () => {
         }
     };
     
-    const handleDelete = async (type: 'package' | 'service', id: number) => {
-        if(window.confirm('هل أنت متأكد من حذف هذا العنصر؟')) {
-            if (type === 'package') {
-                await deleteCreativeWritingPackage.mutateAsync({ id });
-            } else {
-                await deleteAdditionalService.mutateAsync({ id });
-            }
+    const handleDeletePackage = async (packageId: number) => {
+        if (window.confirm('هل أنت متأكد من حذف هذه الباقة؟')) {
+            await deleteCreativeWritingPackage.mutateAsync({ packageId });
         }
-    }
+    };
+    
+    const handleDeleteService = async (serviceId: number) => {
+         if (window.confirm('هل أنت متأكد من حذف هذه الخدمة؟')) {
+            await deleteAdditionalService.mutateAsync({ serviceId });
+        }
+    };
+
 
     if (isLoading) return <PageLoader text="جاري تحميل الإعدادات..." />;
     if (error) return <div className="text-center text-red-500">{error.message}</div>;
+
+    const { packages = [], services = [] } = data || {};
 
     return (
         <>
@@ -69,33 +77,32 @@ const AdminCreativeWritingSettingsPage: React.FC = () => {
                 onClose={() => setIsModalOpen(false)}
                 onSave={handleSave}
                 isSaving={isSaving}
-                itemType={modalType}
+                itemType={modalItemType}
                 itemToEdit={itemToEdit}
             />
             <div className="animate-fadeIn space-y-12">
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إعدادات برنامج "بداية الرحلة"</h1>
-
-                <AdminSection title="باقات البرنامج" icon={<Package />}>
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إعدادات "بداية الرحلة"</h1>
+                
+                <AdminSection title="إدارة الباقات" icon={<Package />}>
                     <div className="flex justify-end mb-4">
                         <Button onClick={() => handleOpenModal('package', null)} icon={<Plus size={18} />}>
                             إضافة باقة
                         </Button>
                     </div>
-                    <div className="overflow-x-auto">
+                     <div className="overflow-x-auto">
                         <table className="w-full text-right">
-                           <thead><tr className="border-b-2">
-                                <th className="p-3">الباقة</th><th className="p-3">السعر</th><th className="p-3">الجلسات</th><th className="p-3">الأكثر شيوعاً</th><th className="p-3">إجراءات</th>
+                           <thead className="border-b-2"><tr>
+                                <th className="p-3">الباقة</th><th className="p-3">الجلسات</th><th className="p-3">السعر</th><th className="p-3">إجراءات</th>
                             </tr></thead>
                             <tbody>
-                                {data?.packages.map(pkg => (
+                                {packages.map((pkg: CreativeWritingPackage) => (
                                     <tr key={pkg.id} className="border-b hover:bg-gray-50">
-                                        <td className="p-3 font-semibold">{pkg.name}</td>
-                                        <td className="p-3">{pkg.price} ج.م</td>
+                                        <td className="p-3 font-semibold">{pkg.name} {pkg.popular && <span className="text-xs text-blue-600">(الأكثر شيوعاً)</span>}</td>
                                         <td className="p-3">{pkg.sessions}</td>
-                                        <td className="p-3">{pkg.popular ? <Check className="text-green-500" /> : <X className="text-red-500"/>}</td>
+                                        <td className="p-3 font-bold">{pkg.price} ج.م</td>
                                         <td className="p-3 flex items-center gap-2">
                                             <Button variant="ghost" size="icon" onClick={() => handleOpenModal('package', pkg)}><Edit size={20} /></Button>
-                                            <Button variant="ghost" size="icon" className="hover:text-red-600" onClick={() => handleDelete('package', pkg.id)}><Trash2 size={20} /></Button>
+                                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDeletePackage(pkg.id)}><Trash2 size={20} /></Button>
                                         </td>
                                     </tr>
                                 ))}
@@ -104,26 +111,25 @@ const AdminCreativeWritingSettingsPage: React.FC = () => {
                     </div>
                 </AdminSection>
 
-                <AdminSection title="الخدمات الإضافية" icon={<Package />}>
-                     <div className="flex justify-end mb-4">
+                <AdminSection title="الخدمات الإضافية" icon={<Settings />}>
+                    <div className="flex justify-end mb-4">
                         <Button onClick={() => handleOpenModal('service', null)} icon={<Plus size={18} />}>
                             إضافة خدمة
                         </Button>
                     </div>
-                    <div className="overflow-x-auto">
-                         <table className="w-full text-right">
-                           <thead><tr className="border-b-2">
-                                <th className="p-3">الخدمة</th><th className="p-3">الوصف</th><th className="p-3">السعر</th><th className="p-3">إجراءات</th>
+                     <div className="overflow-x-auto">
+                        <table className="w-full text-right">
+                           <thead className="border-b-2"><tr>
+                                <th className="p-3">الخدمة</th><th className="p-3">السعر</th><th className="p-3">إجراءات</th>
                             </tr></thead>
                             <tbody>
-                                {data?.services.map(srv => (
-                                    <tr key={srv.id} className="border-b hover:bg-gray-50">
-                                        <td className="p-3 font-semibold">{srv.name}</td>
-                                        <td className="p-3 text-sm text-gray-600">{srv.description}</td>
-                                        <td className="p-3">{srv.price} ج.م</td>
+                                {services.map((service: AdditionalService) => (
+                                    <tr key={service.id} className="border-b hover:bg-gray-50">
+                                        <td className="p-3 font-semibold">{service.name}</td>
+                                        <td className="p-3 font-bold">{service.price} ج.م</td>
                                         <td className="p-3 flex items-center gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenModal('service', srv)}><Edit size={20} /></Button>
-                                            <Button variant="ghost" size="icon" className="hover:text-red-600" onClick={() => handleDelete('service', srv.id)}><Trash2 size={20} /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenModal('service', service)}><Edit size={20} /></Button>
+                                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDeleteService(service.id)}><Trash2 size={20} /></Button>
                                         </td>
                                     </tr>
                                 ))}

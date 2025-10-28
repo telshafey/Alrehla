@@ -1,93 +1,89 @@
-
-import React, { useState, useMemo } from 'react';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2, Save } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/adminQueries';
 import { useInstructorMutations } from '../../hooks/mutations';
 import type { Instructor, AvailableSlots } from '../../lib/database.types';
-import BookingCalendar from '../BookingCalendar'; // Re-using for display
+import { Select } from '../ui/Select';
+import { Button } from '../ui/Button';
 
 const timeSlots = [
-  '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30',
-  '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-  '17:00', '17:30', '18:00'
+    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30',
+    '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
+    '17:00', '17:30', '18:00', '18:30', '19:00'
 ];
 
-const AvailabilityManager: React.FC<{ instructor?: Instructor }> = ({ instructor: passedInstructor }) => {
-    const { data: instructors = [], isLoading, error } = useAdminInstructors();
+const AvailabilityManager: React.FC = () => {
+    const { data: instructors = [], isLoading: instructorsLoading } = useAdminInstructors();
     const { updateInstructorAvailability } = useInstructorMutations();
-    const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(passedInstructor?.id || null);
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [isSaving, setIsSaving] = useState(false);
+
+    const [selectedInstructorId, setSelectedInstructorId] = useState<string>('');
+    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [availability, setAvailability] = useState<AvailableSlots>({});
     
-    const selectedInstructor = useMemo(() => 
-        instructors.find(i => i.id === selectedInstructorId), 
-    [instructors, selectedInstructorId]);
+    const instructor = instructors.find(i => i.id === parseInt(selectedInstructorId));
 
-    const currentSlots: AvailableSlots = (selectedInstructor?.availability as AvailableSlots) || {};
-    const selectedDay = selectedDate.getDate().toString();
-    const daySlots = currentSlots[selectedDay] || [];
-
-    const handleSlotChange = async (time: string) => {
-        if (!selectedInstructor) return;
-        
-        setIsSaving(true);
-        const newDaySlots = daySlots.includes(time) 
-            ? daySlots.filter(t => t !== time)
-            : [...daySlots, time].sort();
-
-        const newAvailability = {
-            ...currentSlots,
-            [selectedDay]: newDaySlots
-        };
-
-        try {
-            await updateInstructorAvailability.mutateAsync({ instructorId: selectedInstructor.id, availability: newAvailability });
-        } catch(e) {
-            // error handled by hook
-        } finally {
-            setIsSaving(false);
+    useEffect(() => {
+        if (instructor?.availability) {
+            setAvailability(instructor.availability as AvailableSlots);
+        } else {
+            setAvailability({});
         }
+    }, [instructor]);
+    
+    const handleTimeToggle = (time: string) => {
+        setAvailability(prev => {
+            const daySlots = prev[selectedDate] || [];
+            const newDaySlots = daySlots.includes(time)
+                ? daySlots.filter(t => t !== time)
+                : [...daySlots, time].sort();
+            return { ...prev, [selectedDate]: newDaySlots };
+        });
     };
     
-    if (isLoading) return <Loader2 className="animate-spin" />;
-    if (error) return <div className="text-red-500">{error.message}</div>;
+    const handleSave = () => {
+        if (!instructor) return;
+        updateInstructorAvailability.mutate({ instructorId: instructor.id, availability });
+    };
+
+    if (instructorsLoading) {
+        return <Loader2 className="animate-spin" />;
+    }
+
+    const currentDaySlots = availability[selectedDate] || [];
 
     return (
-        <div className="space-y-4">
-             {!passedInstructor && (
-                <select 
-                    value={selectedInstructorId || ''} 
-                    onChange={e => setSelectedInstructorId(Number(e.target.value))}
-                    className="w-full max-w-xs p-2 border rounded-lg bg-white"
-                >
-                    <option value="">-- اختر مدربًا --</option>
-                    {instructors.map(inst => <option key={inst.id} value={inst.id}>{inst.name}</option>)}
-                </select>
-             )}
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <Select value={selectedInstructorId} onChange={e => setSelectedInstructorId(e.target.value)}>
+                    <option value="">-- اختر مدرب --</option>
+                    {instructors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                </Select>
+                <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-full p-2 border rounded-lg bg-white" />
+            </div>
 
-            {selectedInstructor && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <BookingCalendar instructor={selectedInstructor} onDateTimeSelect={(date) => setSelectedDate(date)} />
-                    <div>
-                        <h3 className="text-lg font-bold">إدارة مواعيد يوم: {selectedDate.toLocaleDateString('ar-EG')}</h3>
-                        {isSaving && <p className="text-sm text-blue-500">جاري الحفظ...</p>}
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4 max-h-72 overflow-y-auto">
-                            {timeSlots.map(time => {
-                                const isAvailable = daySlots.includes(time);
-                                return (
+            {selectedInstructorId && (
+                <div>
+                    <h4 className="font-bold mb-3">المواعيد المتاحة لـ {instructor?.name} في يوم {selectedDate}</h4>
+                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                         {timeSlots.map(time => {
+                             const isSelected = currentDaySlots.includes(time);
+                             return (
                                 <button
                                     key={time}
-                                    onClick={() => handleSlotChange(time)}
-                                    className={`p-2 border rounded-lg text-sm font-semibold flex items-center justify-center gap-1 transition-colors ${
-                                        isAvailable ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    onClick={() => handleTimeToggle(time)}
+                                    className={`p-2 border rounded-lg text-sm transition-colors ${
+                                        isSelected ? 'bg-blue-600 text-white' : 'bg-white hover:bg-blue-100'
                                     }`}
                                 >
-                                    {isAvailable ? <Trash2 size={14} /> : <Plus size={14} />}
-                                    <span>{time}</span>
+                                    {time}
                                 </button>
-                                );
-                            })}
-                        </div>
+                             );
+                         })}
+                    </div>
+                    <div className="flex justify-end mt-6">
+                        <Button onClick={handleSave} loading={updateInstructorAvailability.isPending} icon={<Save />}>
+                            حفظ التغييرات
+                        </Button>
                     </div>
                 </div>
             )}

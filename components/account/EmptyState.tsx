@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
-import { Button } from '../ui/Button.tsx';
+import { Button } from '../ui/Button';
 
 interface EmptyStateProps {
     icon: React.ReactNode;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Children } from 'react';
 import { Loader2 } from 'lucide-react';
 
 const variants = {
@@ -21,6 +21,7 @@ const sizes = {
 };
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  asChild?: boolean;
   variant?: keyof typeof variants;
   size?: keyof typeof sizes;
   loading?: boolean;
@@ -28,14 +29,37 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', loading = false, icon, children, ...props }, ref) => {
-    return (
-      <button
-        className={`inline-flex items-center justify-center gap-2 font-bold rounded-full transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed
+  ({ className, variant = 'primary', size = 'md', loading = false, icon, children, asChild = false, ...props }, ref) => {
+    const buttonClasses = `inline-flex items-center justify-center gap-2 font-bold rounded-full transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed
           ${variants[variant]}
           ${sizes[size]}
-          ${className}`
-        }
+          ${className}`;
+
+    if (asChild) {
+      const child = Children.only(children);
+      if (!React.isValidElement(child)) {
+        return null;
+      }
+      // FIX: Cast child to React.ReactElement<any> to resolve type errors with props and ref when cloning.
+      return React.cloneElement(child as React.ReactElement<any>, {
+        ...props,
+        ref,
+        // FIX: The type of `child.props` can be unknown to TypeScript. Casting to `any` allows safe access to `className`.
+        className: `${buttonClasses} ${(child.props as any).className || ''}`,
+        children: (
+          <>
+            {loading && <Loader2 className="animate-spin" size={size === 'sm' ? 16 : 20} />}
+            {!loading && icon}
+            {/* FIX: The type of `child.props` can be unknown to TypeScript. Casting to `any` allows safe access to `children`. */}
+            {!loading && (child.props as any).children && <span>{(child.props as any).children}</span>}
+          </>
+        ),
+      });
+    }
+
+    return (
+      <button
+        className={buttonClasses}
         ref={ref}
         disabled={loading || props.disabled}
         {...props}

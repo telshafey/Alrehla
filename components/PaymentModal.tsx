@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Loader2, Upload, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import { useOrderMutations } from '../hooks/mutations';
@@ -71,7 +70,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
     
     setIsSubmitting(true);
     try {
-        // Correctly call the mutation function using `.mutateAsync`.
         await updateReceipt.mutateAsync({
             itemId: item.id,
             itemType: item.type,

@@ -1,13 +1,13 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+// FIX: Corrected import path
 import { usePublicData } from '../hooks/publicQueries';
 import { useProduct } from '../contexts/ProductContext';
 import SkeletonCard from '../components/ui/SkeletonCard';
-import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle, Gift } from 'lucide-react';
 import type { PersonalizedProduct } from '../lib/database.types';
 import type { Prices } from '../contexts/ProductContext';
+import { Button } from '../components/ui/Button';
 
 const getPrice = (key: string, prices: Prices | null): number | null => {
     if (!prices) return null;
@@ -20,7 +20,7 @@ const getPrice = (key: string, prices: Prices | null): number | null => {
     }
 };
 
-const ProductCard: React.FC<{ product: PersonalizedProduct, price: number | null, featured?: boolean }> = ({ product, price, featured = false }) => {
+const ProductCard: React.FC<{ product: PersonalizedProduct, price: number | null, featured?: boolean, isAddon?: boolean }> = ({ product, price, featured = false, isAddon = false }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
 
     const cardClass = featured 
@@ -55,13 +55,24 @@ const ProductCard: React.FC<{ product: PersonalizedProduct, price: number | null
                         ))}
                     </ul>
                 )}
-                <Link 
-                    to={`/enha-lak/order/${product.key}`} 
-                    className="mt-6 w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-full hover:bg-pink-700 transition-colors text-center inline-flex items-center justify-center gap-2"
-                >
-                    <span>اطلب الآن</span>
-                    <ArrowLeft className="transform rotate-180" />
-                </Link>
+                {isAddon ? (
+                     <div className="relative group mt-6">
+                        <div className="w-full bg-gray-200 text-gray-500 font-bold py-3 px-4 rounded-full text-center inline-flex items-center justify-center gap-2 cursor-not-allowed">
+                            <span>يُضاف مع الطلب</span>
+                        </div>
+                        <div className="absolute bottom-full mb-2 w-full hidden group-hover:block bg-gray-700 text-white text-xs rounded py-1 px-2 text-center z-10">
+                            هذا المنتج هو إضافة ولا يمكن طلبه منفرداً.
+                        </div>
+                    </div>
+                ) : (
+                    <Link 
+                        to={`/enha-lak/order/${product.key}`} 
+                        className="mt-6 w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-full hover:bg-pink-700 transition-colors text-center inline-flex items-center justify-center gap-2"
+                    >
+                        <span>اطلب الآن</span>
+                        <ArrowLeft className="transform rotate-180" />
+                    </Link>
+                )}
             </div>
         </div>
     );
@@ -86,7 +97,7 @@ const PersonalizedStoriesPage: React.FC = () => {
   const showLoadingState = isLoading || pricesLoading;
 
   if (error) {
-      return <div className="text-center text-red-500 py-12">{error.message}</div>;
+      return <div className="text-center text-red-500 py-12">{(error as Error).message}</div>;
   }
   
   return (
@@ -98,6 +109,25 @@ const PersonalizedStoriesPage: React.FC = () => {
                     اختر الكنز الذي سيجعل طفلك بطلاً. كل منتج مصمم بحب ليقدم تجربة فريدة لا تُنسى.
                 </p>
             </div>
+            
+             {/* Subscription Banner */}
+            <section className="mb-16 bg-gradient-to-r from-yellow-400 to-orange-500 p-8 rounded-2xl shadow-lg text-white">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                        <Gift size={48} />
+                        <div>
+                            <h2 className="text-2xl font-extrabold">اكتشف صندوق الرحلة الشهري!</h2>
+                            <p className="text-yellow-100">هدية متجددة من الخيال تصل باب منزلك كل شهر.</p>
+                        </div>
+                    </div>
+                    <Button asChild variant="outline" className="bg-white text-orange-600 font-bold border-transparent hover:bg-yellow-50">
+                        <Link to="/enha-lak/subscription">
+                            اشترك الآن
+                        </Link>
+                    </Button>
+                </div>
+            </section>
+
 
             {/* Featured Products Section */}
             {(showLoadingState || featuredProducts.length > 0) && (
@@ -118,7 +148,7 @@ const PersonalizedStoriesPage: React.FC = () => {
             {/* Core Products */}
             {(showLoadingState || coreProducts.length > 0) && (
                 <section className="mb-20">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><BookHeart className="text-pink-500" /> القصص الأساسية</h2>
+                    <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><BookHeart className="text-pink-500" /> قائمة المنتجات</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {showLoadingState && !featuredProducts.length ? (
                             Array.from({ length: 2 }).map((_, index) => <SkeletonCard key={`core-skel-${index}`} />)
@@ -140,7 +170,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                              Array.from({ length: 1 }).map((_, index) => <SkeletonCard key={`addon-skel-${index}`} />)
                         ) : (
                             addonProducts.map(product => (
-                                <ProductCard key={`addon-${product.id}`} product={product} price={getPrice(product.key, prices)} />
+                                <ProductCard key={`addon-${product.id}`} product={product} price={getPrice(product.key, prices)} isAddon />
                             ))
                         )}
                     </div>

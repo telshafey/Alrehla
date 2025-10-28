@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PenTool, Mic, Palette } from 'lucide-react';
-// FIX: Removed .ts extension from import paths
+// FIX: Corrected import path
 import { useCommunicationMutations } from '../hooks/mutations';
 import { useToast } from '../contexts/ToastContext';
 import SupportForm from '../components/shared/SupportForm';

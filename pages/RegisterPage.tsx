@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { ArrowLeft, AlertTriangle, Shield } from 'lucide-react';
-// FIX: Use named import for AuthForm and remove file extension
 import { AuthForm } from '../components/auth/AuthForm';
-import type { UserRole } from '../lib/database.types.ts';
-import { Button } from '../components/ui/Button.tsx';
-import { Input } from '../components/ui/Input.tsx';
-import FormField from '../components/ui/FormField.tsx';
+import type { UserRole } from '../lib/database.types';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import FormField from '../components/ui/FormField';
 
 const AgeGate: React.FC<{ onAgeSubmit: (age: number) => void }> = ({ onAgeSubmit }) => {
     const [age, setAge] = useState('');

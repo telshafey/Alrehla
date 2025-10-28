@@ -1,236 +1,285 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Menu, X, User, LayoutDashboard, ShoppingBag, Heart, LogOut, ShoppingCart, Bell } from 'lucide-react';
-import { useProduct } from '../contexts/ProductContext';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
+import { useProduct } from '../contexts/ProductContext';
+// FIX: Corrected import path
 import { useUserNotifications } from '../hooks/userQueries';
+// FIX: Corrected import path
+import { useNotificationMutations } from '../hooks/mutations';
 import { formatDate } from '../utils/helpers';
+import { ShoppingCart, User, Menu, X, Shield, ChevronDown, Bell, LogOut, Trash2, Info, Calendar } from 'lucide-react';
+import { Button } from './ui/Button';
+
+
+const NotificationIcon: React.FC<{ type: string }> = ({ type }) => {
+    switch (type) {
+        case 'order': return <ShoppingCart className="w-5 h-5 text-blue-500" />;
+        case 'booking': return <Calendar className="w-5 h-5 text-purple-500" />;
+        default: return <Info className="w-5 h-5 text-gray-500" />;
+    }
+};
 
 const Header: React.FC = () => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-    const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
-    const { siteBranding, loading: brandingLoading } = useProduct();
-    const { isLoggedIn, hasAdminAccess, signOut } = useAuth();
+    const { isLoggedIn, currentUser, hasAdminAccess, signOut } = useAuth();
     const { itemCount } = useCart();
-    const location = useLocation();
-    const accountMenuRef = useRef<HTMLDivElement>(null);
-    const notificationMenuRef = useRef<HTMLDivElement>(null);
+    const { siteBranding } = useProduct();
+    const { data: notifications = [], isLoading: notificationsLoading } = useUserNotifications();
+    const { markNotificationAsRead, deleteNotification } = useNotificationMutations();
 
-    const { data: notifications, isLoading: notificationsLoading } = useUserNotifications();
-    const hasUnreadNotifications = useMemo(() => notifications?.some((n: any) => !n.read), [notifications]);
-    const recentNotifications = useMemo(() => notifications?.slice(0, 5) || [], [notifications]);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+    const userMenuRef = useRef<HTMLDivElement>(null);
+    const notificationsRef = useRef<HTMLDivElement>(null);
+
+    const unreadCount = useMemo(() => notifications.filter((n: any) => !n.read).length, [notifications]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
-                setIsAccountMenuOpen(false);
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+                setIsUserMenuOpen(false);
             }
-            if (notificationMenuRef.current && !notificationMenuRef.current.contains(event.target as Node)) {
-                setIsNotificationMenuOpen(false);
+            if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+                setIsNotificationsOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    useEffect(() => {
-        setIsAccountMenuOpen(false);
-        setIsNotificationMenuOpen(false);
-    }, [location.pathname]);
-
-    const getCurrentSection = (pathname: string) => {
-        if (pathname === '/') return 'portal';
-        if (pathname.startsWith('/creative-writing') || pathname.startsWith('/instructor') || pathname.startsWith('/session')) return 'creative-writing';
-        if (pathname.startsWith('/enha-lak')) return 'enha-lak';
-        return 'portal';
+    const closeAllMenus = () => {
+        setIsMobileMenuOpen(false);
+        setIsUserMenuOpen(false);
+        setIsNotificationsOpen(false);
     };
 
-    const currentSection = getCurrentSection(location.pathname);
+    const handleDeleteNotification = (e: React.MouseEvent, notificationId: number) => {
+        e.stopPropagation();
+        e.preventDefault();
+        deleteNotification.mutate({ notificationId });
+    };
 
-    const { logoUrl, logoAlt } = useMemo(() => {
-        if (brandingLoading || !siteBranding) return { logoUrl: '', logoAlt: 'شعار منصة الرحلة' };
-        if (currentSection === 'creative-writing') return { logoUrl: siteBranding.creativeWritingLogoUrl, logoAlt: 'شعار برنامج بداية الرحلة' };
-        return { logoUrl: siteBranding.logoUrl, logoAlt: 'شعار منصة إنها لك' };
-    }, [currentSection, siteBranding, brandingLoading]);
+    const navLinks = [
+        { to: '/', text: 'الرئيسية' },
+        { to: '/enha-lak', text: 'إنها لك' },
+        { 
+            to: '/creative-writing', 
+            text: 'بداية الرحلة',
+            subLinks: [
+                { to: '/creative-writing/about', text: 'عن البرنامج' },
+                { to: '/creative-writing/curriculum', text: 'خريطة الرحلة' },
+                { to: '/creative-writing/instructors', text: 'المدربون' },
+                { to: '/creative-writing/booking', text: 'احجز جلستك', isCta: true },
+            ]
+        },
+        { to: '/about', text: 'عنا' },
+        { to: '/blog', text: 'المدونة' },
+        { to: '/support', text: 'الدعم' },
+    ];
 
-    const navLinks = useMemo(() => {
-        if (currentSection === 'creative-writing') return [
-            { path: "/creative-writing", label: "رئيسية البرنامج" },
-            { path: "/creative-writing/about", label: "عن البرنامج" },
-            { path: "/creative-writing/curriculum", label: "المنهج" },
-            { path: "/creative-writing/instructors", label: "المدربون" },
-            { path: "/creative-writing/booking", label: "الباقات والحجز" },
-        ];
-        if (currentSection === 'enha-lak') return [
-            { path: "/enha-lak", label: "عن المشروع" },
-            { path: "/enha-lak/store", label: 'المتجر' },
-            { path: "/enha-lak/subscription", label: "الاشتراك الشهري" },
-        ];
-        return [
-            { path: "/enha-lak", label: 'قصص "إنها لك"' },
-            { path: "/creative-writing", label: "برنامج 'بداية الرحلة'" },
-            { path: "/about", label: "عنا" },
-            { path: "/blog", label: "المدونة" },
-        ];
-    }, [currentSection]);
-
-    const NavLinksComponent: React.FC<{className?: string}> = ({ className }) => (
-         <nav className={className}>
-            {navLinks.map(link => (
-                <NavLink key={link.path} to={link.path} className={({ isActive }) => `px-4 py-2 rounded-md text-sm font-semibold transition-colors ${isActive ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'}`} onClick={() => setIsMenuOpen(false)}>
-                    {link.label}
-                </NavLink>
-            ))}
-        </nav>
+    const NavItem: React.FC<{ to: string, text: string }> = ({ to, text }) => (
+        <NavLink
+            to={to}
+            className={({ isActive }) =>
+                `font-semibold transition-colors ${isActive ? 'text-blue-600' : 'text-gray-600 hover:text-blue-500'}`
+            }
+            onClick={closeAllMenus}
+        >
+            {text}
+        </NavLink>
     );
     
-    const NotificationMenu = () => (
-        <div className="absolute left-0 mt-2 w-80 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none animate-fadeIn">
-            <div className="p-4 border-b">
-                <h3 className="font-bold text-gray-800">الإشعارات</h3>
-            </div>
-            <div className="py-1 max-h-80 overflow-y-auto">
-                {notificationsLoading ? (
-                    <div className="p-4 text-center text-gray-500">جاري التحميل...</div>
-                ) : recentNotifications.length > 0 ? (
-                    recentNotifications.map((notif: any) => (
-                        <Link key={notif.id} to="/account" state={{ defaultTab: 'notifications' }} className={`block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 ${!notif.read ? 'bg-blue-50' : ''}`}>
-                            <p className={`${!notif.read ? 'font-bold' : ''}`}>{notif.message}</p>
-                            <p className="text-xs text-gray-500 mt-1">{formatDate(notif.created_at)}</p>
-                        </Link>
-                    ))
-                ) : (
-                    <div className="p-4 text-center text-gray-500">لا توجد إشعارات.</div>
+    const DropdownNavItem: React.FC<{ to: string, text: string, subLinks: any[] }> = ({ to, text, subLinks }) => {
+        const [isOpen, setIsOpen] = useState(false);
+        const timeoutRef = useRef<number | null>(null);
+
+        const handleMouseEnter = () => {
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+            setIsOpen(true);
+        };
+        const handleMouseLeave = () => {
+            timeoutRef.current = window.setTimeout(() => setIsOpen(false), 200);
+        };
+        
+        return (
+            <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                 <NavLink
+                    to={to}
+                    className={({ isActive, isPending }) =>
+                        `flex items-center gap-1 font-semibold transition-colors ${isActive ? 'text-blue-600' : 'text-gray-600 hover:text-blue-500'}`
+                    }
+                >
+                    {text}
+                    <ChevronDown size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                </NavLink>
+
+                {isOpen && (
+                    <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 animate-fadeIn z-50">
+                        <div className="py-1">
+                            {subLinks.map(subLink => (
+                                <NavLink
+                                    key={subLink.to}
+                                    to={subLink.to}
+                                    onClick={() => {setIsOpen(false); closeAllMenus();}}
+                                    className={({ isActive }) => `block px-4 py-2 text-sm ${
+                                        subLink.isCta 
+                                        ? 'font-bold text-blue-600 bg-blue-50 hover:bg-blue-100' 
+                                        : isActive 
+                                        ? 'text-blue-600' 
+                                        : 'text-gray-700 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    {subLink.text}
+                                </NavLink>
+                            ))}
+                        </div>
+                    </div>
                 )}
             </div>
-            <div className="border-t">
-                <Link to="/account" state={{ defaultTab: 'notifications' }} className="block w-full text-center px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-gray-100">
-                    عرض كل الإشعارات
-                </Link>
-            </div>
-        </div>
-    );
+        )
+    };
 
     return (
-        <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40">
+        <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-40" dir="rtl">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16 md:h-20">
-                    <div className="flex-shrink-0">
-                        <Link to="/">
-                            {brandingLoading || !siteBranding ? <div className="h-12 w-24 bg-gray-200 rounded animate-pulse"></div> : <img className="h-12 w-auto" src={logoUrl || ''} alt={logoAlt || 'شعار المنصة'} />}
-                        </Link>
-                    </div>
+                <div className="flex items-center justify-between h-20">
+                    {/* Logo */}
+                    <Link to="/" className="flex items-center gap-2">
+                        <img src={siteBranding?.logoUrl || "https://i.ibb.co/C0bSJJT/favicon.png"} alt="شعار منصة الرحلة" className="h-12 w-auto" />
+                        <span className="text-xl font-bold text-gray-800 hidden sm:block">منصة الرحلة</span>
+                    </Link>
 
-                    <div className="hidden md:flex md:items-center md:space-x-2 rtl:md:space-x-reverse">
-                       <NavLinksComponent className="flex items-center space-x-2 rtl:space-x-reverse"/>
-                    </div>
-                    
-                    <div className="hidden md:flex items-center space-x-4 rtl:space-x-reverse">
-                        <Link to="/cart" className="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 hover:text-blue-600">
-                            <ShoppingCart size={22} />
+                    {/* Desktop Navigation */}
+                    <nav className="hidden lg:flex items-center gap-8">
+                        {navLinks.map(link => link.subLinks ? <DropdownNavItem key={link.to} to={link.to} text={link.text} subLinks={link.subLinks} /> : <NavItem key={link.to} to={link.to} text={link.text} />)}
+                    </nav>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 sm:gap-4">
+                        <Link to="/cart" className="relative p-2 text-gray-600 hover:text-blue-600">
+                            <ShoppingCart />
                             {itemCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-xs font-bold text-white">
+                                <span className="absolute top-0 right-0 block h-5 w-5 rounded-full bg-pink-500 text-white text-xs flex items-center justify-center">
                                     {itemCount}
                                 </span>
                             )}
                         </Link>
                         
-                        {isLoggedIn && (
-                             <div className="relative" ref={notificationMenuRef}>
-                                <button onClick={() => setIsNotificationMenuOpen(prev => !prev)} className="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 hover:text-blue-600">
-                                    <Bell size={22} />
-                                    {hasUnreadNotifications && (
-                                        <span className="absolute top-1 right-1 flex h-3 w-3">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                        </span>
-                                    )}
-                                </button>
-                                {isNotificationMenuOpen && <NotificationMenu />}
-                            </div>
-                        )}
-
                         {isLoggedIn ? (
-                             <div className="relative" ref={accountMenuRef}>
-                                <button onClick={() => setIsAccountMenuOpen(prev => !prev)} className="flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700">
-                                   <User size={16} />
-                                   <span>حسابي</span>
-                                </button>
-                                {isAccountMenuOpen && (
-                                    <div className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none animate-fadeIn">
-                                        <div className="py-1">
-                                            {hasAdminAccess && (
-                                                <Link to="/admin" className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 hover:text-blue-600">
-                                                    <LayoutDashboard size={16} /> لوحة التحكم
-                                                </Link>
-                                            )}
-                                            <Link to="/account" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                <ShoppingBag size={16} /> الطلبات والحجوزات
+                            <>
+                                {/* Notifications Dropdown */}
+                                <div ref={notificationsRef} className="relative">
+                                    <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="relative p-2 text-gray-600 hover:text-blue-600">
+                                        <Bell />
+                                        {unreadCount > 0 && (
+                                            <span className="absolute top-0 right-0 block h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+                                                {unreadCount}
+                                            </span>
+                                        )}
+                                    </button>
+                                    {isNotificationsOpen && (
+                                        <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 animate-fadeIn z-50">
+                                            <div className="p-3 border-b font-bold text-sm">الإشعارات</div>
+                                            <div className="py-1 max-h-80 overflow-y-auto">
+                                                {(notifications as any[]).length > 0 ? (notifications as any[]).map((notif: any) => (
+                                                    <Link 
+                                                        key={notif.id} 
+                                                        to={notif.link} 
+                                                        state={notif.link === '/account' ? { defaultTab: 'myLibrary' } : undefined}
+                                                        onClick={() => { closeAllMenus(); markNotificationAsRead.mutate({ notificationId: notif.id }); }}
+                                                        className={`flex items-start gap-3 p-3 text-sm hover:bg-gray-100 ${!notif.read ? 'bg-blue-50' : ''}`}
+                                                    >
+                                                        <NotificationIcon type={notif.type} />
+                                                        <div className="flex-grow">
+                                                            <p className="text-gray-700">{notif.message}</p>
+                                                            <p className="text-xs text-gray-400 mt-1">{formatDate(notif.created_at)}</p>
+                                                        </div>
+                                                        <button onClick={(e) => handleDeleteNotification(e, notif.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={16}/></button>
+                                                    </Link>
+                                                )) : (
+                                                    <p className="p-4 text-center text-sm text-gray-500">لا توجد إشعارات.</p>
+                                                )}
+                                            </div>
+                                            <Link to="/account" state={{ defaultTab: 'notifications' }} onClick={closeAllMenus} className="block text-center p-2 border-t text-sm font-semibold text-blue-600 hover:bg-gray-50">
+                                                عرض كل الإشعارات
                                             </Link>
-                                             <Link to="/account" state={{ defaultTab: 'profile' }} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                <Heart size={16} /> الملف الشخصي
-                                            </Link>
-                                            <div className="border-t my-1"></div>
-                                            <button onClick={signOut} className="w-full text-right flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                                                <LogOut size={16} /> تسجيل الخروج
-                                            </button>
                                         </div>
-                                    </div>
-                                )}
-                             </div>
-                        ) : (
-                            <Link to="/account" className="flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700">
-                               <User size={16} />
-                               <span>تسجيل الدخول</span>
-                            </Link>
-                        )}
-                    </div>
-
-                    <div className="md:hidden flex items-center">
-                        <Link to="/cart" className="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 hover:text-blue-600">
-                            <ShoppingCart size={22} />
-                            {itemCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-xs font-bold text-white">
-                                    {itemCount}
-                                </span>
-                            )}
-                        </Link>
-                        {isLoggedIn && (
-                             <div className="relative" ref={notificationMenuRef}>
-                                <button onClick={() => setIsNotificationMenuOpen(prev => !prev)} className="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 hover:text-blue-600">
-                                    <Bell size={22} />
-                                    {hasUnreadNotifications && (
-                                        <span className="absolute top-1 right-1 flex h-3 w-3">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                        </span>
                                     )}
-                                </button>
-                                {isNotificationMenuOpen && <NotificationMenu />}
-                            </div>
+                                </div>
+                                
+                                 {/* User Menu Dropdown */}
+                                <div ref={userMenuRef} className="relative">
+                                    <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className="p-2 text-gray-600 hover:text-blue-600">
+                                        <User />
+                                    </button>
+                                    {isUserMenuOpen && (
+                                        <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 animate-fadeIn z-50">
+                                            <div className="p-4 border-b">
+                                                <p className="text-sm font-semibold">مرحباً، {currentUser?.name}</p>
+                                                <p className="text-xs text-gray-500 truncate">{currentUser?.email}</p>
+                                            </div>
+                                            <div className="py-1">
+                                                <Link to="/account" onClick={closeAllMenus} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">حسابي</Link>
+                                                {hasAdminAccess && <Link to="/admin" onClick={closeAllMenus} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">لوحة التحكم</Link>}
+                                            </div>
+                                            <div className="py-1 border-t">
+                                                <button onClick={() => { signOut(); closeAllMenus(); }} className="w-full text-right flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                                    <LogOut size={16} /> تسجيل الخروج
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <Button asChild size="sm" className="hidden lg:inline-flex"><Link to="/account">تسجيل الدخول</Link></Button>
                         )}
-                        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
-                            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+
+                        {/* Mobile Menu Button */}
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="lg:hidden p-2 text-gray-600"
+                            aria-label="Toggle menu"
+                        >
+                            {isMobileMenuOpen ? <X /> : <Menu />}
                         </button>
                     </div>
                 </div>
             </div>
 
-            {isMenuOpen && (
-                <div className="md:hidden">
-                    <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                        <NavLinksComponent className="flex flex-col space-y-1"/>
-                        <Link to={isLoggedIn && hasAdminAccess ? '/admin' : '/account'} onClick={() => setIsMenuOpen(false)} className="mt-4 flex items-center justify-center gap-2 w-full px-4 py-2 border border-transparent text-sm font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700">
-                            <User size={16}/>
-                            <span>{isLoggedIn ? 'حسابي' : 'تسجيل الدخول'}</span>
-                        </Link>
-                    </div>
+            {/* Mobile Menu */}
+            {isMobileMenuOpen && (
+                <div className="lg:hidden bg-white border-t">
+                    <nav className="flex flex-col items-center gap-6 p-6">
+                        {navLinks.map(link => (
+                            <div key={link.to} className="w-full text-center">
+                                <NavItem to={link.to} text={link.text} />
+                                {link.subLinks && (
+                                    <div className="mt-2 flex flex-col items-center gap-2 border-r-2 border-blue-100 pr-4">
+                                        {link.subLinks.map(subLink => (
+                                            <NavLink
+                                                key={subLink.to}
+                                                to={subLink.to}
+                                                className={({ isActive }) => `text-sm ${isActive ? 'font-bold text-blue-500' : 'text-gray-500'}`}
+                                                onClick={closeAllMenus}
+                                            >
+                                                {subLink.text}
+                                            </NavLink>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                         {!isLoggedIn && (
+                             <Button asChild size="md"><Link to="/account" onClick={closeAllMenus}>تسجيل الدخول</Link></Button>
+                         )}
+                    </nav>
                 </div>
             )}
         </header>
     );
 };
 
-export default React.memo(Header);
+export default Header;

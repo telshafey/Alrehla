@@ -1,8 +1,6 @@
-
-
 import React, { useState } from 'react';
 import { Gift, Plus, Edit, Trash2 } from 'lucide-react';
-// FIX: Corrected import path from non-existent queries.ts to adminQueries.ts
+// FIX: Corrected import paths
 import { useAdminPersonalizedProducts } from '../../hooks/adminQueries';
 import { useProductMutations } from '../../hooks/mutations';
 import PageLoader from '../../components/ui/PageLoader';

@@ -1,5 +1,3 @@
-
-
 import React, { Suspense, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
@@ -11,23 +9,42 @@ import AdminFooter from './AdminFooter';
 
 // Lazy load all admin pages
 const AdminDashboardPage = React.lazy(() => import('../../pages/admin/AdminDashboardPage'));
+// FIX: Removed .tsx extensions from import paths
 const AdminOrdersPage = React.lazy(() => import('../../pages/admin/AdminOrdersPage'));
-const AdminPricesPage = React.lazy(() => import('../../pages/admin/AdminProductsPage'));
+// FIX: Corrected import path from AdminPricesPage to AdminProductsPage and removed extension. Also fixed variable name.
+const AdminProductsPage = React.lazy(() => import('../../pages/admin/AdminProductsPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminSettingsPage = React.lazy(() => import('../../pages/admin/AdminSettingsPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminUsersPage = React.lazy(() => import('../../pages/admin/AdminUsersPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminPersonalizedProductsPage = React.lazy(() => import('../../pages/admin/AdminPersonalizedProductsPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminCreativeWritingPage = React.lazy(() => import('../../pages/admin/AdminCreativeWritingPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminCreativeWritingSettingsPage = React.lazy(() => import('../../pages/admin/AdminCreativeWritingSettingsPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminInstructorsPage = React.lazy(() => import('../../pages/admin/AdminInstructorsPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminContentManagementPage = React.lazy(() => import('../../pages/admin/AdminContentManagementPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminSupportPage = React.lazy(() => import('../../pages/admin/AdminSupportPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminJoinRequestsPage = React.lazy(() => import('../../pages/admin/AdminJoinRequestsPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminBlogPage = React.lazy(() => import('../../pages/admin/AdminBlogPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminSubscriptionsPage = React.lazy(() => import('../../pages/admin/AdminSubscriptionsPage'));
+// FIX: Removed .tsx extension from import path.
 const InstructorDashboardPage = React.lazy(() => import('../../pages/admin/InstructorDashboardPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminShippingPage = React.lazy(() => import('../../pages/admin/AdminShippingPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminInstructorUpdatesPage = React.lazy(() => import('../../pages/admin/AdminInstructorUpdatesPage'));
+// FIX: Removed .tsx extension from import path.
 const AdminSupportRequestsPage = React.lazy(() => import('../../pages/admin/AdminSupportRequestsPage'));
+// FIX: Removed .tsx extension from import path.
+const AdminScheduledSessionsPage = React.lazy(() => import('../../pages/admin/AdminScheduledSessionsPage'));
 
 
 const PermissionBasedRoute: React.FC<{ children: React.ReactElement, permission: keyof Permissions }> = ({ children, permission }) => {
@@ -60,7 +77,7 @@ const AdminLayout: React.FC = () => {
               <Route path="orders" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminOrdersPage /></PermissionBasedRoute>} />
               <Route path="subscriptions" element={<PermissionBasedRoute permission="canManageEnhaLakSubscriptions"><AdminSubscriptionsPage /></PermissionBasedRoute>} />
               <Route path="personalized-products" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminPersonalizedProductsPage /></PermissionBasedRoute>} />
-              <Route path="prices" element={<PermissionBasedRoute permission="canManagePrices"><AdminPricesPage /></PermissionBasedRoute>} />
+              <Route path="prices" element={<PermissionBasedRoute permission="canManagePrices"><AdminProductsPage /></PermissionBasedRoute>} />
               <Route path="shipping" element={<PermissionBasedRoute permission="canManageShipping"><AdminShippingPage /></PermissionBasedRoute>} />
               <Route path="creative-writing" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminCreativeWritingPage /></PermissionBasedRoute>} />
               <Route path="creative-writing-settings" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminCreativeWritingSettingsPage /></PermissionBasedRoute>} />
@@ -71,6 +88,7 @@ const AdminLayout: React.FC = () => {
               <Route path="blog" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPage /></PermissionBasedRoute>} />
               <Route path="support" element={<PermissionBasedRoute permission="canManageSupportTickets"><AdminSupportPage /></PermissionBasedRoute>} />
               <Route path="join-requests" element={<PermissionBasedRoute permission="canManageJoinRequests"><AdminJoinRequestsPage /></PermissionBasedRoute>} />
+              <Route path="scheduled-sessions" element={<PermissionBasedRoute permission="canManageSchedules"><AdminScheduledSessionsPage /></PermissionBasedRoute>} />
           </Routes>
       );
   }

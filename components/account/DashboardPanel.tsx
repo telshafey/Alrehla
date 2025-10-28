@@ -1,19 +1,17 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, ShoppingBag, Star, Users, ArrowLeft, Video, CheckCircle } from 'lucide-react';
-import type { UserProfile } from '../../contexts/AuthContext';
-import type { ChildProfile, Subscription, CreativeWritingBooking } from '../../lib/database.types';
+import { Calendar, ShoppingBag, Star, ArrowLeft, Video, BookOpen } from 'lucide-react';
+// FIX: Corrected import path
+import { useUserAccountData } from '../../hooks/userQueries';
 import { formatDate } from '../../utils/helpers';
+import type { Order, Subscription, CreativeWritingBooking } from '../../lib/database.types';
 
-// Re-defining UnifiedItem here to avoid complex imports.
-interface UnifiedItem {
-    id: string;
-    type: 'order' | 'booking' | 'subscription';
-    date: string;
-    summary: string | null;
+type AccountTab = 'dashboard' | 'myLibrary' | 'settings' | 'notifications';
+
+interface DashboardPanelProps {
+    onNavigateTab: (tab: AccountTab) => void;
 }
 
-// Sub-component for stat cards
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; onClick?: () => void; }> = ({ title, value, icon, onClick }) => (
     <button onClick={onClick} className="bg-gray-50 p-6 rounded-2xl border flex items-center gap-4 w-full text-right hover:border-blue-300 hover:bg-white transition-colors">
         <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-blue-100 text-blue-600 rounded-full">
@@ -27,21 +25,28 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: React.Re
 );
 
 
-interface DashboardPanelProps {
-    currentUser: UserProfile;
-    unifiedItems: UnifiedItem[];
-    upcomingSessions: CreativeWritingBooking[];
-    activeSubscriptions: Subscription[];
-    onNavigateTab: (tab: string) => void;
-}
+const DashboardPanel: React.FC<DashboardPanelProps> = ({ onNavigateTab }) => {
+    const { data } = useUserAccountData();
+    const { userOrders: orders = [], userSubscriptions: subscriptions = [], userBookings: bookings = [] } = data || {};
 
-const DashboardPanel: React.FC<DashboardPanelProps> = ({ 
-    currentUser, 
-    unifiedItems,
-    upcomingSessions,
-    activeSubscriptions,
-    onNavigateTab
-}) => {
+    const unifiedItems = useMemo(() => {
+        const allItems = [
+            ...orders.map((o: Order) => ({ id: o.id, type: 'order' as const, date: o.order_date, summary: o.item_summary, total: o.total, status: o.status })),
+            ...subscriptions.map((s: Subscription) => ({ id: s.id, type: 'subscription' as const, date: s.start_date, summary: `اشتراك: ${s.child_name}` })),
+            ...bookings.map((b: CreativeWritingBooking) => ({ id: b.id, type: 'booking' as const, date: b.booking_date, summary: b.package_name }))
+        ];
+        return allItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [orders, subscriptions, bookings]);
+    
+    const upcomingSessions = useMemo(() => 
+        bookings
+            .filter((b: any) => b.status === 'مؤكد' && new Date(b.booking_date) >= new Date())
+            .sort((a: any, b: any) => new Date(a.booking_date).getTime() - new Date(b.booking_date).getTime()),
+    [bookings]);
+
+    const activeSubscriptions = useMemo(() => 
+        subscriptions.filter((s: Subscription) => s.status === 'active'),
+    [subscriptions]);
     
     const recentItems = unifiedItems.slice(0, 3);
 
@@ -59,7 +64,7 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
                 <h3 className="text-xl font-bold text-gray-800 mb-4">الجلسات القادمة</h3>
                 {upcomingSessions.length > 0 ? (
                     <div className="space-y-4">
-                        {upcomingSessions.slice(0, 3).map(session => (
+                        {upcomingSessions.slice(0, 3).map((session: any) => (
                             <div key={session.id} className="p-4 bg-blue-50 rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                                 <div>
                                     <p className="font-bold text-blue-800">{session.package_name}</p>
@@ -85,7 +90,7 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
                         {recentItems.map(item => (
                             <div key={`${item.type}-${item.id}`} className="p-3 bg-gray-50 rounded-lg flex items-center gap-3">
                                 <div className="flex-shrink-0">
-                                     {item.type === 'order' ? <ShoppingBag size={20} className="text-blue-500"/> : <CheckCircle size={20} className="text-purple-500"/>}
+                                     {item.type === 'order' ? <ShoppingBag size={20} className="text-blue-500"/> : item.type === 'subscription' ? <Star size={20} className="text-orange-500"/> : <BookOpen size={20} className="text-purple-500" />}
                                 </div>
                                 <div className="flex-grow">
                                     <p className="font-semibold text-gray-700">{item.summary}</p>

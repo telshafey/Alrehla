@@ -1,28 +1,43 @@
-
-
-import React from 'react';
-import { useAdminBlogPosts } from '../../../hooks/adminQueries';
+import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import DashboardWidget from './DashboardWidget';
 import StatCard from '../StatCard';
-import PageLoader from '../../ui/PageLoader';
-import { FileText, Edit3 } from 'lucide-react';
+import { FileText, Edit } from 'lucide-react';
 
-const ContentDashboard: React.FC = () => {
-    const { data: blogPosts = [], isLoading, error } = useAdminBlogPosts();
+interface ContentDashboardProps {
+    data: any;
+}
+
+const ContentDashboard: React.FC<ContentDashboardProps> = ({ data }) => {
+    const navigate = useNavigate();
+    const { blogPosts = [] } = data || {};
     
-    if (isLoading) return <PageLoader />;
-    if (error) return <div className="text-red-500 bg-red-50 p-4 rounded-lg">خطأ في تحميل إحصائيات المحتوى: {error.message}</div>;
+    const stats = useMemo(() => {
+        const publishedPosts = blogPosts.filter((p: any) => p.status === 'published').length;
+        const draftPosts = blogPosts.filter((p: any) => p.status === 'draft').length;
 
-    const publishedPosts = blogPosts.filter(p => p.status === 'published').length;
-    const draftPosts = blogPosts.length - publishedPosts;
+        return { publishedPosts, draftPosts };
+    }, [blogPosts]);
 
     return (
-        <div className="space-y-8">
-            <h2 className="text-2xl font-bold text-gray-800">ملخص المحتوى</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <StatCard title="مقالات منشورة" value={publishedPosts} icon={<FileText size={28} className="text-teal-500" />} color="bg-teal-100" />
-                <StatCard title="مسودات" value={draftPosts} icon={<Edit3 size={28} className="text-gray-500" />} color="bg-gray-100" />
+        <DashboardWidget title="ملخص المحتوى" icon={<FileText className="text-green-500" />}>
+            <div className="space-y-4">
+                <StatCard 
+                    title="مقالات منشورة" 
+                    value={stats.publishedPosts} 
+                    icon={<FileText size={24} className="text-green-500" />} 
+                    color="bg-green-100"
+                    onClick={() => navigate('/admin/blog')}
+                />
+                 <StatCard 
+                    title="مسودات تنتظر النشر" 
+                    value={stats.draftPosts} 
+                    icon={<Edit size={24} className="text-yellow-500" />} 
+                    color="bg-yellow-100"
+                    onClick={() => navigate('/admin/blog')}
+                />
             </div>
-        </div>
+        </DashboardWidget>
     );
 };
 

@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Users, Plus, Edit, Calendar, Check, XCircle } from 'lucide-react';
-// FIX: Corrected import path from non-existent queries.ts to adminQueries.ts
+// FIX: Corrected import paths
 import { useAdminInstructors } from '../../hooks/adminQueries';
 import { useInstructorMutations } from '../../hooks/mutations';
 import AdminSection from '../../components/admin/AdminSection';

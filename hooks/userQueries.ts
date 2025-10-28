@@ -1,97 +1,110 @@
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../contexts/AuthContext';
 import {
-    mockOrders, mockBookings, mockSubscriptions, mockNotifications,
-    mockScheduledSessions, mockSessionMessages, mockSessionAttachments,
-    mockSupportSessionRequests, mockCreativeWritingPackages, mockInstructors, mockChildProfiles
+    mockNotifications,
+    mockOrders,
+    mockSubscriptions,
+    mockBookings,
+    mockScheduledSessions,
+    mockSessionMessages,
+    mockSessionAttachments,
+    mockCreativeWritingPackages,
+    mockInstructors,
+    mockSupportSessionRequests
 } from '../data/mockData';
-import type { ScheduledSession, ChildProfile, CreativeWritingBooking, SupportSessionRequest, Instructor, CreativeWritingPackage } from '../lib/database.types';
+import type { CreativeWritingBooking, ScheduledSession, CreativeWritingPackage } from '../lib/database.types';
 
-// Mock async function to simulate network delay
 const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
 
-
-// --- USER-SPECIFIC DATA (Account Page) ---
-export const useUserAccountData = () => {
-    // In a real app, you'd pass a user ID here.
-    return useQuery({
-        queryKey: ['userAccountData'],
-        queryFn: async () => {
-            const data = {
-                userOrders: await mockFetch(mockOrders),
-                userBookings: await mockFetch(mockBookings),
-                userSubscriptions: await mockFetch(mockSubscriptions),
-            };
-            return data;
-        },
-        staleTime: 1000 * 60, // 1 minute
-    });
-};
-
 export const useUserNotifications = () => {
+    const { currentUser } = useAuth();
     return useQuery({
-        queryKey: ['userNotifications'],
-        queryFn: () => mockFetch(mockNotifications),
-    });
-};
-
-
-// --- STUDENT-SPECIFIC DATA ---
-export const useStudentDashboardData = () => {
-    return useQuery({
-        queryKey: ['studentDashboardData'],
-        queryFn: () => mockFetch({ studentBookings: mockBookings }),
-    });
-};
-
-// --- NEW SESSION MANAGEMENT HOOKS ---
-
-// Hook to get all scheduled sessions for the current user (mock)
-// In a real app, this would take a user ID and filter.
-export const useUserScheduledSessions = () => {
-    return useQuery({
-        queryKey: ['userScheduledSessions'],
-        queryFn: async () => {
-            // Mock fetching all sessions for now.
-            const sessions = await mockFetch(mockScheduledSessions);
-            // In a real app, you'd fetch related instructors and children here or join them in the query.
-            return sessions;
+        queryKey: ['userNotifications', currentUser?.id],
+        queryFn: () => {
+            if (!currentUser) return [];
+            return mockFetch(mockNotifications.filter(n => n.user_id === currentUser.id));
         },
-        staleTime: 1000 * 60, // 1 minute
+        enabled: !!currentUser,
     });
 };
 
-// Hook to get all data for a single training journey (booking)
-export const useTrainingJourneyData = (bookingId: string | undefined) => {
+export const useUserAccountData = () => {
+    const { currentUser, childProfiles } = useAuth();
     return useQuery({
-        queryKey: ['trainingJourney', bookingId],
+        queryKey: ['userAccountData', currentUser?.id],
         queryFn: async () => {
-            if (!bookingId) return null;
+            if (!currentUser) return {};
+            const userOrders = mockOrders.filter(o => o.user_id === currentUser.id);
+            const userSubscriptions = mockSubscriptions.filter(s => s.user_id === currentUser.id);
             
-            const booking = (await mockFetch(mockBookings) as CreativeWritingBooking[]).find(b => b.id === bookingId);
-            if (!booking) throw new Error('Booking not found');
+            // Enriched bookings
+            const userBookings = mockBookings
+                .filter(b => b.user_id === currentUser.id)
+                .map(booking => {
+                    const sessions = mockScheduledSessions.filter(s => s.booking_id === booking.id);
+                    const packageDetails = mockCreativeWritingPackages.find(p => p.name === booking.package_name);
+                    const instructorName = mockInstructors.find(i => i.id === booking.instructor_id)?.name || 'N/A';
+                    return { ...booking, sessions, packageDetails, instructorName };
+                });
 
-            const [pkg, instructor, child, scheduledSessions, messages, attachments, supportRequests] = await Promise.all([
-                (mockFetch(mockCreativeWritingPackages) as Promise<CreativeWritingPackage[]>).then(pkgs => pkgs.find(p => p.name === booking.package_name)),
-                (mockFetch(mockInstructors) as Promise<Instructor[]>).then(insts => insts.find(i => i.id === booking.instructor_id)),
-                (mockFetch(mockChildProfiles) as Promise<ChildProfile[]>).then(children => children.find(c => c.id === booking.child_id)),
-                (mockFetch(mockScheduledSessions) as Promise<ScheduledSession[]>).then(s => s.filter(ses => ses.booking_id === bookingId)),
-                (mockFetch(mockSessionMessages) as Promise<any[]>).then(m => m.filter(msg => msg.booking_id === bookingId)),
-                (mockFetch(mockSessionAttachments) as Promise<any[]>).then(a => a.filter(att => att.booking_id === bookingId)),
-                (mockFetch(mockSupportSessionRequests) as Promise<SupportSessionRequest[]>).then(reqs => reqs.filter(r => r.child_id === booking.child_id && r.status === 'approved'))
-            ]);
-
-            return {
-                booking,
-                package: pkg,
-                instructor,
-                child,
-                scheduledSessions,
-                messages,
-                attachments,
-                approvedSupportSessions: supportRequests,
-            };
+            return mockFetch({ userOrders, userSubscriptions, userBookings });
         },
-        enabled: !!bookingId,
-        staleTime: 1000 * 60, // 1 minute
+        enabled: !!currentUser,
+    });
+};
+
+export const useTrainingJourneyData = (journeyId: string | undefined) => {
+    const { currentUser } = useAuth();
+    return useQuery({
+        queryKey: ['trainingJourney', journeyId],
+        queryFn: async () => {
+            if (!journeyId) return null;
+
+            const booking = mockBookings.find(b => b.id === journeyId);
+            if (!booking) throw new Error('Booking not found');
+            
+            // For security, you might check if currentUser is the parent or the student
+            
+            const pkg = mockCreativeWritingPackages.find(p => p.name === booking.package_name);
+            const instructor = mockInstructors.find(i => i.id === booking.instructor_id);
+            const messages = mockSessionMessages.filter(m => m.booking_id === journeyId);
+            const attachments = mockSessionAttachments.filter(a => a.booking_id === journeyId);
+            const scheduledSessions = mockScheduledSessions.filter(s => s.booking_id === journeyId);
+            const approvedSupportSessions = mockSupportSessionRequests.filter(
+                s => s.instructor_id === instructor?.id && s.child_id === booking.child_id && s.status === 'approved'
+            );
+
+            return mockFetch({ booking, package: pkg, instructor, messages, attachments, scheduledSessions, approvedSupportSessions });
+        },
+        enabled: !!journeyId && !!currentUser,
+    });
+};
+
+export const useStudentDashboardData = () => {
+    const { currentChildProfile } = useAuth(); // for students
+    return useQuery({
+        queryKey: ['studentDashboardData', currentChildProfile?.id],
+        queryFn: async () => {
+            if (!currentChildProfile) return null;
+            
+            const studentBookings = mockBookings
+                .filter(b => b.child_id === currentChildProfile.id)
+                .map(booking => {
+                    const instructor = mockInstructors.find(i => i.id === booking.instructor_id);
+                    const sessions = mockScheduledSessions.filter(s => s.booking_id === booking.id);
+                    const packageDetails = mockCreativeWritingPackages.find(p => p.name === booking.package_name);
+                    return {
+                        ...booking,
+                        instructor_name: instructor?.name,
+                        sessions,
+                        packageDetails,
+                    };
+                });
+            
+            return mockFetch({
+                journeys: studentBookings,
+            });
+        },
+        enabled: !!currentChildProfile,
     });
 };

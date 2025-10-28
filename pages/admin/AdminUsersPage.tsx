@@ -1,127 +1,133 @@
-
-
-import React, { useState } from 'react';
-import { Users, Plus, Edit, UserCheck, Eye } from 'lucide-react';
-// FIX: Corrected import path from non-existent queries.ts to adminQueries.ts
-import { useAdminUsersWithRelations } from '../../hooks/adminQueries';
+import React, { useState, useMemo } from 'react';
+// FIX: Import the 'Eye' icon from lucide-react.
+import { Users, Plus, Edit, Trash2, Link as LinkIcon, Eye } from 'lucide-react';
+import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations } from '../../hooks/adminQueries';
 import { useUserMutations } from '../../hooks/mutations';
 import PageLoader from '../../components/ui/PageLoader';
 import AdminSection from '../../components/admin/AdminSection';
+import ViewUserModal from '../../components/admin/ViewUserModal';
 import EditUserModal from '../../components/admin/EditUserModal';
 import LinkStudentModal from '../../components/admin/LinkStudentModal';
-import ViewUserModal from '../../components/admin/ViewUserModal';
-import type { UserProfileWithRelations } from '../../lib/database.types';
-import { roleNames, UserRole, staffRoles } from '../../lib/roles';
 import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { roleNames } from '../../lib/roles';
+import type { UserRole } from '../../lib/database.types';
+import type { UserProfile as User, UserProfileWithRelations } from '../../lib/database.types';
 
 const AdminUsersPage: React.FC = () => {
-    const { data: users = [], isLoading, error } = useAdminUsersWithRelations();
-    const { updateUserRole, createUser, updateUser } = useUserMutations();
+    const { data: users = [], isLoading: usersLoading } = useAdminUsers();
+    const { data: children = [], isLoading: childrenLoading } = useAdminAllChildProfiles();
+    const { createUser, updateUser, deleteUser } = useUserMutations();
 
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
-    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<UserProfileWithRelations | null>(null);
-    const [isSaving, setIsSaving] = useState(false);
-
-
-    const handleOpenEditModal = (user: UserProfileWithRelations | null) => {
-        setSelectedUser(user);
-        setIsEditModalOpen(true);
-    };
-
-    const handleOpenLinkModal = (user: UserProfileWithRelations) => {
-        setSelectedUser(user);
-        setIsLinkModalOpen(true);
-    };
     
-    const handleOpenViewModal = (user: UserProfileWithRelations) => {
+    const [selectedUser, setSelectedUser] = useState<UserProfileWithRelations | null>(null);
+    const [userToEdit, setUserToEdit] = useState<User | null>(null);
+    const [userToLink, setUserToLink] = useState<User | null>(null);
+    
+    const [searchTerm, setSearchTerm] = useState('');
+    const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
+
+    const isLoading = usersLoading || childrenLoading;
+    const isSaving = createUser.isPending || updateUser.isPending;
+
+    const usersWithRelations = useMemo(
+        () => transformUsersWithRelations(users, children),
+        [users, children]
+    );
+
+    const filteredUsers = useMemo(() => {
+        return usersWithRelations.filter(user => {
+            const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+            const matchesSearch = searchTerm === '' ||
+                user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.email.toLowerCase().includes(searchTerm.toLowerCase());
+            return matchesRole && matchesSearch;
+        });
+    }, [usersWithRelations, roleFilter, searchTerm]);
+
+    const handleViewUser = (user: UserProfileWithRelations) => {
         setSelectedUser(user);
         setIsViewModalOpen(true);
     };
+    
+    const handleEditUser = (user: User | null) => {
+        setUserToEdit(user);
+        setIsEditModalOpen(true);
+    };
+    
+    const handleLinkStudent = (user: User) => {
+        setUserToLink(user);
+        setIsLinkModalOpen(true);
+    };
 
     const handleSaveUser = async (payload: any) => {
-        setIsSaving(true);
         try {
             if (payload.id) {
                 await updateUser.mutateAsync(payload);
             } else {
-                await createUser.mutateAsync({ ...payload, role: 'user' });
+                await createUser.mutateAsync(payload);
             }
             setIsEditModalOpen(false);
-        } catch (e) {
-            // Error is handled in hook
-        } finally {
-            setIsSaving(false);
+        } catch (e) { /* Error handled in hook */ }
+    };
+    
+    const handleDeleteUser = async (userId: string) => {
+        if(window.confirm('هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع عن هذا الإجراء.')) {
+            await deleteUser.mutateAsync({ userId });
         }
     };
 
     if (isLoading) return <PageLoader text="جاري تحميل المستخدمين..." />;
-    if (error) return <div className="text-center text-red-500">{error.message}</div>;
 
     return (
         <>
-            <EditUserModal 
-                isOpen={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
-                onSave={handleSaveUser}
-                user={selectedUser}
-                isSaving={isSaving}
-            />
-             <LinkStudentModal 
-                isOpen={isLinkModalOpen}
-                onClose={() => setIsLinkModalOpen(false)}
-                user={selectedUser}
-            />
-            <ViewUserModal
-                isOpen={isViewModalOpen}
-                onClose={() => setIsViewModalOpen(false)}
-                user={selectedUser}
-            />
+            <ViewUserModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} user={selectedUser} />
+            <EditUserModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSave={handleSaveUser} user={userToEdit} isSaving={isSaving} />
+            <LinkStudentModal isOpen={isLinkModalOpen} onClose={() => setIsLinkModalOpen(false)} user={userToLink} />
+
             <div className="animate-fadeIn space-y-12">
                 <div className="flex justify-between items-center">
                     <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة المستخدمين</h1>
-                    <Button onClick={() => handleOpenEditModal(null)} icon={<Plus size={18} />}>
+                    <Button onClick={() => handleEditUser(null)} icon={<Plus size={18} />}>
                         إضافة مستخدم
                     </Button>
                 </div>
 
                 <AdminSection title="قائمة المستخدمين" icon={<Users />}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <Input 
+                            type="search"
+                            placeholder="ابحث بالاسم أو البريد الإلكتروني..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                         <Select value={roleFilter} onChange={e => setRoleFilter(e.target.value as any)}>
+                            <option value="all">كل الأدوار</option>
+                            {Object.entries(roleNames).map(([key, name]) => (
+                                <option key={key} value={key}>{name}</option>
+                            ))}
+                        </Select>
+                    </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-right">
-                            <thead className="border-b-2">
-                                <tr>
-                                    <th className="p-3">الاسم</th>
-                                    <th className="p-3">البريد الإلكتروني</th>
-                                    <th className="p-3">الدور</th>
-                                    <th className="p-3">إجراءات</th>
-                                </tr>
-                            </thead>
+                            <thead className="border-b-2"><tr>
+                                <th className="p-3">الاسم</th><th className="p-3">البريد الإلكتروني</th><th className="p-3">الدور</th><th className="p-3">إجراءات</th>
+                            </tr></thead>
                             <tbody>
-                                {users.map(user => (
+                                {filteredUsers.map(user => (
                                     <tr key={user.id} className="border-b hover:bg-gray-50">
                                         <td className="p-3 font-semibold">{user.name}</td>
-                                        <td className="p-3 text-sm">{user.email}</td>
-                                        <td className="p-3">
-                                            <Select 
-                                                value={user.role} 
-                                                onChange={e => updateUserRole.mutate({ userId: user.id, newRole: e.target.value as UserRole })}
-                                                className="p-1 text-sm"
-                                            >
-                                                {staffRoles.map(roleKey => (
-                                                    <option key={roleKey} value={roleKey}>{roleNames[roleKey]}</option>
-                                                ))}
-                                            </Select>
-                                        </td>
-                                        <td className="p-3 flex items-center gap-2">
-                                            <Button onClick={() => handleOpenViewModal(user)} variant="ghost" size="icon" className="text-gray-500 hover:text-blue-600" title="عرض التفاصيل"><Eye size={20} /></Button>
-                                            <Button onClick={() => handleOpenEditModal(user)} variant="ghost" size="icon" className="text-gray-500 hover:text-green-600" title="تعديل"><Edit size={20} /></Button>
-                                            {user.role === 'student' && (
-                                                <Button onClick={() => handleOpenLinkModal(user)} variant="ghost" size="icon" className="text-gray-500 hover:text-purple-600" title={`ربط بملف طفل ${user.children.find(c => c.student_user_id === user.id) ? `(مرتبط)` : ''}`}>
-                                                    <UserCheck size={20} className={user.children.find(c => c.student_user_id === user.id) ? 'text-green-500' : ''}/>
-                                                </Button>
-                                            )}
+                                        <td className="p-3 text-sm text-gray-600">{user.email}</td>
+                                        <td className="p-3"><span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">{roleNames[user.role]}</span></td>
+                                        <td className="p-3 flex items-center gap-1 flex-wrap">
+                                            <Button variant="ghost" size="icon" onClick={() => handleViewUser(user)} title="عرض التفاصيل"><Eye size={20} /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleEditUser(user)} title="تعديل"><Edit size={20} /></Button>
+                                            {user.role === 'student' && <Button variant="ghost" size="icon" onClick={() => handleLinkStudent(user)} title="ربط بطفل"><LinkIcon size={20} /></Button>}
+                                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDeleteUser(user.id)} title="حذف"><Trash2 size={20} /></Button>
                                         </td>
                                     </tr>
                                 ))}

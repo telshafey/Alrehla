@@ -1,147 +1,166 @@
 import { useQuery } from '@tanstack/react-query';
 import {
     mockUsers, mockChildProfiles, mockOrders, mockBookings, mockPersonalizedProducts, mockInstructors,
-    mockCreativeWritingPackages, mockAdditionalServices, mockSiteContent, mockSupportTickets, mockJoinRequests,
-    mockBlogPosts, mockSubscriptions, mockSocialLinks, mockScheduledSessions, mockSupportSessionRequests
+    mockCreativeWritingPackages, mockAdditionalServices, mockSiteContent, mockSocialLinks,
+    mockSupportTickets, mockJoinRequests, mockBlogPosts, mockSubscriptions, mockSupportSessionRequests,
+    mockScheduledSessions
 } from '../data/mockData';
-import type { UserProfileWithRelations, ScheduledSession, ChildProfile, CreativeWritingBooking, SupportSessionRequest, Instructor } from '../lib/database.types';
+import type { UserProfile, ChildProfile, UserProfileWithRelations, CreativeWritingBooking, Instructor, OrderWithRelations, Order, ScheduledSession } from '../lib/database.types';
 
 // Mock async function to simulate network delay
 const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
 
+// --- TRANSFORMERS ---
 
-// --- ADMIN DATA ---
-export const useAdminUsers = () => useQuery({ queryKey: ['adminUsers'], queryFn: () => mockFetch(mockUsers) });
-export const useAdminUsersWithRelations = () => useQuery({
-    queryKey: ['adminUsersWithRelations'],
-    queryFn: async (): Promise<UserProfileWithRelations[]> => {
-        const users = await mockFetch(mockUsers) as any[];
-        const children = await mockFetch(mockChildProfiles) as any[];
-        return users.map(u => ({
-            ...u,
-            children: children.filter(c => c.user_id === u.id)
-        }));
-    }
+export const transformUsersWithRelations = (users: UserProfile[], children: ChildProfile[]): UserProfileWithRelations[] => {
+    const childrenByParentId = new Map<string, ChildProfile[]>();
+    children.forEach(child => {
+        if (!childrenByParentId.has(child.user_id)) {
+            childrenByParentId.set(child.user_id, []);
+        }
+        childrenByParentId.get(child.user_id)!.push(child);
+    });
+    return users.map(user => ({
+        ...user,
+        children: childrenByParentId.get(user.id) || []
+    }));
+};
+
+export const transformCwBookings = (bookings: CreativeWritingBooking[], children: ChildProfile[], instructors: Instructor[]): (CreativeWritingBooking & { child_profiles: { name: string } | null, instructors: { name: string } | null })[] => {
+    return bookings.map(booking => {
+        const child = children.find(c => c.id === booking.child_id);
+        const instructor = instructors.find(i => i.id === booking.instructor_id);
+        return {
+            ...booking,
+            child_profiles: child ? { name: child.name } : null,
+            instructors: instructor ? { name: instructor.name } : null,
+        };
+    });
+};
+
+// --- QUERIES ---
+
+export const useAdminUsers = () => useQuery({
+    queryKey: ['adminUsers'],
+    queryFn: () => mockFetch(mockUsers) as Promise<UserProfile[]>,
 });
-export const useAdminAllChildProfiles = () => useQuery({ queryKey: ['adminAllChildProfiles'], queryFn: () => mockFetch(mockChildProfiles) });
-export const useAdminOrders = () => useQuery({ 
-    queryKey: ['adminOrders'], 
+
+export const useAdminAllChildProfiles = () => useQuery({
+    queryKey: ['adminAllChildProfiles'],
+    queryFn: () => mockFetch(mockChildProfiles) as Promise<ChildProfile[]>,
+});
+
+export const useAdminOrders = () => useQuery({
+    queryKey: ['adminOrders'],
     queryFn: async () => {
-        const orders = await mockFetch(mockOrders) as any[];
-        const users = await mockFetch(mockUsers) as any[];
-        return orders.map(o => ({...o, users: users.find(u => u.id === o.user_id)}));
-    }
+        const orders: Order[] = await mockFetch(mockOrders) as Order[];
+        const users: UserProfile[] = await mockFetch(mockUsers) as UserProfile[];
+        const children: ChildProfile[] = await mockFetch(mockChildProfiles) as ChildProfile[];
+
+        return orders.map(order => {
+            const user = users.find(u => u.id === order.user_id);
+            const child = children.find(c => c.id === order.child_id);
+            return {
+                ...order,
+                users: user ? { name: user.name, email: user.email } : null,
+                child_profiles: child ? { name: child.name } : null,
+            };
+        }) as OrderWithRelations[];
+    },
 });
-export const useAdminCwBookings = () => useQuery({
-    queryKey: ['adminCwBookings'],
-    queryFn: async () => {
-        const bookings = await mockFetch(mockBookings) as any[];
-        const children = await mockFetch(mockChildProfiles) as any[];
-        const instructors = await mockFetch(mockInstructors) as any[];
-        return bookings.map(b => ({
-            ...b,
-            child_profiles: children.find(c => c.id === b.child_id),
-            instructors: instructors.find(i => i.id === b.instructor_id)
-        }));
-    }
+
+export const useAdminRawCwBookings = () => useQuery({
+    queryKey: ['adminRawCwBookings'],
+    queryFn: () => mockFetch(mockBookings) as Promise<CreativeWritingBooking[]>,
 });
-export const useAdminPersonalizedProducts = () => useQuery({ queryKey: ['adminPersonalizedProducts'], queryFn: () => mockFetch(mockPersonalizedProducts) });
-export const useAdminInstructors = () => useQuery({ queryKey: ['adminInstructors'], queryFn: () => mockFetch(mockInstructors) });
+
+export const useAdminInstructors = () => useQuery({
+    queryKey: ['adminInstructors'],
+    queryFn: () => mockFetch(mockInstructors) as Promise<Instructor[]>,
+});
+
+export const useAdminPersonalizedProducts = () => useQuery({
+    queryKey: ['adminPersonalizedProducts'],
+    queryFn: () => mockFetch(mockPersonalizedProducts),
+});
+
 export const useAdminCWSettings = () => useQuery({
     queryKey: ['adminCWSettings'],
-    queryFn: () => mockFetch({ packages: mockCreativeWritingPackages, services: mockAdditionalServices })
+    queryFn: async () => {
+        const [packages, services] = await Promise.all([
+            mockFetch(mockCreativeWritingPackages),
+            mockFetch(mockAdditionalServices)
+        ]);
+        return { packages, services };
+    },
 });
-export const useAdminSiteContent = () => useQuery({ queryKey: ['adminSiteContent'], queryFn: () => mockFetch(mockSiteContent) });
-export const useAdminSocialLinks = () => useQuery({ queryKey: ['adminSocialLinks'], queryFn: () => mockFetch(mockSocialLinks) });
-export const useAdminSupportTickets = () => useQuery({ queryKey: ['adminSupportTickets'], queryFn: () => mockFetch(mockSupportTickets) });
-export const useAdminJoinRequests = () => useQuery({ queryKey: ['adminJoinRequests'], queryFn: () => mockFetch(mockJoinRequests) });
-export const useAdminBlogPosts = () => useQuery({ queryKey: ['adminBlogPosts'], queryFn: () => mockFetch(mockBlogPosts) });
-export const useAdminSubscriptions = () => useQuery({ queryKey: ['adminSubscriptions'], queryFn: () => mockFetch(mockSubscriptions) });
+
+export const useAdminSiteContent = () => useQuery({
+    queryKey: ['adminSiteContent'],
+    queryFn: () => mockFetch(mockSiteContent),
+});
+
+export const useAdminSocialLinks = () => useQuery({
+    queryKey: ['adminSocialLinks'],
+    queryFn: () => mockFetch(mockSocialLinks),
+});
+
+export const useAdminSupportTickets = () => useQuery({
+    queryKey: ['adminSupportTickets'],
+    queryFn: () => mockFetch(mockSupportTickets),
+});
+
+export const useAdminJoinRequests = () => useQuery({
+    queryKey: ['adminJoinRequests'],
+    queryFn: () => mockFetch(mockJoinRequests),
+});
+
+export const useAdminBlogPosts = () => useQuery({
+    queryKey: ['adminBlogPosts'],
+    queryFn: () => mockFetch(mockBlogPosts),
+});
+
+export const useAdminSubscriptions = () => useQuery({
+    queryKey: ['adminSubscriptions'],
+    queryFn: () => mockFetch(mockSubscriptions),
+});
+
 export const useAdminInstructorUpdates = () => useQuery({
     queryKey: ['adminInstructorUpdates'],
-    queryFn: () => mockFetch(mockInstructors.filter(i => i.profile_update_status === 'pending')),
+    queryFn: async () => {
+        const instructors: Instructor[] = await mockFetch(mockInstructors) as Instructor[];
+        return instructors.filter(i => i.profile_update_status === 'pending');
+    },
 });
+
 export const useAdminSupportSessionRequests = () => useQuery({
     queryKey: ['adminSupportSessionRequests'],
     queryFn: async () => {
-        const requests = await mockFetch(mockSupportSessionRequests) as SupportSessionRequest[];
-        const instructors = await mockFetch(mockInstructors) as Instructor[];
-        const children = await mockFetch(mockChildProfiles) as ChildProfile[];
-
-        return requests.map(req => ({
-            ...req,
-            instructor_name: instructors.find(i => i.id === req.instructor_id)?.name || 'غير معروف',
-            child_name: children.find(c => c.id === req.child_id)?.name || 'غير معروف',
-        }));
-    }
+         const requests = await mockFetch(mockSupportSessionRequests);
+         const instructors = await mockFetch(mockInstructors);
+         const children = await mockFetch(mockChildProfiles);
+         return (requests as any[]).map(r => ({
+             ...r,
+             instructor_name: (instructors as any[]).find(i => i.id === r.instructor_id)?.name || 'N/A',
+             child_name: (children as any[]).find(c => c.id === r.child_id)?.name || 'N/A',
+         }));
+    },
 });
 
-
-// --- INSTRUCTOR DATA ---
-export const useInstructorScheduledSessions = () => {
-    return useQuery({
-        queryKey: ['instructorScheduledSessions'],
-        queryFn: async () => {
-            // In a real app, you'd filter by instructor ID from the current user.
-            // For mock, we'll assume instructor_id 1, linked to user usr_instructor.
-            const instructorId = 1;
-            const sessions = await mockFetch(mockScheduledSessions.filter(s => s.instructor_id === instructorId)) as ScheduledSession[];
-            const children = await mockFetch(mockChildProfiles) as ChildProfile[];
-            
-            return sessions.map(session => ({
-                ...session,
-                child: children.find(c => c.id === session.child_id)
-            }));
-        },
-    });
-};
-export const useInstructorDashboardData = () => useQuery({
-    queryKey: ['instructorDashboardData'],
+export const useAdminScheduledSessions = () => useQuery({
+    queryKey: ['adminScheduledSessions'],
     queryFn: async () => {
-        // Assume instructor_id 1 for mock data, linked to user usr_instructor
-        const instructorId = 1;
-        const bookings = (await mockFetch(mockBookings) as CreativeWritingBooking[]).filter(b => b.instructor_id === instructorId);
-        const children = await mockFetch(mockChildProfiles) as ChildProfile[];
+        const [sessions, instructors, children] = await Promise.all([
+            mockFetch(mockScheduledSessions) as Promise<ScheduledSession[]>,
+            mockFetch(mockInstructors) as Promise<Instructor[]>,
+            mockFetch(mockChildProfiles) as Promise<ChildProfile[]>
+        ]);
 
-        // Process students data
-        const studentMap = new Map<number, { id: number; name: string; avatar_url: string | null; bookings: CreativeWritingBooking[] }>();
-        bookings.forEach(booking => {
-            const child = children.find(c => c.id === booking.child_id);
-            if (child) {
-                if (!studentMap.has(child.id)) {
-                    studentMap.set(child.id, { id: child.id, name: child.name, avatar_url: child.avatar_url, bookings: [] });
-                }
-                studentMap.get(child.id)!.bookings.push(booking);
-            }
-        });
-
-        const students = Array.from(studentMap.values()).map(student => ({
-            ...student,
-            totalSessions: student.bookings.length,
-            completedSessions: student.bookings.filter(b => b.status === 'مكتمل').length,
+        return sessions.map(session => ({
+            ...session,
+            instructor_name: instructors.find(i => i.id === session.instructor_id)?.name || 'غير محدد',
+            child_name: children.find(c => c.id === session.child_id)?.name || 'غير محدد',
+            type: session.subscription_id ? 'اشتراك' : 'حجز باقة',
         }));
-
-        // Process monthly stats for the current year
-        const monthlyStatsMap = new Map<string, number>();
-        const currentYear = new Date().getFullYear();
-        bookings.forEach(booking => {
-            if(booking.status !== 'مكتمل') return;
-            const bookingDate = new Date(booking.booking_date);
-            if (bookingDate.getFullYear() === currentYear) {
-                const month = bookingDate.toLocaleString('ar-EG', { month: 'long' });
-                monthlyStatsMap.set(month, (monthlyStatsMap.get(month) || 0) + 1);
-            }
-        });
-
-        const monthOrder = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
-        const monthlyStats = monthOrder
-            .filter(month => monthlyStatsMap.has(month))
-            .map(month => ({
-                label: month,
-                value: monthlyStatsMap.get(month)!,
-                color: '#4f46e5', // Indigo color
-            }));
-            
-        return { students, monthlyStats };
-    }
+    },
 });

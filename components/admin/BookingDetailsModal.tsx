@@ -1,7 +1,7 @@
-
 import React, { useRef } from 'react';
 import { X, Link as LinkIcon } from 'lucide-react';
 // REFACTOR: Use the specialized booking mutations hook.
+// FIX: Corrected import path
 import { useBookingMutations } from '../../hooks/mutations';
 import type { CreativeWritingBooking, BookingStatus } from '../../lib/database.types';
 import { formatDate, getStatusColor } from '../../utils/helpers';
@@ -22,7 +22,8 @@ const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label,
     </div>
 );
 
-const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClose, booking }) => {
+// FIX: Changed to a named export to resolve module resolution issues.
+export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClose, booking }) => {
     const { updateBookingStatus } = useBookingMutations();
     const modalRef = useRef<HTMLDivElement>(null);
     const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -61,15 +62,15 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClo
                      {booking.receipt_url && <DetailRow label="الإيصال" value={<a href={booking.receipt_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1"><LinkIcon size={14}/><span>عرض</span></a>} />}
 
                     {booking.progress_notes && (
-                         <div>
-                            <p className="text-sm text-gray-500">ملاحظات التقدم</p>
-                            <p className="font-semibold text-gray-800 bg-gray-50 p-3 rounded-md mt-1 whitespace-pre-wrap">{booking.progress_notes}</p>
-                        </div>
+                        <DetailRow label="ملاحظات التقدم" value={<p className="whitespace-pre-wrap p-2 bg-gray-50 rounded border">{booking.progress_notes}</p>} />
                     )}
+                </div>
+                <div className="flex justify-end pt-6 mt-6 border-t">
+                    <button onClick={onClose} className="px-6 py-2 rounded-full text-white bg-blue-600 hover:bg-blue-700">
+                        إغلاق
+                    </button>
                 </div>
             </div>
         </div>
     );
 };
-
-export default BookingDetailsModal;

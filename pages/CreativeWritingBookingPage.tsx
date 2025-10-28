@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import { usePublicData } from '../hooks/publicQueries';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '../contexts/ToastContext';
@@ -11,12 +10,13 @@ import PackageSelection from '../components/creative-writing/booking/PackageSele
 import InstructorSelection from '../components/creative-writing/booking/InstructorSelection';
 import ChildSelection from '../components/creative-writing/booking/ChildSelection';
 import CalendarSelection from '../components/creative-writing/booking/CalendarSelection';
-import BookingSummary from '../components/creative-writing/BookingSummary';
+import BookingSummary from '../components/creative-writing/booking/BookingSummary';
+import { useBookingData } from '../hooks/publicQueries';
 
 type BookingStepType = 'package' | 'instructor' | 'child' | 'calendar' | 'confirm';
 
 const CreativeWritingBookingPage: React.FC = () => {
-    const { data, isLoading: dataLoading } = usePublicData();
+    const { data, isLoading: dataLoading } = useBookingData();
     const { currentUser, childProfiles, loading: authLoading } = useAuth();
     const { addItemToCart } = useCart();
     const { addToast } = useToast();
@@ -30,12 +30,11 @@ const CreativeWritingBookingPage: React.FC = () => {
     const [selectedDateTime, setSelectedDateTime] = useState<{ date: Date; time: string } | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Pre-fill from location state (e.g., coming from instructor profile)
     useEffect(() => {
         if (location.state?.instructor && location.state?.selectedDateTime) {
             setSelectedInstructor(location.state.instructor);
             setSelectedDateTime(location.state.selectedDateTime);
-            setStep('package'); // Still start at package selection, but other steps can be skipped
+            setStep('package');
         }
     }, [location.state]);
 
@@ -46,7 +45,7 @@ const CreativeWritingBookingPage: React.FC = () => {
         return <div className="flex justify-center items-center h-96"><Loader2 className="animate-spin h-10 w-10 text-blue-500" /></div>;
     }
     
-    const { instructors = [], cw_packages = [] } = data || {};
+    const { instructors = [], cw_packages = [], holidays = [] } = data || {};
     
     const handleNextStep = () => {
         switch (step) {
@@ -130,7 +129,7 @@ const CreativeWritingBookingPage: React.FC = () => {
                 return <ChildSelection childProfiles={childProfiles} onSelect={child => { setSelectedChild(child); handleNextStep(); }} />;
             case 'calendar':
                 if (!selectedInstructor) return <p>Please select an instructor first.</p>
-                return <CalendarSelection instructor={selectedInstructor} onSelect={(date, time) => { setSelectedDateTime({ date, time }); handleNextStep(); }} />;
+                return <CalendarSelection instructor={selectedInstructor} onSelect={(date, time) => { setSelectedDateTime({ date, time }); handleNextStep(); }} holidays={holidays} />;
             case 'confirm':
                 return <div className="text-center"><h2 className="text-2xl font-bold">يرجى مراجعة تفاصيل الحجز.</h2></div>;
             default:

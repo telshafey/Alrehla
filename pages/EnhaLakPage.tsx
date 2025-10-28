@@ -143,6 +143,23 @@ const EnhaLakPage: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                    {/* Subscription Box CTA */}
+                    <div className="mt-16 max-w-6xl mx-auto bg-gradient-to-br from-orange-50 to-yellow-50 p-8 rounded-2xl shadow-xl border-2 border-orange-200">
+                        <div className="flex flex-col md:flex-row items-center gap-8 text-center md:text-right">
+                            <div className="flex-shrink-0">
+                                <Gift size={64} className="text-orange-500"/>
+                            </div>
+                            <div className="flex-grow">
+                                <h3 className="text-3xl font-extrabold text-gray-800">جديدنا: صندوق الرحلة الشهري</h3>
+                                <p className="mt-2 text-gray-600">هدية متجددة كل شهر، تفتح لطفلك أبواباً جديدة من الخيال والمعرفة. قصة جديدة وأنشطة إبداعية تصل إلى باب منزلك.</p>
+                            </div>
+                            <div className="flex-shrink-0">
+                                <Button asChild size="lg" variant="special">
+                                    <Link to="/enha-lak/subscription">اعرف المزيد واشترك الآن</Link>
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
             

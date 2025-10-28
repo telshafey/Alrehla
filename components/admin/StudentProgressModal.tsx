@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
 // REFACTOR: Use the specialized booking mutations hook.
+// FIX: Corrected import path
 import { useBookingMutations } from '../../hooks/mutations';
 import type { CreativeWritingBooking } from '../../lib/database.types';
 import { useToast } from '../../contexts/ToastContext';

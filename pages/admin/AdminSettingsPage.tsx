@@ -1,10 +1,8 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, Loader2, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
-// FIX: Corrected import path from non-existent queries.ts to adminQueries.ts
 import { useAdminSocialLinks } from '../../hooks/adminQueries';
+// FIX: Corrected import path
 import { useSettingsMutations } from '../../hooks/mutations';
 import { useToast } from '../../contexts/ToastContext';
 import AdminSection from '../../components/admin/AdminSection';
@@ -103,7 +101,7 @@ const AdminSettingsPage: React.FC = () => {
             setFilesToUpload({});
 
             // Social links
-            // Correctly call the mutation function using `.mutateAsync`.
+            // FIX: Correctly call the mutation function using `.mutateAsync`.
             await updateSocialLinks.mutateAsync(socials);
 
             addToast('تم حفظ الإعدادات بنجاح', 'success');

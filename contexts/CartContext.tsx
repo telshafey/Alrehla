@@ -1,13 +1,10 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
 import { useProduct } from './ProductContext';
 
-// FIX: The widespread "not callable" error on a `String` type suggests a module resolution or versioning issue 
-// with the `uuid` library. Replacing the import with a self-contained function sidesteps the problem.
+// A self-contained UUID generator to avoid potential module resolution issues with external libraries.
 function uuidv4() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    // FIX: Explicitly call Number.prototype.toString to avoid issues with a potentially overridden `toString` method.
-    // Reverted to standard `toString` call to fix widespread "not callable" error.
     return v.toString(16);
   });
 }

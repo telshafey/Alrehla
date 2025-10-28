@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Feather, Target, ArrowLeft } from 'lucide-react';
-// FIX: Removed .ts and .tsx extension from import paths
+// FIX: Corrected import paths
 import { useProduct } from '../contexts/ProductContext';
 import { usePublicData } from '../hooks/publicQueries';
 import TestimonialCard from '../components/shared/TestimonialCard';

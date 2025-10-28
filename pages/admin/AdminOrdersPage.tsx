@@ -1,101 +1,117 @@
-
-
-import React, { useState, useMemo, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-// FIX: Corrected import path from non-existent queries.ts to adminQueries.ts
+import React, { useState, useMemo } from 'react';
+import { Eye, ShoppingBag } from 'lucide-react';
 import { useAdminOrders } from '../../hooks/adminQueries';
-import { useOrderMutations } from '../../hooks/mutations';
-import { useToast } from '../../contexts/ToastContext';
 import PageLoader from '../../components/ui/PageLoader';
 import AdminSection from '../../components/admin/AdminSection';
-import { ShoppingBag, Eye } from 'lucide-react';
-import { formatDate, getStatusColor } from '../../utils/helpers';
 import ViewOrderModal from '../../components/admin/ViewOrderModal';
+import { formatDate, getStatusColor } from '../../utils/helpers';
 import type { OrderWithRelations, OrderStatus } from '../../lib/database.types';
+import { Button } from '../../components/ui/Button';
+import StatFilterCard from '../../components/admin/StatFilterCard';
+import { Input } from '../../components/ui/Input';
+
+const orderStatuses: OrderStatus[] = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "تم الشحن", "تم التسليم", "ملغي"];
+const statusColors: { [key in OrderStatus]: string } = {
+    "بانتظار الدفع": "bg-gray-500",
+    "بانتظار المراجعة": "bg-indigo-500",
+    "قيد التجهيز": "bg-yellow-500",
+    "يحتاج مراجعة": "bg-orange-500",
+    "تم الشحن": "bg-blue-500",
+    "تم التسليم": "bg-green-500",
+    "ملغي": "bg-red-500",
+};
 
 
 const AdminOrdersPage: React.FC = () => {
     const { data: orders = [], isLoading, error } = useAdminOrders();
-    const { updateOrderStatus } = useOrderMutations();
-    const [statusFilter, setStatusFilter] = useState('all');
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<OrderWithRelations | null>(null);
+    const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const statusCounts = useMemo(() => {
+        const counts: { [key in OrderStatus]?: number } = {};
+        for (const order of orders) {
+            counts[order.status] = (counts[order.status] || 0) + 1;
+        }
+        return counts;
+    }, [orders]);
 
     const filteredOrders = useMemo(() => {
-        return orders
-            .filter(order => statusFilter === 'all' || order.status === statusFilter)
-            .sort((a, b) => new Date(b.order_date).getTime() - new Date(a.order_date).getTime());
-    }, [orders, statusFilter]);
-    
-    const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
-        updateOrderStatus.mutate({ orderId, newStatus });
+        let filtered = orders;
+        if (statusFilter !== 'all') {
+            filtered = filtered.filter(o => o.status === statusFilter);
+        }
+        if (searchTerm.trim() !== '') {
+            const lowercasedTerm = searchTerm.toLowerCase();
+            filtered = filtered.filter(o =>
+                o.users?.name?.toLowerCase().includes(lowercasedTerm) ||
+                o.child_profiles?.name?.toLowerCase().includes(lowercasedTerm) ||
+                o.id.toLowerCase().includes(lowercasedTerm)
+            );
+        }
+        return filtered;
+    }, [orders, statusFilter, searchTerm]);
+
+    const handleViewOrder = (order: OrderWithRelations) => {
+        setSelectedOrder(order);
+        setIsModalOpen(true);
     };
-
+    
     if (isLoading) return <PageLoader text="جاري تحميل الطلبات..." />;
-    if (error) return <div className="text-center text-red-500">{error.message}</div>;
-
-    const statuses = Array.from(new Set(orders.map(o => o.status)));
+    if (error) return <div className="text-center text-red-500">{(error as Error).message}</div>;
 
     return (
         <>
-            <ViewOrderModal
-                isOpen={!!selectedOrder}
-                onClose={() => setSelectedOrder(null)}
-                order={selectedOrder}
-            />
-            <div className="animate-fadeIn space-y-12">
+            <ViewOrderModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} order={selectedOrder} />
+            <div className="animate-fadeIn space-y-8">
                 <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة طلبات "إنها لك"</h1>
-
-                <AdminSection title="قائمة الطلبات" icon={<ShoppingBag />}>
-                    <div className="mb-4">
-                        <select
-                            value={statusFilter}
-                            onChange={e => setStatusFilter(e.target.value)}
-                            className="p-2 border rounded-lg bg-white"
-                        >
-                            <option value="all">كل الحالات</option>
-                            {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                    <StatFilterCard label="الكل" value={orders.length} color="bg-gray-800" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
+                    {orderStatuses.map(status => (
+                        <StatFilterCard 
+                            key={status}
+                            label={status}
+                            value={statusCounts[status] || 0}
+                            color={statusColors[status] || 'bg-gray-500'}
+                            isActive={statusFilter === status}
+                            onClick={() => setStatusFilter(status)}
+                        />
+                    ))}
+                </div>
+                
+                <AdminSection title="قائمة كل الطلبات" icon={<ShoppingBag />}>
+                    <div className="mb-6 max-w-lg">
+                        <Input 
+                            type="search"
+                            placeholder="ابحث برقم الطلب، اسم العميل، أو اسم الطفل..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
                     </div>
-
                     <div className="overflow-x-auto">
                         <table className="w-full text-right">
-                            <thead className="border-b-2">
-                                <tr>
-                                    <th className="p-3">رقم الطلب</th>
-                                    <th className="p-3">العميل</th>
-                                    <th className="p-3">المنتج</th>
-                                    <th className="p-3">التاريخ</th>
-                                    <th className="p-3">الإجمالي</th>
-                                    <th className="p-3">الحالة</th>
-                                    <th className="p-3">إجراءات</th>
-                                </tr>
-                            </thead>
+                           <thead className="border-b-2"><tr>
+                                <th className="p-3">العميل</th><th className="p-3">الطفل</th><th className="p-3">التاريخ</th><th className="p-3">الملخص</th><th className="p-3">الإجمالي</th><th className="p-3">الحالة</th><th className="p-3">إجراءات</th>
+                            </tr></thead>
                             <tbody>
                                 {filteredOrders.map(order => (
                                     <tr key={order.id} className="border-b hover:bg-gray-50">
-                                        <td className="p-3 font-mono text-sm">{order.id}</td>
-                                        <td className="p-3">{order.users?.name || 'غير مسجل'}</td>
-                                        <td className="p-3 font-semibold">{order.item_summary}</td>
+                                        <td className="p-3 font-semibold">{order.users?.name || 'N/A'}</td>
+                                        <td className="p-3">{order.child_profiles?.name || 'N/A'}</td>
                                         <td className="p-3 text-sm">{formatDate(order.order_date)}</td>
-                                        <td className="p-3">{order.total} ج.م</td>
+                                        <td className="p-3 text-sm">{order.item_summary}</td>
+                                        <td className="p-3 font-bold">{order.total} ج.م</td>
+                                        <td className="p-3"><span className={`px-2 py-1 text-xs font-bold rounded-full ${getStatusColor(order.status)}`}>{order.status}</span></td>
                                         <td className="p-3">
-                                            <select 
-                                              value={order.status} 
-                                              onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
-                                              className={`p-1 border rounded-md text-sm font-bold ${getStatusColor(order.status)}`}
-                                            >
-                                                {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
-                                        </td>
-                                        <td className="p-3">
-                                            <button onClick={() => setSelectedOrder(order)} className="text-gray-500 hover:text-blue-600">
-                                                <Eye size={20} />
-                                            </button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleViewOrder(order)}><Eye size={20} /></Button>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+                         {filteredOrders.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد طلبات تطابق بحثك.</p>}
                     </div>
                 </AdminSection>
             </div>

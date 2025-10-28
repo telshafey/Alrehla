@@ -1,46 +1,74 @@
 import React, { useMemo } from 'react';
-import { useAdminOrders, useAdminSubscriptions } from '../../../hooks/adminQueries';
+import { useNavigate } from 'react-router-dom';
+import DashboardWidget from './DashboardWidget';
 import StatCard from '../StatCard';
 import BarChart from '../BarChart';
-import { ShoppingBag, Star, DollarSign } from 'lucide-react';
-import PageLoader from '../../ui/PageLoader';
+import { ShoppingBag, Star } from 'lucide-react';
+import type { OrderStatus } from '../../../lib/database.types';
 
-const EnhaLakDashboard: React.FC = () => {
-    const { data: orders = [], isLoading: ordersLoading, error: ordersError } = useAdminOrders();
-    const { data: subscriptions = [], isLoading: subsLoading, error: subsError } = useAdminSubscriptions();
+interface EnhaLakDashboardProps {
+    data: any;
+}
 
-    const isLoading = ordersLoading || subsLoading;
-    const error = ordersError || subsError;
+const statusColors: { [key in OrderStatus]: string } = {
+    "بانتظار الدفع": "#d1d5db", // gray-300
+    "بانتظار المراجعة": "#a5b4fc", // indigo-300
+    "قيد التجهيز": "#fcd34d", // yellow-300
+    "يحتاج مراجعة": "#fdba74", // orange-300
+    "تم الشحن": "#93c5fd", // blue-300
+    "تم التسليم": "#6ee7b7", // green-300
+    "ملغي": "#fca5a5", // red-300
+};
 
-    const totalRevenue = useMemo(() => {
-        return orders.reduce((sum, order) => sum + (order.total || 0), 0);
-    }, [orders]);
 
-    const orderStatusData = useMemo(() => {
-        const statusCounts: { [key: string]: number } = {};
-        orders.forEach(order => {
-            statusCounts[order.status] = (statusCounts[order.status] || 0) + 1;
-        });
-        return Object.entries(statusCounts).map(([label, value]) => ({
+const EnhaLakDashboard: React.FC<EnhaLakDashboardProps> = ({ data }) => {
+    const navigate = useNavigate();
+    const { orders = [], subscriptions = [] } = data || {};
+    
+    const stats = useMemo(() => {
+        const newOrders = orders.filter((o: any) => o.status === 'بانتظار المراجعة' || o.status === 'بانتظار الدفع').length;
+        const activeSubscriptions = subscriptions.filter((s: any) => s.status === 'active').length;
+
+        return { newOrders, activeSubscriptions };
+    }, [orders, subscriptions]);
+
+    const orderChartData = useMemo(() => {
+        const counts = orders.reduce((acc: { [key: string]: number }, order: any) => {
+            acc[order.status] = (acc[order.status] || 0) + 1;
+            return acc;
+        }, {});
+
+        return Object.entries(counts).map(([label, value]) => ({
             label,
-            value,
-            color: '#8b5cf6',
+            // FIX: Cast value to number to satisfy ChartData type.
+            value: value as number,
+            color: statusColors[label as OrderStatus] || '#9ca3af',
         }));
     }, [orders]);
 
-    if (isLoading) return <PageLoader />;
-    if (error) return <div className="text-red-500 bg-red-50 p-4 rounded-lg">خطأ في تحميل إحصائيات "إنها لك": {error.message}</div>;
 
     return (
-        <div className="space-y-8">
-            <h2 className="text-2xl font-bold text-gray-800">ملخص "إنها لك"</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <StatCard title="إجمالي الطلبات" value={orders.length} icon={<ShoppingBag size={28} className="text-blue-500" />} color="bg-blue-100" />
-                <StatCard title="إجمالي الاشتراكات" value={subscriptions.length} icon={<Star size={28} className="text-yellow-500" />} color="bg-yellow-100" />
-                <StatCard title="إيرادات الطلبات" value={`${totalRevenue} ج.م`} icon={<DollarSign size={28} className="text-green-500" />} color="bg-green-100" />
+        <DashboardWidget title="ملخص 'إنها لك'" icon={<ShoppingBag className="text-pink-500" />}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <div className="space-y-4">
+                    <StatCard 
+                        title="طلبات جديدة تنتظر المراجعة" 
+                        value={stats.newOrders} 
+                        icon={<ShoppingBag size={24} className="text-pink-500" />} 
+                        color="bg-pink-100"
+                        onClick={() => navigate('/admin/orders')}
+                    />
+                    <StatCard 
+                        title="الاشتراكات النشطة حالياً" 
+                        value={stats.activeSubscriptions} 
+                        icon={<Star size={24} className="text-yellow-500" />} 
+                        color="bg-yellow-100"
+                        onClick={() => navigate('/admin/subscriptions')}
+                    />
+                </div>
+                 <BarChart title="حالات الطلبات" data={orderChartData} />
             </div>
-            <BarChart title="حالات الطلبات" data={orderStatusData} />
-        </div>
+        </DashboardWidget>
     );
 };
 

@@ -1,8 +1,6 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, Link as LinkIcon } from 'lucide-react';
-// FIX: Removed .ts extension from import path
+// FIX: Corrected import path
 import { useOrderMutations } from '../../hooks/mutations';
 import type { Order, OrderStatus } from '../../lib/database.types';
 import { formatDate, getStatusColor } from '../../utils/helpers';

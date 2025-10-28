@@ -1,19 +1,19 @@
-
-
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import type { Prices, SiteBranding, ShippingCosts } from '../lib/database.types';
-import { mockPrices, mockSiteBranding, mockShippingCosts } from '../data/mockData';
 import { useToast } from './ToastContext';
+import { usePrices, useSiteBranding, useShippingCosts } from '../hooks/publicQueries';
+import { useProductSettingsMutations } from '../hooks/mutations';
+
 
 export type { Prices, SiteBranding, ShippingCosts };
 
 interface ProductContextType {
-    prices: Prices | null;
-    siteBranding: SiteBranding | null;
-    shippingCosts: ShippingCosts | null;
-    setPrices: (newPrices: Prices) => Promise<void>;
-    setSiteBranding: (newBranding: Partial<SiteBranding>) => Promise<void>;
-    setShippingCosts: (newCosts: ShippingCosts) => Promise<void>;
+    prices: Prices | null | undefined;
+    siteBranding: SiteBranding | null | undefined;
+    shippingCosts: ShippingCosts | null | undefined;
+    setPrices: (newPrices: Prices) => Promise<any>;
+    setSiteBranding: (newBranding: Partial<SiteBranding>) => Promise<any>;
+    setShippingCosts: (newCosts: ShippingCosts) => Promise<any>;
     loading: boolean;
 }
 
@@ -21,34 +21,22 @@ const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { addToast } = useToast();
-    const [prices, _setPrices] = useState<Prices | null>(null);
-    const [siteBranding, _setSiteBranding] = useState<SiteBranding | null>(null);
-    const [shippingCosts, _setShippingCosts] = useState<ShippingCosts | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { data: prices, isLoading: pricesLoading } = usePrices();
+    const { data: siteBranding, isLoading: brandingLoading } = useSiteBranding();
+    const { data: shippingCosts, isLoading: shippingLoading } = useShippingCosts();
 
-    useEffect(() => {
-        _setPrices(mockPrices as Prices);
-        _setSiteBranding(mockSiteBranding as SiteBranding);
-        _setShippingCosts(mockShippingCosts as ShippingCosts);
-        setLoading(false);
-    }, []);
+    const { updatePrices, updateBranding, updateShippingCosts } = useProductSettingsMutations();
 
     const setPrices = async (newPrices: Prices) => {
-        _setPrices(newPrices);
-        addToast('تم تحديث الأسعار بنجاح (محاكاة).', 'success');
-        return Promise.resolve();
+        return updatePrices.mutateAsync(newPrices);
     };
 
     const setSiteBranding = async (newBranding: Partial<SiteBranding>) => {
-        _setSiteBranding(prev => ({ ...(prev as SiteBranding), ...newBranding }));
-        addToast('تم تحديث العلامة التجارية بنجاح (محاكاة).', 'success');
-        return Promise.resolve();
+        return updateBranding.mutateAsync(newBranding);
     };
     
     const setShippingCosts = async (newCosts: ShippingCosts) => {
-        _setShippingCosts(newCosts);
-        addToast('تم تحديث تكاليف الشحن بنجاح (محاكاة).', 'success');
-        return Promise.resolve();
+        return updateShippingCosts.mutateAsync(newCosts);
     };
 
     const value = {
@@ -58,7 +46,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         setPrices,
         setSiteBranding,
         setShippingCosts,
-        loading,
+        loading: pricesLoading || brandingLoading || shippingLoading,
     };
 
     return (

@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
+// FIX: Corrected import path
 import { usePublicData } from '../hooks/publicQueries';
 import PageLoader from '../components/ui/PageLoader';
 import { formatDate } from '../utils/helpers';

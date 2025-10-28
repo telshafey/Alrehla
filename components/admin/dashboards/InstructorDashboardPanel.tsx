@@ -1,0 +1,46 @@
+import React from 'react';
+import StatCard from '../StatCard';
+import { Calendar, BookOpen } from 'lucide-react';
+import type { Instructor } from '../../../lib/database.types';
+
+type EnrichedBooking = any; 
+type InstructorTab = 'dashboard' | 'journeys' | 'financials' | 'schedule' | 'profile';
+
+interface InstructorDashboardPanelProps {
+    instructor: Instructor;
+    bookings: EnrichedBooking[];
+    onNavigateTab: (tab: InstructorTab) => void;
+}
+
+const InstructorDashboardPanel: React.FC<InstructorDashboardPanelProps> = ({ instructor, bookings, onNavigateTab }) => {
+
+    const upcomingSessionsCount = bookings.reduce((count, booking) => {
+        return count + (booking.sessions?.filter((s: any) => s.status === 'upcoming').length || 0);
+    }, 0);
+
+    const activeJourneysCount = bookings.filter((b: any) => b.status === 'مؤكد').length;
+
+    return (
+        <div className="space-y-8 mt-8">
+            <h2 className="text-2xl font-bold text-gray-800">نظرة عامة</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <StatCard 
+                    title="الجلسات القادمة" 
+                    value={upcomingSessionsCount} 
+                    icon={<Calendar size={28} className="text-blue-500" />} 
+                    color="bg-blue-100"
+                    onClick={() => onNavigateTab('journeys')}
+                />
+                <StatCard 
+                    title="الرحلات النشطة" 
+                    value={activeJourneysCount} 
+                    icon={<BookOpen size={28} className="text-purple-500" />} 
+                    color="bg-purple-100" 
+                    onClick={() => onNavigateTab('journeys')}
+                />
+            </div>
+        </div>
+    );
+};
+
+export default InstructorDashboardPanel;

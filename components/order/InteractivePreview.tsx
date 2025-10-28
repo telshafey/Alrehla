@@ -1,8 +1,5 @@
-
-
 import React from 'react';
-import { Package, User, Palette, Sparkles } from 'lucide-react';
-// FIX: Removed .ts extension from import path
+import { Package, User, Palette, Sparkles, Image as ImageIcon } from 'lucide-react';
 import type { PersonalizedProduct } from '../../lib/database.types';
 
 const storyGoals = [
@@ -27,9 +24,10 @@ interface InteractivePreviewProps {
     basePrice: number;
     addons: { key: string; title: string; price: number }[];
     totalPrice: number;
+    imagePreviewUrl: string | null;
 }
 
-const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, product, basePrice, addons, totalPrice }) => {
+const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, product, basePrice, addons, totalPrice, imagePreviewUrl }) => {
     const { childName, childTraits, storyValue, customGoal } = formData;
     
     if (!product) {
@@ -61,7 +59,14 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, produ
                         <User size={18} />
                         بطل القصة
                     </h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="bg-gray-50 p-4 rounded-lg flex flex-col items-center gap-3">
+                         <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-white shadow-md">
+                            {imagePreviewUrl ? (
+                                <img src={imagePreviewUrl} alt="Preview" className="h-full w-full object-cover" />
+                            ) : (
+                                <ImageIcon className="text-gray-400" size={40} />
+                            )}
+                        </div>
                         <p className="text-2xl font-bold text-blue-600 text-center">
                             {childName || 'اسم الطفل'}
                         </p>

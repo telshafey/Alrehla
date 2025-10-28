@@ -1,54 +1,76 @@
-import React, { useState, useEffect } from 'react';
-import { Instructor } from '../../../lib/database.types';
+import React, { useState } from 'react';
+import { Save } from 'lucide-react';
+import type { Instructor } from '../../../lib/database.types';
 import { useInstructorMutations } from '../../../hooks/mutations';
 import { Button } from '../../ui/Button';
-import FormField from '../../ui/FormField';
-import { Textarea } from '../../ui/Textarea';
 import { Input } from '../../ui/Input';
-import { AlertCircle } from 'lucide-react';
+import { Textarea } from '../../ui/Textarea';
+import FormField from '../../ui/FormField';
 
 interface InstructorProfileEditorProps {
     instructor: Instructor;
+    disabled: boolean;
 }
 
-const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instructor }) => {
-    const { requestProfileUpdate } = useInstructorMutations();
+const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instructor, disabled }) => {
+    const { updateInstructor: requestProfileUpdate } = useInstructorMutations();
     const [bio, setBio] = useState(instructor.bio || '');
-    const [rate, setRate] = useState((instructor.rate_per_session || 0).toString());
+    const [rate, setRate] = useState(instructor.rate_per_session?.toString() || '');
+    const [justification, setJustification] = useState('');
+    const isSaving = requestProfileUpdate.isPending;
 
-    useEffect(() => {
-        setBio(instructor.bio || '');
-        setRate((instructor.rate_per_session || 0).toString());
-    }, [instructor]);
-
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        requestProfileUpdate.mutate({
-            instructorId: instructor.id,
-            bio,
-            rate: parseInt(rate, 10),
+        await requestProfileUpdate.mutateAsync({ 
+            id: instructor.id,
+            pending_profile_data: {
+                updates: {
+                    bio,
+                    rate_per_session: parseFloat(rate) || 0,
+                },
+                justification
+            },
+            profile_update_status: 'pending'
         });
+        setJustification('');
     };
     
-    const isUpdatePending = instructor.profile_update_status === 'pending';
-
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
-            {isUpdatePending && (
-                <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded-lg flex items-center gap-3">
-                    <AlertCircle />
-                    <p className="font-semibold">لديك طلب تحديث معلق قيد المراجعة حاليًا. لا يمكنك إرسال طلب جديد حتى يتم مراجعة الطلب الحالي.</p>
+        <form onSubmit={handleSubmit} className={`space-y-6 mt-4 ${disabled ? 'opacity-50' : ''}`}>
+            <fieldset disabled={disabled || isSaving}>
+                <FormField label="نبذة تعريفية" htmlFor="bio">
+                    <Textarea 
+                        id="bio" 
+                        value={bio} 
+                        onChange={(e) => setBio(e.target.value)} 
+                        rows={5}
+                        placeholder="اكتب نبذة مختصرة عن خبراتك وأسلوبك في التدريب..."
+                    />
+                </FormField>
+                <FormField label="السعر المقترح للجلسة (بالجنيه المصري)" htmlFor="rate">
+                    <Input 
+                        id="rate"
+                        type="number"
+                        value={rate}
+                        onChange={(e) => setRate(e.target.value)}
+                    />
+                </FormField>
+                <FormField label="مبررات التعديل (سيتم إرسالها للإدارة)" htmlFor="justification">
+                     <Textarea 
+                        id="justification" 
+                        value={justification} 
+                        onChange={(e) => setJustification(e.target.value)} 
+                        rows={3}
+                        placeholder="مثال: قمت بتحديث النبذة التعريفية لتشمل خبراتي الجديدة. أقترح تعديل السعر ليتناسب مع أسعار السوق الحالية."
+                        required
+                    />
+                </FormField>
+                <div className="flex justify-end">
+                    <Button type="submit" loading={isSaving} icon={<Save />}>
+                        إرسال طلب التحديث
+                    </Button>
                 </div>
-            )}
-            <FormField label="النبذة التعريفية" htmlFor="bio">
-                <Textarea id="bio" value={bio} onChange={e => setBio(e.target.value)} rows={5} disabled={isUpdatePending} />
-            </FormField>
-            <FormField label="السعر المقترح للجلسة الواحدة (ج.م)" htmlFor="rate">
-                <Input id="rate" type="number" value={rate} onChange={e => setRate(e.target.value)} disabled={isUpdatePending} />
-            </FormField>
-            <Button type="submit" loading={requestProfileUpdate.isPending} disabled={isUpdatePending}>
-                إرسال طلب التحديث
-            </Button>
+            </fieldset>
         </form>
     );
 };

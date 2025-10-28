@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { CheckCircle, AlertCircle, Info, AlertTriangle, X } from 'lucide-react';
 

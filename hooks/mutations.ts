@@ -1,278 +1,868 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../contexts/ToastContext';
-import { useAuth } from '../contexts/AuthContext';
-import type { UserRole, OrderStatus, BookingStatus, TicketStatus, RequestStatus, WeeklySchedule, SocialLinks, SiteBranding, ShippingCosts, CreativeWritingPackage, AdditionalService } from '../lib/database.types';
+import { supabase } from '../lib/supabaseClient';
+import type { Prices, SiteBranding, ShippingCosts, UserRole, UserProfile, OrderStatus, TicketStatus, RequestStatus, BookingStatus, WeeklySchedule, AvailableSlots } from '../lib/database.types';
 
-// Mock async function to simulate network delay
-const mockApiCall = (data?: any, delay = 500) => new Promise(resolve => setTimeout(() => resolve(data), delay));
+// This is a mock implementation of mutations.
+// In a real app, these would make API calls to a backend.
 
-// Reusable generic mutation hook
-const useGenericMutation = <TVariables = any, TData = unknown>(
-    mutationFn: (variables: TVariables) => Promise<TData>,
-    { successMessage, invalidationKeys }: { successMessage: string; invalidationKeys: string[][] }
-) => {
+// Helper to simulate async operations
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// ==================================
+// GENERAL SETTINGS MUTATIONS
+// ==================================
+export const useProductSettingsMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
 
-    return useMutation({
-        mutationFn: mutationFn,
+    const updatePrices = useMutation({
+        mutationFn: async (newPrices: Prices) => {
+            console.log("Updating prices (mock):", newPrices);
+            await sleep(500);
+            return newPrices;
+        },
         onSuccess: () => {
-            addToast(successMessage, 'success');
-            invalidationKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
+            queryClient.invalidateQueries({ queryKey: ['prices'] });
+            addToast('تم تحديث الأسعار بنجاح.', 'success');
         },
-        onError: (error: any) => {
-            addToast(`Error: ${error.message || 'An unknown error occurred.'}`, 'error');
-        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث الأسعار: ${error.message}`, 'error');
+        }
     });
+    
+    const updateBranding = useMutation({
+        mutationFn: async (newBranding: Partial<SiteBranding>) => {
+            console.log("Updating branding (mock):", newBranding);
+            await sleep(500);
+            return newBranding;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['siteBranding'] });
+            addToast('تم تحديث العلامة التجارية بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث العلامة التجارية: ${error.message}`, 'error');
+        }
+    });
+
+    const updateShippingCosts = useMutation({
+        mutationFn: async (newCosts: ShippingCosts) => {
+            console.log("Updating shipping costs (mock):", newCosts);
+            await sleep(500);
+            return newCosts;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['shippingCosts'] });
+            addToast('تم تحديث تكاليف الشحن بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث تكاليف الشحن: ${error.message}`, 'error');
+        }
+    });
+
+    return { updatePrices, updateBranding, updateShippingCosts };
 };
 
-// --- SPECIALIZED MUTATION HOOKS ---
+export const useSettingsMutations = () => {
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
 
+    const updateSocialLinks = useMutation({
+        mutationFn: async (links: any) => {
+            await sleep(500);
+            console.log("Updating social links (mock)", links);
+            return links;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSocialLinks'] });
+            // This toast is handled in the component
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث الروابط: ${error.message}`, 'error');
+        }
+    });
+
+    return { updateSocialLinks };
+}
+
+
+// ==================================
+// USER & AUTH MUTATIONS
+// ==================================
+export const useUserMutations = () => {
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
+
+    const updateUser = useMutation({
+        mutationFn: async (payload: { id: string, name: string }) => {
+            await sleep(500);
+            console.log("Updating user (mock)", payload);
+            return payload;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+            queryClient.invalidateQueries({ queryKey: ['userAccountData'] }); // To update name in UI
+            addToast('تم تحديث المستخدم بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث المستخدم: ${error.message}`, 'error');
+        }
+    });
+    
+    const updateUserPassword = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(500);
+            console.log("Updating user password (mock)", payload.userId);
+            addToast('تم تحديث كلمة المرور بنجاح (محاكاة).', 'success');
+            return { success: true };
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث كلمة المرور: ${error.message}`, 'error');
+        }
+    });
+
+    const createUser = useMutation({
+        mutationFn: async (payload: { name: string, email: string, password: string }) => {
+            await sleep(500);
+            console.log("Creating user (mock)", payload);
+            return { ...payload, id: `usr_${Math.random()}` };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+            addToast('تم إنشاء المستخدم بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل إنشاء المستخدم: ${error.message}`, 'error');
+        }
+    });
+    
+    const deleteUser = useMutation({
+        mutationFn: async ({ userId }: { userId: string }) => {
+            await sleep(500);
+            console.log("Deleting user (mock)", userId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+            addToast('تم حذف المستخدم بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل حذف المستخدم: ${error.message}`, 'error');
+        }
+    });
+
+    const createAndLinkStudentAccount = useMutation({
+        mutationFn: async (payload: { name: string, email: string, password: string, childProfileId: number }) => {
+            await sleep(800);
+            console.log("Creating and linking student account (mock)", payload);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
+             queryClient.invalidateQueries({ queryKey: ['userAccountData'] });
+            addToast('تم إنشاء وربط حساب الطالب بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل إنشاء الحساب: ${error.message}`, 'error');
+        }
+    });
+
+    const linkStudentToChildProfile = useMutation({
+        mutationFn: async (payload: { studentUserId: string, childProfileId: number }) => {
+            await sleep(500);
+            console.log("Linking student (mock)", payload);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+            queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
+            addToast('تم ربط الحساب بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل ربط الحساب: ${error.message}`, 'error');
+        }
+    });
+    
+    const unlinkStudentFromChildProfile = useMutation({
+        mutationFn: async (payload: { childProfileId: number }) => {
+            await sleep(500);
+            console.log("Unlinking student (mock)", payload);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+            queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
+            addToast('تم إلغاء ربط الحساب بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل إلغاء الربط: ${error.message}`, 'error');
+        }
+    });
+
+     const deleteChildProfile = useMutation({
+        mutationFn: async ({ childId }: { childId: number }) => {
+            await sleep(500);
+            console.log("Deleting child profile (mock)", childId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['userAccountData'] });
+            addToast('تم حذف ملف الطفل بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل حذف الملف: ${error.message}`, 'error');
+        }
+    });
+
+    return { updateUser, updateUserPassword, createUser, deleteUser, createAndLinkStudentAccount, linkStudentToChildProfile, unlinkStudentFromChildProfile, deleteChildProfile };
+};
+
+
+// ==================================
+// ORDER / BOOKING / SUBSCRIPTION MUTATIONS
+// ==================================
 export const useOrderMutations = () => {
-    const createOrder = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'Order created successfully (mock).', invalidationKeys: [['adminOrders'], ['userAccountData']] }
-    );
-    const updateOrderStatus = useGenericMutation(
-        ({ orderId, newStatus }: { orderId: string, newStatus: OrderStatus }) => mockApiCall({ orderId, newStatus }),
-        { successMessage: 'Order status updated.', invalidationKeys: [['adminOrders']] }
-    );
-    const updateOrderComment = useGenericMutation(
-        ({ orderId, comment }: { orderId: string, comment: string }) => mockApiCall({ orderId, comment }),
-        { successMessage: 'Order comment saved.', invalidationKeys: [['adminOrders']] }
-    );
-    const updateReceipt = useGenericMutation(
-        ({ itemId, itemType, receiptFile }: { itemId: string, itemType: string, receiptFile: File }) => mockApiCall({ itemId, itemType, receiptFile: receiptFile.name }),
-        { successMessage: 'Receipt uploaded successfully (mock).', invalidationKeys: [['adminOrders'], ['adminCwBookings'], ['userAccountData']] }
-    );
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
+
+    const createOrder = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(1000);
+            console.log("Creating order (mock)", payload);
+            return { ...payload, id: `ord_${Math.random()}` };
+        },
+        onError: (error: Error) => {
+            addToast(`فشل إنشاء الطلب: ${error.message}`, 'error');
+        }
+    });
+
+    const updateOrderStatus = useMutation({
+        mutationFn: async ({ orderId, newStatus }: { orderId: string, newStatus: OrderStatus }) => {
+            await sleep(300);
+            console.log("Updating order status (mock)", { orderId, newStatus });
+            return { success: true };
+        },
+        onSuccess: (_, vars) => {
+            queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+            addToast(`تم تحديث حالة الطلب ${vars.orderId} بنجاح.`, 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث الحالة: ${error.message}`, 'error');
+        }
+    });
+    
+    const updateOrderComment = useMutation({
+        mutationFn: async ({ orderId, comment }: { orderId: string, comment: string }) => {
+            await sleep(300);
+            console.log("Updating order comment (mock)", { orderId, comment });
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+            addToast('تم حفظ الملاحظة.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل حفظ الملاحظة: ${error.message}`, 'error');
+        }
+    });
+
+    const updateReceipt = useMutation({
+        mutationFn: async (payload: { itemId: string; itemType: string; receiptFile: File }) => {
+             await sleep(1000);
+             console.log("Uploading receipt (mock)", payload);
+             return { success: true, url: 'https://example.com/mock-receipt.jpg' };
+        },
+        onSuccess: () => {
+            addToast('تم رفع الإيصال بنجاح. طلبك قيد المراجعة.', 'success');
+            queryClient.invalidateQueries({ queryKey: ['userAccountData']});
+        },
+        onError: (error: Error) => {
+            addToast(`فشل رفع الإيصال: ${error.message}`, 'error');
+        }
+    });
     
     return { createOrder, updateOrderStatus, updateOrderComment, updateReceipt };
 };
 
 export const useBookingMutations = () => {
-    const createBooking = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'Booking created successfully (mock).', invalidationKeys: [['adminCwBookings'], ['userAccountData']] }
-    );
-    const updateBookingStatus = useGenericMutation(
-        ({ bookingId, newStatus }: { bookingId: string, newStatus: BookingStatus }) => mockApiCall({ bookingId, newStatus }),
-        { successMessage: 'Booking status updated.', invalidationKeys: [['adminCwBookings']] }
-    );
-    const updateBookingProgressNotes = useGenericMutation(
-        ({ bookingId, notes }: { bookingId: string, notes: string }) => mockApiCall({ bookingId, notes }),
-        { successMessage: 'Progress notes updated.', invalidationKeys: [['adminCwBookings'], ['studentDashboardData']] }
-    );
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
+
+    const createBooking = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(1000);
+            console.log("Creating booking (mock)", payload);
+            return { ...payload, id: `bk_${Math.random()}` };
+        },
+         onError: (error: Error) => {
+            addToast(`فشل إنشاء الحجز: ${error.message}`, 'error');
+        }
+    });
+    
+    const updateBookingStatus = useMutation({
+        mutationFn: async ({ bookingId, newStatus }: { bookingId: string, newStatus: BookingStatus }) => {
+            await sleep(300);
+            console.log("Updating booking status (mock)", { bookingId, newStatus });
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminRawCwBookings'] });
+            addToast('تم تحديث حالة الحجز.', 'success');
+        },
+         onError: (error: Error) => {
+            addToast(`فشل تحديث الحالة: ${error.message}`, 'error');
+        }
+    });
+
+    const updateBookingProgressNotes = useMutation({
+        mutationFn: async ({ bookingId, notes }: { bookingId: string, notes: string }) => {
+            await sleep(500);
+            console.log("Updating progress notes (mock)", { bookingId, notes });
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminRawCwBookings'] });
+            queryClient.invalidateQueries({ queryKey: ['trainingJourney'] });
+        },
+         onError: (error: Error) => {
+            addToast(`فشل حفظ الملاحظات: ${error.message}`, 'error');
+        }
+    });
+
     return { createBooking, updateBookingStatus, updateBookingProgressNotes };
 };
 
 export const useSubscriptionMutations = () => {
-    const createSubscription = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'Subscription created successfully (mock).', invalidationKeys: [['adminSubscriptions'], ['userAccountData']] }
-    );
-    const pauseSubscription = useGenericMutation(
-        ({ subscriptionId }: { subscriptionId: string }) => mockApiCall({ subscriptionId }),
-        { successMessage: 'تم إيقاف الاشتراك مؤقتاً.', invalidationKeys: [['adminSubscriptions'], ['userAccountData']] }
-    );
-    const cancelSubscription = useGenericMutation(
-        ({ subscriptionId }: { subscriptionId: string }) => mockApiCall({ subscriptionId }),
-        { successMessage: 'تم إلغاء الاشتراك.', invalidationKeys: [['adminSubscriptions'], ['userAccountData']] }
-    );
-    const reactivateSubscription = useGenericMutation(
-        ({ subscriptionId }: { subscriptionId: string }) => mockApiCall({ subscriptionId }),
-        { successMessage: 'تم إعادة تفعيل الاشتراك.', invalidationKeys: [['adminSubscriptions'], ['userAccountData']] }
-    );
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
+
+    const createSubscription = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(1000);
+            console.log("Creating subscription (mock)", payload);
+            return { ...payload, id: `sub_${Math.random()}` };
+        },
+        onError: (error: Error) => {
+            addToast(`فشل إنشاء الاشتراك: ${error.message}`, 'error');
+        }
+    });
+    
+    const pauseSubscription = useMutation({
+        mutationFn: async ({ subscriptionId }: { subscriptionId: string }) => {
+            await sleep(500);
+            console.log("Pausing subscription (mock)", subscriptionId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSubscriptions'] });
+            addToast('تم إيقاف الاشتراك مؤقتاً.', 'success');
+        },
+        onError: (error: Error) => addToast(`فشل: ${error.message}`, 'error'),
+    });
+
+    const cancelSubscription = useMutation({
+        mutationFn: async ({ subscriptionId }: { subscriptionId: string }) => {
+            await sleep(500);
+            console.log("Cancelling subscription (mock)", subscriptionId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSubscriptions'] });
+            addToast('تم إلغاء الاشتراك.', 'success');
+        },
+        onError: (error: Error) => addToast(`فشل: ${error.message}`, 'error'),
+    });
+    
+    const reactivateSubscription = useMutation({
+        mutationFn: async ({ subscriptionId }: { subscriptionId: string }) => {
+            await sleep(500);
+            console.log("Reactivating subscription (mock)", subscriptionId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSubscriptions'] });
+            addToast('تم إعادة تفعيل الاشتراك.', 'success');
+        },
+        onError: (error: Error) => addToast(`فشل: ${error.message}`, 'error'),
+    });
+
     return { createSubscription, pauseSubscription, cancelSubscription, reactivateSubscription };
 };
 
 
-// --- USER & AUTH MUTATIONS ---
-export const useUserMutations = () => {
-    const { updateCurrentUser } = useAuth();
+// ==================================
+// NOTIFICATION MUTATIONS
+// ==================================
+export const useNotificationMutations = () => {
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
+
+    const markNotificationAsRead = useMutation({
+        mutationFn: async ({ notificationId }: { notificationId: number }) => {
+            await sleep(200);
+            console.log('Marking as read:', notificationId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['userNotifications'] });
+        },
+    });
+
+    const markAllNotificationsAsRead = useMutation({
+        mutationFn: async () => {
+            await sleep(500);
+            console.log('Marking all as read');
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['userNotifications'] });
+            addToast('تم تحديد الكل كمقروء', 'success');
+        },
+    });
     
-    const updateUserRole = useGenericMutation(
-        ({ userId, newRole }: { userId: string, newRole: UserRole }) => mockApiCall({ userId, newRole }),
-        { successMessage: 'User role updated.', invalidationKeys: [['adminUsersWithRelations']] }
-    );
-    const createUser = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'User created successfully (mock).', invalidationKeys: [['adminUsersWithRelations']] }
-    );
-     const updateUser = useGenericMutation(
-        (payload: { id: string; name: string }) => mockApiCall({ ...payload }).then(updatedUser => {
-            updateCurrentUser({ name: payload.name });
-            return updatedUser;
-        }),
-        { successMessage: 'تم تحديث الاسم بنجاح.', invalidationKeys: [['adminUsersWithRelations']] }
-    );
-    const updateUserPassword = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'تم تغيير كلمة المرور بنجاح.', invalidationKeys: [] }
-    );
-    const linkStudentToChildProfile = useGenericMutation(
-        ({ studentUserId, childProfileId }: { studentUserId: string, childProfileId: number }) => mockApiCall({ studentUserId, childProfileId }),
-        { successMessage: 'Student account linked.', invalidationKeys: [['adminUsersWithRelations'], ['adminAllChildProfiles']] }
-    );
-     const unlinkStudentFromChildProfile = useGenericMutation(
-        ({ childProfileId }: { childProfileId: number }) => mockApiCall({ childProfileId }),
-        { successMessage: 'Student account unlinked.', invalidationKeys: [['adminUsersWithRelations'], ['adminAllChildProfiles']] }
-    );
-    return { updateUserRole, createUser, updateUser, updateUserPassword, linkStudentToChildProfile, unlinkStudentFromChildProfile };
+     const deleteNotification = useMutation({
+        mutationFn: async ({ notificationId }: { notificationId: number }) => {
+            await sleep(200);
+            console.log('Deleting notification:', notificationId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['userNotifications'] });
+            addToast('تم حذف الإشعار', 'info');
+        },
+    });
+
+    return { markNotificationAsRead, markAllNotificationsAsRead, deleteNotification };
 };
 
-// --- COMMUNICATION MUTATIONS ---
+// ==================================
+// COMMUNICATION MUTATIONS (Support, Join)
+// ==================================
 export const useCommunicationMutations = () => {
-    const createSupportTicket = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'Your message has been sent!', invalidationKeys: [['adminSupportTickets']] }
-    );
-    const createJoinRequest = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'Your application has been submitted!', invalidationKeys: [['adminJoinRequests']] }
-    );
-    const updateSupportTicketStatus = useGenericMutation(
-        ({ ticketId, newStatus }: { ticketId: string, newStatus: TicketStatus }) => mockApiCall({ ticketId, newStatus }),
-        { successMessage: 'Ticket status updated.', invalidationKeys: [['adminSupportTickets']] }
-    );
-    const updateJoinRequestStatus = useGenericMutation(
-        ({ requestId, newStatus }: { requestId: string, newStatus: RequestStatus }) => mockApiCall({ requestId, newStatus }),
-        { successMessage: 'Join request status updated.', invalidationKeys: [['adminJoinRequests']] }
-    );
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
+
+    const createSupportTicket = useMutation({
+        mutationFn: async (data: { name: string, email: string, subject: string, message: string }) => {
+            await sleep(500);
+            console.log('Creating support ticket (mock)', data);
+            return { success: true };
+        },
+        onSuccess: () => {
+            addToast('تم إرسال رسالتك بنجاح! سنتواصل معك قريباً.', 'success');
+        },
+        onError: (err: Error) => {
+            addToast(`فشل إرسال الرسالة: ${err.message}`, 'error');
+        }
+    });
+
+     const createJoinRequest = useMutation({
+        mutationFn: async (data: { name: string, email: string, role: string, message: string }) => {
+            await sleep(500);
+            console.log('Creating join request (mock)', data);
+            return { success: true };
+        },
+        onSuccess: () => {
+            addToast('تم إرسال طلبك بنجاح! سنراجعه ونتواصل معك.', 'success');
+        },
+        onError: (err: Error) => {
+            addToast(`فشل إرسال الطلب: ${err.message}`, 'error');
+        }
+    });
+
+    const updateSupportTicketStatus = useMutation({
+        mutationFn: async ({ ticketId, newStatus }: { ticketId: string, newStatus: TicketStatus }) => {
+            await sleep(300);
+            console.log("Updating ticket status (mock)", { ticketId, newStatus });
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSupportTickets'] });
+            addToast('تم تحديث حالة الرسالة.', 'success');
+        },
+        onError: (error: Error) => addToast(`فشل: ${error.message}`, 'error'),
+    });
+
+    const updateJoinRequestStatus = useMutation({
+        mutationFn: async ({ requestId, newStatus }: { requestId: string, newStatus: RequestStatus }) => {
+            await sleep(300);
+            console.log("Updating request status (mock)", { requestId, newStatus });
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminJoinRequests'] });
+            addToast('تم تحديث حالة الطلب.', 'success');
+        },
+        onError: (error: Error) => addToast(`فشل: ${error.message}`, 'error'),
+    });
+
     return { createSupportTicket, createJoinRequest, updateSupportTicketStatus, updateJoinRequestStatus };
 };
 
-// --- PRODUCT MUTATIONS ---
-export const useProductMutations = () => {
-    const createPersonalizedProduct = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'Product created successfully.', invalidationKeys: [['adminPersonalizedProducts'], ['publicData']] }
-    );
-    const updatePersonalizedProduct = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'Product updated successfully.', invalidationKeys: [['adminPersonalizedProducts'], ['publicData']] }
-    );
-    const deletePersonalizedProduct = useGenericMutation(
-        ({ productId }: { productId: number }) => mockApiCall({ productId }),
-        { successMessage: 'Product deleted successfully.', invalidationKeys: [['adminPersonalizedProducts'], ['publicData']] }
-    );
-    return { createPersonalizedProduct, updatePersonalizedProduct, deletePersonalizedProduct };
-};
-
-// --- INSTRUCTOR MUTATIONS ---
-export const useInstructorMutations = () => {
-    const createInstructor = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'Instructor created successfully.', invalidationKeys: [['adminInstructors']] }
-    );
-    const updateInstructor = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'Instructor updated successfully.', invalidationKeys: [['adminInstructors']] }
-    );
-    const updateInstructorAvailability = useGenericMutation(
-        ({ instructorId, availability }: { instructorId: number, availability: any }) => mockApiCall({ instructorId, availability }),
-        { successMessage: 'Availability updated.', invalidationKeys: [['adminInstructors']] }
-    );
-    const requestScheduleChange = useGenericMutation(
-        ({ instructorId, schedule }: { instructorId: number, schedule: WeeklySchedule }) => mockApiCall({ instructorId, schedule }),
-        { successMessage: 'Schedule change request submitted.', invalidationKeys: [['adminInstructors']] }
-    );
-    const approveInstructorSchedule = useGenericMutation(
-        ({ instructorId }: { instructorId: number }) => mockApiCall({ instructorId }),
-        { successMessage: 'Schedule approved.', invalidationKeys: [['adminInstructors']] }
-    );
-    const rejectInstructorSchedule = useGenericMutation(
-        ({ instructorId }: { instructorId: number }) => mockApiCall({ instructorId }),
-        { successMessage: 'Schedule rejected.', invalidationKeys: [['adminInstructors']] }
-    );
-    const requestSupportSession = useGenericMutation(
-        ({ instructorId, childId, reason }: { instructorId: number; childId: number; reason: string }) => mockApiCall({ instructorId, childId, reason }),
-        { successMessage: 'تم إرسال طلب جلسة الدعم بنجاح.', invalidationKeys: [['adminSupportSessionRequests']] }
-    );
-    const approveInstructorUpdate = useGenericMutation(
-        ({ instructorId }: { instructorId: number }) => mockApiCall({ instructorId }),
-        { successMessage: 'تمت الموافقة على تحديث ملف المدرب.', invalidationKeys: [['adminInstructors'], ['adminInstructorUpdates']] }
-    );
-    const rejectInstructorUpdate = useGenericMutation(
-        ({ instructorId }: { instructorId: number }) => mockApiCall({ instructorId }),
-        { successMessage: 'تم رفض تحديث ملف المدرب.', invalidationKeys: [['adminInstructors'], ['adminInstructorUpdates']] }
-    );
-     const approveSupportSessionRequest = useGenericMutation(
-        ({ requestId }: { requestId: string }) => mockApiCall({ requestId }),
-        { successMessage: 'تمت الموافقة على جلسة الدعم.', invalidationKeys: [['adminSupportSessionRequests']] }
-    );
-    const rejectSupportSessionRequest = useGenericMutation(
-        ({ requestId }: { requestId: string }) => mockApiCall({ requestId }),
-        { successMessage: 'تم رفض جلسة الدعم.', invalidationKeys: [['adminSupportSessionRequests']] }
-    );
-    const requestProfileUpdate = useGenericMutation(
-        ({ instructorId, bio, rate }: { instructorId: number; bio: string; rate: number }) => mockApiCall({ instructorId, bio, rate }),
-        { successMessage: 'تم إرسال طلب تحديث الملف الشخصي للمراجعة.', invalidationKeys: [['adminInstructors'], ['adminInstructorUpdates']] }
-    );
-
-    return { 
-        createInstructor, updateInstructor, updateInstructorAvailability, requestScheduleChange, 
-        approveInstructorSchedule, rejectInstructorSchedule, requestSupportSession,
-        approveInstructorUpdate, rejectInstructorUpdate,
-        approveSupportSessionRequest, rejectSupportSessionRequest,
-        requestProfileUpdate
-    };
-};
-
-// --- CREATIVE WRITING SETTINGS MUTATIONS ---
-export const useCreativeWritingSettingsMutations = () => {
-    const createCreativeWritingPackage = useGenericMutation(
-        (pkg: Partial<CreativeWritingPackage>) => mockApiCall(pkg),
-        { successMessage: 'Package created.', invalidationKeys: [['adminCWSettings'], ['publicData']] }
-    );
-    const updateCreativeWritingPackage = useGenericMutation(
-        (pkg: Partial<CreativeWritingPackage>) => mockApiCall(pkg),
-        { successMessage: 'Package updated.', invalidationKeys: [['adminCWSettings'], ['publicData']] }
-    );
-    const deleteCreativeWritingPackage = useGenericMutation(
-        ({ id }: { id: number }) => mockApiCall({ id }),
-        { successMessage: 'Package deleted.', invalidationKeys: [['adminCWSettings'], ['publicData']] }
-    );
-     const createAdditionalService = useGenericMutation(
-        (srv: Partial<AdditionalService>) => mockApiCall(srv),
-        { successMessage: 'Service created.', invalidationKeys: [['adminCWSettings']] }
-    );
-    const updateAdditionalService = useGenericMutation(
-        (srv: Partial<AdditionalService>) => mockApiCall(srv),
-        { successMessage: 'Service updated.', invalidationKeys: [['adminCWSettings']] }
-    );
-    const deleteAdditionalService = useGenericMutation(
-        ({ id }: { id: number }) => mockApiCall({ id }),
-        { successMessage: 'Service deleted.', invalidationKeys: [['adminCWSettings']] }
-    );
-    return { createCreativeWritingPackage, updateCreativeWritingPackage, deleteCreativeWritingPackage, createAdditionalService, updateAdditionalService, deleteAdditionalService };
-};
-
-// --- CONTENT MUTATIONS ---
+// ==================================
+// CONTENT MUTATIONS (Blog, Site Content)
+// ==================================
 export const useContentMutations = () => {
-    const updateSiteContent = useGenericMutation(
-        (content: any) => mockApiCall(content),
-        { successMessage: 'Site content updated.', invalidationKeys: [['adminSiteContent'], ['publicData']] }
-    );
-    const createBlogPost = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'Blog post created.', invalidationKeys: [['adminBlogPosts'], ['publicData']] }
-    );
-    const updateBlogPost = useGenericMutation(
-        (payload: any) => mockApiCall(payload),
-        { successMessage: 'Blog post updated.', invalidationKeys: [['adminBlogPosts'], ['publicData']] }
-    );
-    const deleteBlogPost = useGenericMutation(
-        ({ postId }: { postId: number }) => mockApiCall({ postId }),
-        { successMessage: 'Blog post deleted.', invalidationKeys: [['adminBlogPosts'], ['publicData']] }
-    );
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
+
+    const updateSiteContent = useMutation({
+        mutationFn: async (content: any) => {
+            await sleep(800);
+            console.log('Updating site content (mock)', content);
+            return content;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSiteContent'] });
+            queryClient.invalidateQueries({ queryKey: ['publicData'] });
+            addToast('تم حفظ محتوى الموقع بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل الحفظ: ${err.message}`, 'error'),
+    });
+
+    const createBlogPost = useMutation({
+        mutationFn: async (payload: any) => {
+             await sleep(500);
+             console.log("Creating post (mock)", payload);
+             return { ...payload, id: Math.random() };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminBlogPosts'] });
+            addToast('تم إنشاء المقال بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+    
+    const updateBlogPost = useMutation({
+        mutationFn: async (payload: any) => {
+             await sleep(500);
+             console.log("Updating post (mock)", payload);
+             return payload;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminBlogPosts'] });
+            addToast('تم تحديث المقال بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
+    const deleteBlogPost = useMutation({
+        mutationFn: async ({ postId }: { postId: number }) => {
+            await sleep(500);
+            console.log("Deleting post (mock)", postId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminBlogPosts'] });
+            addToast('تم حذف المقال بنجاح.', 'info');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
     return { updateSiteContent, createBlogPost, updateBlogPost, deleteBlogPost };
 };
 
-// --- GENERAL SETTINGS MUTATIONS ---
-export const useSettingsMutations = () => {
-    const updateSocialLinks = useGenericMutation(
-        (links: Partial<SocialLinks>) => mockApiCall(links),
-        { successMessage: 'Social links updated.', invalidationKeys: [['adminSocialLinks'], ['publicData']] }
-    );
-    return { updateSocialLinks };
+// ==================================
+// PERSONALIZED PRODUCTS MUTATIONS
+// ==================================
+export const useProductMutations = () => {
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
+
+    const createPersonalizedProduct = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(500);
+            console.log("Creating product (mock)", payload);
+            return { ...payload, id: Math.random() };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
+            addToast('تم إنشاء المنتج بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+    
+    const updatePersonalizedProduct = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(500);
+            console.log("Updating product (mock)", payload);
+            return payload;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
+            addToast('تم تحديث المنتج بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
+    const deletePersonalizedProduct = useMutation({
+        mutationFn: async ({ productId }: { productId: number }) => {
+            await sleep(500);
+            console.log("Deleting product (mock)", productId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
+            addToast('تم حذف المنتج بنجاح.', 'info');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
+    return { createPersonalizedProduct, updatePersonalizedProduct, deletePersonalizedProduct };
+}
+
+// ==================================
+// INSTRUCTOR MUTATIONS
+// ==================================
+export const useInstructorMutations = () => {
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
+
+    const createInstructor = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(500);
+            console.log("Creating instructor (mock)", payload);
+            return { ...payload, id: Math.random() };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            addToast('تم إضافة المدرب بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+    
+    const updateInstructor = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(500);
+            console.log("Updating instructor (mock)", payload);
+            return payload;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            addToast('تم تحديث المدرب بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
+    const approveInstructorSchedule = useMutation({
+        mutationFn: async ({ instructorId }: { instructorId: number }) => {
+            await sleep(300);
+            console.log("Approving schedule for instructor:", instructorId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            addToast('تمت الموافقة على الجدول.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+    
+    const rejectInstructorSchedule = useMutation({
+        mutationFn: async ({ instructorId }: { instructorId: number }) => {
+            await sleep(300);
+            console.log("Rejecting schedule for instructor:", instructorId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            addToast('تم رفض الجدول.', 'info');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+    
+    const updateInstructorAvailability = useMutation({
+        mutationFn: async ({ instructorId, availability }: { instructorId: number, availability: AvailableSlots }) => {
+            await sleep(500);
+            console.log("Updating availability for instructor:", {instructorId, availability});
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            addToast('تم تحديث المواعيد المتاحة.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
+    const requestScheduleChange = useMutation({
+        mutationFn: async ({ instructorId, schedule }: { instructorId: number, schedule: WeeklySchedule }) => {
+            await sleep(500);
+            console.log("Requesting schedule change for instructor:", {instructorId, schedule});
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            addToast('تم إرسال طلب تعديل الجدول للمراجعة.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+    
+    const requestProfileUpdate = useMutation({
+        mutationFn: async (payload: { instructorId: number, updates: any, justification: string }) => {
+            await sleep(500);
+            console.log("Requesting profile update (mock)", payload);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            addToast('تم إرسال طلب تحديث ملفك الشخصي للمراجعة.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل إرسال الطلب: ${err.message}`, 'error'),
+    });
+
+    const approveSupportSessionRequest = useMutation({
+        mutationFn: async ({ requestId }: { requestId: string }) => {
+            await sleep(300);
+            console.log("Approving support request:", requestId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSupportSessionRequests'] });
+            addToast('تمت الموافقة على طلب الدعم.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+    
+    const rejectSupportSessionRequest = useMutation({
+        mutationFn: async ({ requestId }: { requestId: string }) => {
+            await sleep(300);
+            console.log("Rejecting support request:", requestId);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSupportSessionRequests'] });
+            addToast('تم رفض طلب الدعم.', 'info');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
+    const createSupportSessionRequest = useMutation({
+        mutationFn: async (payload: { instructorId: number, childId: number, reason: string }) => {
+            await sleep(500);
+            console.log("Creating support session request (mock)", payload);
+            return { ...payload, id: `sup_req_${Math.random()}` };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSupportSessionRequests'] });
+            addToast('تم إرسال طلبك للإدارة بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل إرسال الطلب: ${err.message}`, 'error'),
+    });
+
+
+    return { createInstructor, updateInstructor, approveInstructorSchedule, rejectInstructorSchedule, updateInstructorAvailability, requestScheduleChange, requestProfileUpdate, approveSupportSessionRequest, rejectSupportSessionRequest, createSupportSessionRequest };
+}
+
+
+// ==================================
+// CREATIVE WRITING SETTINGS MUTATIONS
+// ==================================
+export const useCreativeWritingSettingsMutations = () => {
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
+
+    const createCreativeWritingPackage = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(500);
+            return { ...payload, id: Math.random() };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
+            addToast('تم إنشاء الباقة بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
+    const updateCreativeWritingPackage = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(500);
+            return payload;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
+            addToast('تم تحديث الباقة بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
+    const deleteCreativeWritingPackage = useMutation({
+        mutationFn: async ({ packageId }: { packageId: number }) => {
+            await sleep(500);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
+            addToast('تم حذف الباقة بنجاح.', 'info');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
+    const createAdditionalService = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(500);
+            return { ...payload, id: Math.random() };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
+            addToast('تم إنشاء الخدمة بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+    
+    const updateAdditionalService = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(500);
+            return payload;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
+            addToast('تم تحديث الخدمة بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
+    const deleteAdditionalService = useMutation({
+        mutationFn: async ({ serviceId }: { serviceId: number }) => {
+            await sleep(500);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
+            addToast('تم حذف الخدمة بنجاح.', 'info');
+        },
+        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+    });
+
+    return {
+        createCreativeWritingPackage,
+        updateCreativeWritingPackage,
+        deleteCreativeWritingPackage,
+        createAdditionalService,
+        updateAdditionalService,
+        deleteAdditionalService
+    };
+}
+
+
+// ==================================
+// SCHEDULING MUTATIONS
+// ==================================
+export const useSchedulingMutations = () => {
+    const queryClient = useQueryClient();
+    const { addToast } = useToast();
+
+    const scheduleSubscriptionSessions = useMutation({
+        mutationFn: async (payload: any) => {
+            await sleep(1000);
+            console.log('Scheduling sessions (mock)', payload);
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminScheduledSessions'] });
+            addToast('تمت جدولة الجلسات بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل الجدولة: ${err.message}`, 'error'),
+    });
+
+    return { scheduleSubscriptionSessions };
 };

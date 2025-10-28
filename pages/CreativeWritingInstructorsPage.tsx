@@ -1,9 +1,7 @@
-
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Loader2 } from 'lucide-react';
-// FIX: Removed .ts extension from import paths
+// FIX: Corrected import path
 import { usePublicData } from '../hooks/publicQueries';
 import type { Instructor } from '../lib/database.types';
 

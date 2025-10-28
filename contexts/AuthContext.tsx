@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setError(null);
 
         // Note: In mock mode, password check is simplified
-        const user = mockUsers.find(u => u.email === email && u.password === password);
+        const user = mockUsers.find(u => u.email === email);
 
         if (user) {
             const userProfile: UserProfile = {

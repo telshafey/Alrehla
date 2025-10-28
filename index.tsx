@@ -1,32 +1,29 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
-import App from './App';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProductProvider } from './contexts/ProductContext';
 import { ToastProvider } from './contexts/ToastContext';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { CartProvider } from './contexts/CartContext';
+import App from './App';
+// Assuming a global CSS file for base styles and Tailwind.
+// If not present, this import might need adjustment based on project setup.
+// import './index.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
       refetchOnWindowFocus: false,
+      retry: false,
     },
   },
 });
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
-}
-
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-    <QueryClientProvider client={queryClient}>
-      <HashRouter>
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+  <React.StrictMode>
+    <HashRouter>
+      <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <AuthProvider>
             <ProductProvider>
@@ -36,7 +33,7 @@ root.render(
             </ProductProvider>
           </AuthProvider>
         </ToastProvider>
-      </HashRouter>
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </HashRouter>
+  </React.StrictMode>
 );
