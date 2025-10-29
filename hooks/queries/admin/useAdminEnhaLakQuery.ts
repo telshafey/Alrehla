@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { mockOrders, mockSubscriptions, mockPersonalizedProducts, mockUsers, mockChildProfiles } from '../../../data/mockData';
-import type { Order, OrderWithRelations, UserProfile, ChildProfile, PersonalizedProduct, Subscription } from '../../../lib/database.types';
+import { mockOrders, mockSubscriptions, mockPersonalizedProducts, mockUsers, mockChildProfiles, mockSubscriptionPlans } from '../../../data/mockData';
+import type { Order, OrderWithRelations, UserProfile, ChildProfile, PersonalizedProduct, Subscription, SubscriptionPlan } from '../../../lib/database.types';
 
 const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
 
@@ -27,6 +27,11 @@ export const useAdminOrders = () => useQuery({
 export const useAdminSubscriptions = () => useQuery({
     queryKey: ['adminSubscriptions'],
     queryFn: () => mockFetch(mockSubscriptions) as Promise<Subscription[]>,
+});
+
+export const useAdminSubscriptionPlans = () => useQuery({
+    queryKey: ['adminSubscriptionPlans'],
+    queryFn: () => mockFetch(mockSubscriptionPlans) as Promise<SubscriptionPlan[]>,
 });
 
 export const useAdminPersonalizedProducts = () => useQuery({

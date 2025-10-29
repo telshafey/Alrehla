@@ -130,24 +130,6 @@ const AdminContentManagementPage: React.FC = () => {
                                         </FormField>
                                     </div>
                                 </Accordion>
-                                <Accordion title="صفحة صندوق الرحلة">
-                                     <div className="p-4 space-y-4">
-                                         <FormField label="العنوان الرئيسي" htmlFor="el_sub_heroTitle">
-                                            <Input id="el_sub_heroTitle" value={content.enhaLakPage.subscription.heroTitle} onChange={(e) => handleNestedChange('enhaLakPage', 'subscription', 'heroTitle', e.target.value)} />
-                                        </FormField>
-                                        <FormField label="النص التعريفي" htmlFor="el_sub_heroSubtitle">
-                                            <Textarea id="el_sub_heroSubtitle" value={content.enhaLakPage.subscription.heroSubtitle} onChange={(e) => handleNestedChange('enhaLakPage', 'subscription', 'heroSubtitle', e.target.value)} rows={3}/>
-                                        </FormField>
-                                        <FormField label="ميزات الصندوق (كل ميزة في سطر)" htmlFor="el_sub_features">
-                                            <Textarea 
-                                                id="el_sub_features" 
-                                                value={(content.enhaLakPage.subscription.features || []).join('\n')} 
-                                                onChange={(e) => handleNestedChange('enhaLakPage', 'subscription', 'features', e.target.value.split('\n'))} 
-                                                rows={4}
-                                            />
-                                        </FormField>
-                                    </div>
-                                </Accordion>
                             </div>
                         </TabsContent>
                         

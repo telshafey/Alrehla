@@ -28,7 +28,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen, isCollap
     
     const enhaLakLinks = [
         { to: '/admin/orders', label: 'الطلبات', icon: <ShoppingBag size={20} />, permission: permissions.canManageEnhaLakOrders },
-        { to: '/admin/subscriptions', label: 'الاشتراكات', icon: <Star size={20} />, permission: permissions.canManageEnhaLakSubscriptions },
+        { to: '/admin/subscriptions', label: 'المشتركون', icon: <Users size={20} />, permission: permissions.canManageEnhaLakSubscriptions },
+        { to: '/admin/subscription-box', label: 'إدارة صندوق الرحلة', icon: <Star size={20} />, permission: permissions.canManageEnhaLakProducts },
         { to: '/admin/personalized-products', label: 'المنتجات', icon: <Gift size={20} />, permission: permissions.canManageEnhaLakProducts },
     ];
 

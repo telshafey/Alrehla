@@ -44,6 +44,7 @@ const StudentDashboardPage = React.lazy(() => import('./pages/student/StudentDas
 
 // New Admin Product Detail Page
 const AdminProductDetailPage = React.lazy(() => import('./pages/admin/AdminProductDetailPage'));
+const AdminSubscriptionBoxPage = React.lazy(() => import('./pages/admin/AdminSubscriptionBoxPage'));
 
 
 const AppRoutes: React.FC = () => {
@@ -102,6 +103,7 @@ const AppRoutes: React.FC = () => {
                     {/* Nested route for product detail page */}
                     <Route path="personalized-products/new" element={<AdminProductDetailPage />} />
                     <Route path="personalized-products/:id" element={<AdminProductDetailPage />} />
+                    <Route path="subscription-box" element={<AdminSubscriptionBoxPage />} />
                 </Route>
             </Routes>
         </Suspense>

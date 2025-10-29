@@ -67,7 +67,7 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                                         <td className="p-3 flex items-center gap-2">
                                             {product.key === 'subscription_box' ? (
                                                 <>
-                                                    <Button onClick={() => navigate(`/admin/subscriptions`)} variant="ghost" size="icon" className="text-gray-500 hover:text-blue-600" title="إدارة الاشتراكات"><Settings size={20} /></Button>
+                                                    <Button onClick={() => navigate(`/admin/subscription-box`)} variant="ghost" size="icon" className="text-gray-500 hover:text-blue-600" title="إدارة الصندوق"><Settings size={20} /></Button>
                                                     <Button disabled variant="ghost" size="icon" className="text-gray-300 cursor-not-allowed" title="لا يمكن حذف المنتج الأساسي"><Trash2 size={20} /></Button>
                                                 </>
                                             ) : (
