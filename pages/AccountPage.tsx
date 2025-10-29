@@ -15,7 +15,7 @@ import { LayoutDashboard, BookOpen, Settings, Bell, Users } from 'lucide-react';
 type AccountTab = 'dashboard' | 'myLibrary' | 'familyCenter' | 'settings' | 'notifications';
 
 const AccountPage: React.FC = () => {
-    const { isLoggedIn, loading: authLoading, hasAdminAccess } = useAuth();
+    const { isLoggedIn, loading: authLoading, hasAdminAccess, currentUser } = useAuth();
     const location = useLocation();
     
     const defaultTab = (location.state as any)?.defaultTab || 'dashboard';
@@ -30,6 +30,10 @@ const AccountPage: React.FC = () => {
 
     if (authLoading) {
         return <PageLoader text="جاري تحميل صفحة الحساب..." />;
+    }
+
+    if (isLoggedIn && currentUser?.role === 'student') {
+        return <Navigate to="/student/dashboard" replace />;
     }
 
     if (isLoggedIn && hasAdminAccess) {

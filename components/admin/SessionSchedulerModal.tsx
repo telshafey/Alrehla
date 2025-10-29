@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, Calendar } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useModalAccessibility } from '../../hooks/useModalAccessibility';
-import { useSchedulingMutations } from '../../hooks/mutations';
+// REFACTOR: Use the new feature-specific mutation hook.
+import { useSchedulingMutations } from '../../hooks/mutations/useSchedulingMutations';
 import type { Subscription } from '../../lib/database.types';
 import { Button } from '../ui/Button';
 import FormField from '../ui/FormField';

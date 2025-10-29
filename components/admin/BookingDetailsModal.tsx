@@ -1,8 +1,6 @@
 import React, { useRef } from 'react';
 import { X, Link as LinkIcon } from 'lucide-react';
-// REFACTOR: Use the specialized booking mutations hook.
-// FIX: Corrected import path
-import { useBookingMutations } from '../../hooks/mutations';
+import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
 import type { CreativeWritingBooking, BookingStatus } from '../../lib/database.types';
 import { formatDate, getStatusColor } from '../../utils/helpers';
 import { useModalAccessibility } from '../../hooks/useModalAccessibility';
@@ -22,7 +20,6 @@ const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label,
     </div>
 );
 
-// FIX: Changed to a named export to resolve module resolution issues.
 export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClose, booking }) => {
     const { updateBookingStatus } = useBookingMutations();
     const modalRef = useRef<HTMLDivElement>(null);

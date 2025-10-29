@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, ShoppingBag, Star, ArrowLeft, Video, BookOpen } from 'lucide-react';
-// FIX: Corrected import path
-import { useUserAccountData } from '../../hooks/userQueries';
+import { useUserAccountData } from '../../hooks/queries/user/useUserDataQuery';
 import { formatDate } from '../../utils/helpers';
 import type { Order, Subscription, CreativeWritingBooking } from '../../lib/database.types';
 

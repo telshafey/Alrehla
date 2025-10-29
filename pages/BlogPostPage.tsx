@@ -1,56 +1,62 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-// FIX: Corrected import path
-import { usePublicData } from '../hooks/publicQueries';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
 import { formatDate } from '../utils/helpers';
 import ShareButtons from '../components/shared/ShareButtons';
-import { Calendar, User, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 const BlogPostPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
     const { data, isLoading, error } = usePublicData();
-    const blogPosts = data?.blogPosts || [];
-
-    if (isLoading) return <PageLoader />;
-
-    const post = blogPosts.find(p => p.slug === slug);
-
-    if (error) return <div className="text-center text-red-500 py-12">{error.message}</div>;
-    if (!post) return <div className="text-center py-12">لم يتم العثور على المقال.</div>;
-
     const pageUrl = window.location.href;
 
-    return (
-        <div className="bg-white py-16 sm:py-20 animate-fadeIn">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
-                <article>
-                    <header className="mb-12">
-                         <Link to="/blog" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold mb-6">
-                            <ArrowLeft size={18} />
-                            <span>العودة إلى المدونة</span>
-                        </Link>
-                        <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-800 leading-tight">
-                            {post.title}
-                        </h1>
-                        <div className="flex items-center gap-6 mt-6 text-sm text-gray-500">
-                            <div className="flex items-center gap-2"><User size={16} /><span>{post.author_name}</span></div>
-                            <div className="flex items-center gap-2"><Calendar size={16} /><span>{formatDate(post.published_at)}</span></div>
-                        </div>
-                    </header>
-                    {post.image_url && (
-                        <img src={post.image_url} alt={post.title} className="w-full h-auto rounded-2xl shadow-lg mb-12" />
-                    )}
-                    <div className="prose prose-lg max-w-none text-gray-700 leading-loose">
-                        {post.content.split('\n').map((paragraph, index) => (
-                            <p key={index}>{paragraph}</p>
-                        ))}
-                    </div>
+    if (isLoading) {
+        return <PageLoader text="جاري تحميل المقال..." />;
+    }
 
-                    <footer className="mt-12 pt-8 border-t">
-                        <ShareButtons title={post.title} url={pageUrl} label="شارك المقال:" />
-                    </footer>
-                </article>
+    const post = data?.blogPosts.find(p => p.slug === slug && p.status === 'published');
+
+    if (error) {
+        return <div className="text-center py-20 text-red-500">{(error as Error).message}</div>;
+    }
+
+    if (!post) {
+        return <div className="text-center py-20">لم يتم العثور على المقال.</div>;
+    }
+
+    return (
+        <div className="bg-white py-16 sm:py-20">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="max-w-4xl mx-auto">
+                    <Link to="/blog" className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-semibold mb-8">
+                        <ArrowLeft size={16} />
+                        العودة إلى المدونة
+                    </Link>
+                    <article>
+                        <header className="mb-8">
+                             <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-800 leading-tight">{post.title}</h1>
+                            <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+                               <span>{post.author_name}</span>
+                               <span>{formatDate(post.published_at)}</span>
+                            </div>
+                        </header>
+                        
+                        {post.image_url && (
+                             <img src={post.image_url} alt={post.title} className="w-full rounded-2xl shadow-lg mb-8" />
+                        )}
+
+                        <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed text-right">
+                           {post.content.split('\n').map((paragraph, index) => (
+                                <p key={index}>{paragraph}</p>
+                            ))}
+                        </div>
+
+                        <footer className="mt-12 pt-8 border-t">
+                             <ShareButtons title={post.title} url={pageUrl} label="شارك المقال:" />
+                        </footer>
+                    </article>
+                </div>
             </div>
         </div>
     );

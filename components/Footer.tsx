@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Loader2 } from 'lucide-react';
-import { usePublicData } from '../hooks/publicQueries';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 
 const Footer: React.FC = () => {
     const { data, isLoading } = usePublicData();
@@ -16,7 +16,7 @@ const Footer: React.FC = () => {
                     <div>
                         <h3 className="text-lg font-bold mb-4">منصة الرحلة</h3>
                         <p className="text-gray-400 text-sm">
-                            {siteContent?.aboutPage.missionStatement || "نؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً، تكون مرآة تعكس شخصية الطفل الفريدة، وتعزز هويته العربية، وتغرس في قلبه أسمى القيم الإنسانية."}
+                            {siteContent?.aboutPage.missionStatement || "nؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً، تكون مرآة تعكس شخصية الطفل الفريدة، وتعزز هويته العربية، وتغرس في قلبه أسمى القيم الإنسانية."}
                         </p>
                     </div>
 

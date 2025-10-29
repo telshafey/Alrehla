@@ -1,3 +1,5 @@
+import type { Subscription } from '../lib/database.types';
+
 export const getStatusColor = (status: string | null): string => {
     if (!status) return 'bg-gray-100 text-gray-800';
     switch (status) {
@@ -43,4 +45,24 @@ export const daysInMonth = (date: Date): number => {
 
 export const firstDayOfMonth = (date: Date): number => {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+};
+
+export const getSubStatusText = (status: Subscription['status']) => {
+    switch (status) {
+        case 'active': return 'نشط';
+        case 'paused': return 'متوقف مؤقتاً';
+        case 'cancelled': return 'ملغي';
+        case 'pending_payment': return 'بانتظار الدفع';
+        default: return status;
+    }
+};
+
+export const getSubStatusColor = (status: Subscription['status']) => {
+    switch (status) {
+        case 'active': return 'bg-green-100 text-green-800';
+        case 'paused': return 'bg-yellow-100 text-yellow-800';
+        case 'cancelled': return 'bg-red-100 text-red-800';
+        case 'pending_payment': return 'bg-gray-200 text-gray-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
 };

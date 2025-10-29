@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Eye, ShoppingBag } from 'lucide-react';
-import { useAdminOrders } from '../../hooks/adminQueries';
+import { useAdminOrders } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import PageLoader from '../../components/ui/PageLoader';
 import AdminSection from '../../components/admin/AdminSection';
 import ViewOrderModal from '../../components/admin/ViewOrderModal';
@@ -9,6 +9,7 @@ import type { OrderWithRelations, OrderStatus } from '../../lib/database.types';
 import { Button } from '../../components/ui/Button';
 import StatFilterCard from '../../components/admin/StatFilterCard';
 import { Input } from '../../components/ui/Input';
+import ErrorState from '../../components/ui/ErrorState';
 
 const orderStatuses: OrderStatus[] = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "تم الشحن", "تم التسليم", "ملغي"];
 const statusColors: { [key in OrderStatus]: string } = {
@@ -23,7 +24,7 @@ const statusColors: { [key in OrderStatus]: string } = {
 
 
 const AdminOrdersPage: React.FC = () => {
-    const { data: orders = [], isLoading, error } = useAdminOrders();
+    const { data: orders = [], isLoading, error, refetch } = useAdminOrders();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<OrderWithRelations | null>(null);
     const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
@@ -59,7 +60,7 @@ const AdminOrdersPage: React.FC = () => {
     };
     
     if (isLoading) return <PageLoader text="جاري تحميل الطلبات..." />;
-    if (error) return <div className="text-center text-red-500">{(error as Error).message}</div>;
+    if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
         <>

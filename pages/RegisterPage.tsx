@@ -73,19 +73,16 @@ const UnderageNotice: React.FC<{ onParentRegister: () => void, onGoBack: () => v
 const RegisterPage: React.FC = () => {
     type Step = 'age' | 'underage' | 'form';
     const [step, setStep] = useState<Step>('age');
-    const [role, setRole] = useState<UserRole>('user');
 
     const handleAgeSubmit = (submittedAge: number) => {
         if (submittedAge < 12) {
             setStep('underage');
         } else {
-            setRole('user');
             setStep('form');
         }
     };
 
     const handleParentRegister = () => {
-        setRole('parent');
         setStep('form');
     };
     
@@ -105,11 +102,7 @@ const RegisterPage: React.FC = () => {
                         <ArrowLeft size={16} />
                         <span>العودة</span>
                     </button>
-                    <AuthForm
-                        mode="signup"
-                        initialRole={role}
-                        disableRoleSelection={true}
-                    />
+                    <AuthForm mode="signup" />
                 </div>
             )}
         </div>

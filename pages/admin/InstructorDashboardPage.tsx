@@ -1,6 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useAdminInstructors, useAdminRawCwBookings, useAdminAllChildProfiles, transformCwBookings, useAdminCWSettings, useAdminScheduledSessions } from '../../hooks/adminQueries';
+import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
+import { useAdminRawCwBookings, transformCwBookings } from '../../hooks/queries/admin/useAdminBookingsQuery';
+import { useAdminAllChildProfiles } from '../../hooks/queries/admin/useAdminUsersQuery';
+import { useAdminCWSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
+import { useAdminScheduledSessions } from '../../hooks/queries/admin/useAdminSchedulingQuery';
 import PageLoader from '../../components/ui/PageLoader';
 import InstructorDashboardPanel from '../../components/admin/dashboards/InstructorDashboardPanel';
 import InstructorJourneysPanel from '../../components/admin/dashboards/InstructorJourneysPanel';

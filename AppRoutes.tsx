@@ -42,6 +42,9 @@ const TrainingJourneyPage = React.lazy(() => import('./pages/TrainingJourneyPage
 const StudentLoginPage = React.lazy(() => import('./pages/StudentLoginPage'));
 const StudentDashboardPage = React.lazy(() => import('./pages/student/StudentDashboardPage'));
 
+// New Admin Product Detail Page
+const AdminProductDetailPage = React.lazy(() => import('./pages/admin/AdminProductDetailPage'));
+
 
 const AppRoutes: React.FC = () => {
     return (
@@ -95,7 +98,11 @@ const AppRoutes: React.FC = () => {
                     <ProtectedRoute adminOnly>
                         <AdminLayout />
                     </ProtectedRoute>
-                }/>
+                }>
+                    {/* Nested route for product detail page */}
+                    <Route path="personalized-products/new" element={<AdminProductDetailPage />} />
+                    <Route path="personalized-products/:id" element={<AdminProductDetailPage />} />
+                </Route>
             </Routes>
         </Suspense>
     );

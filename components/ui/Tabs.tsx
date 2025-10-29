@@ -1,3 +1,5 @@
+
+
 import React from 'react';
 
 // This is a simplified implementation of a Tabs component to satisfy the usage in the app.
@@ -11,7 +13,6 @@ const TabsContext = React.createContext<TabsContextType | null>(null);
 
 export const Tabs: React.FC<{ value: string; onValueChange: (value: string) => void; children: React.ReactNode; className?: string }> = ({ value, onValueChange, children, className }) => {
     return (
-        // FIX: The context value expects 'onTabChange', but the component prop is 'onValueChange'. This maps the prop to the context value key.
         <TabsContext.Provider value={{ activeTab: value, onTabChange: onValueChange }}>
             <div className={className}>{children}</div>
         </TabsContext.Provider>

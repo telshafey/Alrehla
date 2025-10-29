@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { UserPlus, Eye } from 'lucide-react';
-import { useAdminJoinRequests } from '../../hooks/adminQueries';
-// FIX: Corrected import path
-import { useCommunicationMutations } from '../../hooks/mutations';
+import { useAdminJoinRequests } from '../../hooks/queries/admin/useAdminCommunicationQuery';
+import { useCommunicationMutations } from '../../hooks/mutations/useCommunicationMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import AdminSection from '../../components/admin/AdminSection';
 import ViewJoinRequestModal from '../../components/admin/ViewJoinRequestModal';
@@ -112,7 +111,7 @@ const AdminJoinRequestsPage: React.FC = () => {
                                 ))}
                             </tbody>
                         </table>
-                         {filteredRequests.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد طلبات انضمام تطابق بحثك.</p>}
+                         {filteredRequests.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد طلبات تطابق بحثك.</p>}
                     </div>
                 </AdminSection>
             </div>

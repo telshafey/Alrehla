@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
-import { useProduct } from './ProductContext';
 
 // A self-contained UUID generator to avoid potential module resolution issues with external libraries.
 function uuidv4() {
@@ -28,7 +27,6 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { prices } = useProduct();
     const [cart, setCart] = useState<CartItem[]>(() => {
         try {
             const localData = sessionStorage.getItem('alrehlaCart');
@@ -62,20 +60,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     
     const getCartTotal = useMemo(() => () => {
-        if (!prices) return 0;
         return cart.reduce((total, item) => {
-            if (item.type === 'order') {
-                return total + (item.payload.totalPrice || 0);
-            }
-            if (item.type === 'booking') {
-                return total + (item.payload.total || 0);
-            }
-            if (item.type === 'subscription') {
-                return total + (prices.subscriptionBox || 0);
-            }
-            return total;
+            const itemTotal = item.payload.total || item.payload.totalPrice || 0;
+            return total + itemTotal;
         }, 0);
-    }, [cart, prices]);
+    }, [cart]);
 
     const value = {
         cart,

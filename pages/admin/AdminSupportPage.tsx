@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MessageSquare, Eye } from 'lucide-react';
-import { useAdminSupportTickets } from '../../hooks/adminQueries';
-// FIX: Corrected import path
-import { useCommunicationMutations } from '../../hooks/mutations';
+import { useAdminSupportTickets } from '../../hooks/queries/admin/useAdminCommunicationQuery';
+import { useCommunicationMutations } from '../../hooks/mutations/useCommunicationMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import AdminSection from '../../components/admin/AdminSection';
 import ViewTicketModal from '../../components/admin/ViewTicketModal';

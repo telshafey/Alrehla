@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '../contexts/ToastContext';
 import { useProduct } from '../contexts/ProductContext';
-import { useOrderData } from '../hooks/publicQueries';
+import { useOrderData } from '../hooks/queries/public/usePageDataQuery';
 import OrderStepper from '../components/order/OrderStepper';
 import ChildDetailsSection from '../components/order/ChildDetailsSection';
 import StoryCustomizationSection from '../components/order/StoryCustomizationSection';
@@ -13,12 +13,16 @@ import ImageUploadSection from '../components/order/ImageUploadSection';
 import AddonsSection from '../components/order/AddonsSection';
 import DeliverySection from '../components/order/DeliverySection';
 import InteractivePreview from '../components/order/InteractivePreview';
+import StoryIdeasModal from '../components/order/StoryIdeasModal';
 import { Button } from '../components/ui/Button';
-import type { ChildProfile } from '../lib/database.types';
+import FormField from '../components/ui/FormField';
+import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Textarea';
+import type { ChildProfile, PersonalizedProduct, TextFieldConfig } from '../lib/database.types';
 
-type OrderStep = 'child' | 'customization' | 'images' | 'addons' | 'delivery';
+type OrderStep = string;
 
-const stepsConfig = [
+const defaultSteps = [
     { key: 'child', title: 'بيانات الطفل' },
     { key: 'customization', title: 'تخصيص القصة' },
     { key: 'images', title: 'رفع الصور' },
@@ -26,12 +30,33 @@ const stepsConfig = [
     { key: 'delivery', title: 'التوصيل' },
 ];
 
-const getPrice = (key: string, prices: any): number => {
-    if (!prices) return 0;
-    const camelKey = key.replace(/_(\w)/g, (_, c) => c.toUpperCase());
-    if (key === 'custom_story') return prices.story.printed;
-    return prices[camelKey as keyof typeof prices] || 0;
-};
+const emotionStorySteps = [
+    { key: 'child_context', title: 'بيانات البطل والسياق' },
+    { key: 'emotion_journey', title: 'رحلة المشاعر' },
+    { key: 'creative_touches', title: 'لمسات إبداعية' },
+    { key: 'images', title: 'رفع الصور' },
+    { key: 'addons', title: 'إضافات' },
+    { key: 'delivery', title: 'التوصيل' },
+];
+
+const DynamicTextFields: React.FC<{
+    fields: TextFieldConfig[];
+    formData: { [key: string]: any };
+    errors: { [key: string]: string };
+    handleChange: (e: any) => void;
+}> = ({ fields, formData, errors, handleChange }) => (
+    <div className="space-y-6">
+        {fields.map(field => (
+            <FormField key={field.id} label={field.label} htmlFor={field.id} error={errors[field.id]}>
+                {field.type === 'textarea' ? (
+                    <Textarea id={field.id} name={field.id} value={formData[field.id] || ''} onChange={handleChange} rows={4} placeholder={field.placeholder} required={field.required} />
+                ) : (
+                    <Input id={field.id} name={field.id} value={formData[field.id] || ''} onChange={handleChange} placeholder={field.placeholder} required={field.required} />
+                )}
+            </FormField>
+        ))}
+    </div>
+);
 
 
 const OrderPage: React.FC = () => {
@@ -39,43 +64,38 @@ const OrderPage: React.FC = () => {
     const navigate = useNavigate();
     const { addToast } = useToast();
     const { addItemToCart } = useCart();
-    const { prices, shippingCosts, loading: productContextLoading } = useProduct();
+    const { shippingCosts, loading: productContextLoading } = useProduct();
     const { data: orderData, isLoading: orderDataLoading } = useOrderData();
     const { isLoggedIn, childProfiles } = useAuth();
     
-    const [step, setStep] = useState<OrderStep>('child');
+    const product = useMemo(() => 
+        orderData?.personalizedProducts.find(p => p.key === productKey) as PersonalizedProduct | undefined, 
+    [orderData, productKey]);
+
+    const stepsConfig = useMemo(() => productKey === 'emotion_story' ? emotionStorySteps : defaultSteps, [productKey]);
+    
+    const [step, setStep] = useState<OrderStep>(stepsConfig[0].key);
     const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
-    const [formData, setFormData] = useState({
-        childName: '',
-        childAge: '',
-        childGender: 'ذكر' as 'ذكر' | 'أنثى',
-        childTraits: '',
-        storyValue: '',
-        customGoal: '',
-        familyNames: '',
-        friendNames: '',
-        deliveryType: 'printed' as 'printed' | 'electronic',
-        shippingOption: 'my_address' as 'my_address' | 'gift',
+    const [formData, setFormData] = useState<{[key: string]: any}>({
+        deliveryType: 'printed',
+        shippingOption: 'my_address',
         governorate: 'القاهرة',
-        giftName: '',
-        giftAddress: '',
-        giftPhone: '',
     });
     const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
     const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({});
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+    const [isIdeasModalOpen, setIsIdeasModalOpen] = useState(false);
 
-
-    const product = useMemo(() => 
-        orderData?.personalizedProducts.find(p => p.key === productKey), 
-    [orderData, productKey]);
     
     useEffect(() => {
+        if (product && !product.has_printed_version) {
+            setFormData(prev => ({ ...prev, deliveryType: 'electronic' }));
+        }
         if(product?.key === 'gift_box' && orderData) {
             const addonKeys = orderData.personalizedProducts
-                .filter(p => !['custom_story', 'gift_box'].includes(p.key))
+                .filter(p => p.is_addon)
                 .map(p => p.key);
             setSelectedAddons(addonKeys);
         }
@@ -84,20 +104,27 @@ const OrderPage: React.FC = () => {
     const isLoading = productContextLoading || orderDataLoading;
     
     const addonProducts = useMemo(() => 
-        orderData?.personalizedProducts.filter(p => !['custom_story', 'gift_box'].includes(p.key)) || [],
+        orderData?.personalizedProducts.filter(p => p.is_addon) || [],
     [orderData]);
 
+    const storyGoals = useMemo(() => product?.story_goals || [], [product]);
+
     const basePrice = useMemo(() => {
-        if (!prices || !product) return 0;
-        if (formData.deliveryType === 'electronic' && (product.key === 'custom_story' || product.key === 'gift_box')) {
-            return prices.story.electronic;
+        if (!product) return 0;
+        if (formData.deliveryType === 'electronic') {
+            return product.price_electronic || 0;
         }
-        return getPrice(product.key, prices);
-    }, [prices, product, formData.deliveryType]);
+        return product.price_printed || 0;
+    }, [product, formData.deliveryType]);
     
     const addonsPrice = useMemo(() => {
-        return selectedAddons.reduce((total, key) => total + getPrice(key, prices), 0);
-    }, [selectedAddons, prices]);
+        return selectedAddons.reduce((total, key) => {
+            const addonProd = addonProducts.find(p => p.key === key);
+            if (!addonProd) return total;
+            const price = addonProd.has_printed_version ? addonProd.price_printed : addonProd.price_electronic;
+            return total + (price || 0);
+        }, 0);
+    }, [selectedAddons, addonProducts]);
 
     const shippingPrice = useMemo(() => {
         if (formData.deliveryType === 'electronic' || !shippingCosts) return 0;
@@ -118,7 +145,7 @@ const OrderPage: React.FC = () => {
 
     const handleFileChange = (id: string, file: File | null) => {
         setImageFiles(prev => ({ ...prev, [id]: file }));
-         if (id === 'child_photo_1') {
+         if (id === product?.image_slots?.find(s => s.required)?.id) {
             if (file) {
                 const url = URL.createObjectURL(file);
                 setImagePreviewUrl(url);
@@ -143,13 +170,12 @@ const OrderPage: React.FC = () => {
                 childGender: child.gender,
             }));
         } else {
-            // This is for manual entry
             setSelectedChildId(null);
             setFormData(prev => ({
                 ...prev,
                 childName: '',
                 childAge: '',
-                childGender: 'ذكر',
+                childGender: '',
             }));
         }
     };
@@ -158,16 +184,56 @@ const OrderPage: React.FC = () => {
         setSelectedAddons(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
     };
 
+    const handleSelectIdea = (idea: { title: string; goal: string }) => {
+        setFormData(prev => ({
+            ...prev,
+            storyValue: 'custom',
+            customGoal: `${idea.title}: ${idea.goal}`
+        }));
+        setIsIdeasModalOpen(false);
+        addToast('تم اختيار الفكرة بنجاح!', 'success');
+    };
+
      const validateStep = () => {
         const newErrors: { [key: string]: string } = {};
+        if (!product) return false;
+        
+        const checkRequiredTextFields = (fields: TextFieldConfig[]) => {
+            fields.forEach(field => {
+                if (field.required && !formData[field.id]?.trim()) {
+                    newErrors[field.id] = `${field.label.replace('*','')} مطلوب.`;
+                }
+            });
+        }
+
         switch(step) {
             case 'child':
-                if (!formData.childName.trim()) newErrors.childName = 'اسم الطفل مطلوب.';
+            case 'child_context':
+                if (!formData.childName?.trim()) newErrors.childName = 'الاسم مطلوب.';
                 if (!formData.childAge) newErrors.childAge = 'عمر الطفل مطلوب.';
                 else if (parseInt(formData.childAge) <= 0) newErrors.childAge = 'العمر يجب أن يكون أكبر من صفر.';
+                if (!formData.childGender) newErrors.childGender = 'الجنس مطلوب.';
+                if (productKey === 'emotion_story') checkRequiredTextFields(product.text_fields?.slice(0, 4) || []);
+                break;
+            case 'customization':
+                checkRequiredTextFields(product.text_fields || []);
+                if (product.goal_config !== 'none' && !formData.storyValue) {
+                    newErrors.storyValue = 'الهدف من القصة مطلوب.';
+                }
+                break;
+            case 'emotion_journey':
+                checkRequiredTextFields(product.text_fields?.slice(4, 8) || []);
+                if (!formData.storyValue) newErrors.storyValue = 'المشاعر المستهدفة مطلوبة.';
+                break;
+            case 'creative_touches':
+                checkRequiredTextFields(product.text_fields?.slice(8, 11) || []);
                 break;
             case 'images':
-                 if (!imageFiles.child_photo_1) newErrors.child_photo_1 = 'صورة وجه الطفل إلزامية.';
+                product.image_slots?.forEach(slot => {
+                    if (slot.required && !imageFiles[slot.id]) {
+                        newErrors[slot.id] = `${slot.label} مطلوب.`;
+                    }
+                });
                 break;
         }
         setErrors(newErrors);
@@ -191,7 +257,7 @@ const OrderPage: React.FC = () => {
         if (currentIndex > 0) {
             setStep(stepsConfig[currentIndex - 1].key as OrderStep);
         } else {
-            navigate(-1); // Go back to the store if on the first step
+            navigate(-1);
         }
     };
 
@@ -228,22 +294,53 @@ const OrderPage: React.FC = () => {
     
     const renderStepContent = () => {
         switch (step) {
-            case 'child': return <ChildDetailsSection 
-                                    formData={formData} 
-                                    handleChange={handleChange} 
-                                    errors={errors}
-                                    childProfiles={childProfiles}
-                                    onSelectChild={handleSelectChild}
-                                    selectedChildId={selectedChildId}
-                                />;
-            case 'customization': return <StoryCustomizationSection formData={formData} handleChange={handleChange} />;
-            case 'images': return <ImageUploadSection files={imageFiles} onFileChange={handleFileChange} errors={errors} />;
-            case 'addons': return <AddonsSection addonProducts={addonProducts} selectedAddons={selectedAddons} onToggle={handleToggleAddon} prices={prices} />;
-            case 'delivery': return <DeliverySection formData={formData} handleChange={handleChange} />;
+            case 'child': return <ChildDetailsSection formData={{childName: formData.childName, childAge: formData.childAge, childGender: formData.childGender}} handleChange={handleChange} errors={errors} childProfiles={childProfiles} onSelectChild={handleSelectChild} selectedChildId={selectedChildId}/>;
+            case 'customization': return <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} onOpenIdeasModal={() => setIsIdeasModalOpen(true)} textFields={product.text_fields || null} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals}/>;
+            case 'images': return <ImageUploadSection files={imageFiles} onFileChange={handleFileChange} errors={errors} imageSlots={product.image_slots || null}/>;
+            case 'addons': return <AddonsSection addonProducts={addonProducts} selectedAddons={selectedAddons} onToggle={handleToggleAddon} />;
+            case 'delivery': return <DeliverySection formData={formData as any} handleChange={handleChange} product={product} />;
+            
+            // Emotion Story Steps
+            case 'child_context':
+                return (
+                    <div>
+                        <ChildDetailsSection formData={{childName: formData.childName, childAge: formData.childAge, childGender: formData.childGender}} handleChange={handleChange} errors={errors} childProfiles={childProfiles} onSelectChild={handleSelectChild} selectedChildId={selectedChildId}/>
+                        <div className="mt-8 pt-8 border-t">
+                            <h3 className="text-xl font-bold text-gray-700 mb-4">معلومات إضافية عن السياق</h3>
+                             <DynamicTextFields fields={product.text_fields?.slice(0, 4) || []} formData={formData} errors={errors} handleChange={handleChange} />
+                        </div>
+                    </div>
+                );
+            case 'emotion_journey':
+                return (
+                     <div>
+                        <h3 className="text-2xl font-bold text-gray-800 mb-6">رحلة المشاعر</h3>
+                        <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} onOpenIdeasModal={() => setIsIdeasModalOpen(true)} textFields={[]} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals}/>
+                        <div className="mt-6">
+                            <DynamicTextFields fields={product.text_fields?.slice(4, 8) || []} formData={formData} errors={errors} handleChange={handleChange} />
+                        </div>
+                    </div>
+                );
+            case 'creative_touches':
+                 return (
+                     <div>
+                        <h3 className="text-2xl font-bold text-gray-800 mb-6">لمسات إبداعية</h3>
+                        <DynamicTextFields fields={product.text_fields?.slice(8, 11) || []} formData={formData} errors={errors} handleChange={handleChange} />
+                    </div>
+                );
         }
     };
 
     return (
+        <>
+        <StoryIdeasModal 
+            isOpen={isIdeasModalOpen}
+            onClose={() => setIsIdeasModalOpen(false)}
+            onSelectIdea={handleSelectIdea}
+            childName={formData.childName}
+            childAge={formData.childAge}
+            childTraits={formData.childTraits}
+        />
         <div className="bg-gray-50 py-12 sm:py-16">
             <div className="container mx-auto px-4">
                 <div className="max-w-5xl mx-auto">
@@ -256,9 +353,9 @@ const OrderPage: React.FC = () => {
                             {renderStepContent()}
                             <div className="flex justify-between pt-6 border-t">
                                 <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />}>
-                                    {step === 'child' ? 'رجوع' : 'السابق'}
+                                    {step === stepsConfig[0].key ? 'رجوع' : 'السابق'}
                                 </Button>
-                                {step !== 'delivery' ? (
+                                {step !== stepsConfig[stepsConfig.length - 1].key ? (
                                     <Button onClick={handleNext}>التالي <ArrowLeft className="mr-2 h-4 w-4" /></Button>
                                 ) : (
                                     <Button onClick={handleSubmit} loading={isSubmitting} variant="success" icon={<ShoppingCart />}>إضافة إلى السلة</Button>
@@ -267,18 +364,25 @@ const OrderPage: React.FC = () => {
                         </div>
                         <div className="lg:col-span-1 sticky top-24">
                             <InteractivePreview 
-                                formData={formData} 
+                                formData={formData as any}
                                 product={product}
                                 basePrice={basePrice}
-                                addons={selectedAddons.map(key => ({ key, title: addonProducts.find(p => p.key === key)?.title || '', price: getPrice(key, prices) }))}
+                                addons={selectedAddons.map(key => {
+                                    const addonProd = addonProducts.find(p => p.key === key);
+                                    if (!addonProd) return { key, title: '', price: 0 };
+                                    const price = addonProd.has_printed_version ? addonProd.price_printed : addonProd.price_electronic;
+                                    return { key, title: addonProd?.title || '', price: price || 0 };
+                                })}
                                 totalPrice={totalPrice}
                                 imagePreviewUrl={imagePreviewUrl}
+                                storyGoals={storyGoals}
                             />
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

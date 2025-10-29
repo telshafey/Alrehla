@@ -2,67 +2,74 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardWidget from './DashboardWidget';
 import StatCard from '../StatCard';
-import BarChart from '../BarChart';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, UserCog, CalendarCheck, ShieldQuestion, Calendar } from 'lucide-react';
 import type { BookingStatus } from '../../../lib/database.types';
 
 interface CreativeWritingDashboardProps {
     data: any;
 }
 
-const statusColors: { [key in BookingStatus]: string } = {
-    "بانتظار الدفع": "#d1d5db", // gray-300
-    "مؤكد": "#93c5fd", // blue-300
-    "مكتمل": "#6ee7b7", // green-300
-    "ملغي": "#fca5a5", // red-300
-};
-
 const CreativeWritingDashboard: React.FC<CreativeWritingDashboardProps> = ({ data }) => {
     const navigate = useNavigate();
-    const { bookings = [] } = data || {};
+    const { bookings = [], instructors = [], supportSessionRequests = [], scheduledSessions = [] } = data || {};
     
     const stats = useMemo(() => {
         const newBookings = bookings.filter((b: any) => b.status === 'بانتظار الدفع').length;
         const confirmedBookings = bookings.filter((b: any) => b.status === 'مؤكد').length;
+        const pendingScheduleUpdates = (instructors || []).filter((i: any) => i.schedule_status === 'pending').length;
+        const pendingProfileUpdates = (instructors || []).filter((i: any) => i.profile_update_status === 'pending').length;
+        const pendingSupportRequests = (supportSessionRequests || []).filter((r: any) => r.status === 'pending').length;
+        const upcomingSessions = (scheduledSessions || []).filter((s: any) => s.status === 'upcoming').length;
 
-        return { newBookings, confirmedBookings };
-    }, [bookings]);
 
-    const bookingChartData = useMemo(() => {
-        const counts = bookings.reduce((acc: { [key: string]: number }, booking: any) => {
-            acc[booking.status] = (acc[booking.status] || 0) + 1;
-            return acc;
-        }, {});
-
-        return Object.entries(counts).map(([label, value]) => ({
-            label,
-            // FIX: Cast value to number to satisfy ChartData type.
-            value: value as number,
-            color: statusColors[label as BookingStatus] || '#9ca3af',
-        }));
-    }, [bookings]);
-
+        return { newBookings, confirmedBookings, pendingScheduleUpdates, pendingProfileUpdates, pendingSupportRequests, upcomingSessions };
+    }, [bookings, instructors, supportSessionRequests, scheduledSessions]);
 
     return (
         <DashboardWidget title="ملخص 'بداية الرحلة'" icon={<BookOpen className="text-purple-500" />}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                <div className="space-y-4">
-                    <StatCard 
-                        title="حجوزات جديدة تنتظر الدفع" 
-                        value={stats.newBookings} 
-                        icon={<BookOpen size={24} className="text-purple-500" />} 
-                        color="bg-purple-100"
-                        onClick={() => navigate('/admin/creative-writing', { state: { statusFilter: 'بانتظار الدفع' } })}
-                    />
-                     <StatCard 
-                        title="جلسات مؤكدة قادمة" 
-                        value={stats.confirmedBookings} 
-                        icon={<BookOpen size={24} className="text-blue-500" />} 
-                        color="bg-blue-100"
-                        onClick={() => navigate('/admin/creative-writing', { state: { statusFilter: 'مؤكد' } })}
-                    />
-                </div>
-                 <BarChart title="حالات الحجوزات" data={bookingChartData} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <StatCard 
+                    title="حجوزات جديدة تنتظر الدفع" 
+                    value={stats.newBookings} 
+                    icon={<BookOpen size={24} className="text-purple-500" />} 
+                    color="bg-purple-100"
+                    onClick={() => navigate('/admin/creative-writing', { state: { statusFilter: 'بانتظار الدفع' } })}
+                />
+                 <StatCard 
+                    title="جلسات مؤكدة قادمة" 
+                    value={stats.confirmedBookings} 
+                    icon={<BookOpen size={24} className="text-blue-500" />} 
+                    color="bg-blue-100"
+                    onClick={() => navigate('/admin/creative-writing', { state: { statusFilter: 'مؤكد' } })}
+                />
+                 <StatCard
+                    title="جلسات مجدولة وقادمة"
+                    value={stats.upcomingSessions}
+                    icon={<Calendar size={24} className="text-teal-500" />}
+                    color="bg-teal-100"
+                    onClick={() => navigate('/admin/scheduled-sessions')}
+                />
+                 <StatCard 
+                    title="طلبات تعديل جداول" 
+                    value={stats.pendingScheduleUpdates} 
+                    icon={<CalendarCheck size={24} className="text-yellow-500" />} 
+                    color="bg-yellow-100"
+                    onClick={() => navigate('/admin/instructors')}
+                />
+                <StatCard 
+                    title="طلبات تحديث ملفات شخصية" 
+                    value={stats.pendingProfileUpdates} 
+                    icon={<UserCog size={24} className="text-orange-500" />} 
+                    color="bg-orange-100"
+                    onClick={() => navigate('/admin/instructors')}
+                />
+                 <StatCard 
+                    title="طلبات دعم من المدربين" 
+                    value={stats.pendingSupportRequests} 
+                    icon={<ShieldQuestion size={24} className="text-red-500" />} 
+                    color="bg-red-100"
+                    onClick={() => navigate('/admin/support-requests')}
+                />
             </div>
         </DashboardWidget>
     );

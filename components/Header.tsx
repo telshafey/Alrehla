@@ -3,10 +3,8 @@ import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { useProduct } from '../contexts/ProductContext';
-// FIX: Corrected import path
-import { useUserNotifications } from '../hooks/userQueries';
-// FIX: Corrected import path
-import { useNotificationMutations } from '../hooks/mutations';
+import { useUserNotifications } from '../hooks/queries/user/useUserDataQuery';
+import { useNotificationMutations } from '../hooks/mutations/useNotificationMutations';
 import { formatDate } from '../utils/helpers';
 import { ShoppingCart, User, Menu, X, Shield, ChevronDown, Bell, LogOut, Trash2, Info, Calendar } from 'lucide-react';
 import { Button } from './ui/Button';
@@ -63,7 +61,16 @@ const Header: React.FC = () => {
 
     const navLinks = [
         { to: '/', text: 'الرئيسية' },
-        { to: '/enha-lak', text: 'إنها لك' },
+        { 
+            to: '/enha-lak', 
+            text: 'إنها لك',
+            subLinks: [
+                { to: '/enha-lak', text: 'عن المشروع' },
+                { to: '/enha-lak/store', text: 'متجر القصص' },
+                { to: '/enha-lak/subscription', text: 'صندوق الرحلة الشهري' },
+                { to: '/enha-lak/store', text: 'اطلب قصتك الآن', isCta: true },
+            ]
+        },
         { 
             to: '/creative-writing', 
             text: 'بداية الرحلة',

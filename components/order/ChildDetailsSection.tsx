@@ -9,12 +9,13 @@ interface ChildDetailsSectionProps {
     formData: {
         childName: string;
         childAge: string;
-        childGender: 'ذكر' | 'أنثى';
+        childGender: 'ذكر' | 'أنثى' | '';
     };
     handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
     errors: {
         childName?: string;
         childAge?: string;
+        childGender?: string;
     };
     childProfiles: ChildProfile[];
     onSelectChild: (child: ChildProfile | null) => void;
@@ -64,14 +65,15 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({ formData, han
 
             {(isManual || childProfiles.length === 0) && (
                 <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
-                    <FormField label="اسم الطفل*" htmlFor="childName" error={errors.childName}>
+                    <FormField label="الاسم*" htmlFor="childName" error={errors.childName}>
                         <Input type="text" id="childName" name="childName" value={formData.childName} onChange={handleChange} required className={errors.childName ? 'border-red-500' : ''}/>
                     </FormField>
                     <FormField label="العمر*" htmlFor="childAge" error={errors.childAge}>
                         <Input type="number" id="childAge" name="childAge" value={formData.childAge} onChange={handleChange} required className={errors.childAge ? 'border-red-500' : ''} />
                     </FormField>
-                    <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2">
-                        <Select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange}>
+                    <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={errors.childGender}>
+                        <Select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange} required className={errors.childGender ? 'border-red-500' : ''}>
+                            <option value="" disabled>-- اختر الجنس --</option>
                             <option value="ذكر">ذكر</option>
                             <option value="أنثى">أنثى</option>
                         </Select>

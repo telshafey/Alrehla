@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Loader2 } from 'lucide-react';
-// FIX: Corrected import path
-import { usePublicData } from '../hooks/publicQueries';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import type { Instructor } from '../lib/database.types';
 
 const SkeletonInstructorCard: React.FC = () => (
@@ -43,14 +42,15 @@ const InstructorCard: React.FC<{ instructor: Instructor }> = ({ instructor }) =>
 const CreativeWritingInstructorsPage: React.FC = () => {
     const { data, isLoading, error } = usePublicData();
     const instructors = data?.instructors || [];
+    const content = data?.siteContent?.creativeWritingPage.instructors;
 
     return (
          <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-16">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">رفقاء الرحلة الملهمون</h1>
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">{content?.heroTitle}</h1>
                     <p className="mt-4 max-w-3xl mx-auto text-lg text-gray-600">
-                        نؤمن أن الإبداع لا يُلقّن، بل يُلهم. لذلك، اخترنا بعناية نخبة من الكتّاب والتربويين المتخصصين ليكونوا أكثر من مجرد مدربين؛ إنهم مرشدون وشغوفون يرافقون طفلك في رحلته، ويساعدونه على اكتشاف صوته الفريد وبناء ثقته بنفسه.
+                        {content?.heroSubtitle}
                     </p>
                 </div>
 

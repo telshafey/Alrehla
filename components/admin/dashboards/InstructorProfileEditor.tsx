@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Save } from 'lucide-react';
 import type { Instructor } from '../../../lib/database.types';
-import { useInstructorMutations } from '../../../hooks/mutations';
+import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
 import { Textarea } from '../../ui/Textarea';
@@ -13,7 +13,7 @@ interface InstructorProfileEditorProps {
 }
 
 const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instructor, disabled }) => {
-    const { updateInstructor: requestProfileUpdate } = useInstructorMutations();
+    const { requestProfileUpdate } = useInstructorMutations();
     const [bio, setBio] = useState(instructor.bio || '');
     const [rate, setRate] = useState(instructor.rate_per_session?.toString() || '');
     const [justification, setJustification] = useState('');
@@ -22,15 +22,12 @@ const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instr
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         await requestProfileUpdate.mutateAsync({ 
-            id: instructor.id,
-            pending_profile_data: {
-                updates: {
-                    bio,
-                    rate_per_session: parseFloat(rate) || 0,
-                },
-                justification
+            instructorId: instructor.id,
+            updates: {
+                bio,
+                rate_per_session: parseFloat(rate) || 0,
             },
-            profile_update_status: 'pending'
+            justification
         });
         setJustification('');
     };

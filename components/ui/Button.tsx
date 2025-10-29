@@ -1,3 +1,5 @@
+
+
 import React, { Children } from 'react';
 import { Loader2 } from 'lucide-react';
 
@@ -40,17 +42,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       if (!React.isValidElement(child)) {
         return null;
       }
-      // FIX: Cast child to React.ReactElement<any> to resolve type errors with props and ref when cloning.
       return React.cloneElement(child as React.ReactElement<any>, {
         ...props,
         ref,
-        // FIX: The type of `child.props` can be unknown to TypeScript. Casting to `any` allows safe access to `className`.
         className: `${buttonClasses} ${(child.props as any).className || ''}`,
         children: (
           <>
             {loading && <Loader2 className="animate-spin" size={size === 'sm' ? 16 : 20} />}
             {!loading && icon}
-            {/* FIX: The type of `child.props` can be unknown to TypeScript. Casting to `any` allows safe access to `children`. */}
             {!loading && (child.props as any).children && <span>{(child.props as any).children}</span>}
           </>
         ),

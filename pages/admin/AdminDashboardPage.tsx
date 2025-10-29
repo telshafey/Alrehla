@@ -1,24 +1,25 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useAdminDashboardData } from '../../hooks/adminDashboardQueries';
+import { useAdminDashboardData } from '../../hooks/queries/admin/useAdminDashboardDataQuery';
 import PageLoader from '../../components/ui/PageLoader';
 import StatsSummaryWidget from '../../components/admin/dashboards/StatsSummaryWidget';
-// FIX: Corrected import paths
 import EnhaLakDashboard from '../../components/admin/dashboards/EnhaLakDashboard';
 import CreativeWritingDashboard from '../../components/admin/dashboards/CreativeWritingDashboard';
 import ContentDashboard from '../../components/admin/dashboards/ContentDashboard';
 import SupportDashboard from '../../components/admin/dashboards/SupportDashboard';
+import ErrorState from '../../components/ui/ErrorState';
+import RecentActivityWidget from '../../components/admin/dashboards/RecentActivityWidget';
 
 const AdminDashboardPage: React.FC = () => {
     const { permissions, currentUser } = useAuth();
-    const { data, isLoading, error } = useAdminDashboardData();
+    const { data, isLoading, error, refetch } = useAdminDashboardData();
 
     if (isLoading) {
         return <PageLoader text="جاري تحميل لوحة التحكم..." />;
     }
 
     if (error) {
-        return <div className="text-center text-red-500 p-4">{(error as Error).message}</div>;
+        return <ErrorState message={(error as Error).message} onRetry={refetch} />;
     }
 
     const canViewAnyStats = permissions.canViewGlobalStats || permissions.canViewEnhaLakStats || permissions.canViewCreativeWritingStats || permissions.canViewContentStats || permissions.canViewSupportStats;
@@ -57,6 +58,8 @@ const AdminDashboardPage: React.FC = () => {
             ) : (
                 <>
                     {permissions.canViewGlobalStats && <StatsSummaryWidget data={data} />}
+
+                    <RecentActivityWidget data={data} />
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {gridWidgets.filter(widget => widget.permission).map((widget, index) => (

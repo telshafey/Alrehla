@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import type { ChildProfile } from '../../contexts/AuthContext';
 import { useAuth } from '../../contexts/AuthContext';
-// FIX: Corrected import path
-import { useUserAccountData } from '../../hooks/userQueries';
-import { useUserMutations } from '../../hooks/mutations';
+import { useUserAccountData } from '../../hooks/queries/user/useUserDataQuery';
+import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import { Users, UserPlus } from 'lucide-react';
 import { Button } from '../ui/Button';
 import EmptyState from './EmptyState';
@@ -93,11 +92,11 @@ const FamilyCenterPanel: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                    <EmptyState
+                    <EmptyState 
                         icon={<Users className="w-12 h-12 text-gray-400" />}
-                        title="لم تقم بإضافة أطفال بعد"
-                        message="إضافة ملفات أطفالك يساعدنا على تخصيص تجربتهم وتسهيل عملية الطلب والمتابعة."
-                        actionText="إضافة طفل جديد"
+                        title="أضف أطفالك لبدء رحلتهم"
+                        message="المركز العائلي هو مكانك لإدارة ملفات أطفالك، ومتابعة رحلاتهم الإبداعية، وإنشاء حسابات طلابية لهم."
+                        actionText="أضف طفلك الأول"
                         onAction={handleAddChild}
                     />
                 )}

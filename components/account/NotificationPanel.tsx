@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, ShoppingBag, Calendar, Info, CheckCheck } from 'lucide-react';
-// FIX: Corrected import path
-import { useUserNotifications } from '../../hooks/userQueries';
-import { useNotificationMutations } from '../../hooks/mutations';
+import { useUserNotifications } from '../../hooks/queries/user/useUserDataQuery';
+import { useNotificationMutations } from '../../hooks/mutations/useNotificationMutations';
 import PageLoader from '../ui/PageLoader';
 import { formatDate } from '../../utils/helpers';
 import { Button } from '../ui/Button';

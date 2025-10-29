@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Edit, Plus, Edit2, Trash2 } from 'lucide-react';
-import { useAdminBlogPosts } from '../../hooks/adminQueries';
-// FIX: Corrected import path
-import { useContentMutations } from '../../hooks/mutations';
+import { useAdminBlogPosts } from '../../hooks/queries/admin/useAdminContentQuery';
+import { useContentMutations } from '../../hooks/mutations/useContentMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import AdminSection from '../../components/admin/AdminSection';
 import { BlogPostModal } from '../../components/admin/BlogPostModal';

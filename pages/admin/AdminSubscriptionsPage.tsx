@@ -1,11 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Star, Calendar, Pause, Play, XCircle } from 'lucide-react';
-import { useAdminSubscriptions } from '../../hooks/adminQueries';
-// FIX: Corrected import path
-import { useSubscriptionMutations } from '../../hooks/mutations';
+import { useAdminSubscriptions } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
+import { useSubscriptionMutations } from '../../hooks/mutations/useSubscriptionMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import AdminSection from '../../components/admin/AdminSection';
-// FIX: Changed import to a named import as the component does not have a default export.
 import { SessionSchedulerModal } from '../../components/admin/SessionSchedulerModal';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -68,7 +66,7 @@ const AdminSubscriptionsPage: React.FC = () => {
                            <thead className="border-b-2"><tr>
                                 <th className="p-3">ولي الأمر</th>
                                 <th className="p-3">الطفل</th>
-                                <th className="p-3">تاريخ البدء</th>
+                                <th className="p-3">الباقة</th>
                                 <th className="p-3">التجديد القادم</th>
                                 <th className="p-3">الحالة</th>
                                 <th className="p-3">إجراءات</th>
@@ -80,7 +78,7 @@ const AdminSubscriptionsPage: React.FC = () => {
                                         <tr key={sub.id} className="border-b hover:bg-gray-50">
                                             <td className="p-3 font-semibold">{sub.user_name}</td>
                                             <td className="p-3 font-semibold">{sub.child_name}</td>
-                                            <td className="p-3 text-sm">{formatDate(sub.start_date)}</td>
+                                            <td className="p-3 font-semibold text-blue-600">{sub.plan_name}</td>
                                             <td className="p-3 text-sm">{formatDate(sub.next_renewal_date)}</td>
                                             <td className="p-3">
                                                 <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusInfo.color}`}>{statusInfo.text}</span>

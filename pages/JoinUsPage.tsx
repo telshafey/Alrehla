@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { PenTool, Mic, Palette } from 'lucide-react';
-// FIX: Corrected import path
-import { useCommunicationMutations } from '../hooks/mutations';
+import { useCommunicationMutations } from '../hooks/mutations/useCommunicationMutations';
 import { useToast } from '../contexts/ToastContext';
 import SupportForm from '../components/shared/SupportForm';
 import OpportunityCard from '../components/shared/OpportunityCard';

@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Target, ArrowLeft, Calendar, CheckCircle, Sparkles, Star, Globe, Palette, Mic } from 'lucide-react';
+import { Target, ArrowLeft, Calendar, CheckCircle, Sparkles, Star, Globe, Palette, Mic, ChevronDown, Loader2, MessageSquare, FileCheck, Award, BookUp } from 'lucide-react';
 import ShareButtons from '../components/shared/ShareButtons';
 import TestimonialCard from '../components/shared/TestimonialCard';
 import { Button } from '../components/ui/Button';
+import type { CreativeWritingPackage, AdditionalService } from '../lib/database.types';
+import { useBookingData } from '../hooks/queries/public/usePageDataQuery';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
+
 
 const BenefitCard: React.FC<{ icon: React.ReactNode, title: string, description: string }> = ({ icon, title, description }) => (
     <div className="bg-white p-8 rounded-2xl shadow-lg text-center transform hover:-translate-y-2 transition-transform duration-300 h-full">
@@ -15,26 +19,52 @@ const BenefitCard: React.FC<{ icon: React.ReactNode, title: string, description:
     </div>
 );
 
-const PackageCard: React.FC<{ title: string; price: string; features: string[]; isFree?: boolean; isPopular?: boolean }> = ({ title, price, features, isFree = false, isPopular = false }) => (
-    <div className={`p-8 rounded-2xl shadow-lg border-2 h-full flex flex-col ${isPopular ? 'border-blue-500 bg-blue-50' : (isFree ? 'border-green-500 bg-green-50' : 'bg-white border-gray-200')}`}>
-        {isPopular && <span className="text-xs font-bold bg-blue-500 text-white px-3 py-1 rounded-full mb-3 inline-block self-start">الأكثر شيوعاً</span>}
-        <h3 className="text-2xl font-bold">{title}</h3>
-        <p className="text-4xl font-extrabold my-4">{price}</p>
-        <ul className="space-y-2 text-gray-600 flex-grow">
-            {features.map((feature, i) => (
-                <li key={i} className="flex items-center gap-2">
-                    <CheckCircle size={16} className="text-green-500" />
-                    <span>{feature}</span>
-                </li>
-            ))}
-        </ul>
-        <Button asChild variant={isFree ? 'success' : 'primary'} className="mt-8 w-full">
-            <Link to="/creative-writing/booking">
-                {isFree ? 'ابدأ جلستك المجانية' : 'اختر هذه الباقة'}
-            </Link>
-        </Button>
-    </div>
-);
+const PackageAccordion: React.FC<{ pkg: CreativeWritingPackage }> = ({ pkg }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const isFree = pkg.price === 0;
+
+    return (
+        <div className={`border-2 rounded-2xl overflow-hidden transition-all duration-300 ${isOpen ? 'shadow-2xl' : 'shadow-lg'} ${pkg.popular ? 'border-blue-500 bg-blue-50' : (isFree ? 'border-green-500 bg-green-50' : 'bg-white border-gray-200')}`}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full p-6 text-right flex justify-between items-center"
+            >
+                <div className="flex-grow">
+                    <div className="flex items-center gap-4">
+                        <h3 className="text-xl sm:text-2xl font-bold text-gray-800">{pkg.name}</h3>
+                        {pkg.popular && <span className="text-xs font-bold bg-blue-500 text-white px-3 py-1 rounded-full hidden sm:inline-block">الأكثر شيوعاً</span>}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">{pkg.sessions}</p>
+                </div>
+                <div className="text-left flex-shrink-0 ml-4">
+                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-800">{isFree ? 'مجانية' : `${pkg.price} ج.م`}</p>
+                </div>
+                <ChevronDown className={`w-8 h-8 text-gray-400 transition-transform duration-300 ${isOpen ? 'transform rotate-180 text-blue-500' : ''}`} />
+            </button>
+            <div className={`grid overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                    <div className="px-6 pb-6 space-y-6">
+                        <p className="text-gray-600 border-t pt-4">{pkg.description}</p>
+                        <ul className="space-y-2 text-gray-600">
+                            {pkg.features.map((feature, i) => (
+                                <li key={i} className="flex items-center gap-2">
+                                    <CheckCircle size={16} className="text-green-500" />
+                                    <span>{feature}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        <Button asChild variant={isFree ? 'success' : 'primary'} size="md">
+                            <Link to="/creative-writing/booking">
+                                {isFree ? 'ابدأ جلستك المجانية' : 'اختر هذه الباقة'}
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const InstructorShowcaseCard: React.FC<{ name: string; specialty: string; points: string[]; avatar: string; }> = ({ name, specialty, points, avatar }) => (
     <div className="bg-white p-6 rounded-2xl shadow-lg text-center border h-full">
@@ -47,9 +77,36 @@ const InstructorShowcaseCard: React.FC<{ name: string; specialty: string; points
     </div>
 );
 
+const ServiceCard: React.FC<{ icon: React.ReactNode, title: string, price: string, description: string }> = ({ icon, title, price, description }) => (
+    <div className="bg-white p-6 rounded-2xl shadow-lg border h-full transform hover:-translate-y-1 transition-transform">
+        <div className="flex items-center gap-4 mb-4">
+            <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-purple-100 text-purple-600 rounded-full">{icon}</div>
+            <div>
+                <h4 className="text-lg font-bold text-gray-800">{title}</h4>
+                <p className="font-bold text-purple-600">{price}</p>
+            </div>
+        </div>
+        <p className="mt-2 text-gray-600 text-sm">{description}</p>
+    </div>
+);
+
 
 const CreativeWritingPage: React.FC = () => {
   const pageUrl = window.location.href;
+  const { data: bookingData, isLoading: bookingDataLoading } = useBookingData();
+  const { data: publicData, isLoading: publicDataLoading } = usePublicData();
+  const isLoading = bookingDataLoading || publicDataLoading;
+
+  const packages = bookingData?.cw_packages || [];
+  const services = bookingData?.cw_services || [];
+  const content = publicData?.siteContent?.creativeWritingPage.main;
+
+  const serviceIcons: { [key: string]: React.ReactNode } = {
+    'استشارة خاصة': <MessageSquare />,
+    'مراجعة نص': <FileCheck />,
+    'الاشتراك بعمل في الاصدار القادم': <Award />,
+    'طلب اصدار خاص': <BookUp />,
+  };
 
   const methodologyPoints = [
       { icon: <Target className="w-8 h-8 text-blue-500 flex-shrink-0 mt-1" />, title: "يصطاد الأفكار", description: "يحول المشاهدات اليومية إلى بذور قصص مدهشة." },
@@ -63,10 +120,10 @@ const CreativeWritingPage: React.FC = () => {
       <section className="bg-gradient-to-br from-purple-50 via-blue-50 to-white py-16 sm:py-20 lg:py-24 text-center">
         <div className="container mx-auto px-4">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-800 leading-tight">
-                "بداية الرحلة": <span className="text-blue-600">حيث لا تُكتب الكلمات، بل تولد العوالم</span>
+               {content?.heroTitle.split(':')[0]}: <span className="text-blue-600">{content?.heroTitle.split(':')[1]}</span>
             </h1>
             <p className="mt-6 max-w-3xl mx-auto text-lg sm:text-xl text-gray-600">
-                "بداية الرحلة" ليس برنامجاً لتعليم الكتابة، بل هو احتفال بالصوت الفريد لكل طفل. إنه المفتاح الذي يفتح أقفال الخيال، والمساحة الآمنة التي تتحول فيها الأفكار الخجولة إلى قصص عظيمة.
+                {content?.heroSubtitle}
             </p>
             <div className="mt-10">
                 <Button asChild size="lg" className="shadow-lg transition-transform transform hover:scale-105">
@@ -88,7 +145,7 @@ const CreativeWritingPage: React.FC = () => {
       <section className="py-16 sm:py-20 lg:py-24">
         <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">منهجيتنا المتميزة: "الإلهام قبل القواعد"</h2>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.methodologyTitle}</h2>
                 <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">كيف نطلق الإبداع؟</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
@@ -137,16 +194,41 @@ const CreativeWritingPage: React.FC = () => {
                 <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">باقاتنا المرنة</h2>
                 <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">اختر الباقة التي تناسب رحلة طفلك الإبداعية.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch max-w-7xl mx-auto">
-                <PackageCard title="الباقة التجريبية" price="مجانية" features={['جلسة واحدة تعريفية (30 دقيقة)', 'تقييم مهارات الطفل', 'خطة مخصصة للتطوير']} isFree />
-                <PackageCard title="الباقة الأساسية" price="800 ج.م/شهر" features={['4 جلسات فردية (45 دقيقة)', 'متابعة أسبوعية للتطور', 'تقارير دورية للأهل']} isPopular />
-                <PackageCard title="الباقة المتقدمة" price="1200 ج.م/شهر" features={['6 جلسات فردية (60 دقيقة)', 'ورش عمل جماعية شهرية', 'مراجعة وتحرير الأعمال']} />
-                <PackageCard title="الباقة الشاملة" price="1800 ج.م/شهر" features={['8 جلسات مكثفة (60 دقيقة)', 'متابعة يومية عبر المنصة', 'إنتاج محفظة أعمال', 'شهادة معتمدة']} />
+            <div className="space-y-4 max-w-4xl mx-auto">
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-48">
+                        <Loader2 className="animate-spin w-12 h-12 text-blue-500" />
+                    </div>
+                ) : (
+                    packages.map(pkg => <PackageAccordion key={pkg.id} pkg={pkg} />)
+                )}
             </div>
         </div>
       </section>
 
-      <section className="bg-white py-16 sm:py-20 lg:py-24">
+      {services.length > 0 && (
+        <section className="bg-white py-16 sm:py-20 lg:py-24">
+            <div className="container mx-auto px-4">
+                <div className="text-center mb-16">
+                    <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">خدمات إضافية لتجربة متكاملة</h2>
+                    <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">عزز رحلة طفلك الإبداعية بخدمات متخصصة.</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+                    {services.map((service: AdditionalService) => (
+                        <ServiceCard
+                            key={service.id}
+                            icon={serviceIcons[service.name] || <Sparkles />}
+                            title={service.name}
+                            price={`${service.price} ج.م`}
+                            description={service.description || ''}
+                        />
+                    ))}
+                </div>
+            </div>
+        </section>
+      )}
+
+      <section className="bg-gray-50 py-16 sm:py-20 lg:py-24">
             <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
                 <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">مدربونا المتخصصون</h2>
@@ -167,7 +249,7 @@ const CreativeWritingPage: React.FC = () => {
             </div>
       </section>
 
-       <section className="bg-gray-50 py-16 sm:py-20 lg:py-24">
+       <section className="bg-white py-16 sm:py-20 lg:py-24">
           <div className="container mx-auto px-4">
               <div className="text-center mb-12">
                   <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">آراء أولياء الأمور</h2>

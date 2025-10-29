@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-// REFACTOR: Use specialized mutation hooks instead of the general app mutations hook.
-// FIX: Corrected import paths
-import { useOrderMutations, useBookingMutations, useSubscriptionMutations } from '../hooks/mutations';
+import { useOrderMutations } from '../hooks/mutations/useOrderMutations';
+import { useBookingMutations } from '../hooks/mutations/useBookingMutations';
+import { useSubscriptionMutations } from '../hooks/mutations/useSubscriptionMutations';
 import { useToast } from '../contexts/ToastContext';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';

@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { BookOpen, Eye, Edit, Loader2 } from 'lucide-react';
-import { useAdminRawCwBookings, useAdminAllChildProfiles, useAdminInstructors, transformCwBookings } from '../../hooks/adminQueries';
-// FIX: Corrected import path
-import { useBookingMutations } from '../../hooks/mutations';
+import { useAdminRawCwBookings, transformCwBookings } from '../../hooks/queries/admin/useAdminBookingsQuery';
+import { useAdminAllChildProfiles } from '../../hooks/queries/admin/useAdminUsersQuery';
+import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
+import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import AdminSection from '../../components/admin/AdminSection';
-// FIX: Switched to a named import because BookingDetailsModal does not have a default export.
 import { BookingDetailsModal } from '../../components/admin/BookingDetailsModal';
 import { StudentProgressModal } from '../../components/admin/StudentProgressModal';
 import { getStatusColor, formatDate } from '../../utils/helpers';
@@ -64,7 +64,6 @@ const AdminCreativeWritingPage: React.FC = () => {
         const studentMap = new Map<number, Student>();
         bookings.forEach(booking => {
             if (!booking.child_profiles) return;
-            // FIX: The `child_profiles` object on the transformed booking does not have an `id`. The correct ID is on `booking.child_id`.
             const childId = booking.child_id;
             if (!studentMap.has(childId)) {
                 studentMap.set(childId, {

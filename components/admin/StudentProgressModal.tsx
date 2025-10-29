@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
-// REFACTOR: Use the specialized booking mutations hook.
-// FIX: Corrected import path
-import { useBookingMutations } from '../../hooks/mutations';
+import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
 import type { CreativeWritingBooking } from '../../lib/database.types';
 import { useToast } from '../../contexts/ToastContext';
 import { formatDate } from '../../utils/helpers';
@@ -20,7 +18,6 @@ interface StudentProgressModalProps {
     student: Student | null;
 }
 
-// FIX: Changed to a named export to resolve module resolution issues.
 export const StudentProgressModal: React.FC<StudentProgressModalProps> = ({ isOpen, onClose, student }) => {
     const { updateBookingProgressNotes } = useBookingMutations();
     const { addToast } = useToast();

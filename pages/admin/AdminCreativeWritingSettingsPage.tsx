@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Settings, Plus, Edit, Trash2, Package } from 'lucide-react';
-import { useAdminCWSettings } from '../../hooks/adminQueries';
-import { useCreativeWritingSettingsMutations } from '../../hooks/mutations';
+import { useAdminCWSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
+import { useCreativeWritingSettingsMutations } from '../../hooks/mutations/useCreativeWritingSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import AdminSection from '../../components/admin/AdminSection';
 import CWSettingsModal from '../../components/admin/CWSettingsModal';

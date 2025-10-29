@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Feather, Target, ArrowLeft } from 'lucide-react';
-// FIX: Corrected import paths
 import { useProduct } from '../contexts/ProductContext';
-import { usePublicData } from '../hooks/publicQueries';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import TestimonialCard from '../components/shared/TestimonialCard';
 import PostCard from '../components/shared/PostCard';
 import PageLoader from '../components/ui/PageLoader';
@@ -26,9 +25,6 @@ const HeroSection: React.FC<{ backgroundUrl: string | null; content: any }> = ({
                 </Button>
                 <Button asChild size="lg" variant="secondary" className="shadow-lg transition-transform transform hover:scale-105">
                     <Link to="/creative-writing">اكتشف برنامج الكتابة الإبداعية</Link>
-                </Button>
-                 <Button asChild size="lg" variant="outline" className="bg-white text-gray-700 border-gray-300 shadow-lg transition-transform transform hover:scale-105">
-                    <Link to="/">جرّب المنصة مجاناً</Link>
                 </Button>
             </div>
         </div>

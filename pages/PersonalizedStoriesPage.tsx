@@ -1,31 +1,22 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-// FIX: Corrected import path
-import { usePublicData } from '../hooks/publicQueries';
-import { useProduct } from '../contexts/ProductContext';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import SkeletonCard from '../components/ui/SkeletonCard';
 import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle, Gift } from 'lucide-react';
 import type { PersonalizedProduct } from '../lib/database.types';
-import type { Prices } from '../contexts/ProductContext';
 import { Button } from '../components/ui/Button';
+import ErrorState from '../components/ui/ErrorState';
 
-const getPrice = (key: string, prices: Prices | null): number | null => {
-    if (!prices) return null;
-    switch (key) {
-        case 'custom_story': return prices.story.printed;
-        case 'coloring_book': return prices.coloringBook;
-        case 'dua_booklet': return prices.duaBooklet;
-        case 'gift_box': return prices.giftBox;
-        default: return null;
-    }
-};
-
-const ProductCard: React.FC<{ product: PersonalizedProduct, price: number | null, featured?: boolean, isAddon?: boolean }> = ({ product, price, featured = false, isAddon = false }) => {
+const ProductCard: React.FC<{ product: PersonalizedProduct, featured?: boolean }> = ({ product, featured = false }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
 
     const cardClass = featured 
         ? "w-80 flex-shrink-0 bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col transform hover:-translate-y-2 transition-transform duration-300 border"
         : "bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col transform hover:-translate-y-2 transition-transform duration-300 border";
+
+    const isSubscription = product.key === 'subscription_box';
+    const orderLink = isSubscription ? '/enha-lak/subscription' : `/enha-lak/order/${product.key}`;
+    const buttonText = isSubscription ? 'اشترك الآن' : 'اطلب الآن';
 
     return (
         <div className={cardClass}>
@@ -41,9 +32,24 @@ const ProductCard: React.FC<{ product: PersonalizedProduct, price: number | null
             </div>
             <div className="p-6 flex flex-col flex-grow">
                 <h3 className="text-2xl font-bold text-gray-800">{product.title}</h3>
-                 {price !== null && 
-                    <p className="mt-2 text-3xl font-extrabold text-gray-800">{price} <span className="text-lg font-medium text-gray-500">ج.م</span></p>
-                }
+                 
+                {isSubscription ? (
+                    <div>
+                        <p className="mt-2 text-xl font-bold text-gray-800">باقات متنوعة</p>
+                        <p className="text-sm text-gray-500">تبدأ من 283 ج.م/شهرياً</p>
+                    </div>
+                ) : product.has_printed_version && product.price_printed ? (
+                     <div>
+                        <p className="mt-2 text-3xl font-extrabold text-gray-800">{product.price_printed} <span className="text-lg font-medium text-gray-500">ج.م</span></p>
+                        {product.price_electronic && <p className="text-sm text-gray-500">(أو {product.price_electronic} ج.م للإلكترونية)</p>}
+                    </div>
+                ) : product.price_electronic ? (
+                     <div>
+                        <p className="mt-2 text-3xl font-extrabold text-gray-800">{product.price_electronic} <span className="text-lg font-medium text-gray-500">ج.م</span></p>
+                        <p className="text-sm text-gray-500">للنسخة الإلكترونية</p>
+                    </div>
+                ) : null}
+
                 <p className="mt-2 text-gray-600 text-sm flex-grow">{product.description}</p>
                 {product.features && product.features.length > 0 && (
                      <ul className="mt-4 space-y-2 text-sm">
@@ -55,7 +61,7 @@ const ProductCard: React.FC<{ product: PersonalizedProduct, price: number | null
                         ))}
                     </ul>
                 )}
-                {isAddon ? (
+                {product.is_addon ? (
                      <div className="relative group mt-6">
                         <div className="w-full bg-gray-200 text-gray-500 font-bold py-3 px-4 rounded-full text-center inline-flex items-center justify-center gap-2 cursor-not-allowed">
                             <span>يُضاف مع الطلب</span>
@@ -66,10 +72,10 @@ const ProductCard: React.FC<{ product: PersonalizedProduct, price: number | null
                     </div>
                 ) : (
                     <Link 
-                        to={`/enha-lak/order/${product.key}`} 
+                        to={orderLink} 
                         className="mt-6 w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-full hover:bg-pink-700 transition-colors text-center inline-flex items-center justify-center gap-2"
                     >
-                        <span>اطلب الآن</span>
+                        <span>{buttonText}</span>
                         <ArrowLeft className="transform rotate-180" />
                     </Link>
                 )}
@@ -80,33 +86,27 @@ const ProductCard: React.FC<{ product: PersonalizedProduct, price: number | null
 
 
 const PersonalizedStoriesPage: React.FC = () => {
-  const { data, isLoading, error } = usePublicData();
-  const { prices, loading: pricesLoading } = useProduct();
+  const { data, isLoading, error, refetch } = usePublicData();
+  const content = data?.siteContent?.enhaLakPage.store;
   const personalizedProducts = data?.personalizedProducts || [];
 
   const { featuredProducts, coreProducts, addonProducts } = useMemo(() => {
     const sortedProducts = [...personalizedProducts].sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
     
-    const featured = sortedProducts.filter(p => p.sort_order && p.sort_order <= 2);
-    const core = sortedProducts.filter(p => ['custom_story', 'gift_box'].includes(p.key));
-    const addons = sortedProducts.filter(p => !['custom_story', 'gift_box'].includes(p.key));
+    const featured = sortedProducts.filter(p => p.is_featured);
+    const core = sortedProducts.filter(p => !p.is_featured && !p.is_addon);
+    const addons = sortedProducts.filter(p => p.is_addon);
     
     return { featuredProducts: featured, coreProducts: core, addonProducts: addons };
   }, [personalizedProducts]);
-
-  const showLoadingState = isLoading || pricesLoading;
-
-  if (error) {
-      return <div className="text-center text-red-500 py-12">{(error as Error).message}</div>;
-  }
   
   return (
     <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-                <h1 className="text-4xl sm:text-5xl font-extrabold text-pink-600">متجر "إنها لك"</h1>
+                <h1 className="text-4xl sm:text-5xl font-extrabold text-pink-600">{content?.heroTitle}</h1>
                 <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">
-                    اختر الكنز الذي سيجعل طفلك بطلاً. كل منتج مصمم بحب ليقدم تجربة فريدة لا تُنسى.
+                    {content?.heroSubtitle}
                 </p>
             </div>
             
@@ -116,7 +116,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <Gift size={48} />
                         <div>
-                            <h2 className="text-2xl font-extrabold">اكتشف صندوق الرحلة الشهري!</h2>
+                            <h2 className="text-2xl font-extrabold">{content?.subscriptionBannerTitle}</h2>
                             <p className="text-yellow-100">هدية متجددة من الخيال تصل باب منزلك كل شهر.</p>
                         </div>
                     </div>
@@ -128,53 +128,56 @@ const PersonalizedStoriesPage: React.FC = () => {
                 </div>
             </section>
 
+            {error ? <ErrorState message={(error as Error).message} onRetry={refetch} /> : (
+            <>
+                {/* Featured Products Section */}
+                {(isLoading || featuredProducts.length > 0) && (
+                    <section className="mb-20">
+                        <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><Star className="text-yellow-400" /> المنتجات المميزة</h2>
+                        <div className="flex gap-8 pb-4 -mx-4 px-4 overflow-x-auto">
+                            {isLoading ? (
+                                Array.from({ length: 2 }).map((_, index) => <div className="w-80 flex-shrink-0" key={index}><SkeletonCard /></div>)
+                            ) : (
+                                featuredProducts.map(product => (
+                                    <ProductCard key={`featured-${product.id}`} product={product} featured />
+                                ))
+                            )}
+                        </div>
+                    </section>
+                )}
 
-            {/* Featured Products Section */}
-            {(showLoadingState || featuredProducts.length > 0) && (
-                <section className="mb-20">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><Star className="text-yellow-400" /> المنتجات المميزة</h2>
-                    <div className="flex gap-8 pb-4 -mx-4 px-4 overflow-x-auto">
-                        {showLoadingState ? (
-                            Array.from({ length: 2 }).map((_, index) => <div className="w-80 flex-shrink-0" key={index}><SkeletonCard /></div>)
-                        ) : (
-                            featuredProducts.map(product => (
-                                <ProductCard key={`featured-${product.id}`} product={product} price={getPrice(product.key, prices)} featured />
-                            ))
-                        )}
-                    </div>
-                </section>
-            )}
+                {/* Core Products */}
+                {(isLoading || coreProducts.length > 0) && (
+                    <section className="mb-20">
+                        <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><BookHeart className="text-pink-500" /> المنتجات الأساسية</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {isLoading && !featuredProducts.length ? (
+                                Array.from({ length: 2 }).map((_, index) => <SkeletonCard key={`core-skel-${index}`} />)
+                            ) : (
+                                coreProducts.map(product => (
+                                    <ProductCard key={`core-${product.id}`} product={product} />
+                                ))
+                            )}
+                        </div>
+                    </section>
+                )}
 
-            {/* Core Products */}
-            {(showLoadingState || coreProducts.length > 0) && (
-                <section className="mb-20">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><BookHeart className="text-pink-500" /> قائمة المنتجات</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {showLoadingState && !featuredProducts.length ? (
-                            Array.from({ length: 2 }).map((_, index) => <SkeletonCard key={`core-skel-${index}`} />)
-                        ) : (
-                            coreProducts.map(product => (
-                                <ProductCard key={`core-${product.id}`} product={product} price={getPrice(product.key, prices)} />
-                            ))
-                        )}
-                    </div>
-                </section>
-            )}
-
-            {/* Addon Products */}
-            {(showLoadingState || addonProducts.length > 0) && (
-                <section>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><Puzzle className="text-green-500" /> إضافات إبداعية</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {showLoadingState && !featuredProducts.length && !coreProducts.length ? (
-                             Array.from({ length: 1 }).map((_, index) => <SkeletonCard key={`addon-skel-${index}`} />)
-                        ) : (
-                            addonProducts.map(product => (
-                                <ProductCard key={`addon-${product.id}`} product={product} price={getPrice(product.key, prices)} isAddon />
-                            ))
-                        )}
-                    </div>
-                </section>
+                {/* Addon Products */}
+                {(isLoading || addonProducts.length > 0) && (
+                    <section>
+                        <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3"><Puzzle className="text-green-500" /> إضافات إبداعية</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {isLoading && !featuredProducts.length && !coreProducts.length ? (
+                                 Array.from({ length: 1 }).map((_, index) => <SkeletonCard key={`addon-skel-${index}`} />)
+                            ) : (
+                                addonProducts.map(product => (
+                                    <ProductCard key={`addon-${product.id}`} product={product} />
+                                ))
+                            )}
+                        </div>
+                    </section>
+                )}
+            </>
             )}
         </div>
     </div>

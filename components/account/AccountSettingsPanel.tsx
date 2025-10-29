@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useUserMutations } from '../../hooks/mutations';
+import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import { User, Key, LogOut, Edit } from 'lucide-react';
 import { Button } from '../ui/Button';
 import FormField from '../ui/FormField';

@@ -3,6 +3,7 @@ import { EGYPTIAN_GOVERNORATES } from '../../utils/governorates';
 import FormField from '../ui/FormField';
 import { Select } from '../ui/Select';
 import { Input } from '../ui/Input';
+import type { PersonalizedProduct } from '../../lib/database.types';
 
 interface DeliverySectionProps {
     formData: {
@@ -14,19 +15,23 @@ interface DeliverySectionProps {
         giftPhone: string;
     };
     handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+    product: PersonalizedProduct | null;
 }
 
-const DeliverySection: React.FC<DeliverySectionProps> = ({ formData, handleChange }) => {
+const DeliverySection: React.FC<DeliverySectionProps> = ({ formData, handleChange, product }) => {
     return (
         <div>
             <h3 className="text-2xl font-bold text-gray-800 mb-6">تفاصيل التوصيل</h3>
             <div className="space-y-6">
-                <FormField label="نوع النسخة" htmlFor="deliveryType">
-                     <Select id="deliveryType" name="deliveryType" value={formData.deliveryType} onChange={handleChange}>
-                        <option value="printed">مطبوعة + إلكترونية</option>
-                        <option value="electronic">إلكترونية فقط</option>
-                    </Select>
-                </FormField>
+                {product?.has_printed_version && (
+                    <FormField label="نوع النسخة" htmlFor="deliveryType">
+                        <Select id="deliveryType" name="deliveryType" value={formData.deliveryType} onChange={handleChange}>
+                            <option value="printed">مطبوعة + إلكترونية</option>
+                            <option value="electronic">إلكترونية فقط</option>
+                        </Select>
+                    </FormField>
+                )}
+                
                 {formData.deliveryType === 'printed' && (
                     <div className="space-y-4 pt-4 border-t">
                         <div>

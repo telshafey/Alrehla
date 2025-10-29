@@ -1,33 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Star, BookOpen, CreditCard, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-// FIX: Corrected import path
-import { useUserAccountData } from '../../hooks/userQueries';
+import { useUserAccountData } from '../../hooks/queries/user/useUserDataQuery';
 import { useAuth } from '../../contexts/AuthContext';
-import { getStatusColor, formatDate, daysInMonth, firstDayOfMonth } from '../../utils/helpers';
+import { getStatusColor, formatDate, daysInMonth, firstDayOfMonth, getSubStatusColor, getSubStatusText } from '../../utils/helpers';
 import EmptyState from './EmptyState';
 import { Button } from '../ui/Button';
 import type { Order, Subscription, CreativeWritingBooking, ScheduledSession, CreativeWritingPackage } from '../../lib/database.types';
-
-
-const getSubStatusText = (status: Subscription['status']) => {
-    switch (status) {
-        case 'active': return 'نشط';
-        case 'paused': return 'متوقف مؤقتاً';
-        case 'cancelled': return 'ملغي';
-        case 'pending_payment': return 'بانتظار الدفع';
-        default: return status;
-    }
-};
-
-const getSubStatusColor = (status: Subscription['status']) => {
-    switch (status) {
-        case 'active': return 'bg-green-100 text-green-800';
-        case 'paused': return 'bg-yellow-100 text-yellow-800';
-        case 'cancelled': return 'bg-red-100 text-red-800';
-        default: return 'bg-gray-100 text-gray-800';
-    }
-};
 
 type EnrichedBooking = CreativeWritingBooking & {
     sessions: ScheduledSession[];
@@ -187,7 +166,7 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-12 h-12 flex items-center justify-center bg-orange-100 text-orange-600 rounded-full"><Star /></div>
                                                         <div>
-                                                            <p className="font-bold text-gray-800">صندوق الرحلة الشهري ({sub.child_name})</p>
+                                                            <p className="font-bold text-gray-800">صندوق الرحلة ({sub.plan_name}) - {sub.child_name}</p>
                                                             <p className="text-sm text-gray-500">التجديد القادم: {formatDate(sub.next_renewal_date)}</p>
                                                         </div>
                                                     </div>

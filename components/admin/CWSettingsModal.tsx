@@ -39,6 +39,7 @@ const CWSettingsModal: React.FC<CWSettingsModalProps> = ({ isOpen, onClose, onSa
                     setSessions(itemToEdit.sessions || '');
                     setFeatures((itemToEdit.features || []).join('\n'));
                     setPopular(itemToEdit.popular || false);
+                    setDescription(itemToEdit.description || '');
                 } else { // It's a service
                     setDescription(itemToEdit.description || '');
                 }
@@ -66,6 +67,7 @@ const CWSettingsModal: React.FC<CWSettingsModalProps> = ({ isOpen, onClose, onSa
                 price: parseFloat(price),
                 features: features.split('\n').filter(f => f.trim() !== ''),
                 popular,
+                description,
             };
         } else {
             payload = {
@@ -101,6 +103,9 @@ const CWSettingsModal: React.FC<CWSettingsModalProps> = ({ isOpen, onClose, onSa
                     </FormField>
                     {itemType === 'package' ? (
                         <>
+                            <FormField label="الوصف التفصيلي للباقة" htmlFor="description">
+                                <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+                            </FormField>
                             <FormField label="الميزات (كل ميزة في سطر)" htmlFor="features">
                                 <Textarea id="features" value={features} onChange={(e) => setFeatures(e.target.value)} rows={4} />
                             </FormField>
@@ -111,7 +116,7 @@ const CWSettingsModal: React.FC<CWSettingsModalProps> = ({ isOpen, onClose, onSa
                         </>
                     ) : (
                         <FormField label="الوصف" htmlFor="description">
-                           <Input id="description" type="text" value={description} onChange={(e) => setDescription(e.target.value)} />
+                           <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
                         </FormField>
                     )}
                     <div className="flex justify-end gap-4 pt-4 mt-8 border-t">

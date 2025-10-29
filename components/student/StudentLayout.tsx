@@ -1,11 +1,13 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { LogOut, Loader2 } from 'lucide-react';
+import { useStudentDashboardData } from '../../hooks/queries/user/useJourneyDataQuery';
 
 const StudentLayout: React.FC<{children: React.ReactNode}> = ({children}) => {
     const { currentChildProfile, signOut } = useAuth();
     const navigate = useNavigate();
+    const { data, isLoading } = useStudentDashboardData();
 
     const handleSignOut = async () => {
         await signOut();
@@ -25,7 +27,13 @@ const StudentLayout: React.FC<{children: React.ReactNode}> = ({children}) => {
                             />
                             <div>
                                 <h1 className="text-xl font-bold text-gray-800">أهلاً بك، {currentChildProfile?.name}</h1>
-                                <p className="text-sm text-gray-500">لوحة تحكم الطالب</p>
+                                {isLoading ? (
+                                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mt-1"></div>
+                                ) : data?.parentName ? (
+                                    <p className="text-sm text-gray-500">تحت إشراف: {data.parentName}</p>
+                                ) : (
+                                    <p className="text-sm text-gray-500">لوحة تحكم الطالب</p>
+                                )}
                             </div>
                         </div>
                         <button onClick={handleSignOut} className="flex items-center gap-2 text-red-500 hover:text-red-700 font-semibold p-2 rounded-lg hover:bg-red-50 transition-colors">

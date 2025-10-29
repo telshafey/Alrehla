@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Mail, HelpCircle } from 'lucide-react';
 import SupportForm from '../components/shared/SupportForm';
 import FAQSection from '../components/shared/FAQSection';
-// FIX: Corrected import path
-import { useCommunicationMutations } from '../hooks/mutations';
+import { useCommunicationMutations } from '../hooks/mutations/useCommunicationMutations';
 import { useToast } from '../contexts/ToastContext';
 
 const faqs = {

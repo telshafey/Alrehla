@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, AlertCircle } from 'lucide-react';
-import { useUserMutations } from '../../hooks/mutations';
+import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import { useModalAccessibility } from '../../hooks/useModalAccessibility';
 import type { ChildProfile } from '../../lib/database.types';
 import { Button } from '../ui/Button';

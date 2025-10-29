@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
-// FIX: Import the 'Eye' icon from lucide-react.
 import { Users, Plus, Edit, Trash2, Link as LinkIcon, Eye } from 'lucide-react';
-import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations } from '../../hooks/adminQueries';
-import { useUserMutations } from '../../hooks/mutations';
+import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations } from '../../hooks/queries/admin/useAdminUsersQuery';
+import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import AdminSection from '../../components/admin/AdminSection';
 import ViewUserModal from '../../components/admin/ViewUserModal';
@@ -14,10 +13,11 @@ import { Select } from '../../components/ui/Select';
 import { roleNames } from '../../lib/roles';
 import type { UserRole } from '../../lib/database.types';
 import type { UserProfile as User, UserProfileWithRelations } from '../../lib/database.types';
+import ErrorState from '../../components/ui/ErrorState';
 
 const AdminUsersPage: React.FC = () => {
-    const { data: users = [], isLoading: usersLoading } = useAdminUsers();
-    const { data: children = [], isLoading: childrenLoading } = useAdminAllChildProfiles();
+    const { data: users = [], isLoading: usersLoading, error: usersError, refetch: refetchUsers } = useAdminUsers();
+    const { data: children = [], isLoading: childrenLoading, error: childrenError, refetch: refetchChildren } = useAdminAllChildProfiles();
     const { createUser, updateUser, deleteUser } = useUserMutations();
 
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -81,7 +81,14 @@ const AdminUsersPage: React.FC = () => {
         }
     };
 
+    const error = usersError || childrenError;
+    const refetch = () => {
+        if (usersError) refetchUsers();
+        if (childrenError) refetchChildren();
+    };
+
     if (isLoading) return <PageLoader text="جاري تحميل المستخدمين..." />;
+    if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
         <>

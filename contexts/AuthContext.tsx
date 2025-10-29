@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 const user: UserProfile = JSON.parse(storedUser);
                 setCurrentUser(user);
                 // Load related profiles
-                if (user.role === 'parent') {
+                if (user.role === 'user') {
                     setChildProfiles(mockChildProfiles.filter(c => c.user_id === user.id));
                 } else if (user.role === 'student') {
                      const child = mockChildProfiles.find(c => c.student_user_id === user.id);
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setCurrentUser(userProfile);
             localStorage.setItem('currentUser', JSON.stringify(userProfile));
 
-            if (user.role === 'parent') {
+            if (user.role === 'user') {
                 const profiles = mockChildProfiles.filter(c => c.user_id === user.id);
                 setChildProfiles(profiles);
             } else if (user.role === 'student') {

@@ -1,3 +1,5 @@
+
+
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardWidget from './DashboardWidget';
@@ -40,8 +42,7 @@ const EnhaLakDashboard: React.FC<EnhaLakDashboardProps> = ({ data }) => {
 
         return Object.entries(counts).map(([label, value]) => ({
             label,
-            // FIX: Cast value to number to satisfy ChartData type.
-            value: value as number,
+            value: Number(value),
             color: statusColors[label as OrderStatus] || '#9ca3af',
         }));
     }, [orders]);

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, Loader2, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
-import { useAdminSocialLinks } from '../../hooks/adminQueries';
-// FIX: Corrected import path
-import { useSettingsMutations } from '../../hooks/mutations';
+import { useAdminSocialLinks } from '../../hooks/queries/admin/useAdminSettingsQuery';
+// REFACTOR: Use the new feature-specific mutation hook.
+import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
 import { useToast } from '../../contexts/ToastContext';
 import AdminSection from '../../components/admin/AdminSection';
 import { supabase } from '../../lib/supabaseClient';
@@ -101,7 +101,6 @@ const AdminSettingsPage: React.FC = () => {
             setFilesToUpload({});
 
             // Social links
-            // FIX: Correctly call the mutation function using `.mutateAsync`.
             await updateSocialLinks.mutateAsync(socials);
 
             addToast('تم حفظ الإعدادات بنجاح', 'success');

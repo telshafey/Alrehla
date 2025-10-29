@@ -1,128 +1,9 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+// FIX: Replaced entire file to define and export all types, removing mock data and circular dependencies.
 
-export interface Database {
-  public: {
-    Tables: {
-      // This is a simplified mock. A real Supabase schema would be much more detailed.
-      profiles: {
-        Row: UserProfile
-        Insert: any
-        Update: any
-      }
-      child_profiles: {
-        Row: ChildProfile
-        Insert: any
-        Update: any
-      }
-      orders: {
-        Row: Order
-        Insert: any
-        Update: any
-      }
-      creative_writing_bookings: {
-        Row: CreativeWritingBooking
-        Insert: any
-        Update: any
-      }
-      personalized_products: {
-        Row: PersonalizedProduct
-        Insert: any
-        Update: any
-      },
-      instructors: {
-        Row: Instructor
-        Insert: any
-        Update: any
-      },
-      support_tickets: {
-        Row: SupportTicket
-        Insert: any
-        Update: any
-      },
-      join_requests: {
-        Row: JoinRequest
-        Insert: any
-        Update: any
-      },
-      blog_posts: {
-        Row: BlogPost
-        Insert: any
-        Update: any
-      },
-      subscriptions: {
-        Row: Subscription
-        Insert: any
-        Update: any
-      },
-      site_settings: {
-        Row: any
-        Insert: any
-        Update: any
-      }
-      creative_writing_packages: {
-        Row: CreativeWritingPackage
-        Insert: any
-        Update: any
-      },
-      additional_services: {
-        Row: AdditionalService
-        Insert: any
-        Update: any
-      },
-      scheduled_sessions: {
-        Row: ScheduledSession
-        Insert: any
-        Update: any
-      },
-      session_messages: {
-        Row: SessionMessage
-        Insert: any
-        Update: any
-      },
-      session_attachments: {
-        Row: SessionAttachment
-        Insert: any
-        Update: any
-      },
-      support_session_requests: {
-        Row: SupportSessionRequest
-        Insert: any
-        Update: any
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      user_role: UserRole
-      order_status: OrderStatus
-      booking_status: BookingStatus
-      ticket_status: TicketStatus
-      request_status: RequestStatus
-      schedule_status: 'pending' | 'approved' | 'rejected'
-      post_status: 'draft' | 'published'
-      subscription_status: 'active' | 'paused' | 'cancelled' | 'pending_payment'
-      session_status: SessionStatus
-      support_session_request_status: 'pending' | 'approved' | 'rejected'
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+export type Database = {};
 
 export type UserRole =
   | 'user'
-  | 'parent'
   | 'student'
   | 'super_admin'
   | 'general_supervisor'
@@ -132,232 +13,340 @@ export type UserRole =
   | 'content_editor'
   | 'support_agent';
 
-export type OrderStatus = "بانتظار الدفع" | "بانتظار المراجعة" | "قيد التجهيز" | "يحتاج مراجعة" | "تم الشحن" | "تم التسليم" | "ملغي";
-export type BookingStatus = "بانتظار الدفع" | "مؤكد" | "مكتمل" | "ملغي";
-export type TicketStatus = "جديدة" | "تمت المراجعة" | "مغلقة";
-export type RequestStatus = "جديد" | "تمت المراجعة" | "مقبول" | "مرفوض";
-export type SessionStatus = 'upcoming' | 'completed' | 'missed';
-
-
 export interface UserProfile {
-  id: string
-  name: string
-  email: string
-  created_at: string
-  role: UserRole
-}
-export interface UserProfileWithRelations extends UserProfile {
-  children: ChildProfile[];
+  id: string;
+  created_at: string;
+  name: string;
+  email: string;
+  role: UserRole;
 }
 
 export interface ChildProfile {
-  id: number
-  user_id: string
-  name: string
-  age: number
-  gender: 'ذكر' | 'أنثى'
-  avatar_url: string | null
-  interests: string[] | null
-  strengths: string[] | null
-  created_at: string
+  id: number;
+  created_at: string;
+  user_id: string;
+  name: string;
+  age: number;
+  gender: 'أنثى' | 'ذكر';
+  avatar_url: string | null;
+  interests: string[] | null;
+  strengths: string[] | null;
   student_user_id: string | null;
 }
 
-export interface PersonalizedProduct {
-    id: number;
-    key: string;
-    title: string;
-    description: string | null;
-    image_url: string | null;
-    features: string[];
-    sort_order: number | null;
+export interface Notification {
+  id: number;
+  user_id: string;
+  created_at: string;
+  message: string;
+  link: string;
+  read: boolean;
+  type: 'order' | 'booking' | string;
 }
+
+export type OrderStatus =
+  | 'بانتظار الدفع'
+  | 'بانتظار المراجعة'
+  | 'قيد التجهيز'
+  | 'يحتاج مراجعة'
+  | 'تم الشحن'
+  | 'تم التسليم'
+  | 'ملغي';
 
 export interface Order {
-    id: string;
-    user_id: string;
-    child_id: number | null;
-    order_date: string;
-    status: OrderStatus;
-    total: number;
-    item_summary: string;
-    details: Json;
-    admin_comment: string | null;
-    receipt_url: string | null;
+  id: string;
+  order_date: string;
+  user_id: string;
+  child_id: number;
+  item_summary: string;
+  total: number;
+  status: OrderStatus;
+  details: any;
+  admin_comment: string | null;
+  receipt_url: string | null;
 }
 
-export interface OrderWithRelations extends Order {
-  child_profiles: { name: string } | null;
-  users: { name: string; email: string } | null;
+export type SubscriptionStatus =
+  | 'active'
+  | 'paused'
+  | 'cancelled'
+  | 'pending_payment';
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  child_id: number;
+  start_date: string;
+  next_renewal_date: string;
+  status: SubscriptionStatus;
+  user_name: string;
+  child_name: string;
+  plan_name: string;
+  total: number;
 }
+
+export interface SubscriptionPlan {
+  id: number;
+  name: string;
+  duration_months: number;
+  price: number;
+  price_per_month: number;
+  savings_text: string;
+  is_best_value?: boolean;
+}
+
+export type BookingStatus = 'بانتظار الدفع' | 'مؤكد' | 'مكتمل' | 'ملغي';
 
 export interface CreativeWritingBooking {
   id: string;
+  created_at: string;
   user_id: string;
   user_name: string;
   child_id: number;
-  instructor_id: number | null;
   package_name: string;
+  instructor_id: number;
   booking_date: string;
   booking_time: string;
-  status: BookingStatus;
   total: number;
-  receipt_url: string | null;
+  status: BookingStatus;
   progress_notes: string | null;
+  receipt_url: string | null;
   session_id: string;
-  created_at: string;
 }
 
-export type BookingWithRelations = CreativeWritingBooking & {
-    child_profiles: { name: string } | null;
-    instructors: { name: string } | null;
+export interface ImageSlotConfig {
+  id: string;
+  label: string;
+  required: boolean;
+}
+
+export interface TextFieldConfig {
+  id: string;
+  label: string;
+  placeholder: string;
+  required: boolean;
+  type: 'textarea' | 'input';
+}
+
+export interface StoryGoal {
+  key: string;
+  title: string;
+}
+
+export type GoalConfig =
+  | 'none'
+  | 'predefined'
+  | 'custom'
+  | 'predefined_and_custom';
+
+export interface PersonalizedProduct {
+  id: number;
+  created_at: string;
+  key: string;
+  title: string;
+  description: string;
+  image_url: string | null;
+  features: string[];
+  sort_order: number;
+  is_featured: boolean;
+  is_addon: boolean;
+  has_printed_version: boolean;
+  price_printed: number | null;
+  price_electronic: number | null;
+  goal_config: GoalConfig;
+  story_goals: StoryGoal[];
+  image_slots: ImageSlotConfig[];
+  text_fields: TextFieldConfig[];
+}
+
+export interface CreativeWritingPackage {
+  id: number;
+  name: string;
+  sessions: string;
+  price: number;
+  features: string[];
+  popular: boolean;
+  description: string;
+}
+
+export interface AdditionalService {
+  id: number;
+  name: string;
+  price: number;
+  description: string | null;
+}
+
+export type WeeklySchedule = {
+  [day in
+    | 'sunday'
+    | 'monday'
+    | 'tuesday'
+    | 'wednesday'
+    | 'thursday'
+    | 'friday'
+    | 'saturday']?: string[];
 };
 
-export type AvailableSlots = { [day: string]: string[] };
-export type WeeklySchedule = { [day in 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday']?: string[] };
-
+export type AvailableSlots = {
+  [date: string]: string[]; // date is 'YYYY-MM-DD'
+};
 
 export interface Instructor {
   id: number;
   user_id: string | null;
   name: string;
-  slug: string;
-  specialty: string | null;
-  bio: string | null;
+  specialty: string;
+  bio: string;
   avatar_url: string | null;
-  availability: Json | null; // AvailableSlots
-  weekly_schedule: Json | null; // WeeklySchedule
-  schedule_status: 'pending' | 'approved' | 'rejected' | null;
-  rate_per_session: number | null;
-  pending_profile_data: Json | null;
-  profile_update_status: 'pending' | 'approved' | null;
-}
-
-export interface Prices {
-    story: {
-        printed: number;
-        electronic: number;
-    };
-    coloringBook: number;
-    duaBooklet: number;
-    valuesStory: number;
-    skillsStory: number;
-    voiceOver: number;
-    giftBox: number;
-    subscriptionBox: number;
+  slug: string;
+  weekly_schedule: WeeklySchedule | {};
+  availability: AvailableSlots | {};
+  rate_per_session: number;
+  schedule_status: 'approved' | 'pending' | 'rejected';
+  profile_update_status: 'approved' | 'pending' | 'rejected';
+  pending_profile_data: any | null;
 }
 
 export interface SiteBranding {
-    logoUrl: string | null;
-    creativeWritingLogoUrl: string | null;
-    heroImageUrl: string | null;
-    aboutImageUrl: string | null;
-    creativeWritingPortalImageUrl: string | null;
+  logoUrl: string;
+  creativeWritingLogoUrl: string;
+  heroImageUrl: string;
+  aboutImageUrl: string;
+  creativeWritingPortalImageUrl: string;
 }
+
+export type Prices = { [key: string]: number };
+
+export type ShippingCosts = { [governorate: string]: number };
 
 export interface SocialLinks {
-    id: number;
-    facebook_url: string | null;
-    twitter_url: string | null;
-    instagram_url: string | null;
-}
-
-export interface ShippingCosts {
-  [governorate: string]: number;
-}
-
-export interface SupportTicket {
-    id: string;
-    name: string;
-    email: string;
-    subject: string;
-    message: string;
-    status: TicketStatus;
-    created_at: string;
-}
-
-export interface JoinRequest {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-    message: string;
-    status: RequestStatus;
-    portfolio_url: string | null;
-    created_at: string;
+  id: number;
+  facebook_url: string | null;
+  twitter_url: string | null;
+  instagram_url: string | null;
 }
 
 export interface BlogPost {
-    id: number;
-    title: string;
-    slug: string;
-    content: string;
-    author_name: string;
-    image_url: string | null;
-    status: 'draft' | 'published';
-    published_at: string | null;
-    created_at: string;
+  id: number;
+  created_at: string;
+  published_at: string | null;
+  title: string;
+  slug: string;
+  content: string;
+  image_url: string | null;
+  author_name: string;
+  status: 'published' | 'draft';
 }
 
-export interface Subscription {
-    id: string;
-    user_id: string;
-    user_name: string;
-    child_id: number;
-    child_name: string;
-    start_date: string;
-    next_renewal_date: string;
-    status: 'active' | 'paused' | 'cancelled' | 'pending_payment';
+export type TicketStatus = 'جديدة' | 'تمت المراجعة' | 'مغلقة';
+
+export interface SupportTicket {
+  id: string;
+  created_at: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: TicketStatus;
 }
 
-export interface CreativeWritingPackage {
-    id: number;
-    name: string;
-    sessions: string;
-    price: number;
-    features: string[];
-    popular: boolean;
-    goal_description: string | null;
-    final_product_description: string | null;
+export type RequestStatus = 'جديد' | 'تمت المراجعة' | 'مقبول' | 'مرفوض';
+
+export interface JoinRequest {
+  id: string;
+  created_at: string;
+  name: string;
+  email: string;
+  role: string;
+  message: string;
+  status: RequestStatus;
+  portfolio_url: string | null;
 }
 
-export interface AdditionalService {
-    id: number;
-    name: string;
-    price: number;
-    description: string | null;
+export interface SiteContent {
+  portalPage: {
+    heroTitle: string;
+    heroSubtitle: string;
+    enhaLakTitle: string;
+    enhaLakDescription: string;
+    creativeWritingTitle: string;
+    creativeWritingDescription: string;
+    valuePropositionTitle: string;
+  };
+  aboutPage: {
+    missionStatement: string;
+    ourStory: string;
+    ourVision: string;
+  };
+  enhaLakPage: {
+    main: {
+      heroTitle: string;
+      heroSubtitle: string;
+      howItWorksTitle: string;
+    };
+    store: {
+      heroTitle: string;
+      heroSubtitle: string;
+      subscriptionBannerTitle: string;
+    };
+    subscription: {
+      heroTitle: string;
+      heroSubtitle: string;
+      features: string[];
+    };
+  };
+  creativeWritingPage: {
+    main: {
+      heroTitle: string;
+      heroSubtitle: string;
+      methodologyTitle: string;
+    };
+    about: {
+      heroTitle: string;
+      heroSubtitle: string;
+      philosophyTitle: string;
+    };
+    curriculum: {
+      heroTitle: string;
+      heroSubtitle: string;
+      treasuresTitle: string;
+    };
+    instructors: {
+      heroTitle: string;
+      heroSubtitle: string;
+    };
+  };
 }
 
-// --- NEW SESSION MANAGEMENT SYSTEM TYPES ---
+export type SessionStatus = 'upcoming' | 'completed' | 'missed';
 
 export interface ScheduledSession {
   id: string;
-  subscription_id: string | null;
   booking_id: string | null;
+  subscription_id: string | null;
   child_id: number;
   instructor_id: number;
-  session_date: string; // ISO string for date and time
+  session_date: string;
   status: SessionStatus;
-  created_at: string;
 }
 
 export interface SessionMessage {
   id: string;
-  booking_id: string; // Linked to the journey/booking
+  booking_id: string;
   sender_id: string;
-  sender_role: 'student' | 'instructor';
+  sender_role: 'instructor' | 'student' | 'user';
   message_text: string;
-  created_at: string; // Using created_at for timestamp
+  created_at: string;
 }
 
 export interface SessionAttachment {
   id: string;
-  booking_id: string; // Linked to the journey/booking
+  booking_id: string;
   uploader_id: string;
-  uploader_role: 'student' | 'instructor';
+  uploader_role: 'instructor' | 'student' | 'user';
   file_name: string;
   file_url: string;
-  created_at: string; // Using created_at for timestamp
+  created_at: string;
 }
 
 export interface SupportSessionRequest {
@@ -368,3 +357,17 @@ export interface SupportSessionRequest {
   status: 'pending' | 'approved' | 'rejected';
   requested_at: string;
 }
+
+export type OrderWithRelations = Order & {
+  users: { name: string; email: string } | null;
+  child_profiles: { name: string } | null;
+};
+
+export type UserProfileWithRelations = UserProfile & {
+  children: ChildProfile[];
+};
+
+export type BookingWithRelations = CreativeWritingBooking & {
+  child_profiles: { name: string } | null;
+  instructors: { name: string } | null;
+};

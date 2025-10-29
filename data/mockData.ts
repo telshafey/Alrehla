@@ -1,121 +1,309 @@
+// FIX: Separated mock data from type definitions and corrected imports.
 import type { 
-    UserProfile, ChildProfile, Order, CreativeWritingBooking, PersonalizedProduct, Instructor, 
-    SupportTicket, JoinRequest, BlogPost, Subscription, CreativeWritingPackage, AdditionalService,
-    Prices, SiteBranding, ShippingCosts, ScheduledSession, SessionMessage, SessionAttachment, SupportSessionRequest
+    UserProfile, ChildProfile, Notification, Order, Subscription, CreativeWritingBooking, 
+    PersonalizedProduct, CreativeWritingPackage, Instructor, SiteBranding, Prices, ShippingCosts, 
+    SocialLinks, BlogPost, SupportTicket, JoinRequest, AdditionalService, SiteContent, ScheduledSession, SessionMessage, SessionAttachment, SupportSessionRequest,
+    SubscriptionPlan
 } from '../lib/database.types';
 
 export const mockUsers: UserProfile[] = [
-  { id: 'usr_parent', name: 'أحمد عبدالله', email: 'parent@alrehlah.com', created_at: '2023-01-15T10:00:00Z', role: 'parent' },
-  { id: 'usr_student', name: 'فاطمة أحمد', email: 'student@alrehlah.com', created_at: '2023-01-15T10:05:00Z', role: 'student' },
-  { id: 'usr_admin', name: 'مدير النظام', email: 'admin@alrehlah.com', created_at: '2023-01-10T09:00:00Z', role: 'super_admin' },
-  { id: 'usr_supervisor', name: 'مشرف عام', email: 'supervisor@alrehlah.com', created_at: '2023-01-11T09:00:00Z', role: 'general_supervisor' },
-  { id: 'usr_cws', name: 'مشرف بداية الرحلة', email: 'cws@alrehlah.com', created_at: '2023-01-12T09:00:00Z', role: 'creative_writing_supervisor' },
-  { id: 'usr_instructor', name: 'أ. نورة القحطاني', email: 'instructor@alrehlah.com', created_at: '2023-01-13T09:00:00Z', role: 'instructor' },
-  { id: 'usr_support', name: 'وكيل دعم', email: 'support@alrehlah.com', created_at: '2023-01-14T09:00:00Z', role: 'support_agent' },
-  { id: 'usr_editor', name: 'محرر محتوى', email: 'editor@alrehlah.com', created_at: '2023-01-14T10:00:00Z', role: 'content_editor' },
-  { id: 'usr_user', name: 'سارة علي', email: 'user@alrehlah.com', created_at: '2023-02-01T11:00:00Z', role: 'user' },
+    { id: 'usr_parent', created_at: '2023-00-01T10:00:00Z', name: 'أحمد عبدالله', email: 'parent@alrehlah.com', role: 'user' },
+    { id: 'usr_user', created_at: '2023-01-02T10:00:00Z', name: 'سارة خالد', email: 'user@alrehlah.com', role: 'user' },
+    { id: 'usr_student', created_at: '2023-01-03T10:00:00Z', name: 'علي أحمد', email: 'student@alrehlah.com', role: 'student' },
+    { id: 'usr_admin', created_at: '2023-01-04T10:00:00Z', name: 'مدير النظام', email: 'admin@alrehlah.com', role: 'super_admin' },
+    { id: 'usr_supervisor', created_at: '2023-01-05T10:00:00Z', name: 'مشرف عام', email: 'supervisor@alrehlah.com', role: 'general_supervisor' },
+    { id: 'usr_cws', created_at: '2023-01-06T10:00:00Z', name: 'مشرف بداية الرحلة', email: 'cws@alrehlah.com', role: 'creative_writing_supervisor' },
+    { id: 'usr_instructor_1', created_at: '2023-01-07T10:00:00Z', name: 'أ. أحمد المصري', email: 'instructor@alrehlah.com', role: 'instructor' },
+    { id: 'usr_support', created_at: '2023-01-08T10:00:00Z', name: 'وكيل دعم', email: 'support@alrehlah.com', role: 'support_agent' },
+    { id: 'usr_editor', created_at: '2023-01-09T10:00:00Z', name: 'محرر محتوى', email: 'editor@alrehlah.com', role: 'content_editor' },
+    { id: 'usr_els', created_at: '2023-01-10T10:00:00Z', name: 'مشرف إنها لك', email: 'enhalak@alrehlah.com', role: 'enha_lak_supervisor' },
 ];
 
 export const mockChildProfiles: ChildProfile[] = [
-  { id: 1, user_id: 'usr_parent', name: 'فاطمة أحمد', age: 8, gender: 'أنثى', avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', interests: ['الرسم', 'الفضاء'], strengths: ['مبدعة', 'فضولية'], created_at: '2023-01-15T10:01:00Z', student_user_id: 'usr_student' },
-  { id: 2, user_id: 'usr_parent', name: 'يوسف أحمد', age: 6, gender: 'ذكر', avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', interests: ['الديناصورات', 'السيارات'], strengths: ['شجاع', 'نشيط'], created_at: '2023-01-20T11:00:00Z', student_user_id: null },
+    { id: 1, created_at: '2023-01-10T10:00:00Z', user_id: 'usr_parent', name: 'فاطمة أحمد', age: 8, gender: 'أنثى', avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', interests: ['الرسم', 'الفضاء'], strengths: ['مبدعة', 'فضولية'], student_user_id: 'usr_student' },
+    { id: 2, created_at: '2023-02-15T10:00:00Z', user_id: 'usr_parent', name: 'عمر أحمد', age: 6, gender: 'ذكر', avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', interests: ['الديناصورات', 'السيارات'], strengths: ['شجاع'], student_user_id: null },
+];
+
+export const mockNotifications: Notification[] = [
+    { id: 1, user_id: 'usr_parent', created_at: new Date().toISOString(), message: 'تم تحديث حالة طلبك #ORD-123 إلى "تم الشحن".', link: '/account', read: false, type: 'order' },
+    { id: 2, user_id: 'usr_parent', created_at: new Date(Date.now() - 86400000).toISOString(), message: 'موعد جلستك القادمة بعد 24 ساعة.', link: '/account', read: true, type: 'booking' },
 ];
 
 export const mockOrders: Order[] = [
-  { id: 'ord_12345', user_id: 'usr_parent', child_id: 1, order_date: '2023-08-01T14:00:00Z', status: 'تم التسليم', total: 600, item_summary: 'قصة مخصصة: مغامرة فاطمة في الفضاء', details: { childName: 'فاطمة أحمد', childAge: 8, childGender: 'أنثى' }, admin_comment: 'تمت المراجعة والشحن.', receipt_url: 'https://example.com/receipt.pdf' },
-  { id: 'ord_67890', user_id: 'usr_parent', child_id: 2, order_date: '2023-08-10T18:30:00Z', status: 'بانتظار الدفع', total: 750, item_summary: 'بوكس الهدية الكامل', details: { childName: 'يوسف أحمد', childAge: 6, childGender: 'ذكر' }, admin_comment: null, receipt_url: null },
-];
-
-export const mockBookings: CreativeWritingBooking[] = [
-    { id: 'bk_abcde', user_id: 'usr_parent', user_name: 'أحمد عبدالله', child_id: 1, instructor_id: 1, package_name: 'الباقة الأساسية', booking_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), booking_time: '17:00', status: 'مؤكد', total: 800, receipt_url: 'https://example.com/receipt.pdf', progress_notes: 'أظهرت فاطمة تقدماً ملحوظاً في بناء الشخصيات. تحتاج إلى التركيز على الحبكة.', session_id: 'journey_1', created_at: '2023-07-20T10:00:00Z' },
-    { id: 'bk_fghij', user_id: 'usr_user', user_name: 'سارة علي', child_id: 2, instructor_id: 2, package_name: 'الباقة المتقدمة', booking_date: '2023-08-05T16:00:00Z', booking_time: '16:00', status: 'مكتمل', total: 1200, receipt_url: 'https://example.com/receipt.pdf', progress_notes: 'أكمل يوسف القصة بنجاح.', session_id: 'journey_2', created_at: '2023-07-15T12:00:00Z' },
-    { id: 'bk_klmno', user_id: 'usr_parent', user_name: 'أحمد عبدالله', child_id: 1, instructor_id: 1, package_name: 'الباقة الأساسية', booking_date: '2023-08-01T17:00:00Z', booking_time: '17:00', status: 'مكتمل', total: 800, receipt_url: 'https://example.com/receipt.pdf', progress_notes: 'الجلسة الأولى كانت ممتازة.', session_id: 'journey_3', created_at: '2023-07-20T10:00:00Z' },
-];
-
-export const mockPersonalizedProducts: PersonalizedProduct[] = [
-    { id: 1, key: 'custom_story', title: 'القصة المخصصة', description: 'قصة يكون فيها طفلك هو البطل، مع اسمه وصورته واهتماماته.', image_url: 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg', features: ['تخصيص كامل للبطل', 'اختيار الهدف التربوي', 'نسخة مطبوعة فاخرة وإلكترونية'], sort_order: 1 },
-    { id: 2, key: 'gift_box', title: 'بوكس الهدية الكامل', description: 'مجموعة متكاملة تشمل القصة المخصصة ومنتجات إضافية في تغليف فاخر.', image_url: 'https://i.ibb.co/8XYt2s5/about-us-image.jpg', features: ['القصة المخصصة', 'دفتر تلوين', 'كتيب أذكار', 'تغليف هدايا'], sort_order: 2 },
-    { id: 3, key: 'coloring_book', title: 'دفتر التلوين', description: 'رسومات من قصة طفلك الشخصية جاهزة للتلوين والإبداع.', image_url: null, features: [], sort_order: 3 },
-    { id: 4, key: 'dua_booklet', title: 'كتيّب الأذكار والأدعية', description: 'كتيب مصور بشخصية طفلك يحتوي على أدعية وأذكار يومية.', image_url: null, features: [], sort_order: 4 },
-];
-
-export const mockInstructors: Instructor[] = [
-    { id: 1, user_id: 'usr_instructor', name: 'أ. نورة القحطاني', slug: 'noura-qahtani', specialty: 'متخصصة في السرد القصصي (8-12 سنة)', bio: 'خبرة 8 سنوات في تدريب الأطفال على الكتابة الإبداعية.', avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', availability: {}, weekly_schedule: { monday: ['17:00', '18:00'], wednesday: ['17:00', '18:00'] }, schedule_status: 'approved', rate_per_session: 200, pending_profile_data: null, profile_update_status: null },
-    { id: 2, user_id: null, name: 'أ. أحمد المصري', slug: 'ahmed-masri', specialty: 'متخصص في بناء العوالم (13-18 سنة)', bio: 'كاتب وروائي منشور له عدة أعمال في أدب الفانتازيا.', avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', availability: {}, weekly_schedule: { tuesday: ['16:00', '17:00', '18:00'], thursday: ['16:00', '17:00'] }, schedule_status: 'pending', rate_per_session: 250, pending_profile_data: { updates: { bio: 'bio جديد', rate_per_session: 300 }, justification: 'تحديث الأسعار والخبرات' }, profile_update_status: 'pending' },
-];
-
-export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
-    { id: 1, name: 'الباقة التجريبية', sessions: 'جلسة واحدة (30 دقيقة)', price: 0, features: ['تقييم مهارات الطفل', 'خطة مخصصة'], popular: false, goal_description: 'اكتشاف موهبة طفلك وتحديد نقاط قوته في الكتابة.', final_product_description: 'خطة تطوير شخصية مقترحة.' },
-    { id: 2, name: 'الباقة الأساسية', sessions: '4 جلسات فردية (45 دقيقة)', price: 800, features: ['متابعة أسبوعية', 'تقارير دورية'], popular: true, goal_description: 'بناء أساسيات السرد القصصي واكتشاف الصوت الإبداعي.', final_product_description: 'قصة قصيرة من 1-3 صفحات من تأليف الطالب.' },
-    { id: 3, name: 'الباقة المتقدمة', sessions: '6 جلسات فردية (60 دقيقة)', price: 1200, features: ['ورش عمل جماعية', 'مراجعة وتحرير'], popular: false, goal_description: 'تطوير تقنيات السرد وبناء شخصيات معقدة.', final_product_description: 'قصة متكاملة مع شخصيات وحبكة مطورة.' },
-];
-
-export const mockAdditionalServices: AdditionalService[] = [
-    { id: 1, name: 'جلسة دعم إضافية', price: 200, description: 'جلسة فردية لمدة 45 دقيقة مع المدرب.' },
-    { id: 2, name: 'مراجعة نص خارجي', price: 150, description: 'مراجعة وتحرير قصة أو نص من خارج البرنامج.' },
-];
-
-export const mockSupportTickets: SupportTicket[] = [
-    { id: 'tkt_1', name: 'علي حسن', email: 'ali@example.com', subject: 'استفسار عن الشحن', message: 'متى يصل طلبي؟', status: 'جديدة', created_at: '2023-08-12T10:00:00Z' },
-    { id: 'tkt_2', name: 'هند محمد', email: 'hind@example.com', subject: 'مشكلة تقنية', message: 'لا أستطيع رفع الصور.', status: 'مغلقة', created_at: '2023-08-11T15:20:00Z' },
-];
-
-export const mockJoinRequests: JoinRequest[] = [
-    { id: 'jr_1', name: 'مبدع جديد', email: 'creative@example.com', role: 'رسام قصص أطفال', message: 'أنا رسام ولدي خبرة.', status: 'جديد', portfolio_url: 'https://behance.net/creative', created_at: '2023-08-12T11:00:00Z' },
-];
-
-export const mockBlogPosts: BlogPost[] = [
-    { id: 1, title: '5 طرق لتشجيع طفلك على القراءة', slug: '5-ways-to-encourage-reading', content: 'القراءة هي مفتاح عوالم الخيال والمعرفة...', author_name: 'فريق المنصة', image_url: 'https://i.ibb.co/8XYt2s5/about-us-image.jpg', status: 'published', published_at: '2023-08-01T12:00:00Z', created_at: '2023-07-30T10:00:00Z' },
-    { id: 2, title: 'كيف تحول وقت اللعب إلى فرصة للتعلم؟', slug: 'play-and-learn', content: 'اللعب هو لغة الأطفال...', author_name: 'أ. نورة القحطاني', image_url: 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg', status: 'published', published_at: '2023-07-25T12:00:00Z', created_at: '2023-07-24T10:00:00Z' },
-    { id: 3, title: 'أهمية القصص المخصصة (مسودة)', slug: 'importance-of-personalized-stories', content: 'تأثير رؤية الطفل لنفسه كبطل...', author_name: 'فريق المنصة', image_url: null, status: 'draft', published_at: null, created_at: '2023-08-10T10:00:00Z' },
+    { id: 'ord_123', order_date: new Date(Date.now() - 86400000 * 2).toISOString(), user_id: 'usr_parent', child_id: 1, item_summary: 'قصة مخصصة لـ فاطمة', total: 450, status: 'تم التسليم', details: { childName: 'فاطمة', childAge: 8, productKey: 'custom_story' }, admin_comment: null, receipt_url: null },
+    { id: 'ord_124', order_date: new Date().toISOString(), user_id: 'usr_parent', child_id: 2, item_summary: 'بوكس الهدية لـ عمر', total: 750, status: 'بانتظار الدفع', details: { childName: 'عمر', childAge: 6, productKey: 'gift_box' }, admin_comment: null, receipt_url: null },
 ];
 
 export const mockSubscriptions: Subscription[] = [
-    { id: 'sub_xyz', user_id: 'usr_parent', user_name: 'أحمد عبدالله', child_id: 2, child_name: 'يوسف أحمد', start_date: '2023-08-01T00:00:00Z', next_renewal_date: '2023-09-01T00:00:00Z', status: 'active' },
+    { id: 'sub_xyz', user_id: 'usr_parent', child_id: 1, start_date: '2023-08-01T10:00:00Z', next_renewal_date: '2024-08-01T10:00:00Z', status: 'active', user_name: 'أحمد عبدالله', child_name: 'فاطمة أحمد', plan_name: 'اشتراك سنوي', total: 3000 },
 ];
 
-export const mockNotifications: any[] = [
-    { id: 1, user_id: 'usr_parent', message: 'تم شحن طلبك #ord_12345 بنجاح!', type: 'order', read: false, link: '/account', created_at: '2023-08-02T10:00:00Z' },
-    { id: 2, user_id: 'usr_parent', message: 'تم تأكيد حجز جلستك مع أ. نورة القحطاني.', type: 'booking', read: true, link: '/account', created_at: '2023-07-21T11:00:00Z' },
+export const mockSubscriptionPlans: SubscriptionPlan[] = [
+  { id: 1, name: 'اشتراك ربع سنوي', duration_months: 3, price: 850, price_per_month: 283, savings_text: 'وفر 5%' },
+  { id: 2, name: 'اشتراك نصف سنوي', duration_months: 6, price: 1600, price_per_month: 267, savings_text: 'وفر 10%' },
+  { id: 3, name: 'اشتراك سنوي', duration_months: 12, price: 3000, price_per_month: 250, savings_text: 'وفر 15%', is_best_value: true },
 ];
 
-export const mockSiteContent = {
-    portalPage: {
-        heroTitle: "رحلة كل طفل تبدأ بقصة... وقصته تبدأ هنا",
-        heroSubtitle: "منصة تربوية عربية متكاملة تصنع قصصاً مخصصة تجعل طفلك بطلاً، وتطلق مواهبه في الكتابة الإبداعية.",
-        enhaLakTitle: "إنها لك",
-        enhaLakDescription: "قصص مخصصة ومنتجات تربوية فريدة تجعل طفلك بطل الحكاية الحقيقي.",
-        creativeWritingTitle: "بداية الرحلة",
-        creativeWritingDescription: "برنامج متكامل لتنمية مهارات الكتابة الإبداعية للأطفال والشباب من 8-18 سنة.",
-        valuePropositionTitle: "لماذا منصة الرحلة هي الأفضل لطفلك؟",
+export const mockBookings: CreativeWritingBooking[] = [
+    { id: 'bk_abc', created_at: '2023-07-20T10:00:00Z', user_id: 'usr_parent', user_name: 'أحمد عبدالله', child_id: 1, package_name: 'باقة الانطلاق', instructor_id: 1, booking_date: '2023-08-10T17:00:00Z', booking_time: '17:00', total: 1200, status: 'مكتمل', progress_notes: 'أظهرت فاطمة تقدماً ملحوظاً في بناء الشخصيات.', receipt_url: 'https://example.com/receipt.jpg', session_id: 'AlRehlah-Session-bk_abc' },
+];
+
+export const mockPersonalizedProducts: PersonalizedProduct[] = [
+    { 
+        id: 99, 
+        created_at: '2023-01-01', 
+        key: 'subscription_box', 
+        title: 'صندوق الرحلة الشهري', 
+        description: 'اشتراك شهري متجدد يحتوي على قصة مخصصة وأنشطة وهدايا.', 
+        image_url: 'https://i.ibb.co/L8DDd6V/gift-box-sub.png', 
+        features: ['قصة مخصصة جديدة كل شهر', 'أنشطة تفاعلية وألعاب', 'هدية إضافية مختارة بعناية'], 
+        sort_order: -1,
+        is_featured: false, 
+        is_addon: false, 
+        has_printed_version: true,
+        price_printed: null,
+        price_electronic: null,
+        goal_config: 'none',
+        story_goals: [],
+        image_slots: [],
+        text_fields: []
     },
-    aboutPage: {
-        missionStatement: "نؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً، تكون مرآة تعكس شخصية الطفل الفريدة، وتعزز هويته العربية، وتغرس في قلبه أسمى القيم الإنسانية.",
-        ourStory: "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة 'منصة الرحلة' - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي.",
-        ourVision: "أن نكون المنصة الرائدة والوجهة الأولى لكل أسرة عربية تبحث عن محتوى تربوي إبداعي وأصيل ينمّي شخصية الطفل، يعزز ارتباطه بلغته وهويته، ويطلق العنان لخياله الإبداعي."
+    { 
+        id: 8, 
+        created_at: '2023-09-01', 
+        key: 'emotion_story', 
+        title: 'القصة المميزة', 
+        description: 'قصة علاجية مخصصة لمساعدة طفلك على فهم مشاعره والتعبير عنها بطريقة صحية، بناءً على مواقف من حياته الواقعية.', 
+        image_url: 'https://i.ibb.co/8XYt2s5/about-us-image.jpg',
+        features: ['تخصيص نفسي وسلوكي عميق', 'معالجة مشاعر محددة', 'بناء على مواقف واقعية', 'حلول تربوية إيجابية'], 
+        sort_order: 0, 
+        is_featured: true, 
+        is_addon: false, 
+        has_printed_version: true,
+        price_printed: 600,
+        price_electronic: 350,
+        goal_config: 'predefined_and_custom',
+        story_goals: [
+            { key: 'anger', title: 'الغضب' },
+            { key: 'fear', title: 'الخوف' },
+            { key: 'jealousy', title: 'الغيرة' },
+            { key: 'frustration', title: 'الإحباط' },
+            { key: 'anxiety', title: 'القلق' },
+            { key: 'sadness', title: 'الحزن' },
+        ],
+        image_slots: [
+            { id: 'child_photo_1', label: 'صورة وجه الطفل (إلزامي)', required: true },
+        ],
+        text_fields: [
+            { id: 'homeEnvironment', label: 'البيئة المنزلية (الأشخاص)', placeholder: 'أسماء الوالدين، الإخوة (مع أعمارهم التقريبية). هل يشارك في القصة أجداد أو مربية؟', required: true, type: 'textarea' },
+            { id: 'friendsAndSchool', label: 'بيئة الأصدقاء والمدرسة', placeholder: 'اسم أفضل صديق أو صديقين. اسم المدرسة أو الروضة.', required: false, type: 'textarea' },
+            { id: 'physicalDescription', label: 'الوصف الجسدي (البصري)', placeholder: 'وصف بسيط (لون الشعر، لون العينين، ملابس مفضلة) لوصف البطل في النص.', required: true, type: 'textarea' },
+            { id: 'petInfo', label: 'الحيوان الأليف (إن وجد)', placeholder: 'الاسم ونوع الحيوان (قطة، كلب، عصفور).', required: false, type: 'textarea' },
+            { id: 'triggerSituation', label: 'الموقف المُحفز للمشاعر', placeholder: 'صف لنا موقفاً واقعياً ومحدداً حدث مؤخراً أثار هذا الشعور بقوة لدى الطفل. (مثلاً: عندما يخسر لعبة فيديو).', required: true, type: 'textarea' },
+            { id: 'childReaction', label: 'رد فعل الطفل النموذجي', placeholder: 'كيف يتصرف الطفل عندما يشعر بذلك؟ (مثلاً: الصراخ، العزلة، رمي الأشياء، البكاء الشديد).', required: true, type: 'textarea' },
+            { id: 'calmingMethod', label: 'أسلوب التهدئة المُتبع حالياً', placeholder: 'ما هي الاستراتيجية التي تستخدمونها حالياً لتهدئة الطفل (العد، الحضن، التنفس العميق)؟', required: true, type: 'textarea' },
+            { id: 'positiveBehavior', label: 'التحول الإيجابي المطلوب', placeholder: 'ما هو السلوك الإيجابي الذي تتمنى أن يتعلمه الطفل ليحل محل السلوك السلبي؟ (مثلاً: أن يعبر عن غضبه بالكلمات).', required: true, type: 'textarea' },
+            { id: 'favoriteHobby', label: 'هواية/اهتمام مفضل', placeholder: 'ما هو الشيء الذي يحبه الطفل أكثر؟ (مثل: كرة القدم، الرسم، بناء الليغو).', required: true, type: 'input' },
+            { id: 'favoritePhrase', label: 'كلمة/جملة مفضلة', placeholder: 'هل لديه كلمة أو عبارة يتكرر استخدامها كثيراً؟', required: false, type: 'input' },
+            { id: 'interactiveElementChoice', label: 'هل ترغب في عنصر بحث بصري؟*', placeholder: 'نعم / لا. مثال: نعم، أرغب في إيجاد دمية محددة مخبأة في الرسومات.', required: true, type: 'input' },
+        ]
     },
-    enhaLakPage: {},
-    creativeWritingPage: {},
-};
+    { 
+        id: 1, 
+        created_at: '2023-01-01', 
+        key: 'custom_story', 
+        title: 'القصة المخصصة', 
+        description: 'قصة فريدة بطلها طفلك، باسمه وصورته وهواياته.', 
+        image_url: 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg', 
+        features: ['تخصيص كامل', 'اختيار الهدف التربوي', 'رسومات احترافية'], 
+        sort_order: 1, 
+        is_featured: true, 
+        is_addon: false, 
+        has_printed_version: true,
+        price_printed: 450,
+        price_electronic: 200,
+        goal_config: 'predefined_and_custom',
+        story_goals: [
+            { key: 'respect', title: 'الاستئذان والاحترام' },
+            { key: 'cooperation', title: 'التعاون والمشاركة' },
+            { key: 'honesty', title: 'الصدق والأمانة' },
+        ],
+        image_slots: [
+            { id: 'child_photo_1', label: 'صورة وجه الطفل (إلزامي)', required: true },
+            { id: 'child_photo_2', label: 'صورة ثانية للطفل (اختياري)', required: false },
+        ],
+        text_fields: [
+            { id: 'childTraits', label: 'اخبرنا عن بطل القصة*', placeholder: 'مثال: شجاع، يحب الديناصورات...', required: true, type: 'textarea' },
+            { id: 'familyNames', label: 'أسماء أفراد العائلة (اختياري)', placeholder: 'مثال: الأم: فاطمة، الأب: علي', required: false, type: 'textarea' },
+        ]
+    },
+    { 
+        id: 2, 
+        created_at: '2023-01-01', 
+        key: 'gift_box', 
+        title: 'بوكس الهدية', 
+        description: 'المجموعة الكاملة من منتجاتنا في صندوق هدايا فاخر.', 
+        image_url: 'https://i.ibb.co/8XYt2s5/about-us-image.jpg', 
+        features: ['قصة مطبوعة', 'دفتر تلوين', 'كتيب أذكار'], 
+        sort_order: 2, 
+        is_featured: false, 
+        is_addon: false, 
+        has_printed_version: true,
+        price_printed: 750,
+        price_electronic: null,
+        goal_config: 'predefined',
+        story_goals: [
+            { key: 'respect', title: 'الاستئذان والاحترام' },
+            { key: 'cooperation', title: 'التعاون والمشاركة' },
+        ],
+        image_slots: [
+            { id: 'child_photo_1', label: 'صورة وجه الطفل (إلزامي)', required: true },
+        ],
+        text_fields: [
+            { id: 'childTraits', label: 'اخبرنا عن بطل القصة*', placeholder: 'مثال: شجاع، يحب الديناصورات...', required: true, type: 'textarea' },
+        ]
+    },
+    { 
+        id: 5, 
+        created_at: '2023-01-01', 
+        key: 'values_story', 
+        title: 'قصة الآداب والقيم', 
+        description: 'قصة إضافية تركز على قيمة أخلاقية محددة.', 
+        image_url: null, 
+        features: [], 
+        sort_order: 3, 
+        is_featured: false, 
+        is_addon: false, 
+        has_printed_version: true,
+        price_printed: 150,
+        price_electronic: 60,
+        goal_config: 'predefined',
+        story_goals: [
+             { key: 'respect', title: 'الاستئذان والاحترام' },
+             { key: 'honesty', title: 'الصدق والأمانة' },
+        ],
+        image_slots: [],
+        text_fields: []
+    },
+    { 
+        id: 3, 
+        created_at: '2023-01-01', 
+        key: 'coloring_book', 
+        title: 'دفتر التلوين', 
+        description: 'رسومات من قصة طفلك جاهزة للتلوين.', 
+        image_url: null, 
+        features: [], 
+        sort_order: 5, 
+        is_featured: false, 
+        is_addon: true, 
+        has_printed_version: true,
+        price_printed: 100,
+        price_electronic: 40,
+        goal_config: 'none',
+        story_goals: [],
+        image_slots: [],
+        text_fields: []
+    },
+    { 
+        id: 4, 
+        created_at: '2023-01-01', 
+        key: 'dua_booklet', 
+        title: 'كتيّب الأذكار', 
+        description: 'أدعية وأذكار يومية مصورة بشخصية طفلك.', 
+        image_url: null, 
+        features: [], 
+        sort_order: 6, 
+        is_featured: false, 
+        is_addon: true, 
+        has_printed_version: true,
+        price_printed: 120,
+        price_electronic: 50,
+        goal_config: 'none',
+        story_goals: [],
+        image_slots: [],
+        text_fields: []
+    },
+    { 
+        id: 7, 
+        created_at: '2023-01-01', 
+        key: 'voice_over', 
+        title: 'التعليق الصوتي', 
+        description: 'أضف الحياة لقصة طفلك مع تعليق صوتي احترافي.', 
+        image_url: null, 
+        features: [], 
+        sort_order: 7, 
+        is_featured: false, 
+        is_addon: true, 
+        has_printed_version: false,
+        price_printed: null,
+        price_electronic: 100,
+        goal_config: 'none',
+        story_goals: [],
+        image_slots: [],
+        text_fields: []
+    },
+];
 
-export const mockSocialLinks = {
-    facebook_url: 'https://facebook.com',
-    twitter_url: 'https://twitter.com',
-    instagram_url: 'https://instagram.com'
-};
 
-export const mockPublicHolidays: string[] = ["2024-10-06", "2025-01-07", "2025-01-25"];
+export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
+    { 
+        id: 1, 
+        name: 'الجلسة التعريفية', 
+        sessions: 'جلسة واحدة (30 دقيقة)', 
+        price: 0, 
+        features: ['تقييم مستوى الطالب', 'وضع خطة شخصية', 'متاحة لعدد محدود شهرياً'], 
+        popular: false, 
+        description: 'ابدأ رحلة طفلك بجلسة تعريفية مجانية لاستكشاف البرنامج ووضع خطة مناسبة لموهبته.' 
+    },
+    { 
+        id: 2, 
+        name: 'باقة الانطلاق', 
+        sessions: '4 جلسات', 
+        price: 1200, 
+        features: ['متابعة أسبوعية', 'أساسيات بناء القصة', 'محفظة رقمية للأعمال'], 
+        popular: true, 
+        description: 'باقة مكثفة لإطلاق شرارة الإبداع وتعلم أساسيات الكتابة القصصية.' 
+    },
+    { 
+        id: 3, 
+        name: 'الباقة الأساسية', 
+        sessions: '16 جلسة', 
+        price: 4000, 
+        features: ['بناء متكامل للشخصيات والعوالم', 'تقنيات سرد متقدمة', 'جلسات مراجعة وتحرير', 'شهادة إتمام'], 
+        popular: false, 
+        description: 'رحلة متكاملة تأسس مهارات الكتابة الإبداعية لدى طفلك. يمكن الترقية من باقة الانطلاق (باستكمال 12 جلسة).' 
+    },
+    { 
+        id: 4, 
+        name: 'باقة التخصص', 
+        sessions: '32 جلسة', 
+        price: 7200, 
+        features: ['تخصص في نوع أدبي (خيال، مغامرة..)', 'مشاريع كتابة متعمقة', 'بناء أسلوب الكاتب الشخصي', 'نشر عمل في المجلة الإلكترونية'], 
+        popular: false, 
+        description: 'للكتاب الواعدين الذين أتموا الباقة الأساسية ويرغبون في التخصص وصقل أسلوبهم بشكل احترافي.' 
+    },
+    { 
+        id: 5, 
+        name: 'باقة التميز', 
+        sessions: '48 جلسة (الأساسية + التخصص)', 
+        price: 9600, 
+        features: ['تشمل مزايا الباقتين الأساسية والتخصص', 'خصم خاص على السعر الإجمالي', 'جلسات إرشاد إضافية', 'فرصة نشر قصة كاملة'], 
+        popular: false, 
+        description: 'المسار الكامل للمبدعين الصغار، يجمع بين التأسيس والتخصص للوصول إلى مستوى متقدم من التميز.' 
+    },
+];
 
-export const mockPrices: Prices = {
-    story: { printed: 500, electronic: 250 },
-    coloringBook: 100,
-    duaBooklet: 80,
-    valuesStory: 150,
-    skillsStory: 150,
-    voiceOver: 120,
-    giftBox: 750,
-    subscriptionBox: 350
-};
+export const mockAdditionalServices: AdditionalService[] = [
+    { id: 1, name: 'استشارة خاصة', price: 200, description: 'جلسة استشارية إضافية لمدة 30 دقيقة.' },
+    { id: 2, name: 'مراجعة نص', price: 150, description: 'مراجعة وتحرير نص إبداعي من خارج البرنامج.' },
+    { id: 3, name: 'الاشتراك بعمل في الاصدار القادم', price: 500, description: 'انشر قصتك في كتابنا المجمع القادم' },
+    { id: 4, name: 'طلب اصدار خاص', price: 800, description: 'حوّل قصتك إلى كتاب مطبوع خاص بك' },
+];
+
+export const mockInstructors: Instructor[] = [
+    { id: 1, user_id: 'usr_instructor_1', name: 'أ. أحمد المصري', specialty: 'متخصص في بناء العوالم (13-18 سنة)', bio: 'كاتب وروائي...', avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', slug: 'ahmed-masri', weekly_schedule: { monday: ['17:00', '18:00'], wednesday: ['17:00', '18:00'] }, availability: {}, rate_per_session: 300, schedule_status: 'approved', profile_update_status: 'approved', pending_profile_data: null },
+    { id: 2, user_id: null, name: 'أ. نورة القحطاني', specialty: 'متخصصة في السرد القصصي (8-12 سنة)', bio: 'ماجستير في أدب الأطفال...', avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', slug: 'noura-qahtani', weekly_schedule: { tuesday: ['16:00', '17:00'], thursday: ['16:00', '17:00'] }, availability: {}, rate_per_session: 250, schedule_status: 'pending', profile_update_status: 'pending', pending_profile_data: { updates: { bio: "bio updated" }, justification: "test" } },
+];
 
 export const mockSiteBranding: SiteBranding = {
     logoUrl: "https://i.ibb.co/C0bSJJT/favicon.png",
@@ -125,24 +313,141 @@ export const mockSiteBranding: SiteBranding = {
     creativeWritingPortalImageUrl: "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg"
 };
 
-export const mockShippingCosts: ShippingCosts = {
-    "القاهرة": 0, "الجيزة": 50, "الإسكندرية": 60, "الدقهلية": 70, "البحر الأحمر": 80, "البحيرة": 65,
-    "الفيوم": 60, "الغربية": 65, "الإسماعيلية": 70, "المنوفية": 65, "المنيا": 75, "القليوبية": 55,
-    "الوادي الجديد": 90, "السويس": 70, "اسوان": 90, "اسيوط": 80, "بني سويف": 70, "بورسعيد": 70,
-    "دمياط": 65, "الشرقية": 65, "جنوب سيناء": 85, "كفر الشيخ": 65, "مطروح": 85, "الأقصر": 90,
-    "قنا": 85, "شمال سيناء": 85, "سوهاج": 85
+export const mockPrices: Prices = {};
+
+export const mockShippingCosts: ShippingCosts = { 'القاهرة': 0, 'الجيزة': 50, 'الإسكندرية': 60 };
+
+export const mockSocialLinks: SocialLinks = { id: 1, facebook_url: '#', twitter_url: '#', instagram_url: '#' };
+
+export const mockBlogPosts: BlogPost[] = [
+    { 
+        id: 1, 
+        created_at: '2024-08-01', 
+        published_at: '2024-08-01', 
+        title: '5 أسرار لتحويل وقت القراءة إلى مغامرة ممتعة', 
+        slug: 'reading-time-adventure', 
+        content: 'القراءة ليست مجرد نشاط هادئ قبل النوم، بل يمكن أن تكون بوابة لعوالم سحرية ومغامرات لا تُنسى. لكن كيف نحول تقليب الصفحات إلى تجربة مثيرة ينتظرها أطفالنا بشغف؟ إليك 5 أسرار بسيطة.\n\nأولاً، اصنعوا الأجواء. خففوا الإضاءة، استخدموا مصباحاً يدوياً كأنه كشاف في كهف غامض، أو ابنوا حصناً من الوسائد. الأجواء الخاصة تجعل القصة أكثر من مجرد كلمات على ورق.\n\nثانياً، استخدموا أصواتكم. غيروا نبرة صوتكم لتمثيل الشخصيات المختلفة. همسة للساحرة الشريرة، صوت جهوري للعملاق، وضحكة مرحة للأميرة. هذا الأداء الصوتي يضفي حياة على الحوار ويجذب انتباه الطفل.\n\nثالثاً، اجعلوها تفاعلية. توقفوا عند المشاهد المهمة واسألوا طفلكم: "ماذا تعتقد أنه سيحدث الآن؟" أو "لو كنت مكان البطل، ماذا كنت ستفعل؟". هذه الأسئلة تحفز الخيال وتجعل الطفل شريكاً في بناء الأحداث.\n\nرابعاً، اربطوا القصة بالواقع. بعد الانتهاء من قصة عن الفضاء، اخرجوا ليلاً لمشاهدة النجوم. إذا كانت القصة عن حيوانات الغابة، خططوا لزيارة حديقة الحيوان. هذا الربط يجعل عالم القصة يمتد إلى حياة الطفل الواقعية.\n\nأخيراً، لا تفرضوا القراءة. اجعلوها وقتاً مميزاً للمشاركة والدفء. الهدف هو بناء علاقة حب بين الطفل والكتاب، وهذه العلاقة تنمو بالمتعة وليس بالإجبار. بالقليل من الإبداع، ستصبح كل قصة مغامرة جديدة تنتظركم.', 
+        image_url: 'https://i.ibb.co/h7gJj47/blog-reading-adventure.jpg', 
+        author_name: 'فريق المنصة', 
+        status: 'published' 
+    },
+    { 
+        id: 2, 
+        created_at: '2024-07-25', 
+        published_at: '2024-07-25', 
+        title: 'لماذا يرى طفلك نفسه بطلاً؟ سيكولوجية القصة المخصصة', 
+        slug: 'psychology-of-personalized-stories', 
+        content: 'عندما يفتح طفل قصة ويرى اسمه وصورته وشخصيته تنعكس في البطل، يحدث شيء أشبه بالسحر. هذا ليس مجرد ترفيه، بل هو أداة تربوية قوية تستند إلى مبادئ نفسية عميقة. القصة المخصصة تجعل الطفل محور الكون السردي، مما يعزز بشكل كبير تقديره لذاته.\n\nعلى المستوى النفسي، تعمل القصة المخصصة على تلبية حاجة أساسية لدى الطفل: الشعور بالأهمية والتفرد. عندما يرى الطفل نفسه يقوم بأفعال بطولية ويتغلب على التحديات في القصة، فإنه يستوعب رسالة قوية: "أنا مهم، أنا قادر، أنا أستطيع إحداث فرق". هذا التأثير لا يتوقف عند انتهاء القصة، بل يمتد ليؤثر على ثقته بنفسه في مواجهة تحديات الحياة الواقعية.\n\nعلاوة على ذلك، فإن رؤية الطفل لصفاته واهتماماته الخاصة منسوجة في نسيج القصة تجعل المحتوى أكثر ارتباطاً به. هذا يزيد من انتباهه وتركيزه، ويجعل استيعابه للقيم والأهداف التربوية المضمنة في القصة أعمق وأكثر فعالية. إنه يتعلم من خلال تجربة يعيشها بنفسه، وليس من خلال مراقبة شخصية غريبة عنه.\n\nفي "منصة الرحلة"، نحن نؤمن بهذه القوة. كل قصة نصنعها هي مرآة تعكس أفضل ما في طفلك، وتمنحه الأدوات اللازمة ليرى البطل الكامن في داخله، ليس فقط على صفحات الكتب، بل في كل يوم من أيام حياته.', 
+        image_url: 'https://i.ibb.co/ZJ8pT5N/blog-hero-child.jpg', 
+        author_name: 'فريق المنصة', 
+        status: 'published' 
+    },
+    { 
+        id: 3, 
+        created_at: '2024-07-15', 
+        published_at: '2024-07-15', 
+        title: 'من الخيال إلى الورق: كيف نطلق العنان للكاتب الصغير داخل طفلك؟', 
+        slug: 'unleash-the-little-writer', 
+        content: 'كل طفل هو راوي قصص بالفطرة. عوالمهم الخيالية مليئة بالشخصيات المدهشة والمغامرات الجريئة. لكن كيف نساعدهم على نقل هذه العوالم من رؤوسهم إلى الورق؟ برنامج "بداية الرحلة" مصمم خصيصاً لهذا الغرض، وهو يعتمد على بضعة مبادئ أساسية يمكن لكل ولي أمر تطبيقها.\n\nابدأوا بالاستماع. عندما يروي طفلك قصة عن ديناصور طائر أو قطة تتكلم، استمعوا باهتمام واطرحوا أسئلة مفتوحة مثل "وماذا حدث بعد ذلك؟" أو "كيف كان شعور القطة؟". هذا يشجعهم على تطوير أفكارهم ويُشعرهم بأن قصصهم مهمة.\n\nثانياً، وفروا الأدوات دون ضغط. دفتر جميل، أقلام ملونة، أو حتى تطبيق للكتابة على جهاز لوحي يمكن أن يكون محفزاً. الفكرة هي جعل الكتابة نشاطاً ممتعاً ومتاحاً، وليس واجباً مدرسياً. لا تركزوا على الأخطاء الإملائية أو النحوية في البداية؛ ركزوا على تدفق الأفكار.\n\nثالثاً، استخدموا "صناديق الأفكار". املأوا صندوقاً بصور عشوائية من المجلات، أو كلمات مكتوبة على قصاصات ورق، أو أشياء صغيرة. يمكن للطفل أن يسحب عنصراً أو عنصرين ليبدأ قصته. هذا يكسر حاجز "الورقة البيضاء" المخيف.\n\nأخيراً، احتفوا بإبداعاتهم. سواء كانت قصة من سطرين أو فصلاً كاملاً، اقرأوها بصوت عالٍ، علقوها على الثلاجة، أو شاركوها مع أفراد العائلة. هذا الاحتفاء هو الوقود الذي يغذي ثقة الكاتب الصغير ويجعله يرغب في كتابة المزيد. تذكروا، الهدف ليس خلق روائي عالمي، بل تنشئة طفل واثق من صوته وقادر على التعبير عن نفسه بإبداع.', 
+        image_url: 'https://i.ibb.co/C0Wp1kK/blog-child-writing.jpg', 
+        author_name: 'فريق المنصة', 
+        status: 'published' 
+    },
+    { 
+        id: 4, 
+        created_at: '2024-08-05', 
+        published_at: null, 
+        title: 'استعداداً للمدرسة: كيف تنمي الكتابة الإبداعية المهارات الأكاديمية؟', 
+        slug: 'creative-writing-for-school', 
+        content: '(مسودة) قد تبدو الكتابة الإبداعية مجرد نشاط ترفيهي، لكن تأثيرها يمتد عميقاً داخل الفصول الدراسية. عندما يمارس الطفل الكتابة الإبداعية، فإنه لا يطور خياله فحسب، بل يصقل مجموعة من المهارات الأساسية التي تعزز أداءه الأكاديميكي بشكل مباشر.\n\nأولاً، تنظم الكتابة الإبداعية التفكير. لإنشاء قصة متماسكة، يجب على الطفل أن يتعلم كيفية ترتيب الأفكار بشكل منطقي، وبناء تسلسل للأحداث، والوصول إلى خاتمة مرضية. هذه المهارة في "التفكير السردي" لا تقدر بثمن عند كتابة المقالات أو حل المسائل متعددة الخطوات في المستقبل.\n\nثانياً، توسع المفردات. تشجع الكتابة الإبداعية الأطفال على البحث عن كلمات جديدة وأكثر دقة لوصف الشخصيات والمشاهد. بدلاً من "الرجل السعيد"، قد يبحثون عن كلمات مثل "مبتهج" أو "مسرور". هذا البحث النشط عن المفردات يثري لغتهم بشكل أسرع من الحفظ السلبي.\n\n(سيتم استكمال المقال لاحقاً بمناقشة مهارات التعاطف وحل المشكلات)', 
+        image_url: 'https://i.ibb.co/xL3Fp6s/blog-school-prep.jpg', 
+        author_name: 'فريق المنصة', 
+        status: 'draft' 
+    },
+];
+
+export const mockSupportTickets: SupportTicket[] = [
+    { id: 'tkt_1', created_at: new Date().toISOString(), name: 'علي حسن', email: 'ali@test.com', subject: 'استفسار عن الطلب', message: 'متى سيصل طلبي؟', status: 'جديدة' },
+];
+
+export const mockJoinRequests: JoinRequest[] = [
+    { id: 'join_1', created_at: new Date().toISOString(), name: 'مبدع جديد', email: 'creative@test.com', role: 'رسام قصص أطفال', message: 'أنا رسام مهتم.', status: 'جديد', portfolio_url: 'https://example.com' },
+];
+
+export const mockPublicHolidays: string[] = ['2023-10-06'];
+
+export const mockSiteContent: SiteContent = {
+    portalPage: {
+        heroTitle: "رحلة كل طفل تبدأ بقصة... وقصته تبدأ هنا",
+        heroSubtitle: "منصة تربوية عربية متكاملة تصنع قصصاً مخصصة تجعل طفلك بطلاً، وتطلق مواهبه في الكتابة الإبداعية",
+        enhaLakTitle: "إنها لك",
+        enhaLakDescription: "قصص مخصصة ومنتجات تربوية فريدة تجعل طفلك بطل الحكاية الحقيقي",
+        creativeWritingTitle: "بداية الرحلة",
+        creativeWritingDescription: "برنامج متكامل لتنمية مهارات الكتابة الإبداعية للأطفال والشباب من 8-18 سنة",
+        valuePropositionTitle: "لماذا منصة الرحلة هي الأفضل لطفلك؟",
+    },
+    aboutPage: {
+        missionStatement: "نؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً...",
+        ourStory: "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم...",
+        ourVision: "أن نكون المنصة الرائدة والوجهة الأولى لكل أسرة عربية تبحث عن محتوى تربوي إبداعي...",
+    },
+    enhaLakPage: {
+        main: {
+          heroTitle: "أكثر من مجرد قصة... إنها مغامرة شخصية لطفلك",
+          heroSubtitle: "مشروع \"إنها لك\" هو حجر الأساس في منصتنا، حيث نحول الطفل من مجرد قارئ إلى بطل حقيقي يعيش المغامرة بكل تفاصيلها.",
+          howItWorksTitle: "خطوات بسيطة لقصة فريدة"
+        },
+        store: {
+          heroTitle: "متجر \"إنها لك\"",
+          heroSubtitle: "اختر الكنز الذي سيجعل طفلك بطلاً. كل منتج مصمم بحب ليقدم تجربة فريدة لا تُنسى.",
+          subscriptionBannerTitle: "اكتشف صندوق الرحلة الشهري!"
+        },
+        subscription: {
+          heroTitle: "صندوق الرحلة الشهري",
+          heroSubtitle: "هدية متجددة كل شهر، تفتح لطفلك أبواباً جديدة من الخيال والمعرفة.",
+          features: [
+            "قصة مخصصة جديدة كل شهر.",
+            "أنشطة تفاعلية وألعاب تعليمية.",
+            "هدية إضافية مختارة بعناية."
+          ]
+        }
+    },
+    creativeWritingPage: {
+        main: {
+            heroTitle: "\"بداية الرحلة\": حيث لا تُكتب الكلمات، بل تولد العوالم",
+            heroSubtitle: "\"بداية الرحلة\" ليس برنامجاً لتعليم الكتابة، بل هو احتفال بالصوت الفريد لكل طفل.",
+            methodologyTitle: "منهجيتنا المتميزة: \"الإلهام قبل القواعد\"",
+        },
+        about: {
+            heroTitle: "لماذا \"بداية الرحلة\"؟",
+            heroSubtitle: "لأننا نؤمن أن بداخل كل طفل كاتباً عظيماً ينتظر من يكتشفه.",
+            philosophyTitle: "فلسفتنا في ثلاث كلمات"
+        },
+        curriculum: {
+            heroTitle: "خريطة الرحلة الإبداعية",
+            heroSubtitle: "مسار تعليمي مصمم بعناية لينقل طفلك من مجرد فكرة إلى قصة متكاملة، خطوة بخطوة.",
+            treasuresTitle: "كنوز رحلتك"
+        },
+        instructors: {
+            heroTitle: "رفقاء الرحلة الملهمون",
+            heroSubtitle: "نؤمن أن الإبداع لا يُلقّن، بل يُلهم. لذلك، اخترنا بعناية نخبة من الكتّاب والتربويين."
+        }
+    }
 };
 
 export const mockScheduledSessions: ScheduledSession[] = [
-    { id: 'ses_1', subscription_id: 'sub_xyz', booking_id: null, child_id: 2, instructor_id: 1, session_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), status: 'completed', created_at: '' },
-    { id: 'ses_2', subscription_id: 'sub_xyz', booking_id: null, child_id: 2, instructor_id: 1, session_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), status: 'upcoming', created_at: '' },
-    { id: 'ses_journey1_1', subscription_id: null, booking_id: 'bk_abcde', child_id: 1, instructor_id: 1, session_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), status: 'upcoming', created_at: '' },
+    { id: 'ses_1', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(Date.now() - 86400000 * 7).toISOString(), status: 'completed' },
+    { id: 'ses_2', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(Date.now() + 86400000 * 7).toISOString(), status: 'upcoming' },
 ];
+
 export const mockSessionMessages: SessionMessage[] = [
-    { id: 'msg_1', booking_id: 'bk_abcde', sender_id: 'usr_instructor', sender_role: 'instructor', message_text: 'مرحباً فاطمة، هل أنتِ مستعدة لجلستنا القادمة؟', created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'msg_2', booking_id: 'bk_abcde', sender_id: 'usr_student', sender_role: 'student', message_text: 'نعم متحمسة جداً!', created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 + 5 * 60 * 1000).toISOString() },
+    { id: 'msg_1', booking_id: 'bk_abc', sender_id: 'usr_instructor_1', sender_role: 'instructor', message_text: 'مرحباً فاطمة، هل أنتِ مستعدة لجلستنا القادمة؟', created_at: new Date().toISOString() },
 ];
-export const mockSessionAttachments: SessionAttachment[] = [];
+
+export const mockSessionAttachments: SessionAttachment[] = [
+    { id: 'att_1', booking_id: 'bk_abc', uploader_id: 'usr_student', uploader_role: 'student', file_name: 'قصتي-الأولى.pdf', file_url: '#', created_at: new Date().toISOString() },
+];
+
 export const mockSupportSessionRequests: SupportSessionRequest[] = [
-    { id: 'sup_req_1', instructor_id: 2, child_id: 2, reason: 'الطالب يواجه صعوبة في تطوير الحبكة ويحتاج لجلسة دعم إضافية.', status: 'pending', requested_at: new Date().toISOString() }
+    { id: 'sup_req_1', instructor_id: 1, child_id: 1, reason: 'يحتاج الطالب جلسة دعم إضافية لمناقشة فكرة القصة.', status: 'pending', requested_at: new Date().toISOString() },
 ];

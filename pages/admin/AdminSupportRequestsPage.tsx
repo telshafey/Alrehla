@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShieldQuestion, Check, X } from 'lucide-react';
-import { useAdminSupportSessionRequests } from '../../hooks/adminQueries';
-import { useInstructorMutations } from '../../hooks/mutations';
+import { useAdminSupportSessionRequests } from '../../hooks/queries/admin/useAdminCommunicationQuery';
+import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import AdminSection from '../../components/admin/AdminSection';
 import { Button } from '../../components/ui/Button';

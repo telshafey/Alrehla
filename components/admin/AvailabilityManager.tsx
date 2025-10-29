@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Save } from 'lucide-react';
-import { useAdminInstructors } from '../../hooks/adminQueries';
-import { useInstructorMutations } from '../../hooks/mutations';
+import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
+import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import type { Instructor, AvailableSlots } from '../../lib/database.types';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';

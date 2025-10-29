@@ -1,8 +1,8 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import type { Prices, SiteBranding, ShippingCosts } from '../lib/database.types';
 import { useToast } from './ToastContext';
-import { usePrices, useSiteBranding, useShippingCosts } from '../hooks/publicQueries';
-import { useProductSettingsMutations } from '../hooks/mutations';
+import { usePrices, useSiteBranding, useShippingCosts } from '../hooks/queries/public/useProductDataQuery';
+import { useProductSettingsMutations } from '../hooks/mutations/useProductSettingsMutations';
 
 
 export type { Prices, SiteBranding, ShippingCosts };

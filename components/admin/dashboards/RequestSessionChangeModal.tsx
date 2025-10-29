@@ -3,10 +3,11 @@ import { X, Send } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { Textarea } from '../../ui/Textarea';
 import FormField from '../../ui/FormField';
-import { useInstructorMutations } from '../../../hooks/mutations';
+import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
 import type { ScheduledSession } from '../../../lib/database.types';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useAdminInstructors } from '../../../hooks/adminQueries';
+// FIX: Corrected import path for useAdminInstructors hook after refactoring.
+import { useAdminInstructors } from '../../../hooks/queries/admin/useAdminInstructorsQuery';
 
 
 interface RequestSessionChangeModalProps {

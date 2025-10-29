@@ -1,12 +1,9 @@
-
-
-
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
     LayoutDashboard, Users, Settings, ShoppingBag, Gift, Edit, MessageSquare, UserPlus,
-    BookOpen, UserCheck, FileText, Package, Star, Truck, Home, UserCog, ShieldQuestion,
+    BookOpen, UserCheck, FileText, Star, Truck, UserCog, ShieldQuestion,
     Calendar
 } from 'lucide-react';
 
@@ -19,40 +16,38 @@ interface AdminSidebarProps {
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen, isCollapsed }) => {
     const { permissions, currentUser } = useAuth();
 
-    const navLinks = [
+    const mainLinks = [
         { to: '/admin', label: 'لوحة التحكم', icon: <LayoutDashboard size={20} />, permission: permissions.canViewDashboard },
+    ];
+    
+    const platformManagementLinks = [
         { to: '/admin/users', label: 'المستخدمون', icon: <Users size={20} />, permission: permissions.canManageUsers },
-        { to: '/admin/settings', label: 'إعدادات الموقع', icon: <Settings size={20} />, permission: permissions.canManageSettings },
+        { to: '/admin/settings', label: 'الإعدادات العامة', icon: <Settings size={20} />, permission: permissions.canManageSettings },
+        { to: '/admin/shipping', label: 'إعدادات الشحن', icon: <Truck size={20} />, permission: permissions.canManageShipping },
     ];
     
     const enhaLakLinks = [
         { to: '/admin/orders', label: 'الطلبات', icon: <ShoppingBag size={20} />, permission: permissions.canManageEnhaLakOrders },
         { to: '/admin/subscriptions', label: 'الاشتراكات', icon: <Star size={20} />, permission: permissions.canManageEnhaLakSubscriptions },
         { to: '/admin/personalized-products', label: 'المنتجات', icon: <Gift size={20} />, permission: permissions.canManageEnhaLakProducts },
-        { to: '/admin/prices', label: 'الأسعار', icon: <Package size={20} />, permission: permissions.canManagePrices },
-        { to: '/admin/shipping', label: 'الشحن', icon: <Truck size={20} />, permission: permissions.canManageShipping },
     ];
 
     const creativeWritingLinks = [
         { to: '/admin/creative-writing', label: 'الحجوزات', icon: <BookOpen size={20} />, permission: permissions.canManageCreativeWritingBookings },
+        { to: '/admin/scheduled-sessions', label: 'الجلسات المجدولة', icon: <Calendar size={20} />, permission: permissions.canManageSchedules },
         { to: '/admin/instructors', label: 'المدربون', icon: <UserCheck size={20} />, permission: permissions.canManageCreativeWritingInstructors },
-        { to: '/admin/instructor-updates', label: 'تحديثات المدربين', icon: <UserCog size={20} />, permission: permissions.canManageInstructorUpdates },
-        { to: '/admin/support-requests', label: 'طلبات الدعم', icon: <ShieldQuestion size={20} />, permission: permissions.canManageSupportRequests },
-        { to: '/admin/creative-writing-settings', label: 'الإعدادات', icon: <Settings size={20} />, permission: permissions.canManageCreativeWritingSettings },
+        { to: '/admin/creative-writing-settings', label: 'إعدادات القسم', icon: <UserCog size={20} />, permission: permissions.canManageCreativeWritingSettings },
     ];
     
-    const contentLinks = [
-         { to: '/admin/content-management', label: 'إدارة المحتوى', icon: <FileText size={20} />, permission: permissions.canManageContent },
+    const contentManagementLinks = [
+         { to: '/admin/content-management', label: 'محتوى الصفحات', icon: <FileText size={20} />, permission: permissions.canManageContent },
          { to: '/admin/blog', label: 'المدونة', icon: <Edit size={20} />, permission: permissions.canManageBlog },
     ];
     
     const communicationLinks = [
          { to: '/admin/support', label: 'رسائل الدعم', icon: <MessageSquare size={20} />, permission: permissions.canManageSupportTickets },
          { to: '/admin/join-requests', label: 'طلبات الانضمام', icon: <UserPlus size={20} />, permission: permissions.canManageJoinRequests },
-    ];
-
-    const schedulingLinks = [
-        { to: '/admin/scheduled-sessions', label: 'الجلسات المجدولة', icon: <Calendar size={20} />, permission: permissions.canManageSchedules },
+         { to: '/admin/support-requests', label: 'دعم المدربين', icon: <ShieldQuestion size={20} />, permission: permissions.canManageSupportRequests },
     ];
 
     const LinkItem: React.FC<{ to: string, icon: React.ReactNode, label: string }> = ({ to, icon, label }) => (
@@ -95,12 +90,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen, isCollap
                      <LinkItem to="/admin" icon={<LayoutDashboard size={20} />} label="لوحة التحكم" />
                 ) : (
                     <>
-                        <Section title="رئيسية" links={navLinks} />
-                        <Section title="إنها لك" links={enhaLakLinks} />
-                        <Section title="بداية الرحلة" links={creativeWritingLinks} />
-                        <Section title="الجدولة" links={schedulingLinks} />
-                        <Section title="المحتوى" links={contentLinks} />
-                        <Section title="التواصل" links={communicationLinks} />
+                        <Section title="رئيسية" links={mainLinks} />
+                        <Section title="إدارة المنصة" links={platformManagementLinks} />
+                        <Section title="قسم إنها لك" links={enhaLakLinks} />
+                        <Section title="قسم بداية الرحلة" links={creativeWritingLinks} />
+                        <Section title="إدارة المحتوى" links={contentManagementLinks} />
+                        <Section title="التواصل والدعم" links={communicationLinks} />
                     </>
                 )}
             </nav>

@@ -3,59 +3,88 @@ import FormField from '../ui/FormField';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
 import { Input } from '../ui/Input';
-
-const storyGoals = [
-    { key: 'respect', title: 'الاستئذان والاحترام' },
-    { key: 'cooperation', title: 'التعاون والمشاركة' },
-    { key: 'honesty', title: 'الصدق والأمانة' },
-    { key: 'cleanliness', title: 'النظافة والترتيب' },
-    { key: 'time_management', title: 'تنظيم الوقت' },
-    { key: 'emotion_management', title: 'إدارة العواطف' },
-    { key: 'problem_solving', title: 'حل المشكلات' },
-    { key: 'creative_thinking', title: 'التفكير الإبداعي' },
-];
+import { Button } from '../ui/Button';
+import { Sparkles } from 'lucide-react';
+import type { TextFieldConfig, GoalConfig, StoryGoal } from '../../lib/database.types';
 
 interface StoryCustomizationSectionProps {
-    formData: {
-        childTraits: string;
-        familyNames: string;
-        friendNames: string;
-        storyValue: string;
-        customGoal: string;
-    };
+    formData: { [key: string]: any };
     handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+    onOpenIdeasModal: () => void;
+    errors: { [key: string]: string };
+    textFields: TextFieldConfig[] | null;
+    goalConfig: GoalConfig;
+    storyGoals: StoryGoal[];
 }
 
 const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({
     formData,
     handleChange,
+    onOpenIdeasModal,
+    errors,
+    textFields,
+    goalConfig,
+    storyGoals,
 }) => {
+    
+    const showGoalSelector = goalConfig === 'predefined' || goalConfig === 'predefined_and_custom';
+    const allowCustomGoal = goalConfig === 'custom' || goalConfig === 'predefined_and_custom';
+
     return (
         <div>
             <h3 className="text-2xl font-bold text-gray-800 mb-6">تخصيص القصة</h3>
             <div className="space-y-6">
-                <FormField label="أخبرنا عن طفلك" htmlFor="childTraits">
-                    <Textarea
-                        id="childTraits"
-                        name="childTraits"
-                        value={formData.childTraits}
-                        onChange={handleChange}
-                        rows={4}
-                        placeholder="مثال: شجاع، يحب الديناصورات واللون الأزرق، ويخاف قليلاً من الظلام."
-                    />
-                </FormField>
-
-                <FormField label="اختر الهدف التربوي من القصة*" htmlFor="storyValue">
-                    <Select id="storyValue" name="storyValue" value={formData.storyValue} onChange={handleChange} required>
-                        <option value="">-- اختر قيمة --</option>
-                        {storyGoals.map(goal => (
-                            <option key={goal.key} value={goal.key}>{goal.title}</option>
-                        ))}
-                        <option value="custom">هدف آخر (أكتبه بنفسي)</option>
-                    </Select>
-                </FormField>
-
-                {formData.storyValue === 'custom' && (
+                {(textFields || []).map(field => (
+                     <FormField key={field.id} label={field.label} htmlFor={field.id} error={errors[field.id]}>
+                        {field.type === 'textarea' ? (
+                            <Textarea
+                                id={field.id}
+                                name={field.id}
+                                value={formData[field.id] || ''}
+                                onChange={handleChange}
+                                rows={4}
+                                placeholder={field.placeholder}
+                                className={errors[field.id] ? 'border-red-500' : ''}
+                                required={field.required}
+                            />
+                        ) : (
+                             <Input
+                                id={field.id}
+                                name={field.id}
+                                value={formData[field.id] || ''}
+                                onChange={handleChange}
+                                placeholder={field.placeholder}
+                                className={errors[field.id] ? 'border-red-500' : ''}
+                                required={field.required}
+                            />
+                        )}
+                    </FormField>
+                ))}
+                
+                {goalConfig !== 'none' && (
+                     <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <label htmlFor="storyValue" className="block text-sm font-bold text-gray-700">اختر الهدف من القصة*</label>
+                            {allowCustomGoal && (
+                                <Button type="button" variant="ghost" size="sm" onClick={onOpenIdeasModal} icon={<Sparkles size={16} />}>
+                                    اقترح أفكاراً
+                                </Button>
+                            )}
+                        </div>
+                        {showGoalSelector && (
+                            <Select id="storyValue" name="storyValue" value={formData.storyValue} onChange={handleChange} required className={errors.storyValue ? 'border-red-500' : ''}>
+                                <option value="">-- اختر قيمة --</option>
+                                {storyGoals.map(goal => (
+                                    <option key={goal.key} value={goal.key}>{goal.title}</option>
+                                ))}
+                                {allowCustomGoal && <option value="custom">هدف آخر (أكتبه بنفسي)</option>}
+                            </Select>
+                        )}
+                        {errors.storyValue && <p className="mt-2 text-sm text-red-600">{errors.storyValue}</p>}
+                    </div>
+                )}
+               
+                {allowCustomGoal && formData.storyValue === 'custom' && (
                     <FormField label="اكتب الهدف التربوي المخصص" htmlFor="customGoal">
                         <Input
                             type="text"
@@ -67,13 +96,6 @@ const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({
                         />
                     </FormField>
                 )}
-                
-                 <FormField label="أسماء أفراد العائلة (اختياري)" htmlFor="familyNames">
-                    <Textarea id="familyNames" name="familyNames" value={formData.familyNames} onChange={handleChange} rows={2} placeholder="مثال: الأم: فاطمة، الأب: علي"/>
-                </FormField>
-                <FormField label="أسماء الأصدقاء (اختياري)" htmlFor="friendNames">
-                    <Textarea id="friendNames" name="friendNames" value={formData.friendNames} onChange={handleChange} rows={2} placeholder="مثال: صديقه المقرب: خالد"/>
-                </FormField>
             </div>
         </div>
     );

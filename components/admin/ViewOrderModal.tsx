@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, Link as LinkIcon } from 'lucide-react';
-// FIX: Corrected import path
-import { useOrderMutations } from '../../hooks/mutations';
+import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
 import type { Order, OrderStatus } from '../../lib/database.types';
 import { formatDate, getStatusColor } from '../../utils/helpers';
 import { useModalAccessibility } from '../../hooks/useModalAccessibility';
@@ -14,12 +13,13 @@ interface ViewOrderModalProps {
     order: OrderWithRelations | null;
 }
 
-const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
+const DetailRow: React.FC<{ label: string; value: React.ReactNode; isTextArea?: boolean }> = ({ label, value, isTextArea = false }) => (
     <div className="py-2 border-b">
         <span className="font-semibold text-gray-500">{label}:</span>
-        <span className="text-gray-800 mr-2">{value}</span>
+        {isTextArea ? <div className="text-gray-800 mt-1 whitespace-pre-wrap bg-gray-50 p-2 rounded">{value || 'N/A'}</div> : <span className="text-gray-800 mr-2">{value || 'N/A'}</span>}
     </div>
 );
+
 
 const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order }) => {
     const { updateOrderStatus, updateOrderComment } = useOrderMutations();
@@ -47,8 +47,14 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
     };
 
     const details = order.details as any || {};
+    const isEmotionStory = details.productKey === 'emotion_story';
 
     const statuses: OrderStatus[] = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "تم الشحن", "تم التسليم", "ملغي"];
+    
+    const emotionMap: { [key: string]: string } = {
+        anger: 'الغضب', fear: 'الخوف', jealousy: 'الغيرة',
+        frustration: 'الإحباط', anxiety: 'القلق', sadness: 'الحزن',
+    };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="order-modal-title">
@@ -61,9 +67,9 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                         <h3 className="font-bold text-lg border-b pb-2">معلومات العميل والطفل</h3>
-                        <DetailRow label="العميل" value={order.users?.name || 'N/A'} />
-                        <DetailRow label="البريد الإلكتروني" value={order.users?.email || 'N/A'} />
-                        <DetailRow label="الطفل" value={details.childName || order.child_profiles?.name || 'N/A'} />
+                        <DetailRow label="العميل" value={order.users?.name} />
+                        <DetailRow label="البريد الإلكتروني" value={order.users?.email} />
+                        <DetailRow label="الطفل" value={details.childName || order.child_profiles?.name} />
                         <DetailRow label="العمر" value={details.childAge} />
                         <DetailRow label="الجنس" value={details.childGender} />
                     </div>
@@ -82,11 +88,37 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
                     </div>
                 </div>
                 
-                 <div className="mt-8 space-y-4">
-                    <h3 className="font-bold text-lg border-b pb-2">بيانات التخصيص</h3>
-                    <DetailRow label="وصف الطفل" value={<p className="whitespace-pre-wrap">{details.childTraits || 'لم يحدد'}</p>} />
-                    <DetailRow label="الهدف من القصة" value={details.storyValue || 'لم يحدد'} />
-                </div>
+                 {!isEmotionStory ? (
+                    <div className="mt-8 space-y-4">
+                        <h3 className="font-bold text-lg border-b pb-2">بيانات التخصيص</h3>
+                        <DetailRow label="وصف الطفل" value={<p className="whitespace-pre-wrap">{details.childTraits || 'لم يحدد'}</p>} />
+                        <DetailRow label="الهدف من القصة" value={details.storyValue || 'لم يحدد'} />
+                    </div>
+                 ) : (
+                    <>
+                        <div className="mt-8 space-y-4">
+                            <h3 className="font-bold text-lg border-b pb-2">بيانات السياق</h3>
+                            <DetailRow label="البيئة المنزلية" value={details.homeEnvironment} isTextArea />
+                            <DetailRow label="بيئة الأصدقاء والمدرسة" value={details.friendsAndSchool} isTextArea />
+                            <DetailRow label="الوصف الجسدي" value={details.physicalDescription} isTextArea />
+                            <DetailRow label="الحيوان الأليف" value={details.petInfo} isTextArea />
+                        </div>
+                        <div className="mt-8 space-y-4">
+                            <h3 className="font-bold text-lg border-b pb-2">رحلة المشاعر</h3>
+                            <DetailRow label="المشاعر المستهدفة" value={emotionMap[details.storyValue] || details.storyValue} />
+                            <DetailRow label="الموقف المحفز" value={details.triggerSituation} isTextArea />
+                            <DetailRow label="رد فعل الطفل" value={details.childReaction} isTextArea />
+                            <DetailRow label="أسلوب التهدئة الحالي" value={details.calmingMethod} isTextArea />
+                            <DetailRow label="التحول الإيجابي المطلوب" value={details.positiveBehavior} isTextArea />
+                        </div>
+                         <div className="mt-8 space-y-4">
+                            <h3 className="font-bold text-lg border-b pb-2">لمسات إبداعية</h3>
+                            <DetailRow label="الهواية المفضلة" value={details.favoriteHobby} />
+                            <DetailRow label="الكلمة المفضلة" value={details.favoritePhrase} />
+                            <DetailRow label="عنصر البحث البصري" value={details.interactiveElementChoice} />
+                        </div>
+                    </>
+                 )}
 
 
                 <div className="mt-8">

@@ -1,15 +1,15 @@
+
+
 import React from 'react';
 import { DollarSign } from 'lucide-react';
 import AdminSection from '../AdminSection';
 import { Button } from '../../ui/Button';
 
-// FIX: Implemented the InstructorFinancialsPanel with mock data to display financial info.
 const InstructorFinancialsPanel: React.FC<{ bookings: any[], instructorRate: number }> = ({ bookings, instructorRate }) => {
     const completedSessions = bookings.reduce((acc, booking) => {
         return acc + (booking.sessions?.filter((s: any) => s.status === 'completed').length || 0);
     }, 0);
 
-    // Mock data for demonstration
     const financials = {
         currentBalance: completedSessions * instructorRate,
         lastPayout: 1800,

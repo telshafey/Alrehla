@@ -3,8 +3,7 @@ import type { UserRole } from './database.types';
 export type { UserRole };
 
 export const roleNames: { [key in UserRole]: string } = {
-  user: 'مستخدم عادي',
-  parent: 'ولي أمر',
+  user: 'مستخدم',
   student: 'طالب',
   super_admin: 'مدير النظام',
   general_supervisor: 'مشرف عام',

@@ -1,5 +1,7 @@
 import React from 'react';
-import { Book, Award, FileText, GraduationCap, Sparkles, Wand2, Star } from 'lucide-react';
+import { Book, Award, FileText, GraduationCap, Sparkles, Wand2, Star, CheckCircle } from 'lucide-react';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
+import PageLoader from '../components/ui/PageLoader';
 
 const TimelineStep: React.FC<{ stage: string; title: string; sessions: string; description: string; isLast?: boolean }> = ({ stage, title, sessions, description, isLast = false }) => (
     <div className="relative pl-8 sm:pl-12 py-6">
@@ -21,13 +23,18 @@ const TimelineStep: React.FC<{ stage: string; title: string; sessions: string; d
 
 
 const CreativeWritingCurriculumPage: React.FC = () => {
+    const { data, isLoading } = usePublicData();
+    const content = data?.siteContent?.creativeWritingPage.curriculum;
+
+    if (isLoading) return <PageLoader />;
+
     return (
         <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-16 max-w-3xl mx-auto">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">خريطة الرحلة الإبداعية</h1>
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">{content?.heroTitle}</h1>
                     <p className="mt-4 text-lg text-gray-600">
-                        مسار تعليمي مصمم بعناية لينقل طفلك من مجرد فكرة إلى قصة متكاملة، خطوة بخطوة.
+                        {content?.heroSubtitle}
                     </p>
                 </div>
 
@@ -55,7 +62,9 @@ const CreativeWritingCurriculumPage: React.FC = () => {
 
                  <div className="mt-24">
                     <div className="text-center mb-16 max-w-3xl mx-auto">
-                         <h2 className="text-4xl font-extrabold text-gray-800">كنوز رحلتك</h2>
+                         <h2 className="text-4xl font-extrabold text-gray-800 flex items-center justify-center gap-3">
+                            <Sparkles className="text-yellow-400" /> {content?.treasuresTitle} <Sparkles className="text-yellow-400" />
+                        </h2>
                         <p className="mt-4 text-lg text-gray-600">
                             في نهاية البرنامج، لا يخرج طفلك بيدين فارغتين، بل يحمل معه ما يثبت إنجازه ونموه.
                         </p>
@@ -64,8 +73,8 @@ const CreativeWritingCurriculumPage: React.FC = () => {
                         <div className="bg-blue-50 p-8 rounded-2xl border-l-4 border-blue-500 shadow-lg">
                             <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3"><FileText /> المحفظة الرقمية</h3>
                             <ul className="space-y-3 list-none text-gray-600">
-                                <li className="flex items-start"><Sparkles className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span><span className="font-semibold">3-5 أعمال إبداعية مكتملة</span> (قصص، خواطر، بداية رواية).</span></li>
-                                <li className="flex items-start"><Sparkles className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span>تسجيلات صوتية للطفل وهو يقرأ أفضل أعماله بفخر.</span></li>
+                                <li className="flex items-start"><Star className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span><span className="font-semibold">3-5 أعمال إبداعية مكتملة</span> (قصص، خواطر، بداية رواية).</span></li>
+                                <li className="flex items-start"><Star className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span>تسجيلات صوتية للطفل وهو يقرأ أفضل أعماله بفخر.</span></li>
                             </ul>
                         </div>
                         <div className="bg-green-50 p-8 rounded-2xl border-l-4 border-green-500 shadow-lg">

@@ -2,16 +2,10 @@ import React from 'react';
 import { Package, User, Palette, Sparkles, Image as ImageIcon } from 'lucide-react';
 import type { PersonalizedProduct } from '../../lib/database.types';
 
-const storyGoals = [
-    { key: 'respect', title: 'الاستئذان والاحترام' },
-    { key: 'cooperation', title: 'التعاون والمشاركة' },
-    { key: 'honesty', title: 'الصدق والأمانة' },
-    { key: 'cleanliness', title: 'النظافة والترتيب' },
-    { key: 'time_management', title: 'تنظيم الوقت' },
-    { key: 'emotion_management', title: 'إدارة العواطف' },
-    { key: 'problem_solving', title: 'حل المشكلات' },
-    { key: 'creative_thinking', title: 'التفكير الإبداعي' },
-];
+interface StoryGoal {
+  key: string;
+  title: string;
+}
 
 interface InteractivePreviewProps {
     formData: {
@@ -25,9 +19,10 @@ interface InteractivePreviewProps {
     addons: { key: string; title: string; price: number }[];
     totalPrice: number;
     imagePreviewUrl: string | null;
+    storyGoals: StoryGoal[];
 }
 
-const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, product, basePrice, addons, totalPrice, imagePreviewUrl }) => {
+const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, product, basePrice, addons, totalPrice, imagePreviewUrl, storyGoals }) => {
     const { childName, childTraits, storyValue, customGoal } = formData;
     
     if (!product) {
@@ -37,8 +32,8 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, produ
     const showFullCustomization = product.key === 'custom_story' || product.key === 'gift_box';
     
     const getGoalTitle = () => {
-        if (showFullCustomization) {
-            return storyValue === 'custom' ? customGoal : storyGoals.find(v => v.key === storyValue)?.title;
+        if (product.goal_config !== 'none') {
+            return storyValue === 'custom' ? customGoal : (storyGoals || []).find(v => v.key === storyValue)?.title;
         }
         return null;
     };
@@ -73,15 +68,15 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, produ
                     </div>
                 </div>
 
-                {showFullCustomization && childTraits && (
-                     <div>
+                {product.text_fields?.map(field => field.required && formData[field.id] && (
+                     <div key={field.id}>
                         <h3 className="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
                             <Palette size={18} />
-                            وصف الشخصية
+                            {field.label.replace('*','')}
                         </h3>
-                        <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{childTraits}</p>
+                        <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{formData[field.id]}</p>
                     </div>
-                )}
+                ))}
                 
                 {goalTitle && (
                     <div>

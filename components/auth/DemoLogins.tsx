@@ -1,12 +1,14 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { User, Shield, BookOpen, PenTool, UserCheck, MessageSquare, Edit, GraduationCap } from 'lucide-react';
+import { User, Shield, BookOpen, PenTool, UserCheck, MessageSquare, Edit, GraduationCap, ShoppingBag } from 'lucide-react';
 
 const mockUsersCredentials = [
     { role: 'ولي أمر', email: 'parent@alrehlah.com', icon: <User /> },
+    { role: 'مستخدم عادي', email: 'user@alrehlah.com', icon: <User /> },
     { role: 'طالب', email: 'student@alrehlah.com', icon: <GraduationCap /> },
     { role: 'مدير النظام', email: 'admin@alrehlah.com', icon: <Shield /> },
     { role: 'مشرف عام', email: 'supervisor@alrehlah.com', icon: <BookOpen /> },
+    { role: 'مشرف إنها لك', email: 'enhalak@alrehlah.com', icon: <ShoppingBag /> },
     { role: 'مشرف بداية الرحلة', email: 'cws@alrehlah.com', icon: <PenTool /> },
     { role: 'مدرب', email: 'instructor@alrehlah.com', icon: <UserCheck /> },
     { role: 'وكيل دعم', email: 'support@alrehlah.com', icon: <MessageSquare /> },

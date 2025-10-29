@@ -1,7 +1,8 @@
 import React from 'react';
 import { MessageSquare } from 'lucide-react';
 import AdminSection from '../AdminSection';
-import WeeklyScheduleManager from '../WeeklyScheduleManager';
+// FIX: Corrected the import for WeeklyScheduleManager to use a named import as it is not a default export.
+import { WeeklyScheduleManager } from '../WeeklyScheduleManager';
 import type { Instructor } from '../../../lib/database.types';
 
 interface InstructorSchedulePanelProps {

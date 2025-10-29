@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { usePublicData } from '../hooks/publicQueries';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
 import BookingCalendar from '../components/BookingCalendar';
 import { Button } from '../components/ui/Button';

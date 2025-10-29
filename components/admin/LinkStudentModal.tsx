@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Loader2, Link as LinkIcon, Link2Off } from 'lucide-react';
-import { useAdminAllChildProfiles } from '../../hooks/adminQueries';
-// FIX: Corrected import path
-import { useUserMutations } from '../../hooks/mutations';
+import { useAdminAllChildProfiles } from '../../hooks/queries/admin/useAdminUsersQuery';
+import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import { useToast } from '../../contexts/ToastContext';
 import type { UserProfile as User } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';

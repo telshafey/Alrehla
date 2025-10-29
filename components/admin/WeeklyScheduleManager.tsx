@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Send } from 'lucide-react';
-// FIX: Corrected import path
-import { useInstructorMutations } from '../../hooks/mutations';
+import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import type { Instructor, WeeklySchedule } from '../../lib/database.types';
 import { useToast } from '../../contexts/ToastContext';
 import { Button } from '../ui/Button';
@@ -17,41 +16,46 @@ const timeSlots = [
     '17:00', '17:30', '18:00'
 ];
 
-const WeeklyScheduleManager: React.FC<{ instructor: Instructor }> = ({ instructor }) => {
+export const WeeklyScheduleManager: React.FC<{ instructor: Instructor }> = ({ instructor }) => {
     const { requestScheduleChange } = useInstructorMutations();
     const { addToast } = useToast();
     const [schedule, setSchedule] = useState<WeeklySchedule>({});
-    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        setSchedule((instructor.weekly_schedule as WeeklySchedule) || {});
+        if (instructor.weekly_schedule) {
+            setSchedule(instructor.weekly_schedule as WeeklySchedule);
+        } else {
+            setSchedule({});
+        }
     }, [instructor]);
-    
+
     const handleTimeToggle = (day: string, time: string) => {
         setSchedule(prev => {
-            const daySchedule = prev[day as keyof WeeklySchedule] || [];
-            const newDaySchedule = daySchedule.includes(time) 
-                ? daySchedule.filter(t => t !== time)
-                : [...daySchedule, time].sort();
-            return { ...prev, [day]: newDaySchedule };
+            const daySlots = prev[day as keyof WeeklySchedule] || [];
+            const newDaySlots = daySlots.includes(time)
+                ? daySlots.filter(t => t !== time)
+                : [...daySlots, time].sort();
+            
+            const newSchedule = { ...prev, [day]: newDaySlots };
+            if (newDaySlots.length === 0) {
+                delete newSchedule[day as keyof WeeklySchedule];
+            }
+
+            return newSchedule;
         });
     };
     
-    const handleSubmit = async () => {
-        setIsSaving(true);
-        try {
-            await requestScheduleChange.mutateAsync({ instructorId: instructor.id, schedule });
-        } catch(e) {
-             // error handled in hook
-        } finally {
-            setIsSaving(false);
+    const handleSubmit = () => {
+        if (Object.values(schedule).every(v => Array.isArray(v) && v.length === 0) && !window.confirm("جدولك فارغ. هل أنت متأكد من أنك تريد إرساله هكذا؟")) {
+            return;
         }
+        requestScheduleChange.mutate({ instructorId: instructor.id, schedule });
     };
 
     return (
-        <div className="bg-gray-50 p-6 rounded-2xl border">
+        <div className="space-y-6">
             {daysOfWeek.map(day => (
-                <div key={day} className="mb-6">
+                <div key={day}>
                     <h4 className="font-bold mb-3">{dayNames[day]}</h4>
                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
                         {timeSlots.map(time => {
@@ -71,13 +75,11 @@ const WeeklyScheduleManager: React.FC<{ instructor: Instructor }> = ({ instructo
                     </div>
                 </div>
             ))}
-            <div className="flex justify-end mt-6">
-                 <Button onClick={handleSubmit} loading={isSaving} icon={<Send size={16}/>}>
-                    {isSaving ? 'جاري الإرسال...' : 'إرسال طلب التعديل'}
+             <div className="flex justify-end mt-6">
+                <Button onClick={handleSubmit} loading={requestScheduleChange.isPending} icon={<Send />}>
+                    إرسال طلب التعديل
                 </Button>
             </div>
         </div>
     );
 };
-
-export default WeeklyScheduleManager;

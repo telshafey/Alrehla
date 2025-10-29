@@ -5,9 +5,13 @@ import TestimonialCard from '../components/shared/TestimonialCard';
 import ShareButtons from '../components/shared/ShareButtons';
 import HowItWorksStep from '../components/shared/HowItWorksStep';
 import { Button } from '../components/ui/Button';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
+import PageLoader from '../components/ui/PageLoader';
 
 const EnhaLakPage: React.FC = () => {
     const pageUrl = window.location.href;
+    const { data, isLoading } = usePublicData();
+    const content = data?.siteContent?.enhaLakPage.main;
 
     // Prices are removed from this page. They are available in the store.
     const products = [
@@ -74,6 +78,7 @@ const EnhaLakPage: React.FC = () => {
         "https://i.ibb.co/C0bSJJT/favicon.png"
     ];
 
+    if (isLoading) return <PageLoader />;
 
     return (
         <div className="bg-gray-50 animate-fadeIn">
@@ -81,14 +86,14 @@ const EnhaLakPage: React.FC = () => {
             <section className="bg-gradient-to-br from-pink-50 via-red-50 to-white py-16 sm:py-20 lg:py-24 text-center">
                 <div className="container mx-auto px-4">
                     <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-800 leading-tight">
-                        <span className="text-pink-600">أكثر من مجرد قصة...</span> إنها مغامرة شخصية لطفلك
+                        <span className="text-pink-600">{content?.heroTitle.split('...')[0]}...</span> {content?.heroTitle.split('...')[1]}
                     </h1>
                     <p className="mt-6 max-w-3xl mx-auto text-lg sm:text-xl text-gray-600">
-                        مشروع "إنها لك" هو حجر الأساس في منصتنا، حيث نحول الطفل من مجرد قارئ إلى بطل حقيقي يعيش المغامرة بكل تفاصيلها. يرى اسمه، صورته، وشخصيته منسوجة في حكاية ملهمة تبقى معه للأبد.
+                        {content?.heroSubtitle}
                     </p>
                     <div className="mt-10">
                         <Button asChild size="lg" variant="pink" className="shadow-lg transition-transform transform hover:scale-105">
-                           <Link to="/enha-lak/store">اذهب إلى المتجر وشاهد الأسعار</Link>
+                           <Link to="/enha-lak/store">تصفح المنتجات واطلب الآن</Link>
                         </Button>
                     </div>
                      <div className="mt-8 flex justify-center">
@@ -167,7 +172,7 @@ const EnhaLakPage: React.FC = () => {
             <section className="bg-white py-16 sm:py-20 lg:py-24">
               <div className="container mx-auto px-4">
                   <div className="text-center mb-16">
-                      <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">خطوات بسيطة لقصة فريدة</h2>
+                      <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.howItWorksTitle}</h2>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 items-start relative max-w-6xl mx-auto">
                       <HowItWorksStep icon={<Send size={48} className="text-blue-600"/>} title="1. املأ البيانات" description="اسم الطفل، عمره، صورته، هواياته."/>

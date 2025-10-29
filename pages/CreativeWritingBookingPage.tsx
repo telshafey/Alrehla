@@ -11,7 +11,7 @@ import InstructorSelection from '../components/creative-writing/booking/Instruct
 import ChildSelection from '../components/creative-writing/booking/ChildSelection';
 import CalendarSelection from '../components/creative-writing/booking/CalendarSelection';
 import BookingSummary from '../components/creative-writing/booking/BookingSummary';
-import { useBookingData } from '../hooks/publicQueries';
+import { useBookingData } from '../hooks/queries/public/usePageDataQuery';
 
 type BookingStepType = 'package' | 'instructor' | 'child' | 'calendar' | 'confirm';
 

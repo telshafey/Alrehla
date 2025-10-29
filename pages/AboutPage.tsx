@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, Target, Sparkles, Gem, Handshake, Globe } from 'lucide-react';
 import { useProduct } from '../contexts/ProductContext';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
 import ShareButtons from '../components/shared/ShareButtons';
 
@@ -18,9 +19,11 @@ const ValueCard: React.FC<{ icon: React.ReactNode; title: string; description: s
 
 const AboutPage: React.FC = () => {
     const { siteBranding, loading: isBrandingLoading } = useProduct();
+    const { data, isLoading: isPublicDataLoading } = usePublicData();
     const pageUrl = window.location.href;
+    const content = data?.siteContent?.aboutPage;
 
-    if (isBrandingLoading) {
+    if (isBrandingLoading || isPublicDataLoading) {
         return <PageLoader />;
     }
 
@@ -31,7 +34,7 @@ const AboutPage: React.FC = () => {
                 <div className="container mx-auto px-4">
                     <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">رسالتنا</h1>
                     <p className="mt-4 max-w-3xl mx-auto text-lg text-gray-600">
-                        nؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً، تكون مرآة تعكس شخصية الطفل الفريدة، وتعزز هويته العربية، وتغرس في قلبه أسمى القيم الإنسانية.
+                        {content?.missionStatement || "nؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً، تكون مرآة تعكس شخصية الطفل الفريدة، وتعزز هويته العربية، وتغرس في قلبه أسمى القيم الإنسانية."}
                     </p>
                     <div className="mt-8 flex justify-center">
                         <ShareButtons 
@@ -50,7 +53,7 @@ const AboutPage: React.FC = () => {
                         <div className="order-last md:order-first">
                             <h2 className="text-3xl font-bold text-gray-800 mb-4">قصتنا</h2>
                             <p className="text-gray-600 leading-relaxed">
-                                في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة "منصة الرحلة" - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي.
+                               {content?.ourStory || "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة \"منصة الرحلة\" - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي."}
                             </p>
                         </div>
                         <div>
@@ -66,7 +69,7 @@ const AboutPage: React.FC = () => {
                     <Eye className="mx-auto h-16 w-16 text-blue-500 mb-4" />
                     <h2 className="text-3xl font-bold text-gray-800">رؤيتنا</h2>
                     <p className="mt-4 text-lg text-gray-600">
-                       أن نكون المنصة الرائدة والوجهة الأولى لكل أسرة عربية تبحث عن محتوى تربوي إبداعي وأصيل ينمّي شخصية الطفل، يعزز ارتباطه بلغته وهويته، ويطلق العنان لخياله الإبداعي.
+                      {content?.ourVision || "أن نكون المنصة الرائدة والوجهة الأولى لكل أسرة عربية تبحث عن محتوى تربوي إبداعي وأصيل ينمّي شخصية الطفل، يعزز ارتباطه بلغته وهويته، ويطلق العنان لخياله الإبداعي."}
                     </p>
                 </div>
             </section>
