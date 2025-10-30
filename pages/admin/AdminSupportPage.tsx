@@ -3,7 +3,6 @@ import { MessageSquare, Eye } from 'lucide-react';
 import { useAdminSupportTickets } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useCommunicationMutations } from '../../hooks/mutations/useCommunicationMutations';
 import PageLoader from '../../components/ui/PageLoader';
-import AdminSection from '../../components/admin/AdminSection';
 import ViewTicketModal from '../../components/admin/ViewTicketModal';
 import { formatDate } from '../../utils/helpers';
 import type { SupportTicket, TicketStatus } from '../../lib/database.types';
@@ -11,6 +10,9 @@ import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import StatFilterCard from '../../components/admin/StatFilterCard';
 import { Input } from '../../components/ui/Input';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import ErrorState from '../../components/ui/ErrorState';
 
 const ticketStatuses: TicketStatus[] = ["جديدة", "تمت المراجعة", "مغلقة"];
 const statusColors: { [key in TicketStatus]: string } = {
@@ -20,7 +22,7 @@ const statusColors: { [key in TicketStatus]: string } = {
 };
 
 const AdminSupportPage: React.FC = () => {
-    const { data: tickets = [], isLoading, error } = useAdminSupportTickets();
+    const { data: tickets = [], isLoading, error, refetch } = useAdminSupportTickets();
     const { updateSupportTicketStatus } = useCommunicationMutations();
     
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,16 +58,16 @@ const AdminSupportPage: React.FC = () => {
     };
 
     if (isLoading) return <PageLoader text="جاري تحميل رسائل الدعم..." />;
-    if (error) return <div className="text-center text-red-500">{(error as Error).message}</div>;
+    if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
         <>
             <ViewTicketModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} ticket={selectedTicket} />
             <div className="animate-fadeIn space-y-8">
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">رسائل الدعم</h1>
+                <h1 className="text-3xl font-extrabold text-foreground">رسائل الدعم</h1>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatFilterCard label="الكل" value={tickets.length} color="bg-gray-800" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
+                    <StatFilterCard label="الكل" value={tickets.length} color="bg-primary" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
                     {ticketStatuses.map(status => (
                         <StatFilterCard 
                             key={status}
@@ -78,41 +80,52 @@ const AdminSupportPage: React.FC = () => {
                     ))}
                 </div>
 
-                <AdminSection title="قائمة الرسائل" icon={<MessageSquare />}>
-                    <div className="mb-6 max-w-lg">
-                        <Input 
-                            type="search"
-                            placeholder="ابحث بالاسم أو الموضوع..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-right">
-                           <thead className="border-b-2"><tr>
-                                <th className="p-3">الاسم</th><th className="p-3">الموضوع</th><th className="p-3">التاريخ</th><th className="p-3">الحالة</th><th className="p-3">إجراءات</th>
-                            </tr></thead>
-                            <tbody>
-                                {filteredTickets.map(ticket => (
-                                    <tr key={ticket.id} className="border-b hover:bg-gray-50">
-                                        <td className="p-3 font-semibold">{ticket.name}</td>
-                                        <td className="p-3">{ticket.subject}</td>
-                                        <td className="p-3 text-sm">{formatDate(ticket.created_at)}</td>
-                                        <td className="p-3 min-w-[150px]">
-                                            <Select value={ticket.status} onChange={e => handleStatusChange(ticket.id, e.target.value as TicketStatus)} className="p-1 text-sm">
-                                                {ticketStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                                            </Select>
-                                        </td>
-                                        <td className="p-3">
-                                            <Button variant="ghost" size="icon" onClick={() => handleViewTicket(ticket)}><Eye size={20} /></Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                         {filteredTickets.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد رسائل دعم تطابق بحثك.</p>}
-                    </div>
-                </AdminSection>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><MessageSquare /> قائمة الرسائل</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="mb-6 max-w-lg">
+                            <Input 
+                                type="search"
+                                placeholder="ابحث بالاسم أو الموضوع..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="overflow-x-auto">
+                            <Table>
+                               <TableHeader>
+                                   <TableRow>
+                                        <TableHead>الاسم</TableHead>
+                                        <TableHead>الموضوع</TableHead>
+                                        <TableHead>التاريخ</TableHead>
+                                        <TableHead>الحالة</TableHead>
+                                        <TableHead>إجراءات</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredTickets.map(ticket => (
+                                        <TableRow key={ticket.id}>
+                                            <TableCell className="font-semibold">{ticket.name}</TableCell>
+                                            <TableCell>{ticket.subject}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">{formatDate(ticket.created_at)}</TableCell>
+                                            <TableCell className="min-w-[150px]">
+                                                <Select value={ticket.status} onChange={e => handleStatusChange(ticket.id, e.target.value as TicketStatus)}>
+                                                    {ticketStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                                </Select>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button variant="ghost" size="icon" onClick={() => handleViewTicket(ticket)}><Eye size={20} /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                             {filteredTickets.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد رسائل دعم تطابق بحثك.</p>}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </>
     );

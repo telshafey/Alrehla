@@ -2,21 +2,24 @@ import React from 'react';
 import { Book, Award, FileText, GraduationCap, Sparkles, Wand2, Star, CheckCircle } from 'lucide-react';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
 const TimelineStep: React.FC<{ stage: string; title: string; sessions: string; description: string; isLast?: boolean }> = ({ stage, title, sessions, description, isLast = false }) => (
     <div className="relative pl-8 sm:pl-12 py-6">
-        {!isLast && <div className="absolute top-5 left-5 -ml-px mt-0.5 h-full w-0.5 bg-gray-200"></div>}
+        {!isLast && <div className="absolute top-5 left-5 -ml-px mt-0.5 h-full w-0.5 bg-border"></div>}
         <div className="relative flex items-center space-x-4 rtl:space-x-reverse">
-            <div className="z-10 w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+            <div className="z-10 w-12 h-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold shadow-md">
                 {stage}
             </div>
-            <div className="flex-grow p-6 bg-white rounded-2xl shadow-lg border">
-                 <div className="flex justify-between items-center">
-                    <h3 className="text-2xl font-bold text-gray-800">{title}</h3>
-                    <span className="text-sm font-semibold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">{sessions}</span>
-                </div>
-                <p className="mt-3 text-gray-600">{description}</p>
-            </div>
+            <Card className="flex-grow">
+                 <CardContent className="pt-6">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-2xl font-bold text-foreground">{title}</h3>
+                        <span className="text-sm font-semibold bg-primary/10 text-primary px-3 py-1 rounded-full">{sessions}</span>
+                    </div>
+                    <p className="mt-3 text-muted-foreground">{description}</p>
+                 </CardContent>
+            </Card>
         </div>
     </div>
 );
@@ -29,11 +32,11 @@ const CreativeWritingCurriculumPage: React.FC = () => {
     if (isLoading) return <PageLoader />;
 
     return (
-        <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
+        <div className="bg-muted/50 py-16 sm:py-20 animate-fadeIn">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-16 max-w-3xl mx-auto">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">{content?.heroTitle}</h1>
-                    <p className="mt-4 text-lg text-gray-600">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">{content?.heroTitle}</h1>
+                    <p className="mt-4 text-lg text-muted-foreground">
                         {content?.heroSubtitle}
                     </p>
                 </div>
@@ -62,28 +65,36 @@ const CreativeWritingCurriculumPage: React.FC = () => {
 
                  <div className="mt-24">
                     <div className="text-center mb-16 max-w-3xl mx-auto">
-                         <h2 className="text-4xl font-extrabold text-gray-800 flex items-center justify-center gap-3">
+                         <h2 className="text-4xl font-extrabold text-foreground flex items-center justify-center gap-3">
                             <Sparkles className="text-yellow-400" /> {content?.treasuresTitle} <Sparkles className="text-yellow-400" />
                         </h2>
-                        <p className="mt-4 text-lg text-gray-600">
-                            في نهاية البرنامج، لا يخرج طفلك بيدين فارغتين، بل يحمل معه ما يثبت إنجازه ونموه.
+                        <p className="mt-4 text-lg text-muted-foreground">
+                            {content?.treasuresSubtitle}
                         </p>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                        <div className="bg-blue-50 p-8 rounded-2xl border-l-4 border-blue-500 shadow-lg">
-                            <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3"><FileText /> المحفظة الرقمية</h3>
-                            <ul className="space-y-3 list-none text-gray-600">
-                                <li className="flex items-start"><Star className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span><span className="font-semibold">3-5 أعمال إبداعية مكتملة</span> (قصص، خواطر، بداية رواية).</span></li>
-                                <li className="flex items-start"><Star className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span>تسجيلات صوتية للطفل وهو يقرأ أفضل أعماله بفخر.</span></li>
-                            </ul>
-                        </div>
-                        <div className="bg-green-50 p-8 rounded-2xl border-l-4 border-green-500 shadow-lg">
-                            <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3"><GraduationCap /> شهادة وتقرير الإنجاز</h3>
-                            <ul className="space-y-3 list-none text-gray-600">
-                                <li className="flex items-start"><Star className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span><span className="font-semibold">شهادة معتمدة</span> تثبت إتمام البرنامج بنجاح.</span></li>
-                                <li className="flex items-start"><Star className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span><span className="font-semibold">تقرير مفصل</span> من المدرب يوضح نقاط القوة ومسارات التطوير المستقبلية.</span></li>
-                            </ul>
-                        </div>
+                        <Card className="bg-blue-50/50 border-blue-200">
+                           <CardHeader>
+                                <CardTitle className="text-2xl flex items-center gap-3"><FileText /> المحفظة الرقمية</CardTitle>
+                           </CardHeader>
+                           <CardContent>
+                                <ul className="space-y-3 list-none text-muted-foreground">
+                                    <li className="flex items-start"><Star className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span><span className="font-semibold text-foreground">3-5 أعمال إبداعية مكتملة</span> (قصص، خواطر، بداية رواية).</span></li>
+                                    <li className="flex items-start"><Star className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span>تسجيلات صوتية للطفل وهو يقرأ أفضل أعماله بفخر.</span></li>
+                                </ul>
+                           </CardContent>
+                        </Card>
+                        <Card className="bg-green-50/50 border-green-200">
+                           <CardHeader>
+                                <CardTitle className="text-2xl flex items-center gap-3"><GraduationCap /> شهادة وتقرير الإنجاز</CardTitle>
+                           </CardHeader>
+                           <CardContent>
+                                <ul className="space-y-3 list-none text-muted-foreground">
+                                    <li className="flex items-start"><Star className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span><span className="font-semibold text-foreground">شهادة معتمدة</span> تثبت إتمام البرنامج بنجاح.</span></li>
+                                    <li className="flex items-start"><Star className="text-yellow-500 mt-1 me-3 flex-shrink-0"/><span><span className="font-semibold text-foreground">تقرير مفصل</span> من المدرب يوضح نقاط القوة ومسارات التطوير المستقبلية.</span></li>
+                                </ul>
+                           </CardContent>
+                        </Card>
                     </div>
                 </div>
 

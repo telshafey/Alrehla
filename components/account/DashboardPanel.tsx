@@ -4,6 +4,7 @@ import { Calendar, ShoppingBag, Star, ArrowLeft, Video, BookOpen } from 'lucide-
 import { useUserAccountData } from '../../hooks/queries/user/useUserDataQuery';
 import { formatDate } from '../../utils/helpers';
 import type { Order, Subscription, CreativeWritingBooking } from '../../lib/database.types';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 
 type AccountTab = 'dashboard' | 'myLibrary' | 'settings' | 'notifications';
 
@@ -12,15 +13,15 @@ interface DashboardPanelProps {
 }
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; onClick?: () => void; }> = ({ title, value, icon, onClick }) => (
-    <button onClick={onClick} className="bg-gray-50 p-6 rounded-2xl border flex items-center gap-4 w-full text-right hover:border-blue-300 hover:bg-white transition-colors">
-        <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-blue-100 text-blue-600 rounded-full">
+    <Card as="button" onClick={onClick} className="text-right w-full hover:border-primary/50 hover:bg-accent/50 transition-colors">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
             {icon}
-        </div>
-        <div>
-            <p className="text-3xl font-extrabold text-gray-800">{value}</p>
-            <p className="text-sm font-medium text-gray-500">{title}</p>
-        </div>
-    </button>
+        </CardHeader>
+        <CardContent>
+            <div className="text-2xl font-bold">{value}</div>
+        </CardContent>
+    </Card>
 );
 
 
@@ -53,61 +54,69 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({ onNavigateTab }) => {
         <div className="space-y-8 animate-fadeIn">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatCard title="الطلبات والحجوزات" value={unifiedItems.length} icon={<ShoppingBag />} onClick={() => onNavigateTab('myLibrary')} />
-                <StatCard title="الاشتراكات النشطة" value={activeSubscriptions.length} icon={<Star />} onClick={() => onNavigateTab('myLibrary')} />
-                <StatCard title="الجلسات القادمة" value={upcomingSessions.length} icon={<Calendar />} onClick={() => onNavigateTab('myLibrary')} />
+                <StatCard title="الطلبات والحجوزات" value={unifiedItems.length} icon={<ShoppingBag className="h-4 w-4 text-muted-foreground"/>} onClick={() => onNavigateTab('myLibrary')} />
+                <StatCard title="الاشتراكات النشطة" value={activeSubscriptions.length} icon={<Star className="h-4 w-4 text-muted-foreground"/>} onClick={() => onNavigateTab('myLibrary')} />
+                <StatCard title="الجلسات القادمة" value={upcomingSessions.length} icon={<Calendar className="h-4 w-4 text-muted-foreground"/>} onClick={() => onNavigateTab('myLibrary')} />
             </div>
 
             {/* Upcoming Sessions */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">الجلسات القادمة</h3>
-                {upcomingSessions.length > 0 ? (
-                    <div className="space-y-4">
-                        {upcomingSessions.slice(0, 3).map((session: any) => (
-                            <div key={session.id} className="p-4 bg-blue-50 rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                                <div>
-                                    <p className="font-bold text-blue-800">{session.package_name}</p>
-                                    <p className="text-sm text-gray-600">{formatDate(session.booking_date)} - {session.booking_time}</p>
+            <Card>
+                <CardHeader>
+                    <CardTitle>الجلسات القادمة</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {upcomingSessions.length > 0 ? (
+                        <div className="space-y-4">
+                            {upcomingSessions.slice(0, 3).map((session: any) => (
+                                <div key={session.id} className="p-4 bg-muted/50 rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                                    <div>
+                                        <p className="font-bold text-primary">{session.package_name}</p>
+                                        <p className="text-sm text-muted-foreground">{formatDate(session.booking_date)} - {session.booking_time}</p>
+                                    </div>
+                                    <Link to={`/session/${session.session_id}`} className="flex items-center justify-center gap-2 bg-green-500 text-white text-sm font-bold py-2 px-4 rounded-full hover:bg-green-600 transition-colors">
+                                        <Video size={16}/>
+                                        <span>انضم الآن</span>
+                                    </Link>
                                 </div>
-                                <Link to={`/session/${session.session_id}`} className="flex items-center justify-center gap-2 bg-green-500 text-white text-sm font-bold py-2 px-4 rounded-full hover:bg-green-600 transition-colors">
-                                    <Video size={16}/>
-                                    <span>انضم الآن</span>
-                                </Link>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-gray-500 text-center py-4">لا توجد جلسات قادمة محجوزة.</p>
-                )}
-            </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground text-center py-4">لا توجد جلسات قادمة محجوزة.</p>
+                    )}
+                </CardContent>
+            </Card>
 
              {/* Recent Activities */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">أحدث الأنشطة</h3>
-                {recentItems.length > 0 ? (
-                     <div className="space-y-3">
-                        {recentItems.map(item => (
-                            <div key={`${item.type}-${item.id}`} className="p-3 bg-gray-50 rounded-lg flex items-center gap-3">
-                                <div className="flex-shrink-0">
-                                     {item.type === 'order' ? <ShoppingBag size={20} className="text-blue-500"/> : item.type === 'subscription' ? <Star size={20} className="text-orange-500"/> : <BookOpen size={20} className="text-purple-500" />}
+            <Card>
+                 <CardHeader>
+                    <CardTitle>أحدث الأنشطة</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {recentItems.length > 0 ? (
+                        <div className="space-y-3">
+                            {recentItems.map(item => (
+                                <div key={`${item.type}-${item.id}`} className="p-3 bg-muted/50 rounded-lg flex items-center gap-3">
+                                    <div className="flex-shrink-0">
+                                        {item.type === 'order' ? <ShoppingBag size={20} className="text-primary"/> : item.type === 'subscription' ? <Star size={20} className="text-orange-500"/> : <BookOpen size={20} className="text-purple-500" />}
+                                    </div>
+                                    <div className="flex-grow">
+                                        <p className="font-semibold text-foreground text-sm">{item.summary}</p>
+                                        <p className="text-xs text-muted-foreground">{formatDate(item.date)}</p>
+                                    </div>
                                 </div>
-                                <div className="flex-grow">
-                                    <p className="font-semibold text-gray-700">{item.summary}</p>
-                                    <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground text-center py-4">لا توجد أنشطة مسجلة بعد.</p>
+                    )}
+                    <div className="mt-4 text-center">
+                        <button onClick={() => onNavigateTab('myLibrary')} className="text-sm font-semibold text-primary hover:underline flex items-center justify-center gap-1 mx-auto">
+                            <span>عرض كل الأنشطة</span>
+                            <ArrowLeft size={16}/>
+                        </button>
                     </div>
-                ) : (
-                    <p className="text-gray-500 text-center py-4">لا توجد أنشطة مسجلة بعد.</p>
-                )}
-                 <div className="mt-4 text-center">
-                    <button onClick={() => onNavigateTab('myLibrary')} className="text-sm font-semibold text-blue-600 hover:underline flex items-center justify-center gap-1 mx-auto">
-                        <span>عرض كل الأنشطة</span>
-                        <ArrowLeft size={16}/>
-                    </button>
-                 </div>
-            </div>
+                </CardContent>
+            </Card>
         </div>
     );
 };

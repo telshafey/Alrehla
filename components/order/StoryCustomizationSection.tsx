@@ -65,11 +65,9 @@ const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({
                      <div className="space-y-2">
                         <div className="flex justify-between items-center">
                             <label htmlFor="storyValue" className="block text-sm font-bold text-gray-700">اختر الهدف من القصة*</label>
-                            {allowCustomGoal && (
-                                <Button type="button" variant="ghost" size="sm" onClick={onOpenIdeasModal} icon={<Sparkles size={16} />}>
-                                    اقترح أفكاراً
-                                </Button>
-                            )}
+                            <Button type="button" variant="ghost" size="sm" onClick={onOpenIdeasModal} icon={<Sparkles size={14} />}>
+                                اقترح أفكار بالذكاء الاصطناعي
+                            </Button>
                         </div>
                         {showGoalSelector && (
                             <Select id="storyValue" name="storyValue" value={formData.storyValue} onChange={handleChange} required className={errors.storyValue ? 'border-red-500' : ''}>

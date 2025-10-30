@@ -6,7 +6,6 @@ import { useAdminAllChildProfiles } from '../../hooks/queries/admin/useAdminUser
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
 import PageLoader from '../../components/ui/PageLoader';
-import AdminSection from '../../components/admin/AdminSection';
 import { BookingDetailsModal } from '../../components/admin/BookingDetailsModal';
 import { StudentProgressModal } from '../../components/admin/StudentProgressModal';
 import { getStatusColor, formatDate } from '../../utils/helpers';
@@ -15,6 +14,10 @@ import { Button } from '../../components/ui/Button';
 import StatFilterCard from '../../components/admin/StatFilterCard';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import ErrorState from '../../components/ui/ErrorState';
+
 
 interface Student {
     id: number;
@@ -33,9 +36,9 @@ const statusColors: { [key in BookingStatus]: string } = {
 
 
 const AdminCreativeWritingPage: React.FC = () => {
-    const { data: rawBookings = [], isLoading: bookingsLoading } = useAdminRawCwBookings();
-    const { data: allChildren = [], isLoading: childrenLoading } = useAdminAllChildProfiles();
-    const { data: instructors = [], isLoading: instructorsLoading } = useAdminInstructors();
+    const { data: rawBookings = [], isLoading: bookingsLoading, error: bookingsError, refetch: refetchBookings } = useAdminRawCwBookings();
+    const { data: allChildren = [], isLoading: childrenLoading, error: childrenError, refetch: refetchChildren } = useAdminAllChildProfiles();
+    const { data: instructors = [], isLoading: instructorsLoading, error: instructorsError, refetch: refetchInstructors } = useAdminInstructors();
     const { updateBookingStatus } = useBookingMutations();
     const location = useLocation();
 
@@ -114,46 +117,62 @@ const AdminCreativeWritingPage: React.FC = () => {
         setSelectedStudent(student);
         setIsProgressModalOpen(true);
     };
+    
+    const error = bookingsError || childrenError || instructorsError;
+    const refetch = () => {
+        if (bookingsError) refetchBookings();
+        if (childrenError) refetchChildren();
+        if (instructorsError) refetchInstructors();
+    }
+
 
     if (isLoading) return <PageLoader text="جاري تحميل الحجوزات..." />;
+    if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
         <>
             <BookingDetailsModal isOpen={isDetailsModalOpen} onClose={() => setIsDetailsModalOpen(false)} booking={selectedBooking} />
             <StudentProgressModal isOpen={isProgressModalOpen} onClose={() => setIsProgressModalOpen(false)} student={selectedStudent} />
-            <div className="animate-fadeIn space-y-12">
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة حجوزات "بداية الرحلة"</h1>
+            <div className="animate-fadeIn space-y-8">
+                <h1 className="text-3xl font-extrabold text-foreground">إدارة حجوزات "بداية الرحلة"</h1>
                 
-                <AdminSection title="ملخص الطلاب" icon={<BookOpen />}>
-                    <div className="overflow-x-auto">
-                         <table className="w-full text-right">
-                            <thead className="border-b-2"><tr>
-                                <th className="p-3">الطالب</th>
-                                <th className="p-3">عدد الجلسات المحجوزة</th>
-                                <th className="p-3">آخر ملاحظات</th>
-                                <th className="p-3">إجراءات</th>
-                            </tr></thead>
-                            <tbody>
-                                {students.map(student => (
-                                    <tr key={student.id} className="border-b hover:bg-gray-50">
-                                        <td className="p-3 font-semibold">{student.name}</td>
-                                        <td className="p-3">{student.bookings.length}</td>
-                                        <td className="p-3 text-sm text-gray-500 truncate max-w-xs">{student.lastProgressNote || 'لا يوجد'}</td>
-                                        <td className="p-3">
-                                            <Button variant="ghost" size="sm" onClick={() => handleEditProgress(student)} icon={<Edit size={16}/>}>
-                                                ملاحظات التقدم
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </AdminSection>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><BookOpen /> ملخص الطلاب</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>الطالب</TableHead>
+                                        <TableHead>عدد الجلسات المحجوزة</TableHead>
+                                        <TableHead>آخر ملاحظات</TableHead>
+                                        <TableHead>إجراءات</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {students.map(student => (
+                                        <TableRow key={student.id}>
+                                            <TableCell className="font-semibold">{student.name}</TableCell>
+                                            <TableCell>{student.bookings.length}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground truncate max-w-xs">{student.lastProgressNote || 'لا يوجد'}</TableCell>
+                                            <TableCell>
+                                                <Button variant="ghost" size="sm" onClick={() => handleEditProgress(student)} icon={<Edit size={16}/>}>
+                                                    ملاحظات التقدم
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <div>
                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-                        <StatFilterCard label="الكل" value={bookings.length} color="bg-gray-800" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
+                        <StatFilterCard label="الكل" value={bookings.length} color="bg-primary" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
                         {bookingStatuses.map(status => (
                             <StatFilterCard 
                                 key={status}
@@ -166,50 +185,62 @@ const AdminCreativeWritingPage: React.FC = () => {
                         ))}
                     </div>
 
-                    <AdminSection title="قائمة كل الحجوزات" icon={<BookOpen />}>
-                        <div className="mb-6 max-w-lg">
-                            <Input 
-                                type="search"
-                                placeholder="ابحث برقم الحجز أو اسم الطالب..."
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-right">
-                               <thead className="border-b-2"><tr>
-                                    <th className="p-3">الطالب</th><th className="p-3">الباقة</th><th className="p-3">المدرب</th><th className="p-3">الحالة</th><th className="p-3">تاريخ الجلسة</th><th className="p-3">إجراءات</th>
-                                </tr></thead>
-                                <tbody>
-                                    {filteredBookings.map(booking => (
-                                        <tr key={booking.id} className="border-b hover:bg-gray-50">
-                                            <td className="p-3 font-semibold">{booking.child_profiles?.name}</td>
-                                            <td className="p-3">{booking.package_name}</td>
-                                            <td className="p-3">{booking.instructors?.name}</td>
-                                            <td className="p-3 min-w-[150px]">
-                                                <div className="flex items-center gap-2">
-                                                    <Select
-                                                        value={booking.status}
-                                                        onChange={e => updateBookingStatus.mutate({ bookingId: booking.id, newStatus: e.target.value as BookingStatus })}
-                                                        className={`w-full p-1 text-xs font-bold ${getStatusColor(booking.status)}`}
-                                                        disabled={updateBookingStatus.isPending && updateBookingStatus.variables?.bookingId === booking.id}
-                                                    >
-                                                        {bookingStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                                                    </Select>
-                                                     {updateBookingStatus.isPending && updateBookingStatus.variables?.bookingId === booking.id && <Loader2 className="animate-spin" size={16} />}
-                                                </div>
-                                            </td>
-                                            <td className="p-3 text-sm">{formatDate(booking.booking_date)}</td>
-                                            <td className="p-3">
-                                                <Button variant="ghost" size="icon" onClick={() => handleViewDetails(booking)}><Eye size={20} /></Button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            {filteredBookings.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد حجوزات تطابق بحثك أو الفلتر المحدد.</p>}
-                        </div>
-                    </AdminSection>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><BookOpen /> قائمة كل الحجوزات</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="mb-6 max-w-lg">
+                                <Input 
+                                    type="search"
+                                    placeholder="ابحث برقم الحجز أو اسم الطالب..."
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                   <TableHeader>
+                                       <TableRow>
+                                            <TableHead>الطالب</TableHead>
+                                            <TableHead>الباقة</TableHead>
+                                            <TableHead>المدرب</TableHead>
+                                            <TableHead>الحالة</TableHead>
+                                            <TableHead>تاريخ الجلسة</TableHead>
+                                            <TableHead>إجراءات</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredBookings.map(booking => (
+                                            <TableRow key={booking.id}>
+                                                <TableCell className="font-semibold">{booking.child_profiles?.name}</TableCell>
+                                                <TableCell>{booking.package_name}</TableCell>
+                                                <TableCell>{booking.instructors?.name}</TableCell>
+                                                <TableCell className="min-w-[150px]">
+                                                    <div className="flex items-center gap-2">
+                                                        <Select
+                                                            value={booking.status}
+                                                            onChange={e => updateBookingStatus.mutate({ bookingId: booking.id, newStatus: e.target.value as BookingStatus })}
+                                                            className={`w-full p-1 text-xs font-bold ${getStatusColor(booking.status)}`}
+                                                            disabled={updateBookingStatus.isPending && updateBookingStatus.variables?.bookingId === booking.id}
+                                                        >
+                                                            {bookingStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                                        </Select>
+                                                         {updateBookingStatus.isPending && updateBookingStatus.variables?.bookingId === booking.id && <Loader2 className="animate-spin" size={16} />}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-sm">{formatDate(booking.booking_date)}</TableCell>
+                                                <TableCell>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleViewDetails(booking)}><Eye size={20} /></Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                {filteredBookings.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد حجوزات تطابق بحثك أو الفلتر المحدد.</p>}
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </>

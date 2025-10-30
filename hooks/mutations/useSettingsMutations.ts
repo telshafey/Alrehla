@@ -15,12 +15,29 @@ export const useSettingsMutations = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminSocialLinks'] });
-            // This toast is handled in the component
+            addToast('تم تحديث الروابط بنجاح.', 'success');
         },
         onError: (error: Error) => {
             addToast(`فشل تحديث الروابط: ${error.message}`, 'error');
         }
     });
 
-    return { updateSocialLinks };
+    // FIX: Add missing updateAiSettings mutation.
+    const updateAiSettings = useMutation({
+        mutationFn: async (settings: any) => {
+            await sleep(500);
+            console.log("Updating AI settings (mock)", settings);
+            return settings;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminAiSettings'] });
+            addToast('تم تحديث إعدادات الذكاء الاصطناعي بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث الإعدادات: ${error.message}`, 'error');
+        }
+    });
+
+
+    return { updateSocialLinks, updateAiSettings };
 }

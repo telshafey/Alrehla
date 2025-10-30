@@ -6,9 +6,10 @@ import { useSubscriptionMutations } from '../hooks/mutations/useSubscriptionMuta
 import { useToast } from '../contexts/ToastContext';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Upload, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Upload, ShoppingCart, CreditCard, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import ReceiptUpload from '../components/shared/ReceiptUpload';
 import { Button } from '../components/ui/Button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
@@ -26,13 +27,19 @@ const CheckoutPage: React.FC = () => {
 
     if (cart.length === 0) {
         return (
-             <div className="flex flex-col items-center justify-center min-h-[70vh] text-center p-4">
-                <ShoppingCart className="h-12 w-12 text-gray-400" />
-                <p className="mt-4 text-gray-700 font-semibold">سلة التسوق فارغة.</p>
-                 <Link to="/" className="mt-6 text-sm text-blue-600 hover:underline flex items-center justify-center gap-1">
-                    <ArrowLeft size={16} className="transform rotate-180" />
-                    <span>العودة للتسوق</span>
-                </Link>
+             <div className="container mx-auto px-4 py-16 text-center">
+                <Card className="max-w-md mx-auto">
+                    <CardContent className="pt-12 pb-12">
+                        <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <p className="mt-4 text-foreground font-semibold">سلة التسوق فارغة.</p>
+                        <Button asChild variant="link" className="mt-4">
+                            <Link to="/">
+                                <ArrowLeft size={16} className="transform rotate-180 ml-1" />
+                                <span>العودة للتسوق</span>
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
@@ -78,57 +85,70 @@ const CheckoutPage: React.FC = () => {
     };
 
     return (
-        <div className="container mx-auto px-4 py-12 sm:py-16">
-            <div className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-lg border">
-                <div className="text-center mb-8">
-                    <ShoppingCart className="mx-auto h-12 w-12 text-blue-500 mb-4" />
-                    <h1 className="text-3xl font-extrabold text-gray-800">إتمام الدفع</h1>
-                    <p className="text-gray-500 mt-2">أنت على وشك إتمام طلبك. يرجى مراجعة التفاصيل والمتابعة.</p>
-                </div>
-                
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border space-y-3">
-                    <h3 className="font-bold text-lg mb-2">ملخص السلة</h3>
-                    {cart.map(item => (
-                         <div key={item.id} className="flex justify-between items-center text-sm">
-                            <span className="font-semibold text-gray-700">{item.payload.summary}</span>
-                            <span className="font-bold text-gray-800">{item.payload.total || item.payload.totalPrice} ج.م</span>
-                        </div>
-                    ))}
-                    <div className="border-t pt-3 mt-3 flex justify-between items-center">
-                         <span className="font-bold text-xl text-gray-800">الإجمالي</span>
-                        <span className="font-extrabold text-2xl text-blue-600">{cartTotal} ج.م</span>
-                    </div>
-                </div>
+        <div className="bg-muted/50 py-12 sm:py-16">
+            <div className="container mx-auto px-4">
+                <div className="max-w-2xl mx-auto">
+                    <Card>
+                        <CardHeader className="text-center">
+                            <CreditCard className="mx-auto h-10 w-10 text-primary mb-2" />
+                            <CardTitle className="text-3xl">إتمام الدفع</CardTitle>
+                            <CardDescription>أنت على وشك إتمام طلبك. يرجى مراجعة التفاصيل والمتابعة.</CardDescription>
+                        </CardHeader>
+                        
+                        <CardContent className="space-y-6">
+                            <div className="p-4 bg-muted rounded-lg border space-y-3">
+                                <h3 className="font-bold text-lg">ملخص السلة</h3>
+                                {cart.map(item => (
+                                     <div key={item.id} className="flex justify-between items-center text-sm">
+                                        <span className="font-semibold text-foreground">{item.payload.summary}</span>
+                                        <span className="font-bold text-foreground">{item.payload.total || item.payload.totalPrice} ج.م</span>
+                                    </div>
+                                ))}
+                                <div className="border-t pt-3 mt-3 flex justify-between items-center">
+                                     <span className="font-bold text-xl text-foreground">الإجمالي</span>
+                                    <span className="font-extrabold text-2xl text-primary">{cartTotal} ج.م</span>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-6">
+                                <div className="p-6 rounded-lg border bg-background space-y-4">
+                                    <h2 className="text-xl font-bold text-foreground">1. الدفع عبر Instapay / المحافظ الإلكترونية</h2>
+                                    <a href={'https://ipn.eg/S/gm2000/instapay/0dqErO'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-full hover:bg-primary/90 transition-colors">
+                                        <LinkIcon size={18} />
+                                        <span>افتح رابط الدفع</span>
+                                    </a>
+                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <AlertCircle size={24} />
+                                        <span>سينقلك هذا الرابط إلى موقع خارجي آمن لإتمام عملية الدفع.</span>
+                                    </div>
+                                </div>
+                                 <div>
+                                    <h3 className="text-lg font-bold text-foreground mb-2">2. ارفع صورة الإيصال</h3>
+                                    <ReceiptUpload file={receiptFile} setFile={setReceiptFile} disabled={isSubmitting} />
+                                </div>
+                            </div>
+                        </CardContent>
 
-                <div className="space-y-6">
-                    <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg text-center">
-                        <h2 className="text-xl font-bold text-blue-800">1. الدفع عبر Instapay / المحافظ الإلكترونية</h2>
-                        <p className="mt-2 text-gray-600">
-                            لتحويل المبلغ الإجمالي المطلوب، يرجى استخدام الحساب التالي ثم رفع صورة من إيصال الدفع.
-                        </p>
-                        <p className="mt-4 font-mono text-lg font-bold bg-white p-3 rounded-lg border">instapay@alrehlah</p>
-                    </div>
-                     <div>
-                        <h3 className="text-lg font-bold text-gray-700 mb-2">2. ارفع صورة الإيصال</h3>
-                        <ReceiptUpload file={receiptFile} setFile={setReceiptFile} disabled={isSubmitting} />
-                    </div>
-                    <Button 
-                        onClick={handleConfirmPayment}
-                        loading={isSubmitting}
-                        disabled={!receiptFile}
-                        variant="success"
-                        icon={<Upload />}
-                        className="w-full shadow-lg"
-                    >
-                        {isSubmitting ? 'جاري التأكيد...' : 'تأكيد ورفع الإيصال'}
-                    </Button>
-                </div>
-                
-                <div className="mt-8 text-center">
-                    <Link to="/cart" className="text-sm text-gray-500 hover:underline flex items-center justify-center gap-1">
-                        <ArrowLeft size={16} />
-                        <span>العودة إلى السلة</span>
-                    </Link>
+                        <CardFooter className="flex-col items-stretch space-y-4">
+                             <Button 
+                                onClick={handleConfirmPayment}
+                                loading={isSubmitting}
+                                disabled={!receiptFile}
+                                variant="success"
+                                icon={<Upload />}
+                                className="w-full"
+                                size="lg"
+                            >
+                                {isSubmitting ? 'جاري التأكيد...' : 'تأكيد ورفع الإيصال'}
+                            </Button>
+                             <Button asChild variant="link" size="sm" className="text-muted-foreground">
+                                <Link to="/cart">
+                                    <ArrowLeft size={16} className="transform rotate-180 ml-1"/>
+                                    <span>العودة إلى السلة</span>
+                                </Link>
+                            </Button>
+                        </CardFooter>
+                    </Card>
                 </div>
             </div>
         </div>

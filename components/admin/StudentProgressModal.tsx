@@ -6,6 +6,9 @@ import { useToast } from '../../contexts/ToastContext';
 import { formatDate } from '../../utils/helpers';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { Textarea } from '../ui/Textarea';
+import FormField from '../ui/FormField';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 interface Student {
     id: number;
@@ -69,13 +72,8 @@ export const StudentProgressModal: React.FC<StudentProgressModalProps> = ({ isOp
             size="2xl"
             footer={
                 <>
-                    <Button type="button" onClick={onClose} variant="ghost">إلغاء</Button>
-                    <Button 
-                        onClick={handleSave} 
-                        disabled={isSaving}
-                        loading={isSaving}
-                        icon={isSaving ? undefined : <Save />}
-                    >
+                    <Button type="button" onClick={onClose} variant="ghost" disabled={isSaving}>إلغاء</Button>
+                    <Button onClick={handleSave} loading={isSaving} icon={<Save />}>
                         {isSaving ? 'جاري الحفظ...' : 'حفظ الملاحظات'}
                     </Button>
                 </>
@@ -83,18 +81,25 @@ export const StudentProgressModal: React.FC<StudentProgressModalProps> = ({ isOp
         >
             <div className="space-y-6">
                 {completedSessions.length > 0 ? completedSessions.map(booking => (
-                    <div key={booking.id} className="p-4 bg-gray-50 rounded-lg border">
-                        <h3 className="font-bold text-gray-700">جلسة تاريخ: {formatDate(booking.booking_date)}</h3>
-                        <textarea
-                            value={notes[booking.id] || ''}
-                            onChange={(e) => handleNoteChange(booking.id, e.target.value)}
-                            rows={4}
-                            className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="اكتب ملاحظاتك حول تقدم الطالب في هذه الجلسة..."
-                        />
-                    </div>
+                    <Card key={booking.id}>
+                        <CardHeader>
+                            <CardTitle className="text-lg">جلسة تاريخ: {formatDate(booking.booking_date)}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <FormField label="ملاحظاتك" htmlFor={`notes-${booking.id}`}>
+                                <Textarea
+                                    id={`notes-${booking.id}`}
+                                    value={notes[booking.id] || ''}
+                                    onChange={(e) => handleNoteChange(booking.id, e.target.value)}
+                                    rows={4}
+                                    placeholder="اكتب ملاحظاتك حول تقدم الطالب في هذه الجلسة..."
+                                    disabled={isSaving}
+                                />
+                            </FormField>
+                        </CardContent>
+                    </Card>
                 )) : (
-                    <p className="text-center text-gray-500 py-8">لا توجد جلسات مكتملة لهذا الطالب بعد.</p>
+                    <p className="text-center text-muted-foreground py-8">لا توجد جلسات مكتملة لهذا الطالب بعد.</p>
                 )}
             </div>
         </Modal>

@@ -12,10 +12,14 @@ export const transformUsersWithRelations = (users: UserProfile[], children: Chil
         }
         childrenByParentId.get(child.user_id)!.push(child);
     });
-    return users.map(user => ({
-        ...user,
-        children: childrenByParentId.get(user.id) || []
-    }));
+    return users.map(user => {
+        const userChildren = childrenByParentId.get(user.id) || [];
+        return {
+            ...user,
+            children: userChildren,
+            childrenCount: userChildren.length,
+        };
+    });
 };
 
 export const useAdminUsers = () => useQuery({

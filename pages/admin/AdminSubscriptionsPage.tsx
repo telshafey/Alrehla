@@ -1,14 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { Star, Calendar, Pause, Play, XCircle } from 'lucide-react';
-import { useAdminSubscriptions } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
+import { Star, Calendar, Pause, Play, XCircle, DollarSign, Users } from 'lucide-react';
+import { useAdminSubscriptions, useAdminSubscriptionPlans } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useSubscriptionMutations } from '../../hooks/mutations/useSubscriptionMutations';
 import PageLoader from '../../components/ui/PageLoader';
-import AdminSection from '../../components/admin/AdminSection';
 import { SessionSchedulerModal } from '../../components/admin/SessionSchedulerModal';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { formatDate } from '../../utils/helpers';
 import type { Subscription } from '../../lib/database.types';
+import ErrorState from '../../components/ui/ErrorState';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import StatCard from '../../components/admin/StatCard';
+
 
 const getStatusInfo = (status: Subscription['status']) => {
     switch (status) {
@@ -21,12 +25,41 @@ const getStatusInfo = (status: Subscription['status']) => {
 };
 
 const AdminSubscriptionsPage: React.FC = () => {
-    const { data: subscriptions = [], isLoading, error } = useAdminSubscriptions();
+    const { data: subscriptions = [], isLoading: subsLoading, error: subsError, refetch: refetchSubs } = useAdminSubscriptions();
+    const { data: plans = [], isLoading: plansLoading, error: plansError, refetch: refetchPlans } = useAdminSubscriptionPlans();
     const { pauseSubscription, cancelSubscription, reactivateSubscription } = useSubscriptionMutations();
 
     const [isSchedulerOpen, setIsSchedulerOpen] = useState(false);
     const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    const isLoading = subsLoading || plansLoading;
+    const error = subsError || plansError;
+    const refetch = () => {
+        if (subsError) refetchSubs();
+        if (plansError) refetchPlans();
+    };
+
+    const subscriptionStats = useMemo(() => {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        
+        const activeSubscriptions = subscriptions.filter(sub => sub.status === 'active');
+        
+        const mrr = activeSubscriptions.reduce((total, sub) => {
+            const plan = plans.find(p => p.name === sub.plan_name);
+            return total + (plan?.price_per_month || 0);
+        }, 0);
+    
+        const newSubscriptionsThisMonth = subscriptions.filter(sub => new Date(sub.start_date) >= startOfMonth).length;
+    
+        return {
+            activeCount: activeSubscriptions.length,
+            mrr,
+            newThisMonth: newSubscriptionsThisMonth
+        };
+    }, [subscriptions, plans]);
+
 
     const filteredSubscriptions = useMemo(() => {
         return subscriptions.filter(sub => 
@@ -41,7 +74,7 @@ const AdminSubscriptionsPage: React.FC = () => {
     };
 
     if (isLoading) return <PageLoader text="جاري تحميل الاشتراكات..." />;
-    if (error) return <div className="text-center text-red-500">{(error as Error).message}</div>;
+    if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
         <>
@@ -51,66 +84,82 @@ const AdminSubscriptionsPage: React.FC = () => {
                 subscription={selectedSubscription}
             />
             <div className="animate-fadeIn space-y-8">
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة الاشتراكات</h1>
-                <AdminSection title="قائمة الاشتراكات" icon={<Star />}>
-                    <div className="mb-6 max-w-lg">
-                        <Input 
-                            type="search"
-                            placeholder="ابحث باسم ولي الأمر أو الطفل..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-right">
-                           <thead className="border-b-2"><tr>
-                                <th className="p-3">ولي الأمر</th>
-                                <th className="p-3">الطفل</th>
-                                <th className="p-3">الباقة</th>
-                                <th className="p-3">التجديد القادم</th>
-                                <th className="p-3">الحالة</th>
-                                <th className="p-3">إجراءات</th>
-                            </tr></thead>
-                            <tbody>
-                                {filteredSubscriptions.map(sub => {
-                                    const statusInfo = getStatusInfo(sub.status);
-                                    return (
-                                        <tr key={sub.id} className="border-b hover:bg-gray-50">
-                                            <td className="p-3 font-semibold">{sub.user_name}</td>
-                                            <td className="p-3 font-semibold">{sub.child_name}</td>
-                                            <td className="p-3 font-semibold text-blue-600">{sub.plan_name}</td>
-                                            <td className="p-3 text-sm">{formatDate(sub.next_renewal_date)}</td>
-                                            <td className="p-3">
-                                                <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusInfo.color}`}>{statusInfo.text}</span>
-                                            </td>
-                                            <td className="p-3 flex items-center gap-1 flex-wrap">
-                                                <Button variant="outline" size="sm" icon={<Calendar size={14}/>} onClick={() => handleOpenScheduler(sub)}>
-                                                    جدولة
-                                                </Button>
-                                                {sub.status === 'active' && 
-                                                    <Button variant="subtle" size="sm" icon={<Pause size={14}/>} onClick={() => pauseSubscription.mutate({ subscriptionId: sub.id })}>
-                                                        إيقاف
+                <h1 className="text-3xl font-extrabold text-foreground">إدارة الاشتراكات</h1>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <StatCard title="الاشتراكات النشطة" value={subscriptionStats.activeCount} icon={<Star className="h-4 w-4 text-muted-foreground" />} />
+                    <StatCard title="الإيرادات الشهرية المتكررة" value={`${subscriptionStats.mrr} ج.م`} icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} />
+                    <StatCard title="اشتراكات جديدة (هذا الشهر)" value={subscriptionStats.newThisMonth} icon={<Users className="h-4 w-4 text-muted-foreground" />} />
+                </div>
+                
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Star /> قائمة الاشتراكات
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="mb-6 max-w-lg">
+                            <Input 
+                                type="search"
+                                placeholder="ابحث باسم ولي الأمر أو الطفل..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="overflow-x-auto">
+                            <Table>
+                               <TableHeader>
+                                   <TableRow>
+                                        <TableHead>ولي الأمر</TableHead>
+                                        <TableHead>الطفل</TableHead>
+                                        <TableHead>الباقة</TableHead>
+                                        <TableHead>التجديد القادم</TableHead>
+                                        <TableHead>الحالة</TableHead>
+                                        <TableHead>إجراءات</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredSubscriptions.map(sub => {
+                                        const statusInfo = getStatusInfo(sub.status);
+                                        return (
+                                            <TableRow key={sub.id}>
+                                                <TableCell className="font-semibold">{sub.user_name}</TableCell>
+                                                <TableCell className="font-semibold">{sub.child_name}</TableCell>
+                                                <TableCell className="font-semibold text-primary">{sub.plan_name}</TableCell>
+                                                <TableCell className="text-sm">{formatDate(sub.next_renewal_date)}</TableCell>
+                                                <TableCell>
+                                                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusInfo.color}`}>{statusInfo.text}</span>
+                                                </TableCell>
+                                                <TableCell className="flex items-center gap-1 flex-wrap">
+                                                    <Button variant="outline" size="sm" icon={<Calendar size={14}/>} onClick={() => handleOpenScheduler(sub)}>
+                                                        جدولة
                                                     </Button>
-                                                }
-                                                {sub.status === 'paused' && 
-                                                    <Button variant="subtle" size="sm" icon={<Play size={14}/>} onClick={() => reactivateSubscription.mutate({ subscriptionId: sub.id })}>
-                                                        إعادة تفعيل
-                                                    </Button>
-                                                }
-                                                {sub.status !== 'cancelled' &&
-                                                    <Button variant="subtle" size="sm" icon={<XCircle size={14}/>} className="text-red-600 hover:bg-red-100" onClick={() => cancelSubscription.mutate({ subscriptionId: sub.id })}>
-                                                        إلغاء
-                                                    </Button>
-                                                }
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                        {filteredSubscriptions.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد اشتراكات.</p>}
-                    </div>
-                </AdminSection>
+                                                    {sub.status === 'active' && 
+                                                        <Button variant="ghost" size="sm" icon={<Pause size={14}/>} onClick={() => pauseSubscription.mutate({ subscriptionId: sub.id })}>
+                                                            إيقاف
+                                                        </Button>
+                                                    }
+                                                    {sub.status === 'paused' && 
+                                                        <Button variant="ghost" size="sm" icon={<Play size={14}/>} onClick={() => reactivateSubscription.mutate({ subscriptionId: sub.id })}>
+                                                            إعادة تفعيل
+                                                        </Button>
+                                                    }
+                                                    {sub.status !== 'cancelled' &&
+                                                        <Button variant="ghost" size="sm" icon={<XCircle size={14}/>} className="text-destructive" onClick={() => cancelSubscription.mutate({ subscriptionId: sub.id })}>
+                                                            إلغاء
+                                                        </Button>
+                                                    }
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                            {filteredSubscriptions.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد اشتراكات.</p>}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </>
     );

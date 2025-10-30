@@ -14,6 +14,7 @@ import BookingSummary from '../components/creative-writing/booking/BookingSummar
 import { Button } from '../components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
 import type { ChildProfile, CreativeWritingPackage, Instructor } from '../lib/database.types';
+import { Card, CardContent } from '../components/ui/card';
 
 type BookingStep = 'child' | 'package' | 'instructor' | 'schedule';
 
@@ -185,32 +186,34 @@ const CreativeWritingBookingPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-gray-50 py-12 sm:py-16">
+        <div className="bg-muted/50 py-12 sm:py-16">
             <div className="container mx-auto px-4">
                 <div className="max-w-5xl mx-auto">
                     <div className="mb-12 text-center">
-                        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">حجز جلسة "بداية الرحلة"</h1>
-                        <p className="mt-2 text-gray-500">اتبع الخطوات التالية لحجز باقتك التدريبية.</p>
+                        <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">حجز جلسة "بداية الرحلة"</h1>
+                        <p className="mt-2 text-muted-foreground">اتبع الخطوات التالية لحجز باقتك التدريبية.</p>
                     </div>
                     <div className="mb-12">
                         <OrderStepper steps={stepsConfig} currentStep={step} />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                        <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-lg border space-y-10">
-                            {renderStepContent()}
-                            <div className="flex justify-between items-center pt-6 border-t">
-                                <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />}>
-                                    السابق
-                                </Button>
-                                {step !== 'schedule' ? (
-                                    <Button onClick={handleNext} disabled={isNextDisabled()}>
-                                        التالي <ArrowLeft />
-                                    </Button>
-                                ) : (
-                                     <p className="text-sm text-gray-500">أكمل الحجز من الملخص على اليسار.</p>
-                                )}
-                            </div>
-                        </div>
+                        <Card className="lg:col-span-2">
+                           <CardContent className="pt-8 space-y-10">
+                              {renderStepContent()}
+                              <div className="flex justify-between items-center pt-6 border-t">
+                                  <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />}>
+                                      السابق
+                                  </Button>
+                                  {step !== 'schedule' ? (
+                                      <Button onClick={handleNext} disabled={isNextDisabled()}>
+                                          التالي <ArrowLeft />
+                                      </Button>
+                                  ) : (
+                                       <p className="text-sm text-muted-foreground">أكمل الحجز من الملخص على اليسار.</p>
+                                  )}
+                              </div>
+                           </CardContent>
+                        </Card>
                         <div className="lg:col-span-1 sticky top-24">
                            <BookingSummary
                                 childName={childData.childName}

@@ -14,6 +14,7 @@ export type UserRole =
 export interface UserProfile {
   id: string;
   created_at: string;
+  last_sign_in_at?: string | null;
   name: string;
   email: string;
   role: UserRole;
@@ -234,10 +235,10 @@ export interface Instructor {
 
 export interface SiteBranding {
   logoUrl: string;
-  creativeWritingLogoUrl: string;
   heroImageUrl: string;
   aboutImageUrl: string;
   creativeWritingPortalImageUrl: string;
+  enhaLakPortalImageUrl: string;
 }
 
 export type Prices = { [key: string]: number };
@@ -249,6 +250,12 @@ export interface SocialLinks {
   facebook_url: string | null;
   twitter_url: string | null;
   instagram_url: string | null;
+}
+
+export interface AiSettings {
+  id: number;
+  enable_story_ideas: boolean;
+  story_ideas_prompt: string;
 }
 
 export interface BlogPost {
@@ -292,27 +299,50 @@ export interface SiteContent {
   portalPage: {
     heroTitle: string;
     heroSubtitle: string;
+    projectsTitle: string;
+    projectsSubtitle: string;
     enhaLakTitle: string;
     enhaLakDescription: string;
     creativeWritingTitle: string;
     creativeWritingDescription: string;
     valuePropositionTitle: string;
+    socialProofTitle: string; // Not currently used, but good to have
+    aboutSectionTitle: string;
+    aboutSectionContent: string;
+    testimonialsTitle: string;
+    testimonialsSubtitle: string;
+    blogTitle: string;
+    blogSubtitle: string;
+    finalCtaTitle: string;
+    finalCtaSubtitle: string;
   };
   aboutPage: {
+    heroTitle: string;
     missionStatement: string;
     ourStory: string;
     ourVision: string;
+    valuesTitle: string;
   };
   enhaLakPage: {
     main: {
       heroTitle: string;
       heroSubtitle: string;
+      productsTitle: string;
       howItWorksTitle: string;
+      galleryTitle: string;
+      gallerySubtitle: string;
+      testimonialsTitle: string;
+      testimonialsSubtitle: string;
+      finalCtaTitle: string;
+      finalCtaSubtitle: string;
     };
     store: {
       heroTitle: string;
       heroSubtitle: string;
       subscriptionBannerTitle: string;
+      featuredProductsTitle: string;
+      coreProductsTitle: string;
+      addonProductsTitle: string;
     };
     subscription: {
       heroTitle: string;
@@ -325,16 +355,32 @@ export interface SiteContent {
       heroTitle: string;
       heroSubtitle: string;
       methodologyTitle: string;
+      methodologySubtitle: string;
+      transformationTitle: string;
+      transformationSubtitle: string;
+      packagesTitle: string;
+      packagesSubtitle: string;
+      servicesTitle: string;
+      servicesSubtitle: string;
+      instructorsTitle: string;
+      instructorsSubtitle: string;
+      testimonialsTitle: string;
+      testimonialsSubtitle: string;
+      finalCtaTitle: string;
+      finalCtaSubtitle: string;
     };
     about: {
       heroTitle: string;
       heroSubtitle: string;
+      mainTitle: string;
+      mainContent: string;
       philosophyTitle: string;
     };
     curriculum: {
       heroTitle: string;
       heroSubtitle: string;
       treasuresTitle: string;
+      treasuresSubtitle: string;
     };
     instructors: {
       heroTitle: string;
@@ -342,6 +388,7 @@ export interface SiteContent {
     };
   };
 }
+
 
 export type SessionStatus = 'upcoming' | 'completed' | 'missed';
 
@@ -386,6 +433,7 @@ export interface SupportSessionRequest {
 // Helper types for enriched data
 export type UserProfileWithRelations = UserProfile & {
   children: ChildProfile[];
+  childrenCount: number;
 };
 
 export type OrderWithRelations = Order & {

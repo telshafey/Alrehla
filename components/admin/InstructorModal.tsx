@@ -76,8 +76,8 @@ const InstructorModal: React.FC<{
         >
             <form id="instructor-form" onSubmit={handleSubmit} className="space-y-6">
                 <div className="flex items-center gap-4">
-                    <img src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-20 h-20 rounded-full object-cover bg-gray-200" loading="lazy" />
-                    <input type="file" onChange={handleFileChange} accept="image/*" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                    <img src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-20 h-20 rounded-full object-cover bg-muted" loading="lazy" />
+                    <input type="file" onChange={handleFileChange} accept="image/*" className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
                 </div>
                 <FormField label="اسم المدرب" htmlFor="name">
                     <Input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -87,7 +87,7 @@ const InstructorModal: React.FC<{
                 </FormField>
                 <FormField label="معرّف الرابط (Slug)" htmlFor="slug">
                     <Input type="text" id="slug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="مثال: ahmed-masri" required />
-                    <p className="text-xs text-gray-500 mt-1">يُستخدم في رابط الصفحة الشخصية للمدرب. يجب أن يكون فريدًا وبدون مسافات.</p>
+                    <p className="text-xs text-muted-foreground mt-1">يُستخدم في رابط الصفحة الشخصية للمدرب. يجب أن يكون فريدًا وبدون مسافات.</p>
                 </FormField>
                 <FormField label="نبذة تعريفية" htmlFor="bio">
                     <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={4} />

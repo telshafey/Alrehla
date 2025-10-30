@@ -110,7 +110,7 @@ const EnhaLakPage: React.FC = () => {
             <section className="py-16 sm:py-20 lg:py-24">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">ماذا نصنع في "إنها لك"؟</h2>
+                        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.productsTitle}</h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
                         {products.map(product => (
@@ -187,8 +187,8 @@ const EnhaLakPage: React.FC = () => {
             <section className="bg-gray-50 py-16 sm:py-20 lg:py-24">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">من أعمالنا</h2>
-                        <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">نماذج من قصص أطفالنا (بعد أخذ إذن أولياء الأمور).</p>
+                        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.galleryTitle}</h2>
+                        <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">{content?.gallerySubtitle}</p>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {galleryImages.map((src, index) => (
@@ -204,8 +204,8 @@ const EnhaLakPage: React.FC = () => {
             {/* Testimonials Section */}
              <section className="bg-white py-16 sm:py-20 lg:py-24">
                 <div className="container mx-auto px-4 text-center">
-                     <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">تجارب لا تُنسى من عائلاتنا</h2>
-                     <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">آراء نفخر بها من عائلة "الرحلة".</p>
+                     <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.testimonialsTitle}</h2>
+                     <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">{content?.testimonialsSubtitle}</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mt-12">
                         <TestimonialCard
                             quote="قصة 'إنها لك' كانت أفضل هدية لابنتي. رؤية فرحتها وهي ترى نفسها بطلة الحكاية لا تقدر بثمن. شكرًا لكم على هذا الإبداع."
@@ -224,8 +224,8 @@ const EnhaLakPage: React.FC = () => {
             {/* Final CTA */}
              <section className="py-20 bg-gradient-to-br from-pink-50 to-red-50">
                 <div className="container mx-auto px-4 text-center">
-                    <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">هل أنت مستعد لصناعة السحر؟</h2>
-                    <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">اختر المنتج الذي يناسب طفلك اليوم واهدِه قصة ستبقى في ذاكرته إلى الأبد.</p>
+                    <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.finalCtaTitle}</h2>
+                    <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">{content?.finalCtaSubtitle}</p>
                     <div className="mt-8">
                         <Button asChild size="lg" variant="pink" icon={<ArrowLeft className="me-3 transform rotate-180" size={22}/>} className="shadow-lg transition-transform transform hover:scale-105">
                             <Link to="/enha-lak/store">

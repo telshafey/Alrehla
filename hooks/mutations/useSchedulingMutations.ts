@@ -8,17 +8,37 @@ export const useSchedulingMutations = () => {
     const { addToast } = useToast();
 
     const scheduleSubscriptionSessions = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(1000);
-            console.log('Scheduling sessions (mock)', payload);
+        mutationFn: async (payload: { subscriptionId: string, childId: number, schedule: any }) => {
+            await sleep(800);
+            console.log('Scheduling subscription sessions (mock)', payload);
+            // In a real app, this would generate session records in the database.
             return { success: true };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminScheduledSessions'] });
-            addToast('تمت جدولة الجلسات بنجاح.', 'success');
+            queryClient.invalidateQueries({ queryKey: ['adminDashboard', 'scheduledSessions'] }); // for dashboard widget
+            addToast('تم جدولة الجلسات بنجاح.', 'success');
         },
-        onError: (err: Error) => addToast(`فشل الجدولة: ${err.message}`, 'error'),
+        onError: (err: Error) => {
+            addToast(`فشل جدولة الجلسات: ${err.message}`, 'error');
+        }
     });
 
-    return { scheduleSubscriptionSessions };
+    const scheduleIntroductorySession = useMutation({
+        mutationFn: async (payload: { instructorId: number, date: string, time: string }) => {
+            await sleep(800);
+            console.log('Scheduling introductory session (mock)', payload);
+            // This would create a new booking and a new scheduled session in a real app.
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminScheduledSessions'] });
+            addToast('تم جدولة الجلسة التعريفية بنجاح.', 'success');
+        },
+        onError: (err: Error) => {
+            addToast(`فشل جدولة الجلسة: ${err.message}`, 'error');
+        }
+    });
+
+    return { scheduleSubscriptionSessions, scheduleIntroductorySession };
 };

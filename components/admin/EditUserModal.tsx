@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Save, AlertCircle } from 'lucide-react';
 import type { UserProfile as User } from '../../contexts/AuthContext.tsx';
@@ -51,7 +50,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, onSave, 
             footer={
                  <>
                     <Button type="button" onClick={onClose} disabled={isSaving} variant="ghost">إلغاء</Button>
-                    <Button type="submit" form="edit-user-form" loading={isSaving} icon={<Save />}>
+                    <Button type="submit" form="edit-user-form" loading={isSaving}>
                         {isSaving ? 'جاري الحفظ...' : 'حفظ'}
                     </Button>
                 </>

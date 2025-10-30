@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2, Truck, Plus, Trash2 } from 'lucide-react';
+import { Save, Truck, Plus, Trash2 } from 'lucide-react';
 import { useProduct, ShippingCosts } from '../../contexts/ProductContext';
 import { useToast } from '../../contexts/ToastContext';
-import AdminSection from '../../components/admin/AdminSection';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import FormField from '../../components/ui/FormField';
 import { v4 as uuidv4 } from 'uuid';
+import PageLoader from '../../components/ui/PageLoader';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 
 interface Region {
   id: string;
@@ -105,47 +106,53 @@ const AdminShippingPage: React.FC = () => {
         }
     };
     
-    if (isContextLoading) {
-        return <div className="flex justify-center items-center h-full"><Loader2 className="w-12 h-12 animate-spin text-blue-500" /></div>
-    }
+    if (isContextLoading) return <PageLoader />;
 
     return (
         <div className="animate-fadeIn">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-8">إدارة الشحن</h1>
+            <h1 className="text-3xl font-extrabold text-foreground mb-8">إدارة الشحن</h1>
             <form onSubmit={handleSubmit} className="space-y-8">
                 {countries.map((country) => (
-                    <AdminSection key={country.id} title={country.name || 'دولة جديدة'} icon={<Truck />}>
-                        <div className="space-y-4">
-                            <div className="flex gap-4 items-end">
+                    <Card key={country.id}>
+                        <CardHeader>
+                            <CardTitle className="flex items-center justify-between">
+                                <span className="flex items-center gap-2">
+                                    <Truck />
+                                    {country.name || 'دولة جديدة'}
+                                </span>
+                                <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveCountry(country.id)} disabled={isSaving}><Trash2 size={16}/></Button>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
                                 <FormField label="اسم الدولة" htmlFor={`country-${country.id}`} className="flex-grow">
                                     <Input id={`country-${country.id}`} value={country.name} onChange={(e) => handleCountryNameChange(country.id, e.target.value)} placeholder="مثال: مصر" disabled={isSaving} />
                                 </FormField>
-                                <Button type="button" variant="danger" size="icon" onClick={() => handleRemoveCountry(country.id)} disabled={isSaving}><Trash2 size={16}/></Button>
+                                <h3 className="text-md font-bold text-muted-foreground pt-4 border-t">المناطق/المحافظات</h3>
+                                <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                    {country.regions.map((region) => (
+                                        <div key={region.id} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end p-3 bg-muted/50 rounded-md">
+                                            <FormField label="المنطقة" htmlFor={`region-name-${region.id}`}>
+                                                <Input id={`region-name-${region.id}`} value={region.name} onChange={(e) => handleRegionChange(country.id, region.id, 'name', e.target.value)} placeholder="مثال: القاهرة" disabled={isSaving} />
+                                            </FormField>
+                                            <FormField label="التكلفة" htmlFor={`region-cost-${region.id}`}>
+                                                <div className="relative">
+                                                    <Input type="number" id={`region-cost-${region.id}`} value={region.cost} onChange={(e) => handleRegionChange(country.id, region.id, 'cost', Number(e.target.value))} className="pl-12 pr-4 rtl:pr-12 rtl:pl-4" disabled={isSaving} />
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none rtl:left-auto rtl:right-3">ج.م</span>
+                                                </div>
+                                            </FormField>
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveRegion(country.id, region.id)} disabled={isSaving} className="self-end mb-1 text-destructive">
+                                                <Trash2 size={16}/>
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Button type="button" variant="outline" size="sm" onClick={() => handleAddRegion(country.id)} disabled={isSaving} icon={<Plus />}>
+                                    إضافة منطقة
+                                </Button>
                             </div>
-                            <h3 className="text-md font-bold text-gray-600 pt-4 border-t">المناطق/المحافظات</h3>
-                            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                                {country.regions.map((region) => (
-                                    <div key={region.id} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end p-3 bg-gray-50 rounded-md">
-                                        <FormField label="المنطقة" htmlFor={`region-name-${region.id}`}>
-                                            <Input id={`region-name-${region.id}`} value={region.name} onChange={(e) => handleRegionChange(country.id, region.id, 'name', e.target.value)} placeholder="مثال: القاهرة" disabled={isSaving} />
-                                        </FormField>
-                                        <FormField label="التكلفة" htmlFor={`region-cost-${region.id}`}>
-                                            <div className="relative">
-                                                <Input type="number" id={`region-cost-${region.id}`} value={region.cost} onChange={(e) => handleRegionChange(country.id, region.id, 'cost', Number(e.target.value))} className="pl-12 pr-4" disabled={isSaving} />
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">ج.م</span>
-                                            </div>
-                                        </FormField>
-                                        <Button type="button" variant="subtle" size="sm" onClick={() => handleRemoveRegion(country.id, region.id)} disabled={isSaving} className="self-end mb-1">
-                                            <Trash2 size={16}/>
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                             <Button type="button" variant="outline" size="sm" onClick={() => handleAddRegion(country.id)} disabled={isSaving} icon={<Plus />}>
-                                إضافة منطقة
-                            </Button>
-                        </div>
-                    </AdminSection>
+                        </CardContent>
+                    </Card>
                 ))}
 
                 <Button type="button" variant="outline" onClick={handleAddCountry} disabled={isSaving} icon={<Plus />}>

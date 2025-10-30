@@ -23,6 +23,9 @@ export const useModalAccessibility = ({
         };
 
         document.addEventListener('keydown', handleKeyDown);
+        
+        // Prevent background scroll
+        document.body.style.overflow = 'hidden';
 
         const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
             'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -30,13 +33,15 @@ export const useModalAccessibility = ({
 
         if (focusableElements.length === 0) {
             (modalRef.current as HTMLElement).focus();
-            return;
+            return () => {
+                 document.removeEventListener('keydown', handleKeyDown);
+                 document.body.style.overflow = 'auto';
+            }
         }
 
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
         
-        // Use the provided initial focus ref, or fallback to the first element.
         const elementToFocus = initialFocusRef?.current || firstElement;
         elementToFocus.focus();
 
@@ -62,6 +67,7 @@ export const useModalAccessibility = ({
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
             currentModal?.removeEventListener('keydown', handleTabKeyPress);
+            document.body.style.overflow = 'auto';
         };
     }, [isOpen, onClose, modalRef, initialFocusRef]);
 };

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 
 interface AdminSectionProps {
     title: string;
@@ -8,15 +9,17 @@ interface AdminSectionProps {
 
 const AdminSection: React.FC<AdminSectionProps> = ({ title, icon, children }) => {
     return (
-        <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                {icon}
-                {title}
-            </h2>
-            <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-md">
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                    {icon}
+                    {title}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
                 {children}
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 };
 

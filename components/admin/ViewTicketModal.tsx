@@ -16,16 +16,16 @@ const ViewTicketModal: React.FC<{
             onClose={onClose}
             title="تفاصيل الرسالة"
             footer={
-                <Button onClick={onClose} variant="primary">
+                <Button onClick={onClose}>
                     إغلاق
                 </Button>
             }
         >
              <div className="space-y-4 text-sm">
-                <p><span className="font-semibold text-gray-500">من:</span> {ticket.name} ({ticket.email})</p>
-                <p><span className="font-semibold text-gray-500">الموضوع:</span> {ticket.subject}</p>
-                <div className="p-3 bg-gray-50 rounded-lg border max-h-60 overflow-y-auto">
-                    <p className="whitespace-pre-wrap">{ticket.message}</p>
+                <p><span className="font-semibold text-muted-foreground">من:</span> <span className="text-foreground">{ticket.name} ({ticket.email})</span></p>
+                <p><span className="font-semibold text-muted-foreground">الموضوع:</span> <span className="text-foreground">{ticket.subject}</span></p>
+                <div className="p-3 bg-muted rounded-lg border max-h-60 overflow-y-auto">
+                    <p className="whitespace-pre-wrap text-foreground">{ticket.message}</p>
                 </div>
              </div>
         </Modal>

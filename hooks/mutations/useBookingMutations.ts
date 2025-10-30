@@ -48,6 +48,21 @@ export const useBookingMutations = () => {
             addToast(`فشل حفظ الملاحظات: ${error.message}`, 'error');
         }
     });
+    
+    const updateBookingDraft = useMutation({
+        mutationFn: async ({ bookingId, draft }: { bookingId: string, draft: string }) => {
+            await sleep(500);
+            console.log("Saving draft (mock)", { bookingId, draft });
+            return { success: true };
+        },
+        onSuccess: () => {
+            addToast('تم حفظ المسودة بنجاح.', 'success');
+            // We don't need to invalidate queries here as the state is local to the component
+        },
+        onError: (error: Error) => {
+            addToast(`فشل حفظ المسودة: ${error.message}`, 'error');
+        }
+    });
 
-    return { createBooking, updateBookingStatus, updateBookingProgressNotes };
+    return { createBooking, updateBookingStatus, updateBookingProgressNotes, updateBookingDraft };
 };

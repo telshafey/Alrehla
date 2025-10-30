@@ -4,6 +4,7 @@ import SupportForm from '../components/shared/SupportForm';
 import FAQSection from '../components/shared/FAQSection';
 import { useCommunicationMutations } from '../hooks/mutations/useCommunicationMutations';
 import { useToast } from '../contexts/ToastContext';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
 const faqs = {
   enhaLak: [
@@ -59,35 +60,43 @@ const SupportPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
+        <div className="bg-muted/50 py-16 sm:py-20 animate-fadeIn">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-16">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">الدعم والمساعدة</h1>
-                    <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">الدعم والمساعدة</h1>
+                    <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
                         هل لديك سؤال؟ لقد أجبنا على أكثر الاستفسارات شيوعًا هنا.
                     </p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                     {/* FAQs */}
-                    <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-lg">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3"><HelpCircle /> الأسئلة الشائعة</h2>
-                        <FAQSection category='منتجات "إنها لك"' items={faqs.enhaLak} />
-                        <FAQSection category='برنامج "بداية الرحلة"' items={faqs.creativeWriting} />
-                        <FAQSection category='صندوق الرحلة الشهري' items={faqs.subscriptionBox} />
-                        <FAQSection category="أسئلة عامة" items={faqs.general} />
-                    </div>
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                          <CardTitle className="text-2xl flex items-center gap-3"><HelpCircle /> الأسئلة الشائعة</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <FAQSection category='منتجات "إنها لك"' items={faqs.enhaLak} />
+                          <FAQSection category='برنامج "بداية الرحلة"' items={faqs.creativeWriting} />
+                          <FAQSection category='صندوق الرحلة الشهري' items={faqs.subscriptionBox} />
+                          <FAQSection category="أسئلة عامة" items={faqs.general} />
+                        </CardContent>
+                    </Card>
                     
                     {/* Contact Form */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white p-8 rounded-2xl shadow-lg sticky top-24">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3"><Mail /> لم تجد إجابتك؟ تواصل معنا</h2>
-                            <SupportForm 
-                                onSubmit={handleSubmit} 
-                                isSubmitting={isSubmitting} 
-                                subjectOptions={["استفسار عام", "مشكلة في الطلب", "اقتراح", "مشكلة تقنية"]}
-                            />
-                        </div>
+                        <Card className="sticky top-24">
+                            <CardHeader>
+                              <CardTitle className="text-2xl flex items-center gap-3"><Mail /> لم تجد إجابتك؟ تواصل معنا</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <SupportForm 
+                                  onSubmit={handleSubmit} 
+                                  isSubmitting={isSubmitting} 
+                                  subjectOptions={["استفسار عام", "مشكلة في الطلب", "اقتراح", "مشكلة تقنية"]}
+                              />
+                            </CardContent>
+                        </Card>
                     </div>
 
                 </div>

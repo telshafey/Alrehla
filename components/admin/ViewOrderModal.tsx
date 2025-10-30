@@ -5,6 +5,8 @@ import type { Order, OrderStatus } from '../../lib/database.types';
 import { formatDate, getStatusColor } from '../../utils/helpers';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { Select } from '../ui/Select';
+import { Textarea } from '../ui/Textarea';
 
 type OrderWithRelations = Order & { child_profiles: { name: string } | null; users: { name: string, email: string } | null };
 
@@ -16,8 +18,8 @@ interface ViewOrderModalProps {
 
 const DetailRow: React.FC<{ label: string; value: React.ReactNode; isTextArea?: boolean }> = ({ label, value, isTextArea = false }) => (
     <div className="py-2 border-b">
-        <span className="font-semibold text-gray-500">{label}:</span>
-        {isTextArea ? <div className="text-gray-800 mt-1 whitespace-pre-wrap bg-gray-50 p-2 rounded">{value || 'N/A'}</div> : <span className="text-gray-800 mr-2">{value || 'N/A'}</span>}
+        <span className="font-semibold text-muted-foreground">{label}:</span>
+        {isTextArea ? <div className="text-foreground mt-1 whitespace-pre-wrap bg-muted/50 p-2 rounded">{value || 'N/A'}</div> : <span className="text-foreground mr-2">{value || 'N/A'}</span>}
     </div>
 );
 
@@ -75,11 +77,11 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
                     <DetailRow label="الملخص" value={order.item_summary} />
                     <DetailRow label="الإجمالي" value={`${order.total} ج.م`} />
                     <DetailRow label="الحالة" value={
-                        <select value={order.status} onChange={handleStatusChange} className={`p-1 border rounded-md text-sm ${getStatusColor(order.status)}`}>
+                        <Select value={order.status} onChange={handleStatusChange} className={`p-1 border rounded-md text-sm ${getStatusColor(order.status)}`}>
                             {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
+                        </Select>
                     } />
-                     {order.receipt_url && <DetailRow label="الإيصال" value={<a href={order.receipt_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1"><LinkIcon size={14}/><span>عرض</span></a>} />}
+                     {order.receipt_url && <DetailRow label="الإيصال" value={<a href={order.receipt_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1"><LinkIcon size={14}/><span>عرض</span></a>} />}
                 </div>
             </div>
             
@@ -117,8 +119,8 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
 
             <div className="mt-8">
                 <h3 className="font-bold text-lg mb-2">ملاحظات إدارية</h3>
-                <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3} className="w-full p-2 border rounded-lg" placeholder="أضف ملاحظات داخلية هنا..."></textarea>
-                <Button onClick={handleSaveComment} loading={updateOrderComment.isPending} variant="subtle" size="sm" icon={<Save size={16}/>}>
+                <Textarea value={comment} onChange={e => setComment(e.target.value)} rows={3} placeholder="أضف ملاحظات داخلية هنا..."></Textarea>
+                <Button onClick={handleSaveComment} loading={updateOrderComment.isPending} variant="outline" size="sm" icon={<Save size={16}/>} className="mt-2">
                    حفظ الملاحظة
                 </Button>
             </div>

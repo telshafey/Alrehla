@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, BookOpen, UserPlus, MessageSquare, Clock } from 'lucide-react';
-import DashboardWidget from './DashboardWidget';
+// FIX: Replaced missing DashboardWidget with existing AdminSection component.
+import AdminSection from '../AdminSection';
 
 const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -66,7 +67,7 @@ const RecentActivityWidget: React.FC<{ data: any }> = ({ data }) => {
     }, [data]);
 
     return (
-        <DashboardWidget title="أحدث الأنشطة" icon={<Clock className="text-gray-500" />}>
+        <AdminSection title="أحدث الأنشطة" icon={<Clock className="text-gray-500" />}>
             {recentActivities.length > 0 ? (
                 <div className="flow-root">
                     <ul role="list" className="-mb-8">
@@ -105,7 +106,7 @@ const RecentActivityWidget: React.FC<{ data: any }> = ({ data }) => {
             ) : (
                 <p className="text-center text-gray-500 py-8">لا توجد أنشطة حديثة.</p>
             )}
-        </DashboardWidget>
+        </AdminSection>
     );
 };
 

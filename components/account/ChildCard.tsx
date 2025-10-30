@@ -17,6 +17,7 @@ const ChildCard: React.FC<ChildCardProps> = ({ child, onEdit, onDelete, onCreate
                 src={child.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
                 alt={child.name} 
                 className="w-20 h-20 rounded-full object-cover border-2 border-blue-100"
+                loading="lazy"
             />
             <div className="flex-grow text-center sm:text-right">
                 <h3 className="text-xl font-bold text-gray-800">{child.name}</h3>

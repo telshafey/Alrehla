@@ -7,6 +7,8 @@ import TestimonialCard from '../components/shared/TestimonialCard';
 import PostCard from '../components/shared/PostCard';
 import PageLoader from '../components/ui/PageLoader';
 import { Button } from '../components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { cn } from '../lib/utils';
 
 // --- Hero Section ---
 const HeroSection: React.FC<{ backgroundUrl: string | null; content: any }> = ({ backgroundUrl, content }) => (
@@ -35,40 +37,42 @@ const HeroSection: React.FC<{ backgroundUrl: string | null; content: any }> = ({
 const ProjectCard: React.FC<{ title: string; description: string; link: string; imageUrl: string | null; icon: React.ReactNode; }> = ({ title, description, link, imageUrl, icon }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     return (
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300 border">
-            <div className="relative h-64 bg-gray-200">
-                {!imageLoaded && <div className="absolute inset-0 bg-gray-200 animate-pulse"></div>}
-                <img src={imageUrl || ''} alt={title} className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} loading="lazy" onLoad={() => setImageLoaded(true)} />
+        <Card className="overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300">
+            <div className="relative h-64 bg-muted">
+                {!imageLoaded && <div className="absolute inset-0 bg-muted animate-pulse"></div>}
+                <img src={imageUrl || ''} alt={title} className={cn('w-full h-full object-cover transition-opacity duration-500', imageLoaded ? 'opacity-100' : 'opacity-0')} loading="lazy" onLoad={() => setImageLoaded(true)} />
                 <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors"></div>
-                <div className="absolute top-6 right-6 bg-white/80 backdrop-blur-sm text-blue-600 p-4 rounded-full shadow-lg">
+                <div className="absolute top-6 right-6 bg-background/80 backdrop-blur-sm text-primary p-4 rounded-full shadow-lg">
                     {icon}
                 </div>
             </div>
-            <div className="p-8">
-                <h3 className="text-3xl font-extrabold text-gray-800">{title}</h3>
-                <p className="mt-4 text-gray-600 leading-relaxed">{description}</p>
-                <Link to={link} className="mt-6 inline-flex items-center font-semibold text-lg text-blue-600 hover:text-blue-800 group">
+            <CardHeader>
+                <CardTitle className="text-3xl">{title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground leading-relaxed">{description}</p>
+                <Link to={link} className="mt-6 inline-flex items-center font-semibold text-lg text-primary hover:text-primary/80 group">
                     <span>اعرف المزيد</span>
                     <ArrowLeft size={22} className="ms-2 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" />
                 </Link>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 };
 
 const ProjectsSection: React.FC<{ branding: any; content: any }> = ({ branding, content }) => (
-    <section className="bg-gray-50 py-16 sm:py-20 lg:py-24">
+    <section className="bg-muted/40 py-16 sm:py-20 lg:py-24">
         <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">أقسامنا الرئيسية</h2>
-                <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">بوابتان لعالم من الإبداع والنمو، مصممتان لتلبية احتياجات طفلك الفريدة.</p>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.projectsTitle}</h2>
+                <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">{content?.projectsSubtitle}</p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
                 <ProjectCard
                     title={content?.enhaLakTitle || 'إنها لك'}
                     description={content?.enhaLakDescription || "قصص مخصصة ومنتجات تربوية فريدة تجعل طفلك بطل الحكاية الحقيقي"}
                     link="/enha-lak"
-                    imageUrl={branding?.heroImageUrl}
+                    imageUrl={branding?.enhaLakPortalImageUrl || branding?.heroImageUrl}
                     icon={<BookOpen size={32} />}
                 />
                 <ProjectCard
@@ -95,17 +99,19 @@ const ValuePropositionSection: React.FC<{ content: any }> = ({ content }) => {
     ];
 
     return (
-        <section className="bg-white py-16 sm:py-20 lg:py-24">
+        <section className="bg-background py-16 sm:py-20 lg:py-24">
             <div className="container mx-auto px-4">
                 <div className="text-center mb-16">
-                    <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.valuePropositionTitle || "لماذا منصة الرحلة هي الأفضل لطفلك؟"}</h2>
+                    <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.valuePropositionTitle || "لماذا منصة الرحلة هي الأفضل لطفلك؟"}</h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
                     {features.map((feature, index) => (
-                        <div key={index} className="flex items-start gap-4 p-6 bg-gray-50 rounded-2xl border transform hover:scale-105 hover:shadow-lg transition-transform">
-                            <span className="text-3xl mt-1">{feature.icon}</span>
-                            <p className="text-lg text-gray-700 font-semibold">{feature.text}</p>
-                        </div>
+                        <Card key={index} className="transform hover:scale-105 hover:shadow-lg transition-transform">
+                            <CardContent className="p-6 flex items-start gap-4">
+                                <span className="text-3xl mt-1">{feature.icon}</span>
+                                <p className="text-lg text-card-foreground font-semibold">{feature.text}</p>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             </div>
@@ -123,14 +129,14 @@ const SocialProofSection: React.FC = () => {
         { icon: '⭐', value: '98%', label: 'معدل رضا العملاء' },
     ];
     return (
-        <section className="bg-blue-50 py-16 sm:py-20">
+        <section className="bg-muted/40 py-16 sm:py-20">
             <div className="container mx-auto px-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
                     {stats.map((stat) => (
                         <div key={stat.label}>
                             <span className="text-4xl">{stat.icon}</span>
-                            <p className="text-4xl font-extrabold text-blue-600 mt-2">{stat.value}</p>
-                            <p className="text-md font-semibold text-gray-600 mt-1">{stat.label}</p>
+                            <p className="text-4xl font-extrabold text-primary mt-2">{stat.value}</p>
+                            <p className="text-md font-semibold text-muted-foreground mt-1">{stat.label}</p>
                         </div>
                     ))}
                 </div>
@@ -144,23 +150,23 @@ const SocialProofSection: React.FC = () => {
 const AboutSection: React.FC<{ branding: any; content: any }> = ({ branding, content }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     return (
-        <section className="bg-white py-16 sm:py-20 lg:py-24">
+        <section className="bg-background py-16 sm:py-20 lg:py-24">
             <div className="container mx-auto px-4">
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
                     <div className="order-last lg:order-first">
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-6 flex items-center gap-3">
-                            <Target className="text-blue-500" /> قصتنا
+                        <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-6 flex items-center gap-3">
+                            <Target className="text-primary" /> {content?.aboutSectionTitle}
                         </h2>
-                        <p className="text-lg text-gray-600 leading-relaxed mb-8">
-                            {content?.ourStory || "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة 'منصة الرحلة' - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي."}
+                        <p className="text-lg text-muted-foreground leading-relaxed mb-8">
+                            {content?.aboutSectionContent || "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة 'منصة الرحلة' - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي."}
                         </p>
                         <Button asChild size="lg" className="shadow-lg transition-transform transform hover:scale-105">
                             <Link to="/about">تعرف علينا أكثر</Link>
                         </Button>
                     </div>
                     <div className="relative px-8">
-                        {!imageLoaded && <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-2xl"></div>}
-                        <img src={branding?.aboutImageUrl || ''} alt="عن منصة الرحلة" className={`rounded-2xl shadow-2xl transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} loading="lazy" onLoad={() => setImageLoaded(true)} />
+                        {!imageLoaded && <div className="absolute inset-0 bg-muted animate-pulse rounded-2xl"></div>}
+                        <img src={branding?.aboutImageUrl || ''} alt="عن منصة الرحلة" className={cn('rounded-2xl shadow-2xl transition-opacity duration-500', imageLoaded ? 'opacity-100' : 'opacity-0')} loading="lazy" onLoad={() => setImageLoaded(true)} />
                     </div>
                 </div>
             </div>
@@ -169,12 +175,12 @@ const AboutSection: React.FC<{ branding: any; content: any }> = ({ branding, con
 };
 
 // --- Testimonials Section ---
-const TestimonialsSection: React.FC = () => (
-    <section className="bg-gray-50 py-16 sm:py-20 lg:py-24">
+const TestimonialsSection: React.FC<{ content: any }> = ({ content }) => (
+    <section className="bg-muted/40 py-16 sm:py-20 lg:py-24">
         <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">ماذا تقول عائلاتنا؟</h2>
-                <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">آراء نفخر بها من عائلة "الرحلة".</p>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.testimonialsTitle}</h2>
+                <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">{content?.testimonialsSubtitle}</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
                 <TestimonialCard
@@ -199,12 +205,12 @@ const TestimonialsSection: React.FC = () => (
 
 
 // --- Blog Section ---
-const BlogSection: React.FC<{ posts: any[] }> = ({ posts }) => (
-    <section className="bg-white py-16 sm:py-20 lg:py-24">
+const BlogSection: React.FC<{ posts: any[]; content: any }> = ({ posts, content }) => (
+    <section className="bg-background py-16 sm:py-20 lg:py-24">
         <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">من مدونتنا</h2>
-                <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">مقالات ونصائح تربوية وإبداعية لمساعدتكم في رحلة تنمية أطفالكم.</p>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.blogTitle}</h2>
+                <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">{content?.blogSubtitle}</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
                 {posts.slice(0, 3).map(post => (
@@ -212,7 +218,7 @@ const BlogSection: React.FC<{ posts: any[] }> = ({ posts }) => (
                 ))}
             </div>
              <div className="mt-12 text-center">
-                <Link to="/blog" className="inline-flex items-center font-semibold text-lg text-blue-600 hover:text-blue-800 group">
+                <Link to="/blog" className="inline-flex items-center font-semibold text-lg text-primary hover:text-primary/80 group">
                     <span>قراءة المزيد من المقالات</span>
                     <ArrowLeft size={22} className="ms-2 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" />
                 </Link>
@@ -223,11 +229,11 @@ const BlogSection: React.FC<{ posts: any[] }> = ({ posts }) => (
 
 
 // --- Final CTA Section ---
-const FinalCtaSection: React.FC = () => (
+const FinalCtaSection: React.FC<{ content: any }> = ({ content }) => (
     <section className="py-20 bg-gradient-to-br from-blue-50 to-purple-50">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">هل أنت جاهز لبدء الرحلة؟</h2>
-          <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">اختر المسار الذي يناسب طفلك اليوم وافتح له بابًا جديدًا من الخيال والمعرفة.</p>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.finalCtaTitle}</h2>
+          <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">{content?.finalCtaSubtitle}</p>
            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button asChild size="lg" className="shadow-lg transition-transform transform hover:scale-105">
                     <Link to="/enha-lak">تصفح منتجات "إنها لك"</Link>
@@ -254,15 +260,15 @@ const PortalPage: React.FC = () => {
     const publishedPosts = blogPosts || [];
     
     return (
-        <div className="bg-white animate-fadeIn">
+        <div className="bg-background animate-fadeIn">
             <HeroSection backgroundUrl={siteBranding?.heroImageUrl} content={siteContent?.portalPage} />
             <ProjectsSection branding={siteBranding} content={siteContent?.portalPage} />
             <ValuePropositionSection content={siteContent?.portalPage} />
             <SocialProofSection />
-            <AboutSection branding={siteBranding} content={siteContent?.aboutPage} />
-            <TestimonialsSection />
-            {publishedPosts.length > 0 && <BlogSection posts={publishedPosts} />}
-            <FinalCtaSection />
+            <AboutSection branding={siteBranding} content={siteContent?.portalPage} />
+            <TestimonialsSection content={siteContent?.portalPage} />
+            {publishedPosts.length > 0 && <BlogSection posts={publishedPosts} content={siteContent?.portalPage} />}
+            <FinalCtaSection content={siteContent?.portalPage} />
         </div>
     );
 };

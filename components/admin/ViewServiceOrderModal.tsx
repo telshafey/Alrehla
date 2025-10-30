@@ -10,8 +10,8 @@ import Modal from '../ui/Modal';
 
 const DetailRow: React.FC<{ label: string; value: React.ReactNode; isTextArea?: boolean }> = ({ label, value, isTextArea = false }) => (
     <div className="py-2 border-b">
-        <span className="font-semibold text-gray-500">{label}:</span>
-        {isTextArea ? <div className="text-gray-800 mt-1 whitespace-pre-wrap bg-gray-50 p-2 rounded">{value || 'N/A'}</div> : <span className="text-gray-800 mr-2">{value || 'N/A'}</span>}
+        <span className="font-semibold text-muted-foreground">{label}:</span>
+        {isTextArea ? <div className="text-foreground mt-1 whitespace-pre-wrap bg-muted/50 p-2 rounded">{value || 'N/A'}</div> : <span className="text-foreground mr-2">{value || 'N/A'}</span>}
     </div>
 );
 
@@ -73,7 +73,7 @@ const ViewServiceOrderModal: React.FC<ViewServiceOrderModalProps> = ({ isOpen, o
 
             <div className="mt-8 space-y-4">
                 <h3 className="font-bold text-lg border-b pb-2">بيانات الطلب</h3>
-                {details.fileUrl && <DetailRow label="الملف المرفق" value={<a href={details.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1"><LinkIcon size={14}/><span>عرض/تحميل</span></a>} />}
+                {details.fileUrl && <DetailRow label="الملف المرفق" value={<a href={details.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1"><LinkIcon size={14}/><span>عرض/تحميل</span></a>} />}
                 {details.userNotes && <DetailRow label="ملاحظات العميل" value={details.userNotes} isTextArea />}
             </div>
 

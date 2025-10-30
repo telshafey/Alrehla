@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import type { Prices, SiteBranding, ShippingCosts } from '../lib/database.types';
 import { useToast } from './ToastContext';
 import { usePrices, useSiteBranding, useShippingCosts } from '../hooks/queries/public/useProductDataQuery';
@@ -39,15 +39,17 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         return updateShippingCosts.mutateAsync(newCosts);
     };
 
-    const value = {
+    const loading = pricesLoading || brandingLoading || shippingLoading;
+
+    const value = useMemo(() => ({
         prices,
         siteBranding,
         shippingCosts,
         setPrices,
         setSiteBranding,
         setShippingCosts,
-        loading: pricesLoading || brandingLoading || shippingLoading,
-    };
+        loading,
+    }), [prices, siteBranding, shippingCosts, loading]);
 
     return (
         <ProductContext.Provider value={value}>

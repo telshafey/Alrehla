@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Eye, ShoppingBag } from 'lucide-react';
+import { Eye, ShoppingBag, DollarSign, AlertCircle } from 'lucide-react';
 import { useAdminOrders } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import PageLoader from '../../components/ui/PageLoader';
-import AdminSection from '../../components/admin/AdminSection';
 import ViewOrderModal from '../../components/admin/ViewOrderModal';
 import { formatDate, getStatusColor } from '../../utils/helpers';
 import type { OrderWithRelations, OrderStatus } from '../../lib/database.types';
@@ -10,6 +9,9 @@ import { Button } from '../../components/ui/Button';
 import StatFilterCard from '../../components/admin/StatFilterCard';
 import { Input } from '../../components/ui/Input';
 import ErrorState from '../../components/ui/ErrorState';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import StatCard from '../../components/admin/StatCard';
 
 const orderStatuses: OrderStatus[] = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "قيد التنفيذ", "تم الشحن", "تم التسليم", "مكتمل", "ملغي"];
 const statusColors: { [key in OrderStatus]: string } = {
@@ -55,6 +57,17 @@ const AdminOrdersPage: React.FC = () => {
         }
         return filtered;
     }, [orders, statusFilter, searchTerm]);
+    
+    const totalRevenue = useMemo(() => {
+        return orders
+            .filter(o => o.status === 'تم التسليم' || o.status === 'مكتمل')
+            .reduce((sum, o) => sum + o.total, 0);
+    }, [orders]);
+
+    const pendingOrders = useMemo(() => {
+        return orders.filter(o => o.status === 'بانتظار المراجعة' || o.status === 'قيد التجهيز').length;
+    }, [orders]);
+
 
     const handleViewOrder = (order: OrderWithRelations) => {
         setSelectedOrder(order);
@@ -68,10 +81,16 @@ const AdminOrdersPage: React.FC = () => {
         <>
             <ViewOrderModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} order={selectedOrder} />
             <div className="animate-fadeIn space-y-8">
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة طلبات "إنها لك"</h1>
+                <h1 className="text-3xl font-extrabold text-foreground">إدارة طلبات "إنها لك"</h1>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-4">
-                    <StatFilterCard label="الكل" value={orders.length} color="bg-gray-800" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <StatCard title="إجمالي الإيرادات (المكتملة)" value={`${totalRevenue} ج.م`} icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} />
+                    <StatCard title="إجمالي الطلبات" value={orders.length} icon={<ShoppingBag className="h-4 w-4 text-muted-foreground" />} />
+                    <StatCard title="طلبات تحتاج إجراء" value={pendingOrders} icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />} />
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 gap-4">
+                    <StatFilterCard label="الكل" value={orders.length} color="bg-primary" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
                     {orderStatuses.map(status => (
                         <StatFilterCard 
                             key={status}
@@ -84,39 +103,54 @@ const AdminOrdersPage: React.FC = () => {
                     ))}
                 </div>
                 
-                <AdminSection title="قائمة كل الطلبات" icon={<ShoppingBag />}>
-                    <div className="mb-6 max-w-lg">
-                        <Input 
-                            type="search"
-                            placeholder="ابحث برقم الطلب، اسم العميل، أو اسم الطفل..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-right">
-                           <thead className="border-b-2"><tr>
-                                <th className="p-3">العميل</th><th className="p-3">الطفل</th><th className="p-3">التاريخ</th><th className="p-3">الملخص</th><th className="p-3">الإجمالي</th><th className="p-3">الحالة</th><th className="p-3">إجراءات</th>
-                            </tr></thead>
-                            <tbody>
-                                {filteredOrders.map(order => (
-                                    <tr key={order.id} className="border-b hover:bg-gray-50">
-                                        <td className="p-3 font-semibold">{order.users?.name || 'N/A'}</td>
-                                        <td className="p-3">{order.child_profiles?.name || 'N/A'}</td>
-                                        <td className="p-3 text-sm">{formatDate(order.order_date)}</td>
-                                        <td className="p-3 text-sm">{order.item_summary}</td>
-                                        <td className="p-3 font-bold">{order.total} ج.م</td>
-                                        <td className="p-3"><span className={`px-2 py-1 text-xs font-bold rounded-full ${getStatusColor(order.status)}`}>{order.status}</span></td>
-                                        <td className="p-3">
-                                            <Button variant="ghost" size="icon" onClick={() => handleViewOrder(order)}><Eye size={20} /></Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                         {filteredOrders.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد طلبات تطابق بحثك.</p>}
-                    </div>
-                </AdminSection>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                           <ShoppingBag /> قائمة كل الطلبات
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="mb-6 max-w-lg">
+                            <Input 
+                                type="search"
+                                placeholder="ابحث برقم الطلب، اسم العميل، أو اسم الطفل..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="overflow-x-auto">
+                            <Table>
+                               <TableHeader>
+                                   <TableRow>
+                                        <TableHead>العميل</TableHead>
+                                        <TableHead>الطفل</TableHead>
+                                        <TableHead>التاريخ</TableHead>
+                                        <TableHead>الملخص</TableHead>
+                                        <TableHead>الإجمالي</TableHead>
+                                        <TableHead>الحالة</TableHead>
+                                        <TableHead>إجراءات</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredOrders.map(order => (
+                                        <TableRow key={order.id}>
+                                            <TableCell className="font-semibold">{order.users?.name || 'N/A'}</TableCell>
+                                            <TableCell>{order.child_profiles?.name || 'N/A'}</TableCell>
+                                            <TableCell className="text-sm">{formatDate(order.order_date)}</TableCell>
+                                            <TableCell className="text-sm">{order.item_summary}</TableCell>
+                                            <TableCell className="font-bold">{order.total} ج.م</TableCell>
+                                            <TableCell><span className={`px-2 py-1 text-xs font-bold rounded-full ${getStatusColor(order.status)}`}>{order.status}</span></TableCell>
+                                            <TableCell>
+                                                <Button variant="ghost" size="icon" onClick={() => handleViewOrder(order)}><Eye size={20} /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                             {filteredOrders.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد طلبات تطابق بحثك.</p>}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </>
     );

@@ -13,12 +13,13 @@ import ImageUploadSection from '../components/order/ImageUploadSection';
 import AddonsSection from '../components/order/AddonsSection';
 import DeliverySection from '../components/order/DeliverySection';
 import InteractivePreview from '../components/order/InteractivePreview';
-import StoryIdeasModal from '../components/order/StoryIdeasModal';
+import StoryIdeasModal from '../components/order/StoryIdeasModal'; // Import the new modal
 import { Button } from '../components/ui/Button';
 import FormField from '../components/ui/FormField';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import type { ChildProfile, PersonalizedProduct, TextFieldConfig } from '../lib/database.types';
+import { Card, CardContent } from '../components/ui/card';
 
 type OrderStep = string;
 
@@ -188,10 +189,10 @@ const OrderPage: React.FC = () => {
         setFormData(prev => ({
             ...prev,
             storyValue: 'custom',
-            customGoal: `${idea.title}: ${idea.goal}`
+            customGoal: idea.goal
         }));
+        addToast('تم اختيار الفكرة وتطبيقها.', 'success');
         setIsIdeasModalOpen(false);
-        addToast('تم اختيار الفكرة بنجاح!', 'success');
     };
 
      const validateStep = () => {
@@ -341,27 +342,29 @@ const OrderPage: React.FC = () => {
             childAge={formData.childAge}
             childTraits={formData.childTraits}
         />
-        <div className="bg-gray-50 py-12 sm:py-16">
+        <div className="bg-muted/50 py-12 sm:py-16">
             <div className="container mx-auto px-4">
                 <div className="max-w-5xl mx-auto">
                     <div className="mb-12">
-                         <h1 className="text-3xl sm:text-4xl font-extrabold text-center text-gray-800 mb-4">تخصيص: {product.title}</h1>
+                         <h1 className="text-3xl sm:text-4xl font-extrabold text-center text-foreground mb-4">تخصيص: {product.title}</h1>
                          <OrderStepper steps={stepsConfig} currentStep={step} />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                        <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-lg border space-y-10">
-                            {renderStepContent()}
-                            <div className="flex justify-between pt-6 border-t">
-                                <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />}>
-                                    {step === stepsConfig[0].key ? 'رجوع' : 'السابق'}
-                                </Button>
-                                {step !== stepsConfig[stepsConfig.length - 1].key ? (
-                                    <Button onClick={handleNext}>التالي <ArrowLeft className="mr-2 h-4 w-4" /></Button>
-                                ) : (
-                                    <Button onClick={handleSubmit} loading={isSubmitting} variant="success" icon={<ShoppingCart />}>إضافة إلى السلة</Button>
-                                )}
-                            </div>
-                        </div>
+                        <Card className="lg:col-span-2">
+                           <CardContent className="pt-8 space-y-10">
+                              {renderStepContent()}
+                              <div className="flex justify-between pt-6 border-t">
+                                  <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />}>
+                                      {step === stepsConfig[0].key ? 'رجوع' : 'السابق'}
+                                  </Button>
+                                  {step !== stepsConfig[stepsConfig.length - 1].key ? (
+                                      <Button onClick={handleNext}>التالي <ArrowLeft className="mr-2 h-4 w-4" /></Button>
+                                  ) : (
+                                      <Button onClick={handleSubmit} loading={isSubmitting} variant="success" icon={<ShoppingCart />}>إضافة إلى السلة</Button>
+                                  )}
+                              </div>
+                           </CardContent>
+                        </Card>
                         <div className="lg:col-span-1 sticky top-24">
                             <InteractivePreview 
                                 formData={formData as any}

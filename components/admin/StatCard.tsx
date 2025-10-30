@@ -1,27 +1,30 @@
 import React from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 
 interface StatCardProps {
     title: string;
     value: string | number;
     icon: React.ReactNode;
-    color: string;
     onClick?: () => void;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color, onClick }) => (
-    <button
-        onClick={onClick}
-        disabled={!onClick}
-        className="bg-white p-6 rounded-2xl shadow-md flex items-center justify-between text-right w-full transition-transform transform hover:-translate-y-1 disabled:cursor-default disabled:transform-none disabled:hover:translate-y-0"
-    >
-        <div>
-            <p className="text-sm font-medium text-gray-500">{title}</p>
-            <p className="text-3xl font-extrabold text-gray-800">{value}</p>
-        </div>
-        <div className={`w-16 h-16 rounded-full flex items-center justify-center ${color}`}>
-            {icon}
-        </div>
-    </button>
-);
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, onClick }) => {
+    const cardProps = {
+        className: "text-right w-full transition-colors",
+        ...(onClick && { as: 'button' as const, onClick, className: "text-right w-full hover:border-primary/50 hover:bg-accent transition-colors" }),
+    };
+
+    return (
+        <Card {...cardProps}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+                {icon}
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{value}</div>
+            </CardContent>
+        </Card>
+    );
+};
 
 export default React.memo(StatCard);

@@ -5,20 +5,21 @@ import type {
     SocialLinks, BlogPost, SupportTicket, JoinRequest, AdditionalService, SiteContent, ScheduledSession, SessionMessage, SessionAttachment, SupportSessionRequest,
     SubscriptionPlan,
     StandaloneService,
-    ServiceOrder
+    ServiceOrder,
+    AiSettings
 } from '../lib/database.types';
 
 export const mockUsers: UserProfile[] = [
-    { id: 'usr_parent', created_at: '2023-00-01T10:00:00Z', name: 'أحمد عبدالله', email: 'parent@alrehlah.com', role: 'user', address: '123 شارع المثال، مدينة نصر', governorate: 'القاهرة', phone: '01234567890' },
-    { id: 'usr_user', created_at: '2023-01-02T10:00:00Z', name: 'سارة خالد', email: 'user@alrehlah.com', role: 'user' },
-    { id: 'usr_student', created_at: '2023-01-03T10:00:00Z', name: 'علي أحمد', email: 'student@alrehlah.com', role: 'student' },
-    { id: 'usr_admin', created_at: '2023-01-04T10:00:00Z', name: 'مدير النظام', email: 'admin@alrehlah.com', role: 'super_admin' },
-    { id: 'usr_supervisor', created_at: '2023-01-05T10:00:00Z', name: 'مشرف عام', email: 'supervisor@alrehlah.com', role: 'general_supervisor' },
-    { id: 'usr_cws', created_at: '2023-01-06T10:00:00Z', name: 'مشرف بداية الرحلة', email: 'cws@alrehlah.com', role: 'creative_writing_supervisor' },
-    { id: 'usr_instructor_1', created_at: '2023-01-07T10:00:00Z', name: 'أ. أحمد المصري', email: 'instructor@alrehlah.com', role: 'instructor' },
-    { id: 'usr_support', created_at: '2023-01-08T10:00:00Z', name: 'وكيل دعم', email: 'support@alrehlah.com', role: 'support_agent' },
-    { id: 'usr_editor', created_at: '2023-01-09T10:00:00Z', name: 'محرر محتوى', email: 'editor@alrehlah.com', role: 'content_editor' },
-    { id: 'usr_els', created_at: '2023-01-10T10:00:00Z', name: 'مشرف إنها لك', email: 'enhalak@alrehlah.com', role: 'enha_lak_supervisor' },
+    { id: 'usr_parent', created_at: '2023-08-01T10:00:00Z', last_sign_in_at: '2024-08-10T12:00:00Z', name: 'أحمد عبدالله', email: 'parent@alrehlah.com', role: 'user', address: '123 شارع المثال، مدينة نصر', governorate: 'القاهرة', phone: '01234567890' },
+    { id: 'usr_user', created_at: '2024-01-02T10:00:00Z', last_sign_in_at: '2024-08-09T11:00:00Z', name: 'سارة خالد', email: 'user@alrehlah.com', role: 'user' },
+    { id: 'usr_student', created_at: '2024-02-03T10:00:00Z', last_sign_in_at: '2024-08-10T09:30:00Z', name: 'علي أحمد', email: 'student@alrehlah.com', role: 'student' },
+    { id: 'usr_admin', created_at: '2023-01-04T10:00:00Z', last_sign_in_at: '2024-08-10T15:00:00Z', name: 'مدير النظام', email: 'admin@alrehlah.com', role: 'super_admin' },
+    { id: 'usr_supervisor', created_at: '2023-01-05T10:00:00Z', last_sign_in_at: '2024-08-08T14:00:00Z', name: 'مشرف عام', email: 'supervisor@alrehlah.com', role: 'general_supervisor' },
+    { id: 'usr_cws', created_at: '2023-05-06T10:00:00Z', last_sign_in_at: null, name: 'مشرف بداية الرحلة', email: 'cws@alrehlah.com', role: 'creative_writing_supervisor' },
+    { id: 'usr_instructor_1', created_at: '2023-06-07T10:00:00Z', last_sign_in_at: '2024-08-10T13:00:00Z', name: 'أ. أحمد المصري', email: 'instructor@alrehlah.com', role: 'instructor' },
+    { id: 'usr_support', created_at: '2023-07-08T10:00:00Z', last_sign_in_at: '2024-08-07T10:00:00Z', name: 'وكيل دعم', email: 'support@alrehlah.com', role: 'support_agent' },
+    { id: 'usr_editor', created_at: '2024-06-09T10:00:00Z', last_sign_in_at: '2024-08-05T18:00:00Z', name: 'محرر محتوى', email: 'editor@alrehlah.com', role: 'content_editor' },
+    { id: 'usr_els', created_at: '2024-07-10T10:00:00Z', last_sign_in_at: '2024-08-09T16:00:00Z', name: 'مشرف إنها لك', email: 'enhalak@alrehlah.com', role: 'enha_lak_supervisor' },
 ];
 
 export const mockChildProfiles: ChildProfile[] = [
@@ -301,7 +302,7 @@ export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
         name: 'باقة التخصص', 
         sessions: '32 جلسة', 
         price: 7200, 
-        features: ['تخصص في نوع أدبي (خيال، مغامرة..)', 'مشاريع كتابة متعمقة', 'بناء أسلوب الكاتب الشخصي', 'نشر عمل في المجلة الإلكترونية'], 
+        features: ['تخصص في نوع أدبي (خيال, مغامرة..)', 'مشاريع كتابة متعمقة', 'بناء أسلوب الكاتب الشخصي', 'نشر عمل في المجلة الإلكترونية'], 
         popular: false, 
         description: 'للكتاب الواعدين الذين أتموا الباقة الأساسية ويرغبون في التخصص وصقل أسلوبهم بشكل احترافي.' 
     },
@@ -312,7 +313,7 @@ export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
         price: 9600, 
         features: ['تشمل مزايا الباقتين الأساسية والتخصص', 'خصم خاص على السعر الإجمالي', 'جلسات إرشاد إضافية', 'فرصة نشر قصة كاملة'], 
         popular: false, 
-        description: 'المسار الكامل للمبدعين الصغار، يجمع بين التأسيس والتخصص للوصول إلى مستوى متقدم من التميز.' 
+        description: 'المسار الكامل للمبدعين الصغار, يجمع بين التأسيس والتخصص للوصول إلى مستوى متقدم من التميز.' 
     },
 ];
 
@@ -330,10 +331,10 @@ export const mockInstructors: Instructor[] = [
 
 export const mockSiteBranding: SiteBranding = {
     logoUrl: "https://i.ibb.co/C0bSJJT/favicon.png",
-    creativeWritingLogoUrl: "https://i.ibb.co/bF9gYq2/Bidayat-Alrehla-Logo.png",
     heroImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
     aboutImageUrl: "https://i.ibb.co/8XYt2s5/about-us-image.jpg",
-    creativeWritingPortalImageUrl: "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg"
+    creativeWritingPortalImageUrl: "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg",
+    enhaLakPortalImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
 };
 
 export const mockPrices: Prices = {};
@@ -371,6 +372,13 @@ export const mockShippingCosts: ShippingCosts = {
 };
 
 export const mockSocialLinks: SocialLinks = { id: 1, facebook_url: '#', twitter_url: '#', instagram_url: '#' };
+
+export const mockAiSettings: AiSettings = {
+  id: 1,
+  enable_story_ideas: true,
+  story_ideas_prompt: 'أنت كاتب قصص أطفال مبدع. استنادًا إلى المعلومات التالية عن طفل، قم بتوليد 3 أفكار فريدة ومناسبة لقصص أطفال باللغة العربية. يجب أن يكون لكل فكرة عنوان جذاب وهدف تربوي واضح.',
+};
+
 
 export const mockBlogPosts: BlogPost[] = [
     { 
@@ -430,63 +438,103 @@ export const mockJoinRequests: JoinRequest[] = [
 export const mockPublicHolidays: string[] = ['2023-10-06'];
 
 export const mockSiteContent: SiteContent = {
-    portalPage: {
-        heroTitle: "رحلة كل طفل تبدأ بقصة... وقصته تبدأ هنا",
-        heroSubtitle: "منصة تربوية عربية متكاملة تصنع قصصاً مخصصة تجعل طفلك بطلاً، وتطلق مواهبه في الكتابة الإبداعية",
-        enhaLakTitle: "إنها لك",
-        enhaLakDescription: "ادخل إلى عالم الحكايات الشخصية، حيث يصبح طفلك هو البطل في قصص ومنتجات صُنعت خصيصاً له.",
-        creativeWritingTitle: "بداية الرحلة",
-        creativeWritingDescription: "بوابة إلى عالم الإبداع، حيث نطلق العنان للكاتب الصغير داخل طفلك من خلال رحلة تدريبية ملهمة.",
-        valuePropositionTitle: "لماذا منصة الرحلة هي الأفضل لطفلك؟",
+  portalPage: {
+    heroTitle: "رحلة كل طفل تبدأ بقصة... وقصته تبدأ هنا",
+    heroSubtitle: "منصة تربوية عربية متكاملة تصنع قصصاً مخصصة تجعل طفلك بطلاً، وتطلق مواهبه في الكتابة الإبداعية",
+    projectsTitle: "أقسامنا الرئيسية",
+    projectsSubtitle: "بوابتان لعالم من الإبداع والنمو، مصممتان لتلبية احتياجات طفلك الفريدة.",
+    enhaLakTitle: "إنها لك",
+    enhaLakDescription: "ادخل إلى عالم الحكايات الشخصية، حيث يصبح طفلك هو البطل في قصص ومنتجات صُنعت خصيصاً له.",
+    creativeWritingTitle: "بداية الرحلة",
+    creativeWritingDescription: "بوابة إلى عالم الإبداع، حيث نطلق العنان للكاتب الصغير داخل طفلك من خلال رحلة تدريبية ملهمة.",
+    valuePropositionTitle: "لماذا منصة الرحلة هي الأفضل لطفلك؟",
+    socialProofTitle: "أرقام نفخر بها",
+    aboutSectionTitle: "قصتنا: من فكرة إلى رحلة",
+    aboutSectionContent: "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة 'منصة الرحلة' - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي.",
+    testimonialsTitle: "ماذا تقول عائلاتنا؟",
+    testimonialsSubtitle: "آراء نفخر بها من عائلة 'الرحلة'.",
+    blogTitle: "من مدونتنا",
+    blogSubtitle: "مقالات ونصائح تربوية وإبداعية لمساعدتكم في رحلة تنمية أطفالكم.",
+    finalCtaTitle: "هل أنت جاهز لبدء الرحلة؟",
+    finalCtaSubtitle: "اختر المسار الذي يناسب طفلك اليوم وافتح له بابًا جديدًا من الخيال والمعرفة."
+  },
+  aboutPage: {
+    heroTitle: "رسالتنا",
+    missionStatement: "نؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً، تكون مرآة تعكس شخصية الطفل الفريدة، وتعزز هويته العربية، وتغرس في قلبه أسمى القيم الإنسانية.",
+    ourStory: "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة 'منصة الرحلة' - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي.",
+    ourVision: "أن نكون المنصة الرائدة والوجهة الأولى لكل أسرة عربية تبحث عن محتوى تربوي إبداعي وأصيل ينمّي شخصية الطفل، يعزز ارتباطه بلغته وهويته، ويطلق العنان لخياله الإبداعي.",
+    valuesTitle: "قيمنا الأساسية"
+  },
+  enhaLakPage: {
+    main: {
+      heroTitle: "أكثر من مجرد قصة... إنها مغامرة شخصية لطفلك",
+      heroSubtitle: "مشروع 'إنها لك' هو حجر الأساس في منصتنا، حيث نحول الطفل من مجرد قارئ إلى بطل حقيقي يعيش المغامرة بكل تفاصيلها.",
+      productsTitle: "ماذا نصنع في 'إنها لك'؟",
+      howItWorksTitle: "خطوات بسيطة لقصة فريدة",
+      galleryTitle: "من أعمالنا",
+      gallerySubtitle: "نماذج من قصص أطفالنا (بعد أخذ إذن أولياء الأمور).",
+      testimonialsTitle: "تجارب لا تُنسى من عائلاتنا",
+      testimonialsSubtitle: "آراء نفخر بها من عائلة 'الرحلة'.",
+      finalCtaTitle: "هل أنت جاهز لصناعة السحر؟",
+      finalCtaSubtitle: "اختر المنتج الذي يناسب طفلك اليوم واهدِه قصة ستبقى في ذاكرته إلى الأبد."
     },
-    aboutPage: {
-        missionStatement: "نؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً...",
-        ourStory: "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم...",
-        ourVision: "أن نكون المنصة الرائدة والوجهة الأولى لكل أسرة عربية تبحث عن محتوى تربوي إبداعي...",
+    store: {
+      heroTitle: "متجر 'إنها لك'",
+      heroSubtitle: "اختر الكنز الذي سيجعل طفلك بطلاً. كل منتج مصمم بحب ليقدم تجربة فريدة لا تُنسى.",
+      subscriptionBannerTitle: "اكتشف صندوق الرحلة الشهري!",
+      featuredProductsTitle: "المنتجات المميزة",
+      coreProductsTitle: "المنتجات الأساسية",
+      addonProductsTitle: "إضافات إبداعية"
     },
-    enhaLakPage: {
-        main: {
-          heroTitle: "أكثر من مجرد قصة... إنها مغامرة شخصية لطفلك",
-          heroSubtitle: "مشروع \"إنها لك\" هو حجر الأساس في منصتنا، حيث نحول الطفل من مجرد قارئ إلى بطل حقيقي يعيش المغامرة بكل تفاصيلها.",
-          howItWorksTitle: "خطوات بسيطة لقصة فريدة"
-        },
-        store: {
-          heroTitle: "متجر \"إنها لك\"",
-          heroSubtitle: "اختر الكنز الذي سيجعل طفلك بطلاً. كل منتج مصمم بحب ليقدم تجربة فريدة لا تُنسى.",
-          subscriptionBannerTitle: "اكتشف صندوق الرحلة الشهري!"
-        },
-        subscription: {
-          heroTitle: "صندوق الرحلة الشهري",
-          heroSubtitle: "هدية متجددة كل شهر، تفتح لطفلك أبواباً جديدة من الخيال والمعرفة.",
-          features: [
-            "قصة مخصصة جديدة كل شهر.",
-            "أنشطة تفاعلية وألعاب تعليمية.",
-            "هدية إضافية مختارة بعناية."
-          ]
-        }
-    },
-    creativeWritingPage: {
-        main: {
-            heroTitle: "\"بداية الرحلة\": حيث لا تُكتب الكلمات، بل تولد العوالم",
-            heroSubtitle: "\"بداية الرحلة\" ليس برنامجاً لتعليم الكتابة، بل هو احتفال بالصوت الفريد لكل طفل.",
-            methodologyTitle: "منهجيتنا المتميزة: \"الإلهام قبل القواعد\"",
-        },
-        about: {
-            heroTitle: "لماذا \"بداية الرحلة\"؟",
-            heroSubtitle: "لأننا نؤمن أن بداخل كل طفل كاتباً عظيماً ينتظر من يكتشفه.",
-            philosophyTitle: "فلسفتنا في ثلاث كلمات"
-        },
-        curriculum: {
-            heroTitle: "خريطة الرحلة الإبداعية",
-            heroSubtitle: "مسار تعليمي مصمم بعناية لينقل طفلك من مجرد فكرة إلى قصة متكاملة، خطوة بخطوة.",
-            treasuresTitle: "كنوز رحلتك"
-        },
-        instructors: {
-            heroTitle: "رفقاء الرحلة الملهمون",
-            heroSubtitle: "نؤمن أن الإبداع لا يُلقّن، بل يُلهم. لذلك، اخترنا بعناية نخبة من الكتّاب والتربويين."
-        }
+    subscription: {
+      heroTitle: "صندوق الرحلة الشهري",
+      heroSubtitle: "هدية متجددة كل شهر، تفتح لطفلك أبواباً جديدة من الخيال والمعرفة.",
+      features: [
+        "قصة مخصصة جديدة كل شهر.",
+        "أنشطة تفاعلية وألعاب تعليمية.",
+        "هدية إضافية مختارة بعناية."
+      ]
     }
+  },
+  creativeWritingPage: {
+    main: {
+      heroTitle: "'بداية الرحلة': حيث لا تُكتب الكلمات، بل تولد العوالم",
+      heroSubtitle: "'بداية الرحلة' ليس برنامجاً لتعليم الكتابة، بل هو احتفال بالصوت الفريد لكل طفل.",
+      methodologyTitle: "منهجيتنا المتميزة: 'الإلهام قبل القواعد'",
+      methodologySubtitle: "كيف نطلق الإبداع؟",
+      transformationTitle: "التحول الذي نصنعه",
+      transformationSubtitle: "مع نهاية الرحلة، لا يحصل طفلك على مجرد نصوص مكتوبة، بل يحصل على ما هو أثمن:",
+      packagesTitle: "باقات مصممة لكل مبدع",
+      packagesSubtitle: "سواء كان طفلك يستكشف الكتابة لأول مرة أو يمتلك موهبة واعدة، لدينا الباقة المثالية التي تناسب مرحلته وتطلق العنان لإمكاناته الكاملة.",
+      servicesTitle: "خدمات إبداعية إضافية",
+      servicesSubtitle: "هل تحتاج إلى استشارة خاصة، أو مراجعة لنص كتبه طفلك؟ اكتشف خدماتنا الإضافية المصممة لدعم المبدعين الصغار في كل خطوة.",
+      instructorsTitle: "مدربونا المتخصصون",
+      instructorsSubtitle: "نخبة من الخبراء الشغوفين بإلهام العقول المبدعة.",
+      testimonialsTitle: "آراء أولياء الأمور",
+      testimonialsSubtitle: "تجارب حقيقية من عائلات انضمت لبرنامج 'بداية الرحلة'.",
+      finalCtaTitle: "هل أنت جاهز لبدء الرحلة؟",
+      finalCtaSubtitle: "اختر الباقة التي تناسب طفلك اليوم وافتح له بابًا جديدًا من الإبداع والتعبير."
+    },
+    about: {
+      heroTitle: "لماذا 'بداية الرحلة'؟",
+      heroSubtitle: "لأننا نؤمن أن بداخل كل طفل كاتباً عظيماً ينتظر من يكتشفه.",
+      mainTitle: "رحلة شخصية، وليست درساً",
+      mainContent: "نحن لا نقدم دروسًا، بل نقدم رحلة شخصية بصحبة مرشد متخصص. في جلسات فردية مباشرة، نأخذ بيد طفلك بعيدًا عن سطوة القواعد الصارمة والتقييم، ونمنحه حرية الورقة البيضاء. هنا، لا توجد إجابات صحيحة أو خاطئة؛ يوجد فقط صوت طفلك، خياله، وقصته التي تنتظر أن تُروى.",
+      philosophyTitle: "فلسفتنا في ثلاث كلمات"
+    },
+    curriculum: {
+      heroTitle: "خريطة الرحلة الإبداعية",
+      heroSubtitle: "مسار تعليمي مصمم بعناية لينقل طفلك من مجرد فكرة إلى قصة متكاملة، خطوة بخطوة.",
+      treasuresTitle: "كنوز رحلتك",
+      treasuresSubtitle: "في نهاية البرنامج، لا يخرج طفلك بيدين فارغتين، بل يحمل معه ما يثبت إنجازه ونموه."
+    },
+    instructors: {
+      heroTitle: "رفقاء الرحلة الملهمون",
+      heroSubtitle: "نؤمن أن الإبداع لا يُلقّن، بل يُلهم. لذلك، اخترنا بعناية نخبة من الكتّاب والتربويين."
+    }
+  }
 };
+
 
 const now = new Date();
 const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

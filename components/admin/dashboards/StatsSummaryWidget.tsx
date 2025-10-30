@@ -26,12 +26,12 @@ const StatsSummaryWidget: React.FC<StatsSummaryWidgetProps> = ({ data }) => {
 
     return (
         <div>
-            <h2 className="text-2xl font-bold text-gray-800">نظرة عامة</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-                <StatCard title="إجمالي الإيرادات" value={`${stats.totalRevenue} ج.م`} icon={<DollarSign size={28} className="text-green-500" />} color="bg-green-100" />
-                <StatCard title="إجمالي المستخدمين" value={stats.totalUsers} icon={<Users size={28} className="text-blue-500" />} color="bg-blue-100" onClick={() => navigate('/admin/users')} />
-                <StatCard title="إجمالي الطلبات والحجوزات" value={stats.totalOrdersAndBookings} icon={<ShoppingBag size={28} className="text-purple-500" />} color="bg-purple-100" onClick={() => navigate('/admin/orders')} />
-                <StatCard title="الاشتراكات النشطة" value={stats.activeSubscriptions} icon={<Star size={28} className="text-yellow-500" />} color="bg-yellow-100" onClick={() => navigate('/admin/subscriptions')} />
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">نظرة عامة</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title="إجمالي الإيرادات" value={`${stats.totalRevenue} ج.م`} icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} />
+                <StatCard title="إجمالي المستخدمين" value={stats.totalUsers} icon={<Users className="h-4 w-4 text-muted-foreground" />} onClick={() => navigate('/admin/users')} />
+                <StatCard title="إجمالي الطلبات والحجوزات" value={stats.totalOrdersAndBookings} icon={<ShoppingBag className="h-4 w-4 text-muted-foreground" />} onClick={() => navigate('/admin/orders')} />
+                <StatCard title="الاشتراكات النشطة" value={stats.activeSubscriptions} icon={<Star className="h-4 w-4 text-muted-foreground" />} onClick={() => navigate('/admin/subscriptions')} />
             </div>
         </div>
     );

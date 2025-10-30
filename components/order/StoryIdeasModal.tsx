@@ -19,9 +19,9 @@ interface StoryIdeasModalProps {
 }
 
 const StoryIdeaCard: React.FC<{ idea: StoryIdea; onSelect: () => void }> = ({ idea, onSelect }) => (
-    <div className="p-4 border rounded-lg bg-gray-50">
-        <h4 className="font-bold text-blue-700">{idea.title}</h4>
-        <p className="text-sm text-gray-600 mt-1">{idea.goal}</p>
+    <div className="p-4 border rounded-lg bg-muted/50 text-right">
+        <h4 className="font-bold text-primary">{idea.title}</h4>
+        <p className="text-sm text-muted-foreground mt-1">{idea.goal}</p>
         <Button onClick={onSelect} size="sm" variant="outline" className="mt-3">اختر هذه الفكرة</Button>
     </div>
 );
@@ -44,14 +44,11 @@ const StoryIdeasModal: React.FC<StoryIdeasModalProps> = ({ isOpen, onClose, onSe
         const prompt = `
             أنت كاتب قصص أطفال مبدع. استنادًا إلى المعلومات التالية عن طفل، قم بتوليد 3 أفكار فريدة ومناسبة لقصص أطفال باللغة العربية.
             يجب أن يكون لكل فكرة عنوان جذاب وهدف تربوي واضح.
-            يجب أن يكون الناتج عبارة عن مصفوفة JSON صالحة بهذا الشكل: \`[{"title": "عنوان القصة", "goal": "الهدف التربوي من القصة"}]\`. لا تضف أي نص آخر قبل أو بعد مصفوفة JSON.
-
+            
             معلومات الطفل:
             - الاسم: ${childName}
             - العمر: ${childAge}
             - صفاته واهتماماته: ${childTraits || 'غير محدد'}
-
-            تأكد من أن الأهداف التربوية متنوعة ومفيدة.
         `;
         
         try {
@@ -77,11 +74,10 @@ const StoryIdeasModal: React.FC<StoryIdeasModalProps> = ({ isOpen, onClose, onSe
                 },
             });
             
-            let ideasArray = JSON.parse(response.text);
+            const ideasArray = JSON.parse(response.text);
             if (!Array.isArray(ideasArray)) {
-                throw new Error("Invalid response format");
+                throw new Error("Invalid response format from API");
             }
-
             setIdeas(ideasArray);
 
         } catch (e) {
@@ -100,7 +96,7 @@ const StoryIdeasModal: React.FC<StoryIdeasModalProps> = ({ isOpen, onClose, onSe
             size="2xl"
         >
             <div className="text-center">
-                <p className="text-gray-600 mb-6">
+                <p className="text-muted-foreground mb-6">
                     هل تحتاج إلى بعض الإلهام؟ بناءً على تفاصيل طفلك، يمكننا اقتراح بعض الأفكار للبدء.
                 </p>
                 <Button onClick={generateIdeas} loading={isLoading} disabled={isLoading} icon={<Sparkles />}>
@@ -109,9 +105,15 @@ const StoryIdeasModal: React.FC<StoryIdeasModalProps> = ({ isOpen, onClose, onSe
             </div>
             
             {error && (
-                <div className="mt-6 p-4 bg-red-50 text-red-700 rounded-lg flex items-center gap-3">
+                <div className="mt-6 p-4 bg-destructive/10 text-destructive rounded-lg flex items-center gap-3">
                     <AlertTriangle />
                     <span>{error}</span>
+                </div>
+            )}
+            
+            {isLoading && (
+                 <div className="mt-8 flex justify-center items-center h-48">
+                    <Loader2 className="animate-spin h-12 w-12 text-primary" />
                 </div>
             )}
 

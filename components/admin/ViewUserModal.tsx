@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { Mail, User, Shield } from 'lucide-react';
 import type { UserProfileWithRelations } from '../../lib/database.types';
@@ -15,10 +13,10 @@ interface ViewUserModalProps {
 
 const DetailRow: React.FC<{ icon: React.ReactNode; label: string; value: React.ReactNode }> = ({ icon, label, value }) => (
     <div className="flex items-start gap-3 py-2">
-        <div className="flex-shrink-0 text-gray-500">{icon}</div>
+        <div className="flex-shrink-0 text-muted-foreground">{icon}</div>
         <div>
-            <p className="text-sm font-semibold text-gray-500">{label}</p>
-            <p className="text-gray-800">{value}</p>
+            <p className="text-sm font-semibold text-muted-foreground">{label}</p>
+            <p className="text-foreground">{value}</p>
         </div>
     </div>
 );
@@ -39,10 +37,10 @@ const ViewUserModal: React.FC<ViewUserModalProps> = ({ isOpen, onClose, user }) 
                 <DetailRow icon={<Shield size={18} />} label="الدور" value={roleNames[user.role]} />
                 {user.children && user.children.length > 0 && (
                     <div>
-                            <p className="text-sm font-semibold text-gray-500 my-2">الأطفال المرتبطون:</p>
+                            <p className="text-sm font-semibold text-muted-foreground my-2">الأطفال المرتبطون:</p>
                             <div className="space-y-2">
                             {user.children.map(child => (
-                                <div key={child.id} className="p-2 bg-gray-100 rounded-md text-sm">{child.name} ({child.age} سنوات)</div>
+                                <div key={child.id} className="p-2 bg-muted rounded-md text-sm">{child.name} ({child.age} سنوات)</div>
                             ))}
                             </div>
                     </div>

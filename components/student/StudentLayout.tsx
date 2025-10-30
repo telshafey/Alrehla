@@ -24,6 +24,7 @@ const StudentLayout: React.FC<{children: React.ReactNode}> = ({children}) => {
                                 src={currentChildProfile?.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
                                 alt={currentChildProfile?.name || 'Student'} 
                                 className="w-12 h-12 rounded-full object-cover border-2 border-blue-200"
+                                loading="lazy"
                             />
                             <div>
                                 <h1 className="text-xl font-bold text-gray-800">أهلاً بك، {currentChildProfile?.name}</h1>

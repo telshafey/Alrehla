@@ -11,6 +11,7 @@ import NotificationPanel from '../components/account/NotificationPanel';
 import FamilyCenterPanel from '../components/account/FamilyCenterPanel'; // Import the new panel
 import PaymentModal from '../components/PaymentModal';
 import { LayoutDashboard, BookOpen, Settings, Bell, Users } from 'lucide-react';
+import { Card } from '../components/ui/card';
 
 type AccountTab = 'dashboard' | 'myLibrary' | 'familyCenter' | 'settings' | 'notifications';
 
@@ -52,28 +53,28 @@ const AccountPage: React.FC = () => {
     }
     
     const tabs = [
-        { key: 'dashboard', label: 'لوحة التحكم', icon: <LayoutDashboard /> },
-        { key: 'myLibrary', label: 'مكتبتي', icon: <BookOpen /> },
-        { key: 'familyCenter', label: 'المركز العائلي', icon: <Users /> },
-        { key: 'settings', label: 'الإعدادات', icon: <Settings /> },
-        { key: 'notifications', label: 'الإشعارات', icon: <Bell /> },
+        { key: 'dashboard', label: 'لوحة التحكم', icon: <LayoutDashboard className="h-5 w-5" /> },
+        { key: 'myLibrary', label: 'مكتبتي', icon: <BookOpen className="h-5 w-5" /> },
+        { key: 'familyCenter', label: 'المركز العائلي', icon: <Users className="h-5 w-5" /> },
+        { key: 'settings', label: 'الإعدادات', icon: <Settings className="h-5 w-5" /> },
+        { key: 'notifications', label: 'الإشعارات', icon: <Bell className="h-5 w-5" /> },
     ];
 
     return (
         <>
         <PaymentModal isOpen={!!paymentItem} onClose={() => setPaymentItem(null)} onSuccess={handlePaymentSuccess} item={paymentItem} />
-        <div className="bg-gray-50 py-12 sm:py-16">
+        <div className="bg-muted/50 py-12 sm:py-16">
             <div className="container mx-auto px-4">
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
                     {/* Sidebar Navigation */}
                     <div className="lg:col-span-1 sticky top-24">
-                        <div className="bg-white p-4 rounded-2xl shadow-lg">
-                            <ul className="space-y-2">
+                        <Card>
+                            <ul className="space-y-1 p-2">
                                 {tabs.map(tab => (
                                     <li key={tab.key}>
                                         <button 
                                             onClick={() => setActiveTab(tab.key as AccountTab)}
-                                            className={`w-full flex items-center gap-3 p-4 rounded-lg text-right font-semibold transition-colors ${activeTab === tab.key ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                                            className={`w-full flex items-center gap-3 p-3 rounded-md text-right font-semibold transition-colors text-sm ${activeTab === tab.key ? 'bg-muted text-primary' : 'text-foreground hover:bg-muted/50'}`}
                                         >
                                             {tab.icon}
                                             {tab.label}
@@ -81,7 +82,7 @@ const AccountPage: React.FC = () => {
                                     </li>
                                 ))}
                             </ul>
-                        </div>
+                        </Card>
                     </div>
 
                     {/* Main Content */}

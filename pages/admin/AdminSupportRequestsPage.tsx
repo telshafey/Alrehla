@@ -3,13 +3,15 @@ import { ShieldQuestion, Check, X } from 'lucide-react';
 import { useAdminSupportSessionRequests } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import PageLoader from '../../components/ui/PageLoader';
-import AdminSection from '../../components/admin/AdminSection';
 import { Button } from '../../components/ui/Button';
 import { formatDate } from '../../utils/helpers';
 import type { SupportSessionRequest } from '../../lib/database.types';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import ErrorState from '../../components/ui/ErrorState';
 
 const AdminSupportRequestsPage: React.FC = () => {
-    const { data: requests = [], isLoading, error } = useAdminSupportSessionRequests();
+    const { data: requests = [], isLoading, error, refetch } = useAdminSupportSessionRequests();
     const { approveSupportSessionRequest, rejectSupportSessionRequest } = useInstructorMutations();
 
     if (isLoading) {
@@ -17,7 +19,7 @@ const AdminSupportRequestsPage: React.FC = () => {
     }
 
     if (error) {
-        return <div className="text-center text-red-500 p-4">{error.message}</div>;
+        return <ErrorState message={(error as Error).message} onRetry={refetch} />;
     }
 
     const getStatusInfo = (status: SupportSessionRequest['status']) => {
@@ -30,55 +32,60 @@ const AdminSupportRequestsPage: React.FC = () => {
     };
 
     return (
-        <div className="animate-fadeIn space-y-12">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">مراجعة طلبات جلسات الدعم</h1>
-            <AdminSection title="كل الطلبات" icon={<ShieldQuestion />}>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-right">
-                        <thead className="border-b-2 border-gray-200">
-                            <tr>
-                                <th className="py-3 px-4">المدرب</th>
-                                <th className="py-3 px-4">الطالب</th>
-                                <th className="py-3 px-4">السبب</th>
-                                <th className="py-3 px-4">التاريخ</th>
-                                <th className="py-3 px-4">الحالة</th>
-                                <th className="py-3 px-4">إجراء</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {requests.map((req: any) => {
-                                const statusInfo = getStatusInfo(req.status);
-                                return (
-                                    <tr key={req.id} className="border-b hover:bg-gray-50">
-                                        <td className="py-4 px-4 font-semibold">{req.instructor_name}</td>
-                                        <td className="py-4 px-4 font-semibold">{req.child_name}</td>
-                                        <td className="py-4 px-4 text-sm text-gray-600 max-w-sm truncate">{req.reason}</td>
-                                        <td className="py-4 px-4 text-sm">{formatDate(req.requested_at)}</td>
-                                        <td className="py-4 px-4">
-                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusInfo.color}`}>
-                                                {statusInfo.text}
-                                            </span>
-                                        </td>
-                                        <td className="py-4 px-4">
-                                            {req.status === 'pending' && (
-                                                <div className="flex gap-2">
-                                                    <Button variant="success" size="icon" onClick={() => approveSupportSessionRequest.mutate({ requestId: req.id })} title="موافقة">
-                                                        <Check size={18} />
-                                                    </Button>
-                                                    <Button variant="danger" size="icon" onClick={() => rejectSupportSessionRequest.mutate({ requestId: req.id })} title="رفض">
-                                                        <X size={18} />
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                    {requests.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد طلبات دعم حاليًا.</p>}
-                </div>
-            </AdminSection>
+        <div className="animate-fadeIn space-y-8">
+            <h1 className="text-3xl font-extrabold text-foreground">مراجعة طلبات جلسات الدعم</h1>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><ShieldQuestion /> كل الطلبات</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>المدرب</TableHead>
+                                    <TableHead>الطالب</TableHead>
+                                    <TableHead>السبب</TableHead>
+                                    <TableHead>التاريخ</TableHead>
+                                    <TableHead>الحالة</TableHead>
+                                    <TableHead>إجراء</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {requests.map((req: any) => {
+                                    const statusInfo = getStatusInfo(req.status);
+                                    return (
+                                        <TableRow key={req.id}>
+                                            <TableCell className="font-semibold">{req.instructor_name}</TableCell>
+                                            <TableCell className="font-semibold">{req.child_name}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{req.reason}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">{formatDate(req.requested_at)}</TableCell>
+                                            <TableCell>
+                                                <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusInfo.color}`}>
+                                                    {statusInfo.text}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                {req.status === 'pending' && (
+                                                    <div className="flex gap-2">
+                                                        <Button variant="success" size="icon" onClick={() => approveSupportSessionRequest.mutate({ requestId: req.id })} title="موافقة">
+                                                            <Check size={18} />
+                                                        </Button>
+                                                        <Button variant="destructive" size="icon" onClick={() => rejectSupportSessionRequest.mutate({ requestId: req.id })} title="رفض">
+                                                            <X size={18} />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                        {requests.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد طلبات دعم حاليًا.</p>}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 };

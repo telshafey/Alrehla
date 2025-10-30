@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { PenTool, Mic, Palette, Send } from 'lucide-react';
 import { useCommunicationMutations } from '../hooks/mutations/useCommunicationMutations';
@@ -8,6 +9,7 @@ import FormField from '../components/ui/FormField';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
 const JoinUsPage: React.FC = () => {
     const { createJoinRequest } = useCommunicationMutations();
@@ -38,17 +40,17 @@ const JoinUsPage: React.FC = () => {
     const roleOptions = ["مدرب كتابة إبداعية", "رسام قصص أطفال", "معلق صوتي", "أخرى"];
 
     return (
-        <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
+        <div className="bg-muted/50 py-16 sm:py-20 animate-fadeIn">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-16">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">انضم إلى فريقنا</h1>
-                    <p className="mt-4 max-w-3xl mx-auto text-lg text-gray-600">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">انضم إلى فريقنا</h1>
+                    <p className="mt-4 max-w-3xl mx-auto text-lg text-muted-foreground">
                         نحن نبحث دائمًا عن مبدعين شغوفين لمشاركة رحلتنا في إلهام الأطفال. هل أنت مستعد لإحداث فرق؟
                     </p>
                 </div>
                 
                 <section className="mb-20">
-                    <h2 className="text-3xl font-bold text-center text-gray-800 mb-12">الفرص المتاحة</h2>
+                    <h2 className="text-3xl font-bold text-center text-foreground mb-12">الفرص المتاحة</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
                         <OpportunityCard 
                             icon={<PenTool size={32} />}
@@ -68,32 +70,38 @@ const JoinUsPage: React.FC = () => {
                     </div>
                 </section>
                 
-                <section className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-lg">
-                     <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">قدم طلبك الآن</h2>
-                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <FormField label="الاسم" htmlFor="name">
-                                <Input type="text" name="name" id="name" required />
-                            </FormField>
-                            <FormField label="البريد الإلكتروني" htmlFor="email">
-                                <Input type="email" name="email" id="email" required />
-                            </FormField>
-                        </div>
-                        <FormField label="الدور المطلوب" htmlFor="role">
-                            <Select name="role" id="role" required>
-                                {roleOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                            </Select>
-                        </FormField>
-                        <FormField label="رابط معرض الأعمال (اختياري)" htmlFor="portfolio_url">
-                            <Input type="url" name="portfolio_url" id="portfolio_url" placeholder="https://behance.net/yourname" />
-                        </FormField>
-                        <FormField label="رسالتك" htmlFor="message">
-                            <Textarea id="message" name="message" rows={5} required placeholder="أخبرنا المزيد عنك وعن سبب اهتمامك بالانضمام إلينا..."/>
-                        </FormField>
-                        <Button type="submit" loading={isSubmitting} icon={<Send size={18} />} className="w-full">
-                            {isSubmitting ? 'جاري الإرسال...' : 'إرسال الطلب'}
-                        </Button>
-                    </form>
+                <section className="max-w-2xl mx-auto">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="text-2xl text-center">قدم طلبك الآن</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <FormField label="الاسم" htmlFor="name">
+                                        <Input type="text" name="name" id="name" required />
+                                    </FormField>
+                                    <FormField label="البريد الإلكتروني" htmlFor="email">
+                                        <Input type="email" name="email" id="email" required />
+                                    </FormField>
+                                </div>
+                                <FormField label="الدور المطلوب" htmlFor="role">
+                                    <Select name="role" id="role" required>
+                                        {roleOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </Select>
+                                </FormField>
+                                <FormField label="رابط معرض الأعمال (اختياري)" htmlFor="portfolio_url">
+                                    <Input type="url" name="portfolio_url" id="portfolio_url" placeholder="https://behance.net/yourname" />
+                                </FormField>
+                                <FormField label="رسالتك" htmlFor="message">
+                                    <Textarea id="message" name="message" rows={5} required placeholder="أخبرنا المزيد عنك وعن سبب اهتمامك بالانضمام إلينا..."/>
+                                </FormField>
+                                <Button type="submit" loading={isSubmitting} icon={<Send size={18} />} className="w-full">
+                                    {isSubmitting ? 'جاري الإرسال...' : 'إرسال الطلب'}
+                                </Button>
+                            </form>
+                        </CardContent>
+                     </Card>
                 </section>
             </div>
         </div>

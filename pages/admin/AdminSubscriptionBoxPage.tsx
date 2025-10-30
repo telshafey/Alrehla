@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Star, FileText, Package, Plus, Edit, Trash2, Save, Loader2 } from 'lucide-react';
+import { Star, FileText, Package, Plus, Edit, Trash2, Save } from 'lucide-react';
 import { useAdminSubscriptionPlans } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useSubscriptionMutations } from '../../hooks/mutations/useSubscriptionMutations';
 import { useContentMutations } from '../../hooks/mutations/useContentMutations';
 import PageLoader from '../../components/ui/PageLoader';
-import AdminSection from '../../components/admin/AdminSection';
 import { SubscriptionPlanModal } from '../../components/admin/SubscriptionPlanModal';
 import { Button } from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
 import type { SubscriptionPlan, SiteContent } from '../../lib/database.types';
+import ErrorState from '../../components/ui/ErrorState';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 
 const AdminSubscriptionBoxPage: React.FC = () => {
     // Queries
-    const { data: plans = [], isLoading: plansLoading, error: plansError } = useAdminSubscriptionPlans();
-    const { data: siteContentData, isLoading: contentLoading, error: contentError } = useAdminSiteContent();
+    const { data: plans = [], isLoading: plansLoading, error: plansError, refetch: refetchPlans } = useAdminSubscriptionPlans();
+    const { data: siteContentData, isLoading: contentLoading, error: contentError, refetch: refetchContent } = useAdminSiteContent();
     
     // Mutations
     const { createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan } = useSubscriptionMutations();
@@ -70,9 +72,14 @@ const AdminSubscriptionBoxPage: React.FC = () => {
         }
     };
 
-    if (isLoading || !content) return <PageLoader />;
     const error = plansError || contentError;
-    if (error) return <p className="text-red-500">{error.message}</p>;
+    const refetch = () => {
+        if(plansError) refetchPlans();
+        if(contentError) refetchContent();
+    }
+
+    if (isLoading || !content) return <PageLoader />;
+    if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
         <>
@@ -83,54 +90,72 @@ const AdminSubscriptionBoxPage: React.FC = () => {
                 isSaving={isSavingPlans}
                 planToEdit={planToEdit}
             />
-            <div className="animate-fadeIn space-y-12">
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة صندوق الرحلة الشهري</h1>
+            <div className="animate-fadeIn space-y-8">
+                <h1 className="text-3xl font-extrabold text-foreground">إدارة صندوق الرحلة الشهري</h1>
 
-                <AdminSection title="محتوى صفحة الاشتراك" icon={<FileText />}>
-                    <div className="space-y-4">
-                        <FormField label="العنوان الرئيسي" htmlFor="heroTitle">
-                            <Input id="heroTitle" value={content.heroTitle} onChange={e => handleContentChange('heroTitle', e.target.value)} />
-                        </FormField>
-                        <FormField label="النص التعريفي" htmlFor="heroSubtitle">
-                            <Textarea id="heroSubtitle" value={content.heroSubtitle} onChange={e => handleContentChange('heroSubtitle', e.target.value)} rows={3}/>
-                        </FormField>
-                        <FormField label="ميزات الصندوق (كل ميزة في سطر)" htmlFor="features">
-                            <Textarea id="features" value={(content.features || []).join('\n')} onChange={e => handleContentChange('features', e.target.value.split('\n'))} rows={4}/>
-                        </FormField>
-                        <div className="flex justify-end">
-                            <Button onClick={handleContentSave} loading={updateSiteContent.isPending} icon={<Save />}>حفظ المحتوى</Button>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <FileText /> محتوى صفحة الاشتراك
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            <FormField label="العنوان الرئيسي" htmlFor="heroTitle">
+                                <Input id="heroTitle" value={content.heroTitle} onChange={e => handleContentChange('heroTitle', e.target.value)} />
+                            </FormField>
+                            <FormField label="النص التعريفي" htmlFor="heroSubtitle">
+                                <Textarea id="heroSubtitle" value={content.heroSubtitle} onChange={e => handleContentChange('heroSubtitle', e.target.value)} rows={3}/>
+                            </FormField>
+                            <FormField label="ميزات الصندوق (كل ميزة في سطر)" htmlFor="features">
+                                <Textarea id="features" value={(content.features || []).join('\n')} onChange={e => handleContentChange('features', e.target.value.split('\n'))} rows={4}/>
+                            </FormField>
+                            <div className="flex justify-end">
+                                <Button onClick={handleContentSave} loading={updateSiteContent.isPending} icon={<Save />}>حفظ المحتوى</Button>
+                            </div>
                         </div>
-                    </div>
-                </AdminSection>
+                    </CardContent>
+                </Card>
 
-                <AdminSection title="باقات الاشتراك" icon={<Package />}>
-                     <div className="flex justify-end mb-4">
-                        <Button onClick={() => handleOpenModal(null)} icon={<Plus size={18} />}>
-                            إضافة باقة
-                        </Button>
-                    </div>
-                     <div className="overflow-x-auto">
-                        <table className="w-full text-right">
-                           <thead className="border-b-2"><tr>
-                                <th className="p-3">الباقة</th><th className="p-3">المدة</th><th className="p-3">السعر الإجمالي</th><th className="p-3">السعر الشهري</th><th className="p-3">إجراءات</th>
-                            </tr></thead>
-                            <tbody>
-                                {plans.map((plan: SubscriptionPlan) => (
-                                    <tr key={plan.id} className="border-b hover:bg-gray-50">
-                                        <td className="p-3 font-semibold">{plan.name} {plan.is_best_value && <span className="text-xs text-yellow-600">(الأفضل قيمة)</span>}</td>
-                                        <td className="p-3">{plan.duration_months} أشهر</td>
-                                        <td className="p-3 font-bold">{plan.price} ج.م</td>
-                                        <td className="p-3">{plan.price_per_month} ج.م</td>
-                                        <td className="p-3 flex items-center gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenModal(plan)}><Edit size={20} /></Button>
-                                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDeletePlan(plan.id)}><Trash2 size={20} /></Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </AdminSection>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                             <span className="flex items-center gap-2"><Package /> باقات الاشتراك</span>
+                            <Button onClick={() => handleOpenModal(null)} icon={<Plus size={18} />} size="sm">
+                                إضافة باقة
+                            </Button>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                         <div className="overflow-x-auto">
+                            <Table>
+                               <TableHeader>
+                                   <TableRow>
+                                        <TableHead>الباقة</TableHead>
+                                        <TableHead>المدة</TableHead>
+                                        <TableHead>السعر الإجمالي</TableHead>
+                                        <TableHead>السعر الشهري</TableHead>
+                                        <TableHead>إجراءات</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {plans.map((plan: SubscriptionPlan) => (
+                                        <TableRow key={plan.id}>
+                                            <TableCell className="font-semibold">{plan.name} {plan.is_best_value && <span className="text-xs text-primary">(الأفضل قيمة)</span>}</TableCell>
+                                            <TableCell>{plan.duration_months} أشهر</TableCell>
+                                            <TableCell className="font-bold">{plan.price} ج.م</TableCell>
+                                            <TableCell>{plan.price_per_month} ج.م</TableCell>
+                                            <TableCell className="flex items-center gap-2">
+                                                <Button variant="ghost" size="icon" onClick={() => handleOpenModal(plan)}><Edit size={20} /></Button>
+                                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeletePlan(plan.id)}><Trash2 size={20} /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </>
     );

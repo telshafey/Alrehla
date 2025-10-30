@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
 import { getPermissions, Permissions, UserRole } from '../lib/roles';
 import type { ChildProfile, UserProfile } from '../lib/database.types';
 import { useToast } from './ToastContext';
@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
     };
 
-    const value: AuthContextType = {
+    const value: AuthContextType = useMemo(() => ({
         currentUser,
         currentChildProfile,
         isLoggedIn: !!currentUser,
@@ -167,7 +167,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         childProfiles,
         addChildProfile,
         updateChildProfile,
-    };
+    }), [currentUser, currentChildProfile, loading, error, childProfiles]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

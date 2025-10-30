@@ -17,31 +17,80 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: ["class"],
         theme: {
+          container: {
+            center: true,
+            padding: "2rem",
+            screens: {
+              "2xl": "1400px",
+            },
+          },
           extend: {
+            colors: {
+              border: "hsl(var(--border))",
+              input: "hsl(var(--input))",
+              ring: "hsl(var(--ring))",
+              background: "hsl(var(--background))",
+              foreground: "hsl(var(--foreground))",
+              primary: {
+                DEFAULT: "hsl(var(--primary))",
+                foreground: "hsl(var(--primary-foreground))",
+              },
+              secondary: {
+                DEFAULT: "hsl(var(--secondary))",
+                foreground: "hsl(var(--secondary-foreground))",
+              },
+              destructive: {
+                DEFAULT: "hsl(var(--destructive))",
+                foreground: "hsl(var(--destructive-foreground))",
+              },
+              muted: {
+                DEFAULT: "hsl(var(--muted))",
+                foreground: "hsl(var(--muted-foreground))",
+              },
+              accent: {
+                DEFAULT: "hsl(var(--accent))",
+                foreground: "hsl(var(--accent-foreground))",
+              },
+              popover: {
+                DEFAULT: "hsl(var(--popover))",
+                foreground: "hsl(var(--popover-foreground))",
+              },
+              card: {
+                DEFAULT: "hsl(var(--card))",
+                foreground: "hsl(var(--card-foreground))",
+              },
+            },
+            borderRadius: {
+              lg: `var(--radius)`,
+              md: `calc(var(--radius) - 2px)`,
+              sm: "calc(var(--radius) - 4px)",
+            },
             fontFamily: {
               sans: ['Cairo', 'sans-serif'],
             },
-            animation: {
-              fadeIn: 'fadeIn 0.5s ease-in-out',
-              glow: 'glow 2s ease-in-out infinite alternate',
-            },
             keyframes: {
+              "accordion-down": {
+                from: { height: 0 },
+                to: { height: "var(--radix-accordion-content-height)" },
+              },
+              "accordion-up": {
+                from: { height: "var(--radix-accordion-content-height)" },
+                to: { height: 0 },
+              },
               fadeIn: {
                 '0%': { opacity: 0, transform: 'translateY(-10px)' },
                 '100%': { opacity: 1, transform: 'translateY(0)' },
               },
-              glow: {
-                'from': {
-                  boxShadow: '0 0 10px -5px #a855f7, 0 0 20px -10px #a855f7'
-                },
-                'to': {
-                  boxShadow: '0 0 20px 0px #a855f7, 0 0 40px 5px #a855f7'
-                }
-              }
-            }
-          }
-        }
+            },
+            animation: {
+              "accordion-down": "accordion-down 0.2s ease-out",
+              "accordion-up": "accordion-up 0.2s ease-out",
+              fadeIn: 'fadeIn 0.5s ease-in-out',
+            },
+          },
+        },
       }
     </script>
     
@@ -49,19 +98,47 @@
     <script src="https://meet.jit.si/external_api.js"></script>
 
     <style>
+      :root {
+        --background: 0 0% 100%;
+        --foreground: 222.2 84% 4.9%;
+        --card: 0 0% 100%;
+        --card-foreground: 222.2 84% 4.9%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222.2 84% 4.9%;
+        --primary: 222.2 47.4% 11.2%;
+        --primary-foreground: 210 40% 98%;
+        --secondary: 210 40% 96.1%;
+        --secondary-foreground: 222.2 47.4% 11.2%;
+        --muted: 210 40% 96.1%;
+        --muted-foreground: 215.4 16.3% 46.9%;
+        --accent: 210 40% 96.1%;
+        --accent-foreground: 222.2 47.4% 11.2%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 214.3 31.8% 91.4%;
+        --input: 214.3 31.8% 91.4%;
+        --ring: 222.2 47.4% 11.2%;
+        --radius: 0.5rem;
+      }
+      
+      body {
+        background-color: hsl(var(--background));
+        color: hsl(var(--foreground));
+      }
+
       /* Custom scrollbar for better aesthetics */
       ::-webkit-scrollbar {
         width: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: #f1f1f1;
+        background: hsl(var(--secondary));
       }
       ::-webkit-scrollbar-thumb {
-        background: #888;
+        background: hsl(var(--muted-foreground));
         border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #555;
+        background: hsl(var(--foreground));
       }
     </style>
 <script type="importmap">
@@ -81,7 +158,7 @@
 }
 </script>
 </head>
-<body class="bg-gray-50 antialiased">
+<body class="bg-muted/50 antialiased">
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

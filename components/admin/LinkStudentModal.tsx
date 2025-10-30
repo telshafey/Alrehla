@@ -68,31 +68,32 @@ const LinkStudentModal: React.FC<{
             title="ربط حساب الطالب"
             footer={
                 <div className="flex justify-between items-center w-full">
-                    {linkedChild && (
+                    {linkedChild ? (
                         <Button
                             onClick={handleUnlink}
                             loading={isSaving}
-                            variant="subtle"
-                            className="text-red-700 bg-red-100 hover:bg-red-200 disabled:bg-gray-200 disabled:text-gray-500"
+                            variant="destructive"
                             icon={<Link2Off size={16} />}
                         >
                            إلغاء الربط
                         </Button>
-                    )}
-                    <Button 
-                        onClick={handleSave}
-                        loading={isSaving}
-                        disabled={isSaving || !selectedChildId} 
-                        icon={<LinkIcon size={16} />}
-                        className="ml-auto"
-                    >
-                       {linkedChild ? 'تغيير الربط' : 'ربط الحساب'}
-                    </Button>
+                    ) : <div></div>}
+                    <div className="flex gap-2">
+                        <Button variant="ghost" onClick={onClose}>إلغاء</Button>
+                        <Button 
+                            onClick={handleSave}
+                            loading={isSaving}
+                            disabled={isSaving || !selectedChildId} 
+                            icon={<LinkIcon size={16} />}
+                        >
+                        {linkedChild ? 'تغيير الربط' : 'ربط الحساب'}
+                        </Button>
+                    </div>
                 </div>
             }
         >
-            <p className="text-gray-600 mb-6">
-                اختر ملف الطفل الذي تريد ربطه بحساب الطالب <span className="font-bold">{user.name}</span>.
+            <p className="text-muted-foreground mb-6">
+                اختر ملف الطفل الذي تريد ربطه بحساب الطالب <span className="font-bold text-foreground">{user.name}</span>.
             </p>
 
             <div className="space-y-4">
@@ -108,7 +109,7 @@ const LinkStudentModal: React.FC<{
                         ))}
                     </Select>
                         {unlinkedChildren.length === 0 && (
-                        <p className="text-xs text-gray-500 mt-2">لا توجد ملفات أطفال غير مرتبطة حاليًا.</p>
+                        <p className="text-xs text-muted-foreground mt-2">لا توجد ملفات أطفال غير مرتبطة حاليًا.</p>
                         )}
                 </FormField>
             </div>

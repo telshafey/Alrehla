@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import type { BlogPost } from '../../lib/database.types';
 import { formatDate } from '../../utils/helpers';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 
 interface PostCardProps {
     post: BlogPost;
@@ -10,18 +10,22 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
     return (
-        <Link to={`/blog/${post.slug}`} className="group block bg-white rounded-2xl shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300">
-            <div className="relative h-56 bg-gray-200">
-                <img src={post.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} alt={post.title} className="w-full h-full object-cover" loading="lazy" />
-            </div>
-            <div className="p-6">
-                <p className="text-sm text-gray-500">{formatDate(post.published_at)}</p>
-                <h3 className="mt-2 text-xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{post.title}</h3>
-                <p className="mt-2 text-sm text-gray-600 line-clamp-3">{post.content}</p>
-                 <div className="mt-4 font-semibold text-blue-600">اقرأ المزيد</div>
-            </div>
-        </Link>
+        <Card asChild className="overflow-hidden transition-transform transform hover:-translate-y-2 duration-300 h-full flex flex-col">
+            <Link to={`/blog/${post.slug}`}>
+                <img src={post.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} alt={post.title} className="w-full h-56 object-cover" loading="lazy" />
+                <CardHeader>
+                    <CardTitle>{post.title}</CardTitle>
+                    <CardDescription>{formatDate(post.published_at)}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                    <p className="text-sm text-muted-foreground line-clamp-3">{post.content}</p>
+                </CardContent>
+                <CardFooter>
+                    <span className="text-sm font-semibold text-primary">اقرأ المزيد</span>
+                </CardFooter>
+            </Link>
+        </Card>
     );
 };
 
-export default PostCard;
+export default React.memo(PostCard);

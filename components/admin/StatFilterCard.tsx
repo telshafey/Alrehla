@@ -12,11 +12,11 @@ const StatFilterCard: React.FC<StatFilterCardProps> = ({ label, value, color, is
     <button
         onClick={onClick}
         className={`p-4 rounded-lg text-right transition-all transform hover:-translate-y-1 ${
-            isActive ? `${color} text-white shadow-lg` : 'bg-white hover:bg-gray-50 shadow-md border'
+            isActive ? `${color} text-white shadow-lg` : 'bg-background hover:bg-accent shadow-sm border'
         }`}
     >
-        <p className={`text-2xl font-bold ${isActive ? 'text-white' : 'text-gray-800'}`}>{value}</p>
-        <p className={`text-sm font-semibold ${isActive ? 'text-white/80' : 'text-gray-500'}`}>{label}</p>
+        <p className={`text-2xl font-bold ${isActive ? 'text-white' : 'text-foreground'}`}>{value}</p>
+        <p className={`text-sm font-semibold ${isActive ? 'text-white/80' : 'text-muted-foreground'}`}>{label}</p>
     </button>
 );
 

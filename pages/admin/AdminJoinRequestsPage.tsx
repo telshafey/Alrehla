@@ -3,7 +3,6 @@ import { UserPlus, Eye } from 'lucide-react';
 import { useAdminJoinRequests } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useCommunicationMutations } from '../../hooks/mutations/useCommunicationMutations';
 import PageLoader from '../../components/ui/PageLoader';
-import AdminSection from '../../components/admin/AdminSection';
 import ViewJoinRequestModal from '../../components/admin/ViewJoinRequestModal';
 import { formatDate } from '../../utils/helpers';
 import type { JoinRequest, RequestStatus } from '../../lib/database.types';
@@ -11,6 +10,9 @@ import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import StatFilterCard from '../../components/admin/StatFilterCard';
 import { Input } from '../../components/ui/Input';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import ErrorState from '../../components/ui/ErrorState';
 
 const requestStatuses: RequestStatus[] = ["جديد", "تمت المراجعة", "مقبول", "مرفوض"];
 const statusColors: { [key in RequestStatus]: string } = {
@@ -21,7 +23,7 @@ const statusColors: { [key in RequestStatus]: string } = {
 };
 
 const AdminJoinRequestsPage: React.FC = () => {
-    const { data: requests = [], isLoading, error } = useAdminJoinRequests();
+    const { data: requests = [], isLoading, error, refetch } = useAdminJoinRequests();
     const { updateJoinRequestStatus } = useCommunicationMutations();
     
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,16 +59,16 @@ const AdminJoinRequestsPage: React.FC = () => {
     };
 
     if (isLoading) return <PageLoader text="جاري تحميل طلبات الانضمام..." />;
-    if (error) return <div className="text-center text-red-500">{(error as Error).message}</div>;
+    if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
         <>
             <ViewJoinRequestModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} request={selectedRequest} />
             <div className="animate-fadeIn space-y-8">
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">طلبات الانضمام للفريق</h1>
+                <h1 className="text-3xl font-extrabold text-foreground">طلبات الانضمام للفريق</h1>
                 
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <StatFilterCard label="الكل" value={requests.length} color="bg-gray-800" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
+                    <StatFilterCard label="الكل" value={requests.length} color="bg-primary" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
                     {requestStatuses.map(status => (
                         <StatFilterCard 
                             key={status}
@@ -79,41 +81,52 @@ const AdminJoinRequestsPage: React.FC = () => {
                     ))}
                 </div>
 
-                <AdminSection title="قائمة الطلبات" icon={<UserPlus />}>
-                    <div className="mb-6 max-w-lg">
-                        <Input 
-                            type="search"
-                            placeholder="ابحث بالاسم أو الدور المطلوب..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-right">
-                           <thead className="border-b-2"><tr>
-                                <th className="p-3">الاسم</th><th className="p-3">الدور المطلوب</th><th className="p-3">التاريخ</th><th className="p-3">الحالة</th><th className="p-3">إجراءات</th>
-                            </tr></thead>
-                            <tbody>
-                                {filteredRequests.map(request => (
-                                    <tr key={request.id} className="border-b hover:bg-gray-50">
-                                        <td className="p-3 font-semibold">{request.name}</td>
-                                        <td className="p-3">{request.role}</td>
-                                        <td className="p-3 text-sm">{formatDate(request.created_at)}</td>
-                                        <td className="p-3 min-w-[150px]">
-                                            <Select value={request.status} onChange={e => handleStatusChange(request.id, e.target.value as RequestStatus)} className="p-1 text-sm">
-                                                {requestStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                                            </Select>
-                                        </td>
-                                        <td className="p-3">
-                                            <Button variant="ghost" size="icon" onClick={() => handleViewRequest(request)}><Eye size={20} /></Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                         {filteredRequests.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد طلبات تطابق بحثك.</p>}
-                    </div>
-                </AdminSection>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><UserPlus /> قائمة الطلبات</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="mb-6 max-w-lg">
+                            <Input 
+                                type="search"
+                                placeholder="ابحث بالاسم أو الدور المطلوب..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="overflow-x-auto">
+                            <Table>
+                               <TableHeader>
+                                   <TableRow>
+                                        <TableHead>الاسم</TableHead>
+                                        <TableHead>الدور المطلوب</TableHead>
+                                        <TableHead>التاريخ</TableHead>
+                                        <TableHead>الحالة</TableHead>
+                                        <TableHead>إجراءات</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredRequests.map(request => (
+                                        <TableRow key={request.id}>
+                                            <TableCell className="font-semibold">{request.name}</TableCell>
+                                            <TableCell>{request.role}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">{formatDate(request.created_at)}</TableCell>
+                                            <TableCell className="min-w-[150px]">
+                                                <Select value={request.status} onChange={e => handleStatusChange(request.id, e.target.value as RequestStatus)}>
+                                                    {requestStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                                </Select>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button variant="ghost" size="icon" onClick={() => handleViewRequest(request)}><Eye size={20} /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                             {filteredRequests.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد طلبات تطابق بحثك.</p>}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </>
     );

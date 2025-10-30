@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { X } from 'lucide-react';
 import { useModalAccessibility } from '../../hooks/useModalAccessibility';
 import { Button } from './Button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './card';
 
 interface ModalProps {
     isOpen: boolean;
@@ -30,32 +31,32 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer,
 
     return (
         <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4"
             onClick={onClose}
             role="dialog"
             aria-modal="true"
             aria-labelledby="modal-title"
         >
-            <div
+            <Card
                 ref={modalRef}
-                className={`bg-white rounded-2xl shadow-xl w-full flex flex-col m-4 animate-fadeIn max-h-[90vh] ${sizeClasses[size]}`}
+                className={`w-full flex flex-col m-4 animate-fadeIn max-h-[90vh] ${sizeClasses[size]}`}
                 onClick={e => e.stopPropagation()}
             >
-                <header className="flex justify-between items-center p-6 border-b">
-                    <h2 id="modal-title" className="text-2xl font-bold text-gray-800">{title}</h2>
-                    <Button ref={closeButtonRef} onClick={onClose} variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle id="modal-title">{title}</CardTitle>
+                    <Button ref={closeButtonRef} onClick={onClose} variant="ghost" size="icon" className="text-muted-foreground">
                         <X size={24} />
                     </Button>
-                </header>
-                <main className="p-6 overflow-y-auto">
+                </CardHeader>
+                <CardContent className="overflow-y-auto">
                     {children}
-                </main>
+                </CardContent>
                 {footer && (
-                    <footer className="flex justify-end gap-4 p-6 border-t bg-gray-50 rounded-b-2xl">
+                    <CardFooter className="justify-end gap-4 bg-muted/50 rounded-b-lg">
                         {footer}
-                    </footer>
+                    </CardFooter>
                 )}
-            </div>
+            </Card>
         </div>
     );
 };

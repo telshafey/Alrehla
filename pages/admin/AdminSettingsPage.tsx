@@ -1,156 +1,197 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Loader2, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { Save, Link as LinkIcon, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
-import { useAdminSocialLinks } from '../../hooks/queries/admin/useAdminSettingsQuery';
-// REFACTOR: Use the new feature-specific mutation hook.
+// FIX: Import useAdminAiSettings hook to fetch AI settings.
+import { useAdminSocialLinks, useAdminAiSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
-import { useToast } from '../../contexts/ToastContext';
-import AdminSection from '../../components/admin/AdminSection';
-import { supabase } from '../../lib/supabaseClient';
-import { SocialLinks } from '../../lib/database.types';
+import PageLoader from '../../components/ui/PageLoader';
+import { Button } from '../../components/ui/Button';
+import FormField from '../../components/ui/FormField';
+import { Input } from '../../components/ui/Input';
+import { Textarea } from '../../components/ui/Textarea';
+import ErrorState from '../../components/ui/ErrorState';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 
-interface ImageUploadFieldProps {
+// Helper component for image upload fields
+const ImageUploadField: React.FC<{
     label: string;
-    currentUrl: string | null;
-    onFileSelect: (file: File) => void;
-    isSaving: boolean;
-}
-
-const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ label, currentUrl, onFileSelect, isSaving }) => {
-    const [preview, setPreview] = useState<string | null>(currentUrl);
-
-    useEffect(() => {
-        setPreview(currentUrl);
-    }, [currentUrl]);
+    fieldKey: keyof SiteBranding;
+    currentUrl?: string;
+    onUrlChange: (fieldKey: keyof SiteBranding, newUrl: string) => void;
+}> = ({ label, fieldKey, currentUrl, onUrlChange }) => {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+        const file = e.target.files?.[0] || null;
         if (file) {
-            setPreview(URL.createObjectURL(file));
-            onFileSelect(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                onUrlChange(fieldKey, reader.result as string);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
     return (
-        <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">{label}</label>
-            <div className="flex items-center gap-4">
-                <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                    {preview ? <img src={preview} alt="Preview" className="h-full w-full object-contain" /> : <ImageIcon className="text-gray-400" />}
+        <FormField label={label} htmlFor={fieldKey}>
+            <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50">
+                <img 
+                    src={currentUrl || "https://placehold.co/100x100/EEE/31343C?text=No+Image"} 
+                    alt={`${label} Preview`} 
+                    className="w-20 h-20 object-contain rounded-md bg-background" 
+                />
+                <div className="flex-grow">
+                     <Input id={fieldKey} type="file" accept="image/*,.svg,.png" onChange={handleFileChange} />
+                     {currentUrl && !currentUrl.startsWith('data:') && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                            الرابط الحالي: <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[200px] inline-block align-middle">{currentUrl?.split('/').pop()}</a>
+                        </p>
+                     )}
                 </div>
-                <input type="file" id={label} onChange={handleFileChange} accept="image/*" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" disabled={isSaving}/>
             </div>
-        </div>
+        </FormField>
     );
 };
 
 
 const AdminSettingsPage: React.FC = () => {
-    const { siteBranding, setSiteBranding, loading: productLoading } = useProduct();
-    const { data: socialLinks, isLoading: adminLoading } = useAdminSocialLinks();
-    const { updateSocialLinks } = useSettingsMutations();
-    const { addToast } = useToast();
+    // Branding
+    const { siteBranding: initialBranding, setSiteBranding, loading: brandingLoading } = useProduct();
+    const [branding, setBranding] = useState<Partial<SiteBranding>>({});
+
+    // Social Links
+    const { data: socialLinksData, isLoading: socialsLoading, error: socialsError, refetch: refetchSocials } = useAdminSocialLinks();
+    // FIX: Destructure updateAiSettings from the useSettingsMutations hook.
+    const { updateSocialLinks, updateAiSettings } = useSettingsMutations();
+    const [socials, setSocials] = useState({ facebook_url: '', twitter_url: '', instagram_url: '' });
     
-    const [isSaving, setIsSaving] = useState(false);
-    const [filesToUpload, setFilesToUpload] = useState<{ [key in keyof SiteBranding]?: File }>({});
-    const [socials, setSocials] = useState<Partial<SocialLinks>>({});
+    // AI Settings
+    const { data: aiSettingsData, isLoading: aiSettingsLoading, error: aiError, refetch: refetchAi } = useAdminAiSettings();
+    const [aiSettings, setAiSettings] = useState({ enable_story_ideas: false, story_ideas_prompt: '' });
+
 
     useEffect(() => {
-        if(socialLinks) {
-            setSocials(socialLinks);
-        }
-    }, [socialLinks]);
+        if (initialBranding) setBranding(initialBranding);
+    }, [initialBranding]);
+
+    useEffect(() => {
+        if (socialLinksData) setSocials(socialLinksData as any);
+    }, [socialLinksData]);
     
-    const loading = productLoading || adminLoading;
+     useEffect(() => {
+        if (aiSettingsData) setAiSettings(aiSettingsData as any);
+    }, [aiSettingsData]);
 
-    if (loading) return <Loader2 className="animate-spin" />;
-
-    const handleFileSelect = (key: keyof SiteBranding, file: File) => {
-        setFilesToUpload(prev => ({...prev, [key]: file}));
+    const handleBrandingChange = (fieldKey: keyof SiteBranding, value: string) => {
+        setBranding(prev => ({ ...prev, [fieldKey]: value }));
     };
 
-    const handleSocialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const {name, value} = e.target;
-        setSocials(prev => ({...prev, [name]: value}));
+    const handleSocialsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSocials({ ...socials, [e.target.name]: e.target.value });
+    };
+    
+    const handleAiSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value, type } = e.target;
+        const isCheckbox = type === 'checkbox';
+        setAiSettings(prev => ({...prev, [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value }));
     }
 
-    const uploadFile = async (file: File): Promise<string> => {
-        const filePath = `public/${Date.now()}-${file.name}`;
-        const { error: uploadError } = await supabase.storage.from('site_assets').upload(filePath, file);
-        if (uploadError) throw uploadError;
-        const { data } = supabase.storage.from('site_assets').getPublicUrl(filePath);
-        return data.publicUrl;
+    const handleBrandingSubmit = async () => {
+        await setSiteBranding(branding);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSaving(true);
-        try {
-            // Branding
-            const brandingChanges: Partial<SiteBranding> = {};
-            for (const key in filesToUpload) {
-                const file = filesToUpload[key as keyof SiteBranding];
-                if (file) {
-                    const newUrl = await uploadFile(file);
-                    brandingChanges[key as keyof SiteBranding] = newUrl;
-                }
-            }
-            if(Object.keys(brandingChanges).length > 0) {
-                 await setSiteBranding(brandingChanges);
-            }
-            setFilesToUpload({});
-
-            // Social links
-            await updateSocialLinks.mutateAsync(socials);
-
-            addToast('تم حفظ الإعدادات بنجاح', 'success');
-
-        } catch(err: any) {
-             addToast(`فشل الحفظ: ${err.message}`, 'error');
-        } finally {
-            setIsSaving(false);
-        }
+    const handleSocialsSubmit = async () => {
+        await updateSocialLinks.mutateAsync(socials);
     };
+    
+    const handleAiSettingsSubmit = async () => {
+        await updateAiSettings.mutateAsync(aiSettings);
+    }
+
+    const isLoading = brandingLoading || socialsLoading || aiSettingsLoading;
+    const error = socialsError || aiError;
+    const refetch = () => {
+        if (socialsError) refetchSocials();
+        if (aiError) refetchAi();
+    };
+
+    if (isLoading) return <PageLoader />;
+    if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
-        <div className="animate-fadeIn space-y-12">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إعدادات الموقع العامة</h1>
-            <form onSubmit={handleSubmit}>
-                <AdminSection title="العلامة التجارية" icon={<Settings />}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <ImageUploadField label="الشعار الرئيسي" currentUrl={siteBranding?.logoUrl || null} onFileSelect={(file) => handleFileSelect('logoUrl', file)} isSaving={isSaving}/>
-                        <ImageUploadField label="شعار بداية الرحلة" currentUrl={siteBranding?.creativeWritingLogoUrl || null} onFileSelect={(file) => handleFileSelect('creativeWritingLogoUrl', file)} isSaving={isSaving}/>
-                        <ImageUploadField label="صورة الهيرو (الرئيسية)" currentUrl={siteBranding?.heroImageUrl || null} onFileSelect={(file) => handleFileSelect('heroImageUrl', file)} isSaving={isSaving}/>
-                        <ImageUploadField label="صورة قسم (عنا)" currentUrl={siteBranding?.aboutImageUrl || null} onFileSelect={(file) => handleFileSelect('aboutImageUrl', file)} isSaving={isSaving}/>
-                        <ImageUploadField label="صورة بوابة بداية الرحلة" currentUrl={siteBranding?.creativeWritingPortalImageUrl || null} onFileSelect={(file) => handleFileSelect('creativeWritingPortalImageUrl', file)} isSaving={isSaving}/>
-                    </div>
-                </AdminSection>
+        <div className="animate-fadeIn space-y-8">
+            <h1 className="text-3xl font-extrabold text-foreground">الإعدادات العامة للمنصة</h1>
+            
+            <Tabs defaultValue="branding">
+                <TabsList>
+                    <TabsTrigger value="branding"><ImageIcon className="ml-2" /> العلامة التجارية</TabsTrigger>
+                    <TabsTrigger value="social"><LinkIcon className="ml-2" /> التواصل الاجتماعي</TabsTrigger>
+                    <TabsTrigger value="ai"><Sparkles className="ml-2" /> الذكاء الاصطناعي</TabsTrigger>
+                </TabsList>
                 
-                 <AdminSection title="روابط التواصل الاجتماعي" icon={<LinkIcon />}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">رابط فيسبوك</label>
-                            <input type="url" name="facebook_url" value={socials.facebook_url || ''} onChange={handleSocialChange} className="w-full p-2 border rounded-lg" />
-                         </div>
-                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">رابط تويتر</label>
-                            <input type="url" name="twitter_url" value={socials.twitter_url || ''} onChange={handleSocialChange} className="w-full p-2 border rounded-lg" />
-                         </div>
-                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">رابط انستغرام</label>
-                            <input type="url" name="instagram_url" value={socials.instagram_url || ''} onChange={handleSocialChange} className="w-full p-2 border rounded-lg" />
-                         </div>
-                    </div>
-                </AdminSection>
+                <TabsContent value="branding">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>إدارة العلامة التجارية والصور</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                           <ImageUploadField label="شعار الموقع الرئيسي" fieldKey="logoUrl" currentUrl={branding.logoUrl} onUrlChange={handleBrandingChange} />
+                           <ImageUploadField label="صورة الهيرو الرئيسية" fieldKey="heroImageUrl" currentUrl={branding.heroImageUrl} onUrlChange={handleBrandingChange} />
+                           <ImageUploadField label="صورة صفحة 'عنا'" fieldKey="aboutImageUrl" currentUrl={branding.aboutImageUrl} onUrlChange={handleBrandingChange} />
+                           <ImageUploadField label="صورة وشعار 'بداية الرحلة'" fieldKey="creativeWritingPortalImageUrl" currentUrl={branding.creativeWritingPortalImageUrl} onUrlChange={handleBrandingChange} />
+                           <ImageUploadField label="صورة وشعار 'إنها لك'" fieldKey="enhaLakPortalImageUrl" currentUrl={branding.enhaLakPortalImageUrl} onUrlChange={handleBrandingChange} />
+                           <div className="flex justify-end">
+                                <Button onClick={handleBrandingSubmit} icon={<Save />}>حفظ إعدادات العلامة التجارية</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                
+                <TabsContent value="social">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>إدارة روابط التواصل الاجتماعي</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField label="رابط فيسبوك" htmlFor="facebook_url">
+                                <Input id="facebook_url" name="facebook_url" value={socials.facebook_url || ''} onChange={handleSocialsChange} dir="ltr"/>
+                            </FormField>
+                             <FormField label="رابط تويتر (X)" htmlFor="twitter_url">
+                                <Input id="twitter_url" name="twitter_url" value={socials.twitter_url || ''} onChange={handleSocialsChange} dir="ltr"/>
+                            </FormField>
+                            <FormField label="رابط انستغرام" htmlFor="instagram_url">
+                                <Input id="instagram_url" name="instagram_url" value={socials.instagram_url || ''} onChange={handleSocialsChange} dir="ltr"/>
+                            </FormField>
+                            <div className="flex justify-end">
+                                <Button onClick={handleSocialsSubmit} loading={updateSocialLinks.isPending} icon={<Save />}>حفظ الروابط</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
+                <TabsContent value="ai">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>إعدادات الذكاء الاصطناعي (Gemini)</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
+                                <input type="checkbox" checked={aiSettings.enable_story_ideas} onChange={handleAiSettingsChange} name="enable_story_ideas" id="enable_story_ideas" className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                                <label htmlFor="enable_story_ideas" className="text-sm font-medium text-foreground">تفعيل "مولّد أفكار القصص" في صفحة الطلب</label>
+                            </div>
+                             <FormField label="موجه الأوامر (Prompt) لمولّد الأفكار" htmlFor="story_ideas_prompt">
+                                <Textarea id="story_ideas_prompt" name="story_ideas_prompt" value={aiSettings.story_ideas_prompt} onChange={handleAiSettingsChange} rows={8} />
+                                {/* FIX: Replaced template literal syntax with code tags to prevent parsing text as variables. */}
+                                <p className="text-xs text-muted-foreground mt-1">يمكنك استخدام متغيرات مثل: <code>{'$'}{'{childName}'}</code>، <code>{'$'}{'{childAge}'}</code>، <code>{'$'}{'{childTraits}'}</code></p>
+                            </FormField>
+                            <div className="flex justify-end">
+                                <Button onClick={handleAiSettingsSubmit} loading={updateAiSettings.isPending} icon={<Save />}>حفظ إعدادات الذكاء الاصطناعي</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
 
-                 <div className="flex justify-end sticky bottom-6 mt-8">
-                    <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-blue-600 text-white font-bold py-3 px-8 rounded-full hover:bg-blue-700 transition-colors shadow-lg disabled:bg-blue-400 disabled:cursor-not-allowed">
-                        {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                        <span>{isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}</span>
-                    </button>
-                </div>
-            </form>
         </div>
     );
 };

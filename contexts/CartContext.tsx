@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo, useCallback } from 'react';
 
 // A self-contained UUID generator to avoid potential module resolution issues with external libraries.
 function uuidv4() {
@@ -45,35 +45,35 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, [cart]);
 
-    const addItemToCart = (item: Omit<CartItem, 'timestamp' | 'id'>) => {
+    const addItemToCart = useCallback((item: Omit<CartItem, 'timestamp' | 'id'>) => {
         const newItem: CartItem = { ...item, id: uuidv4(), timestamp: Date.now() };
         setCart(prevCart => [...prevCart, newItem]);
-    };
+    }, []);
     
-    const removeItemFromCart = (itemId: string) => {
+    const removeItemFromCart = useCallback((itemId: string) => {
         setCart(prevCart => prevCart.filter(item => item.id !== itemId));
-    };
+    }, []);
 
-    const clearCart = () => {
+    const clearCart = useCallback(() => {
         setCart([]);
         sessionStorage.removeItem('alrehlaCart');
-    };
+    }, []);
     
-    const getCartTotal = useMemo(() => () => {
+    const getCartTotal = useCallback(() => {
         return cart.reduce((total, item) => {
             const itemTotal = item.payload.total || item.payload.totalPrice || 0;
             return total + itemTotal;
         }, 0);
     }, [cart]);
 
-    const value = {
+    const value = useMemo(() => ({
         cart,
         addItemToCart,
         removeItemFromCart,
         clearCart,
         getCartTotal,
         itemCount: cart.length
-    };
+    }), [cart, addItemToCart, removeItemFromCart, clearCart, getCartTotal]);
 
     return (
         <CartContext.Provider value={value}>

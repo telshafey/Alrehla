@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Loader2, Calendar } from 'lucide-react';
+import { Save, Calendar } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
-import { useModalAccessibility } from '../../hooks/useModalAccessibility';
-// REFACTOR: Use the new feature-specific mutation hook.
 import { useSchedulingMutations } from '../../hooks/mutations/useSchedulingMutations';
 import type { Subscription } from '../../lib/database.types';
 import { Button } from '../ui/Button';
@@ -10,6 +8,7 @@ import FormField from '../ui/FormField';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
+import Modal from '../ui/Modal';
 
 interface SessionSchedulerModalProps {
     isOpen: boolean;
@@ -19,8 +18,6 @@ interface SessionSchedulerModalProps {
 
 export const SessionSchedulerModal: React.FC<SessionSchedulerModalProps> = ({ isOpen, onClose, subscription }) => {
     const { addToast } = useToast();
-    const modalRef = useRef<HTMLDivElement>(null);
-    const closeButtonRef = useRef<HTMLButtonElement>(null);
     const { scheduleSubscriptionSessions } = useSchedulingMutations();
 
     const [dayOfWeek, setDayOfWeek] = useState('tuesday');
@@ -30,19 +27,16 @@ export const SessionSchedulerModal: React.FC<SessionSchedulerModalProps> = ({ is
     
     const isSaving = scheduleSubscriptionSessions.isPending;
 
-    useModalAccessibility({ modalRef, isOpen, onClose, initialFocusRef: closeButtonRef });
-
     useEffect(() => {
         if (isOpen) {
-            // Reset form on open
             setDayOfWeek('tuesday');
             setTime('17:00');
-            setStartDate(new Date().toISOString().split('T')[0]); // Default to today
+            setStartDate(new Date().toISOString().split('T')[0]);
             setExceptions('');
         }
     }, [isOpen]);
 
-    if (!isOpen || !subscription) return null;
+    if (!subscription) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -79,16 +73,23 @@ export const SessionSchedulerModal: React.FC<SessionSchedulerModalProps> = ({ is
 
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="scheduler-modal-title">
-            <div ref={modalRef} className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 m-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-6">
-                    <h2 id="scheduler-modal-title" className="text-2xl font-bold text-gray-800">جدولة جلسات الاشتراك</h2>
-                    <Button ref={closeButtonRef} onClick={onClose} variant="ghost" size="icon"><X size={24} /></Button>
-                </div>
-                <p className="mb-6 text-gray-600">
-                    جدولة الجلسات الأسبوعية للاشتراك الخاص بالطفل <span className="font-bold">{subscription.child_name}</span>.
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="جدولة جلسات الاشتراك"
+            footer={
+                <>
+                    <Button type="button" onClick={onClose} disabled={isSaving} variant="ghost">إلغاء</Button>
+                    <Button type="submit" form="scheduler-form" loading={isSaving} icon={<Calendar />}>
+                        {isSaving ? 'جاري الجدولة...' : 'جدولة الجلسات'}
+                    </Button>
+                </>
+            }
+        >
+                <p className="text-muted-foreground mb-6">
+                    جدولة الجلسات الأسبوعية للاشتراك الخاص بالطفل <span className="font-bold text-foreground">{subscription.child_name}</span>.
                 </p>
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form id="scheduler-form" onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField label="اليوم الأسبوعي" htmlFor="dayOfWeek">
                             <Select id="dayOfWeek" value={dayOfWeek} onChange={e => setDayOfWeek(e.target.value)}>
@@ -107,15 +108,7 @@ export const SessionSchedulerModal: React.FC<SessionSchedulerModalProps> = ({ is
                     <FormField label="استثناءات (تواريخ بصيغة YYYY-MM-DD مفصولة بفاصلة)" htmlFor="exceptions">
                         <Textarea id="exceptions" value={exceptions} onChange={e => setExceptions(e.target.value)} rows={2} placeholder="مثال: 2025-10-06, 2025-12-25" />
                     </FormField>
-
-                     <div className="flex justify-end gap-4 pt-4 mt-8 border-t">
-                        <Button type="button" onClick={onClose} disabled={isSaving} variant="ghost">إلغاء</Button>
-                        <Button type="submit" loading={isSaving} icon={<Calendar />}>
-                           {isSaving ? 'جاري الجدولة...' : 'جدولة الجلسات'}
-                        </Button>
-                    </div>
                 </form>
-            </div>
-        </div>
+        </Modal>
     );
 };

@@ -5,31 +5,43 @@ import StudentJourneyCard from '../../components/student/StudentJourneyCard';
 import { BookOpen, ShoppingBag, Star } from 'lucide-react';
 import { getStatusColor, getSubStatusColor, getSubStatusText, formatDate } from '../../utils/helpers';
 import type { Order, Subscription } from '../../lib/database.types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 
-// New component for Order Card
-const OrderCard: React.FC<{ order: Order }> = ({ order }) => (
-    <div className="p-4 border rounded-lg bg-white flex justify-between items-center">
-        <div>
-            <p className="font-bold text-gray-800">{order.item_summary}</p>
-            <p className="text-sm text-gray-500">{formatDate(order.order_date)}</p>
-        </div>
-        <span className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(order.status)}`}>
-            {order.status}
-        </span>
-    </div>
-);
+const OrderCard: React.FC<{ order: Order }> = React.memo(({ order }) => (
+    <Card className="transition-transform transform hover:-translate-y-1">
+        <CardContent className="pt-6 flex justify-between items-center">
+            <div>
+                <p className="font-bold text-foreground">{order.item_summary}</p>
+                <p className="text-sm text-muted-foreground">{formatDate(order.order_date)}</p>
+            </div>
+            <span className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(order.status)}`}>
+                {order.status}
+            </span>
+        </CardContent>
+    </Card>
+));
 
-// New component for Subscription Card
-const SubscriptionCard: React.FC<{ subscription: Subscription }> = ({ subscription }) => (
-    <div className="p-4 border rounded-lg bg-white flex justify-between items-center">
-        <div>
-            <p className="font-bold text-gray-800">صندوق الرحلة الشهري</p>
-            <p className="text-sm text-gray-500">التجديد القادم: {formatDate(subscription.next_renewal_date)}</p>
-        </div>
-        <span className={`px-3 py-1 text-xs font-bold rounded-full ${getSubStatusColor(subscription.status)}`}>
-            {getSubStatusText(subscription.status)}
-        </span>
-    </div>
+const SubscriptionCard: React.FC<{ subscription: Subscription }> = React.memo(({ subscription }) => (
+    <Card className="transition-transform transform hover:-translate-y-1">
+         <CardContent className="pt-6 flex justify-between items-center">
+            <div>
+                <p className="font-bold text-foreground">صندوق الرحلة الشهري</p>
+                <p className="text-sm text-muted-foreground">التجديد القادم: {formatDate(subscription.next_renewal_date)}</p>
+            </div>
+            <span className={`px-3 py-1 text-xs font-bold rounded-full ${getSubStatusColor(subscription.status)}`}>
+                {getSubStatusText(subscription.status)}
+            </span>
+        </CardContent>
+    </Card>
+));
+
+const EmptyStateCard: React.FC<{ title: string; message: string }> = ({ title, message }) => (
+    <Card>
+        <CardContent className="text-center py-10">
+            <h3 className="text-lg font-bold text-foreground">{title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+        </CardContent>
+    </Card>
 );
 
 
@@ -49,9 +61,8 @@ const StudentDashboardPage: React.FC = () => {
 
     return (
         <div className="space-y-12 animate-fadeIn">
-            {/* Journeys Section */}
             <section>
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3 mb-6">
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
                     <BookOpen /> رحلاتي التدريبية
                 </h2>
                 {displayJourneys.length > 0 ? (
@@ -61,16 +72,15 @@ const StudentDashboardPage: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-10 px-6 bg-white rounded-2xl shadow-sm border-2 border-dashed">
-                        <h3 className="text-lg font-bold text-gray-800">لا توجد رحلات نشطة</h3>
-                        <p className="mt-1 text-sm text-gray-500">عندما يتم حجز باقة لك، ستظهر رحلتك هنا.</p>
-                    </div>
+                    <EmptyStateCard 
+                        title="لا توجد رحلات نشطة"
+                        message="عندما يتم حجز باقة لك، ستظهر رحلتك هنا."
+                    />
                 )}
             </section>
             
-            {/* Subscriptions Section */}
             <section>
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3 mb-6">
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
                     <Star /> اشتراكات صندوق الرحلة
                 </h2>
                 {subscriptions.length > 0 ? (
@@ -80,16 +90,15 @@ const StudentDashboardPage: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                     <div className="text-center py-10 px-6 bg-white rounded-2xl shadow-sm border-2 border-dashed">
-                        <h3 className="text-lg font-bold text-gray-800">لا توجد اشتراكات</h3>
-                        <p className="mt-1 text-sm text-gray-500">عندما يتم الاشتراك لك في صندوق الرحلة، سيظهر هنا.</p>
-                    </div>
+                     <EmptyStateCard 
+                        title="لا توجد اشتراكات"
+                        message="عندما يتم الاشتراك لك في صندوق الرحلة، سيظهر هنا."
+                    />
                 )}
             </section>
 
-            {/* Orders Section */}
             <section>
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3 mb-6">
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
                     <ShoppingBag /> قصصي المخصصة
                 </h2>
                 {orders.length > 0 ? (
@@ -99,10 +108,10 @@ const StudentDashboardPage: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-10 px-6 bg-white rounded-2xl shadow-sm border-2 border-dashed">
-                        <h3 className="text-lg font-bold text-gray-800">لا توجد قصص مخصصة</h3>
-                        <p className="mt-1 text-sm text-gray-500">عندما يتم طلب قصة مخصصة لك، ستظهر هنا.</p>
-                    </div>
+                    <EmptyStateCard 
+                        title="لا توجد قصص مخصصة"
+                        message="عندما يتم طلب قصة مخصصة لك، ستظهر هنا."
+                    />
                 )}
             </section>
         </div>

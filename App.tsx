@@ -17,7 +17,7 @@ function App() {
   const showLayout = !isAdminRoute && !isStudentArea && !isSessionRoute;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-muted/50" dir="rtl">
       {showLayout && <Header />}
       <ScrollToTop />
       <main className="flex-grow">

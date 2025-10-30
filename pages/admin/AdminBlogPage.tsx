@@ -1,20 +1,24 @@
 import React, { useState, useMemo } from 'react';
-import { Edit, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Edit, Plus, Edit2, Trash2, CheckCircle, FileText } from 'lucide-react';
 import { useAdminBlogPosts } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useContentMutations } from '../../hooks/mutations/useContentMutations';
 import PageLoader from '../../components/ui/PageLoader';
-import AdminSection from '../../components/admin/AdminSection';
 import { BlogPostModal } from '../../components/admin/BlogPostModal';
 import { Button } from '../../components/ui/Button';
 import type { BlogPost } from '../../lib/database.types';
 import { formatDate } from '../../utils/helpers';
-import StatFilterCard from '../../components/admin/StatFilterCard';
 import { Input } from '../../components/ui/Input';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import ErrorState from '../../components/ui/ErrorState';
+import StatCard from '../../components/admin/StatCard';
+import BarChart from '../../components/admin/BarChart';
+import { Select } from '../../components/ui/Select';
 
 type PostStatus = 'published' | 'draft';
 
 const AdminBlogPage: React.FC = () => {
-    const { data: posts = [], isLoading, error } = useAdminBlogPosts();
+    const { data: posts = [], isLoading, error, refetch } = useAdminBlogPosts();
     const { createBlogPost, updateBlogPost, deleteBlogPost } = useContentMutations();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,7 +66,7 @@ const AdminBlogPage: React.FC = () => {
     };
     
     if (isLoading) return <PageLoader text="جاري تحميل المدونة..." />;
-    if (error) return <div className="text-red-500">{(error as Error).message}</div>;
+    if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
         <>
@@ -75,54 +79,88 @@ const AdminBlogPage: React.FC = () => {
             />
             <div className="animate-fadeIn space-y-8">
                 <div className="flex justify-between items-center">
-                    <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">إدارة المدونة</h1>
+                    <h1 className="text-3xl font-extrabold text-foreground">إدارة المدونة</h1>
                     <Button onClick={() => handleOpenModal(null)} icon={<Plus size={18} />}>
                         مقال جديد
                     </Button>
                 </div>
+                
+                <Card>
+                    <CardHeader>
+                        <CardTitle>ملخص المدونة</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="space-y-4 lg:col-span-1">
+                            <StatCard title="إجمالي المقالات" value={posts.length} icon={<Edit className="h-4 w-4 text-muted-foreground"/>} />
+                            <StatCard title="مقالات منشورة" value={statusCounts.published} icon={<CheckCircle className="h-4 w-4 text-green-500"/>} />
+                            <StatCard title="مسودات" value={statusCounts.draft} icon={<FileText className="h-4 w-4 text-yellow-500"/>} />
+                        </div>
+                        <div className="lg:col-span-2">
+                             <BarChart 
+                                title="المنشور مقابل المسودات"
+                                data={[
+                                    { label: 'منشور', value: statusCounts.published, color: 'hsl(var(--primary))' },
+                                    { label: 'مسودة', value: statusCounts.draft, color: 'hsl(var(--muted))' }
+                                ]}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <StatFilterCard label="الكل" value={posts.length} color="bg-gray-800" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
-                    <StatFilterCard label="منشور" value={statusCounts.published} color="bg-green-500" isActive={statusFilter === 'published'} onClick={() => setStatusFilter('published')} />
-                    <StatFilterCard label="مسودة" value={statusCounts.draft} color="bg-yellow-500" isActive={statusFilter === 'draft'} onClick={() => setStatusFilter('draft')} />
-                </div>
 
-                <AdminSection title="قائمة المقالات" icon={<Edit />}>
-                    <div className="mb-6 max-w-lg">
-                        <Input 
-                            type="search"
-                            placeholder="ابحث بالعنوان..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-right">
-                           <thead className="border-b-2"><tr>
-                                <th className="p-3">العنوان</th><th className="p-3">الكاتب</th><th className="p-3">الحالة</th><th className="p-3">تاريخ النشر</th><th className="p-3">إجراءات</th>
-                            </tr></thead>
-                            <tbody>
-                                {filteredPosts.map(post => (
-                                    <tr key={post.id} className="border-b hover:bg-gray-50">
-                                        <td className="p-3 font-semibold">{post.title}</td>
-                                        <td className="p-3">{post.author_name}</td>
-                                        <td className="p-3">
-                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${post.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                {post.status === 'published' ? 'منشور' : 'مسودة'}
-                                            </span>
-                                        </td>
-                                        <td className="p-3 text-sm">{formatDate(post.published_at)}</td>
-                                        <td className="p-3 flex items-center gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenModal(post)}><Edit2 size={20} /></Button>
-                                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDeletePost(post.id)}><Trash2 size={20} /></Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                         {filteredPosts.length === 0 && <p className="text-center py-8 text-gray-500">لا توجد مقالات تطابق بحثك.</p>}
-                    </div>
-                </AdminSection>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Edit /> قائمة المقالات</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex gap-4 mb-6">
+                            <Input 
+                                type="search"
+                                placeholder="ابحث بالعنوان..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="max-w-lg"
+                            />
+                            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
+                                <option value="all">كل الحالات</option>
+                                <option value="published">منشور</option>
+                                <option value="draft">مسودة</option>
+                            </Select>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <Table>
+                               <TableHeader>
+                                   <TableRow>
+                                        <TableHead>العنوان</TableHead>
+                                        <TableHead>الكاتب</TableHead>
+                                        <TableHead>الحالة</TableHead>
+                                        <TableHead>تاريخ النشر</TableHead>
+                                        <TableHead>إجراءات</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredPosts.map(post => (
+                                        <TableRow key={post.id}>
+                                            <TableCell className="font-semibold">{post.title}</TableCell>
+                                            <TableCell>{post.author_name}</TableCell>
+                                            <TableCell>
+                                                <span className={`px-2 py-1 text-xs font-bold rounded-full ${post.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                    {post.status === 'published' ? 'منشور' : 'مسودة'}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">{formatDate(post.published_at)}</TableCell>
+                                            <TableCell className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" onClick={() => handleOpenModal(post)} title="تعديل"><Edit2 size={20} /></Button>
+                                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeletePost(post.id)} title="حذف"><Trash2 size={20} /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                             {filteredPosts.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد مقالات تطابق بحثك.</p>}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </>
     );

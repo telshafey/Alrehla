@@ -10,15 +10,15 @@ const Accordion: React.FC<AccordionProps> = ({ title, children }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="border rounded-lg bg-white shadow-sm">
+        <div className="border-t first:border-t-0">
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex justify-between items-center w-full p-4 text-right"
             >
-                <span className="font-bold text-lg text-gray-800">{title}</span>
+                <span className="font-bold text-lg text-foreground">{title}</span>
                 <ChevronDown 
-                    className={`w-6 h-6 text-gray-500 transition-transform duration-300 ${isOpen ? 'transform rotate-180 text-blue-500' : ''}`} 
+                    className={`w-6 h-6 text-muted-foreground transition-transform duration-300 ${isOpen ? 'transform rotate-180 text-primary' : ''}`} 
                 />
             </button>
             <div 
