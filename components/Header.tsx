@@ -6,7 +6,10 @@ import { useProduct } from '../contexts/ProductContext';
 import { useUserNotifications } from '../hooks/queries/user/useUserDataQuery';
 import { useNotificationMutations } from '../hooks/mutations/useNotificationMutations';
 import { formatDate } from '../utils/helpers';
-import { ShoppingCart, User, Menu, X, Shield, ChevronDown, Bell, LogOut, Trash2, Info, Calendar } from 'lucide-react';
+import { 
+    ShoppingCart, User, Menu, X, ChevronDown, Bell, LogOut, Trash2, Info, Calendar, 
+    BookOpen, ShoppingBag, Box, Map, Users as UsersIcon, Home 
+} from 'lucide-react';
 import { Button } from './ui/Button';
 
 
@@ -22,25 +25,27 @@ const Header: React.FC = () => {
     const { isLoggedIn, currentUser, hasAdminAccess, signOut } = useAuth();
     const { itemCount } = useCart();
     const { siteBranding } = useProduct();
-    const { data: notifications = [], isLoading: notificationsLoading } = useUserNotifications();
+    const { data: notifications = [] } = useUserNotifications();
     const { markNotificationAsRead, deleteNotification } = useNotificationMutations();
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-    const userMenuRef = useRef<HTMLDivElement>(null);
-    const notificationsRef = useRef<HTMLDivElement>(null);
+    const menusRef = useRef<{ [key: string]: HTMLElement | null }>({});
 
     const unreadCount = useMemo(() => notifications.filter((n: any) => !n.read).length, [notifications]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-                setIsUserMenuOpen(false);
-            }
-            if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
-                setIsNotificationsOpen(false);
+            // FIX: Corrected type error on 'contains' and fixed logic for detecting outside clicks.
+            // The original logic using `every` would incorrectly stop if a menu was not rendered (ref is null).
+            // This `some`-based logic correctly checks if the click occurred inside *any* of the rendered menu elements.
+            const clickedInside = Object.values(menusRef.current).some(
+                (ref) => (ref as HTMLElement | null)?.contains(event.target as Node)
+            );
+
+            if (!clickedInside) {
+                setOpenMenu(null);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -49,8 +54,11 @@ const Header: React.FC = () => {
 
     const closeAllMenus = () => {
         setIsMobileMenuOpen(false);
-        setIsUserMenuOpen(false);
-        setIsNotificationsOpen(false);
+        setOpenMenu(null);
+    };
+
+    const toggleMenu = (menuKey: string) => {
+        setOpenMenu(prev => (prev === menuKey ? null : menuKey));
     };
 
     const handleDeleteNotification = (e: React.MouseEvent, notificationId: number) => {
@@ -60,31 +68,105 @@ const Header: React.FC = () => {
     };
 
     const navLinks = [
-        { to: '/', text: 'الرئيسية' },
+        { key: 'home', to: '/', text: 'الرئيسية' },
         { 
+            key: 'enha-lak',
             to: '/enha-lak', 
             text: 'إنها لك',
-            subLinks: [
-                { to: '/enha-lak', text: 'عن المشروع' },
-                { to: '/enha-lak/store', text: 'متجر القصص' },
-                { to: '/enha-lak/subscription', text: 'صندوق الرحلة الشهري' },
-                { to: '/enha-lak/store', text: 'اطلب قصتك الآن', isCta: true },
-            ]
+            megaMenu: {
+                sections: [
+                    {
+                        title: 'استكشف المشروع',
+                        links: [
+                            { to: '/enha-lak', text: 'عن المشروع', icon: <Info size={18} /> },
+                            { to: '/enha-lak/store', text: 'متجر القصص', icon: <ShoppingBag size={18} /> },
+                        ]
+                    },
+                    {
+                        title: 'الاشتراكات',
+                        links: [
+                             { to: '/enha-lak/subscription', text: 'صندوق الرحلة الشهري', icon: <Box size={18} /> },
+                        ]
+                    }
+                ],
+                cta: { to: '/enha-lak/store', text: 'اطلب قصتك الآن', description: 'اجعل طفلك بطل حكايته الخاصة.' }
+            }
         },
         { 
+            key: 'creative-writing',
             to: '/creative-writing', 
             text: 'بداية الرحلة',
-            subLinks: [
-                { to: '/creative-writing/about', text: 'عن البرنامج' },
-                { to: '/creative-writing/curriculum', text: 'خريطة الرحلة' },
-                { to: '/creative-writing/instructors', text: 'المدربون' },
-                { to: '/creative-writing/booking', text: 'احجز جلستك', isCta: true },
-            ]
+            megaMenu: {
+                sections: [
+                    {
+                        title: 'عن البرنامج',
+                        links: [
+                            { to: '/creative-writing', text: 'نظرة عامة', icon: <Home size={18} /> },
+                            { to: '/creative-writing/about', text: 'فلسفة البرنامج', icon: <BookOpen size={18} /> },
+                            { to: '/creative-writing/curriculum', text: 'خريطة الرحلة', icon: <Map size={18} /> },
+                            { to: '/creative-writing/instructors', text: 'المدربون', icon: <UsersIcon size={18} /> },
+                        ]
+                    }
+                ],
+                 cta: { to: '/creative-writing/booking', text: 'احجز جلستك', description: 'ابدأ رحلة الإبداع مع مدرب متخصص.' }
+            }
         },
-        { to: '/about', text: 'عنا' },
-        { to: '/blog', text: 'المدونة' },
-        { to: '/support', text: 'الدعم' },
+        { key: 'about', to: '/about', text: 'عنا' },
+        { key: 'blog', to: '/blog', text: 'المدونة' },
+        { key: 'support', to: '/support', text: 'الدعم' },
     ];
+    
+    const MegaMenuNavItem: React.FC<{ link: any }> = ({ link }) => {
+        const isOpen = openMenu === link.key;
+        return (
+            <div ref={el => (menusRef.current[link.key] = el)} className="relative">
+                <button
+                    onClick={() => toggleMenu(link.key)}
+                    aria-haspopup="true"
+                    aria-expanded={isOpen}
+                    className="flex items-center gap-1 font-semibold text-gray-600 hover:text-blue-500 transition-colors"
+                >
+                    {link.text}
+                    <ChevronDown size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isOpen && (
+                    <div className="absolute top-full right-0 mt-4 w-[480px] bg-white rounded-lg shadow-2xl ring-1 ring-black ring-opacity-5 animate-fadeIn z-50 overflow-hidden">
+                       <div className="flex">
+                            <div className="flex-grow p-6 grid grid-cols-2 gap-6">
+                                {link.megaMenu.sections.map((section: any) => (
+                                    <div key={section.title}>
+                                        <h3 className="font-bold text-gray-500 text-sm uppercase tracking-wider mb-3">{section.title}</h3>
+                                        <ul className="space-y-2">
+                                            {section.links.map((subLink: any) => (
+                                                <li key={subLink.to}>
+                                                    <NavLink
+                                                        to={subLink.to}
+                                                        onClick={closeAllMenus}
+                                                        className={({ isActive }) => `flex items-center gap-3 p-2 rounded-md transition-colors text-gray-700 hover:bg-gray-100 ${isActive ? 'font-bold text-blue-600 bg-blue-50' : ''}`}
+                                                    >
+                                                        {subLink.icon}
+                                                        <span>{subLink.text}</span>
+                                                    </NavLink>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="w-48 bg-gray-50 p-6 flex flex-col justify-center items-center text-center">
+                                 <h4 className="font-bold text-blue-600">{link.megaMenu.cta.text}</h4>
+                                 <p className="text-xs text-gray-500 mt-1 mb-4">{link.megaMenu.cta.description}</p>
+                                 <Button asChild size="sm" onClick={closeAllMenus}>
+                                    <Link to={link.megaMenu.cta.to}>ابدأ الآن</Link>
+                                 </Button>
+                            </div>
+                       </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     const NavItem: React.FC<{ to: string, text: string }> = ({ to, text }) => (
         <NavLink
@@ -97,56 +179,6 @@ const Header: React.FC = () => {
             {text}
         </NavLink>
     );
-    
-    const DropdownNavItem: React.FC<{ to: string, text: string, subLinks: any[] }> = ({ to, text, subLinks }) => {
-        const [isOpen, setIsOpen] = useState(false);
-        const timeoutRef = useRef<number | null>(null);
-
-        const handleMouseEnter = () => {
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
-            setIsOpen(true);
-        };
-        const handleMouseLeave = () => {
-            timeoutRef.current = window.setTimeout(() => setIsOpen(false), 200);
-        };
-        
-        return (
-            <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-                 <NavLink
-                    to={to}
-                    className={({ isActive, isPending }) =>
-                        `flex items-center gap-1 font-semibold transition-colors ${isActive ? 'text-blue-600' : 'text-gray-600 hover:text-blue-500'}`
-                    }
-                >
-                    {text}
-                    <ChevronDown size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                </NavLink>
-
-                {isOpen && (
-                    <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 animate-fadeIn z-50">
-                        <div className="py-1">
-                            {subLinks.map(subLink => (
-                                <NavLink
-                                    key={subLink.to}
-                                    to={subLink.to}
-                                    onClick={() => {setIsOpen(false); closeAllMenus();}}
-                                    className={({ isActive }) => `block px-4 py-2 text-sm ${
-                                        subLink.isCta 
-                                        ? 'font-bold text-blue-600 bg-blue-50 hover:bg-blue-100' 
-                                        : isActive 
-                                        ? 'text-blue-600' 
-                                        : 'text-gray-700 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    {subLink.text}
-                                </NavLink>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-        )
-    };
 
     return (
         <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-40" dir="rtl">
@@ -160,7 +192,7 @@ const Header: React.FC = () => {
 
                     {/* Desktop Navigation */}
                     <nav className="hidden lg:flex items-center gap-8">
-                        {navLinks.map(link => link.subLinks ? <DropdownNavItem key={link.to} to={link.to} text={link.text} subLinks={link.subLinks} /> : <NavItem key={link.to} to={link.to} text={link.text} />)}
+                        {navLinks.map(link => link.megaMenu ? <MegaMenuNavItem key={link.key} link={link} /> : <NavItem key={link.key} to={link.to} text={link.text} />)}
                     </nav>
 
                     {/* Actions */}
@@ -177,8 +209,8 @@ const Header: React.FC = () => {
                         {isLoggedIn ? (
                             <>
                                 {/* Notifications Dropdown */}
-                                <div ref={notificationsRef} className="relative">
-                                    <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="relative p-2 text-gray-600 hover:text-blue-600">
+                                <div ref={el => (menusRef.current['notifications'] = el)} className="relative">
+                                    <button onClick={() => toggleMenu('notifications')} className="relative p-2 text-gray-600 hover:text-blue-600">
                                         <Bell />
                                         {unreadCount > 0 && (
                                             <span className="absolute top-0 right-0 block h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
@@ -186,7 +218,7 @@ const Header: React.FC = () => {
                                             </span>
                                         )}
                                     </button>
-                                    {isNotificationsOpen && (
+                                    {openMenu === 'notifications' && (
                                         <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 animate-fadeIn z-50">
                                             <div className="p-3 border-b font-bold text-sm">الإشعارات</div>
                                             <div className="py-1 max-h-80 overflow-y-auto">
@@ -217,11 +249,11 @@ const Header: React.FC = () => {
                                 </div>
                                 
                                  {/* User Menu Dropdown */}
-                                <div ref={userMenuRef} className="relative">
-                                    <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className="p-2 text-gray-600 hover:text-blue-600">
+                                <div ref={el => (menusRef.current['user'] = el)} className="relative">
+                                    <button onClick={() => toggleMenu('user')} className="p-2 text-gray-600 hover:text-blue-600">
                                         <User />
                                     </button>
-                                    {isUserMenuOpen && (
+                                    {openMenu === 'user' && (
                                         <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 animate-fadeIn z-50">
                                             <div className="p-4 border-b">
                                                 <p className="text-sm font-semibold">مرحباً، {currentUser?.name}</p>
@@ -263,9 +295,9 @@ const Header: React.FC = () => {
                         {navLinks.map(link => (
                             <div key={link.to} className="w-full text-center">
                                 <NavItem to={link.to} text={link.text} />
-                                {link.subLinks && (
+                                {link.megaMenu && (
                                     <div className="mt-2 flex flex-col items-center gap-2 border-r-2 border-blue-100 pr-4">
-                                        {link.subLinks.map(subLink => (
+                                        {link.megaMenu.sections.flatMap(s => s.links).map(subLink => (
                                             <NavLink
                                                 key={subLink.to}
                                                 to={subLink.to}

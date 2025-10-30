@@ -14,8 +14,9 @@ interface InstructorProfileEditorProps {
 
 const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instructor, disabled }) => {
     const { requestProfileUpdate } = useInstructorMutations();
+    const [name, setName] = useState(instructor.name || '');
+    const [specialty, setSpecialty] = useState(instructor.specialty || '');
     const [bio, setBio] = useState(instructor.bio || '');
-    const [rate, setRate] = useState(instructor.rate_per_session?.toString() || '');
     const [justification, setJustification] = useState('');
     const isSaving = requestProfileUpdate.isPending;
 
@@ -23,10 +24,7 @@ const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instr
         e.preventDefault();
         await requestProfileUpdate.mutateAsync({ 
             instructorId: instructor.id,
-            updates: {
-                bio,
-                rate_per_session: parseFloat(rate) || 0,
-            },
+            updates: { name, specialty, bio },
             justification
         });
         setJustification('');
@@ -35,6 +33,22 @@ const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instr
     return (
         <form onSubmit={handleSubmit} className={`space-y-6 mt-4 ${disabled ? 'opacity-50' : ''}`}>
             <fieldset disabled={disabled || isSaving}>
+                <FormField label="الاسم" htmlFor="name">
+                    <Input 
+                        id="name"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                    />
+                </FormField>
+                 <FormField label="التخصص" htmlFor="specialty">
+                    <Input 
+                        id="specialty"
+                        type="text"
+                        value={specialty}
+                        onChange={(e) => setSpecialty(e.target.value)}
+                    />
+                </FormField>
                 <FormField label="نبذة تعريفية" htmlFor="bio">
                     <Textarea 
                         id="bio" 
@@ -44,21 +58,13 @@ const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instr
                         placeholder="اكتب نبذة مختصرة عن خبراتك وأسلوبك في التدريب..."
                     />
                 </FormField>
-                <FormField label="السعر المقترح للجلسة (بالجنيه المصري)" htmlFor="rate">
-                    <Input 
-                        id="rate"
-                        type="number"
-                        value={rate}
-                        onChange={(e) => setRate(e.target.value)}
-                    />
-                </FormField>
                 <FormField label="مبررات التعديل (سيتم إرسالها للإدارة)" htmlFor="justification">
                      <Textarea 
                         id="justification" 
                         value={justification} 
                         onChange={(e) => setJustification(e.target.value)} 
                         rows={3}
-                        placeholder="مثال: قمت بتحديث النبذة التعريفية لتشمل خبراتي الجديدة. أقترح تعديل السعر ليتناسب مع أسعار السوق الحالية."
+                        placeholder="مثال: قمت بتحديث النبذة التعريفية لتشمل خبراتي الجديدة."
                         required
                     />
                 </FormField>

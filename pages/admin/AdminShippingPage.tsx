@@ -1,57 +1,82 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2, Truck } from 'lucide-react';
+import { Save, Loader2, Truck, Plus, Trash2 } from 'lucide-react';
 import { useProduct, ShippingCosts } from '../../contexts/ProductContext';
 import { useToast } from '../../contexts/ToastContext';
-import { EGYPTIAN_GOVERNORATES } from '../../utils/governorates';
 import AdminSection from '../../components/admin/AdminSection';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import FormField from '../../components/ui/FormField';
+import { v4 as uuidv4 } from 'uuid';
 
-const ShippingCostInput: React.FC<{
-    label: string;
-    value: number;
-    onChange: (value: number) => void;
-    disabled: boolean;
-}> = ({ label, value, onChange, disabled }) => (
-    <FormField label={label} htmlFor={label}>
-        <div className="relative">
-            <Input 
-                type="number"
-                id={label}
-                value={value} 
-                onChange={(e) => onChange(Number(e.target.value))} 
-                className="pl-12 pr-4" 
-                disabled={disabled}
-            />
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">ج.م</span>
-        </div>
-    </FormField>
-);
+interface Region {
+  id: string;
+  name: string;
+  cost: number;
+}
+interface Country {
+  id: string;
+  name: string;
+  regions: Region[];
+}
 
 const AdminShippingPage: React.FC = () => {
     const { shippingCosts, setShippingCosts, loading: isContextLoading } = useProduct();
-    const [editableCosts, setEditableCosts] = useState<ShippingCosts>({});
+    const [countries, setCountries] = useState<Country[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const { addToast } = useToast();
 
     useEffect(() => {
-        if (shippingCosts) {
-            setEditableCosts(JSON.parse(JSON.stringify(shippingCosts)));
-        } else {
-            // Initialize with default values if not available
-            const initialCosts: ShippingCosts = {};
-            EGYPTIAN_GOVERNORATES.forEach(gov => {
-                initialCosts[gov] = 0;
-            });
-            setEditableCosts(initialCosts);
+        if (shippingCosts && typeof shippingCosts === 'object') {
+            const transformedCosts: Country[] = Object.entries(shippingCosts).map(([countryName, regions]) => ({
+                id: uuidv4(),
+                name: countryName,
+                regions: Object.entries(regions).map(([regionName, cost]) => ({
+                    id: uuidv4(),
+                    name: regionName,
+                    cost: cost,
+                })),
+            }));
+            setCountries(transformedCosts);
         }
     }, [shippingCosts]);
+    
+    // Handlers for countries
+    const handleAddCountry = () => {
+        setCountries([...countries, { id: uuidv4(), name: '', regions: [{ id: uuidv4(), name: '', cost: 0 }] }]);
+    };
+    const handleRemoveCountry = (countryId: string) => {
+        setCountries(countries.filter(c => c.id !== countryId));
+    };
+    const handleCountryNameChange = (countryId: string, newName: string) => {
+        setCountries(countries.map(c => c.id === countryId ? { ...c, name: newName } : c));
+    };
 
-    const handleChange = (governorate: string, value: number) => {
-        setEditableCosts(prev => ({
-            ...prev,
-            [governorate]: value,
+    // Handlers for regions
+    const handleAddRegion = (countryId: string) => {
+        setCountries(countries.map(c => {
+            if (c.id === countryId) {
+                return { ...c, regions: [...c.regions, { id: uuidv4(), name: '', cost: 0 }] };
+            }
+            return c;
+        }));
+    };
+    const handleRemoveRegion = (countryId: string, regionId: string) => {
+        setCountries(countries.map(c => {
+            if (c.id === countryId) {
+                return { ...c, regions: c.regions.filter(r => r.id !== regionId) };
+            }
+            return c;
+        }));
+    };
+    const handleRegionChange = (countryId: string, regionId: string, field: 'name' | 'cost', value: string | number) => {
+        setCountries(countries.map(c => {
+            if (c.id === countryId) {
+                return {
+                    ...c,
+                    regions: c.regions.map(r => r.id === regionId ? { ...r, [field]: value } : r)
+                };
+            }
+            return c;
         }));
     };
 
@@ -59,7 +84,20 @@ const AdminShippingPage: React.FC = () => {
         e.preventDefault();
         setIsSaving(true);
         try {
-            await setShippingCosts(editableCosts);
+            // Transform back to the object structure
+            const newShippingCosts: ShippingCosts = countries.reduce((acc, country) => {
+                if (country.name.trim()) {
+                    acc[country.name.trim()] = country.regions.reduce((regionAcc, region) => {
+                        if (region.name.trim()) {
+                            regionAcc[region.name.trim()] = region.cost;
+                        }
+                        return regionAcc;
+                    }, {} as { [region: string]: number });
+                }
+                return acc;
+            }, {} as ShippingCosts);
+
+            await setShippingCosts(newShippingCosts);
         } catch (error: any) {
              addToast(error.message, 'error');
         } finally {
@@ -74,27 +112,49 @@ const AdminShippingPage: React.FC = () => {
     return (
         <div className="animate-fadeIn">
             <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-8">إدارة الشحن</h1>
-            <form onSubmit={handleSubmit}>
-                <AdminSection title="تكاليف الشحن للمحافظات" icon={<Truck />}>
-                     <p className="text-gray-600 mb-6 -mt-4">
-                        حدد تكلفة الشحن لكل محافظة. تكلفة الشحن للقاهرة يجب أن تكون 0.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {EGYPTIAN_GOVERNORATES.map(gov => (
-                            <ShippingCostInput
-                                key={gov}
-                                label={gov}
-                                value={editableCosts[gov] || 0}
-                                onChange={(value) => handleChange(gov, value)}
-                                disabled={isSaving || gov === 'القاهرة'}
-                            />
-                        ))}
-                    </div>
-                </AdminSection>
+            <form onSubmit={handleSubmit} className="space-y-8">
+                {countries.map((country) => (
+                    <AdminSection key={country.id} title={country.name || 'دولة جديدة'} icon={<Truck />}>
+                        <div className="space-y-4">
+                            <div className="flex gap-4 items-end">
+                                <FormField label="اسم الدولة" htmlFor={`country-${country.id}`} className="flex-grow">
+                                    <Input id={`country-${country.id}`} value={country.name} onChange={(e) => handleCountryNameChange(country.id, e.target.value)} placeholder="مثال: مصر" disabled={isSaving} />
+                                </FormField>
+                                <Button type="button" variant="danger" size="icon" onClick={() => handleRemoveCountry(country.id)} disabled={isSaving}><Trash2 size={16}/></Button>
+                            </div>
+                            <h3 className="text-md font-bold text-gray-600 pt-4 border-t">المناطق/المحافظات</h3>
+                            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                {country.regions.map((region) => (
+                                    <div key={region.id} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end p-3 bg-gray-50 rounded-md">
+                                        <FormField label="المنطقة" htmlFor={`region-name-${region.id}`}>
+                                            <Input id={`region-name-${region.id}`} value={region.name} onChange={(e) => handleRegionChange(country.id, region.id, 'name', e.target.value)} placeholder="مثال: القاهرة" disabled={isSaving} />
+                                        </FormField>
+                                        <FormField label="التكلفة" htmlFor={`region-cost-${region.id}`}>
+                                            <div className="relative">
+                                                <Input type="number" id={`region-cost-${region.id}`} value={region.cost} onChange={(e) => handleRegionChange(country.id, region.id, 'cost', Number(e.target.value))} className="pl-12 pr-4" disabled={isSaving} />
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">ج.م</span>
+                                            </div>
+                                        </FormField>
+                                        <Button type="button" variant="subtle" size="sm" onClick={() => handleRemoveRegion(country.id, region.id)} disabled={isSaving} className="self-end mb-1">
+                                            <Trash2 size={16}/>
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                             <Button type="button" variant="outline" size="sm" onClick={() => handleAddRegion(country.id)} disabled={isSaving} icon={<Plus />}>
+                                إضافة منطقة
+                            </Button>
+                        </div>
+                    </AdminSection>
+                ))}
+
+                <Button type="button" variant="outline" onClick={handleAddCountry} disabled={isSaving} icon={<Plus />}>
+                    إضافة دولة
+                </Button>
 
                 <div className="flex justify-end sticky bottom-6 mt-8">
                     <Button type="submit" loading={isSaving} size="lg" icon={<Save size={18} />} className="shadow-lg">
-                        حفظ التكاليف
+                        حفظ كل التغييرات
                     </Button>
                 </div>
             </form>

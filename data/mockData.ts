@@ -45,7 +45,8 @@ export const mockSubscriptionPlans: SubscriptionPlan[] = [
 ];
 
 export const mockBookings: CreativeWritingBooking[] = [
-    { id: 'bk_abc', created_at: '2023-07-20T10:00:00Z', user_id: 'usr_parent', user_name: 'أحمد عبدالله', child_id: 1, package_name: 'باقة الانطلاق', instructor_id: 1, booking_date: '2023-08-10T17:00:00Z', booking_time: '17:00', total: 1200, status: 'مكتمل', progress_notes: 'أظهرت فاطمة تقدماً ملحوظاً في بناء الشخصيات.', receipt_url: 'https://example.com/receipt.jpg', session_id: 'AlRehlah-Session-bk_abc' },
+    { id: 'bk_abc', created_at: '2023-07-20T10:00:00Z', user_id: 'usr_parent', user_name: 'أحمد عبدالله', child_id: 1, package_name: 'باقة الانطلاق', instructor_id: 1, booking_date: '2023-08-10T17:00:00Z', booking_time: '17:00', total: 1200, status: 'مؤكد', progress_notes: 'أظهرت فاطمة تقدماً ملحوظاً في بناء الشخصيات.', receipt_url: 'https://example.com/receipt.jpg', session_id: 'AlRehlah-Session-bk_abc' },
+    { id: 'bk_def', created_at: '2023-08-01T11:00:00Z', user_id: 'usr_parent', user_name: 'أحمد عبدالله', child_id: 2, package_name: 'الجلسة التعريفية', instructor_id: 1, booking_date: '2023-08-15T14:00:00Z', booking_time: '14:00', total: 0, status: 'مؤكد', progress_notes: null, receipt_url: null, session_id: 'AlRehlah-Session-bk_def' }
 ];
 
 export const mockPersonalizedProducts: PersonalizedProduct[] = [
@@ -315,7 +316,37 @@ export const mockSiteBranding: SiteBranding = {
 
 export const mockPrices: Prices = {};
 
-export const mockShippingCosts: ShippingCosts = { 'القاهرة': 0, 'الجيزة': 50, 'الإسكندرية': 60 };
+export const mockShippingCosts: ShippingCosts = {
+  "مصر": {
+    "القاهرة": 40,
+    "الجيزة": 50,
+    "الإسكندرية": 60,
+    "الدقهلية": 65,
+    "البحر الأحمر": 80,
+    "البحيرة": 60,
+    "الفيوم": 55,
+    "الغربية": 55,
+    "الإسماعيلية": 60,
+    "المنوفية": 55,
+    "المنيا": 70,
+    "القليوبية": 45,
+    "الوادي الجديد": 90,
+    "السويس": 60,
+    "اسوان": 90,
+    "اسيوط": 75,
+    "بني سويف": 60,
+    "بورسعيد": 65,
+    "دمياط": 60,
+    "الشرقية": 55,
+    "جنوب سيناء": 85,
+    "كفر الشيخ": 60,
+    "مطروح": 80,
+    "الأقصر": 85,
+    "قنا": 80,
+    "شمال سيناء": 75,
+    "سوهاج": 75
+  }
+};
 
 export const mockSocialLinks: SocialLinks = { id: 1, facebook_url: '#', twitter_url: '#', instagram_url: '#' };
 
@@ -435,9 +466,18 @@ export const mockSiteContent: SiteContent = {
     }
 };
 
+const now = new Date();
+const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
 export const mockScheduledSessions: ScheduledSession[] = [
-    { id: 'ses_1', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(Date.now() - 86400000 * 7).toISOString(), status: 'completed' },
+    // Journey 1 (bk_abc) for Fatima (child_id: 1)
+    { id: 'ses_1', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(Date.now() - 86400000 * 14).toISOString(), status: 'completed' },
+    { id: 'ses_3', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(firstDayOfMonth.setDate(2)).toISOString(), status: 'completed' },
     { id: 'ses_2', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(Date.now() + 86400000 * 7).toISOString(), status: 'upcoming' },
+    { id: 'ses_4', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(Date.now() + 86400000 * 14).toISOString(), status: 'upcoming' },
+    // Journey 2 (bk_def) for Omar (child_id: 2)
+    { id: 'ses_5', booking_id: 'bk_def', subscription_id: null, child_id: 2, instructor_id: 1, session_date: new Date(firstDayOfMonth.setDate(3)).toISOString(), status: 'completed' },
+    { id: 'ses_6', booking_id: 'bk_def', subscription_id: null, child_id: 2, instructor_id: 1, session_date: new Date(Date.now() + 86400000 * 10).toISOString(), status: 'upcoming' },
 ];
 
 export const mockSessionMessages: SessionMessage[] = [

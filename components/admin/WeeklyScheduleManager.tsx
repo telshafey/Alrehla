@@ -5,16 +5,18 @@ import type { Instructor, WeeklySchedule } from '../../lib/database.types';
 import { useToast } from '../../contexts/ToastContext';
 import { Button } from '../ui/Button';
 
-const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const daysOfWeek = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 const dayNames: { [key: string]: string } = {
-    sunday: 'الأحد', monday: 'الاثنين', tuesday: 'الثلاثاء', wednesday: 'الأربعاء',
-    thursday: 'الخميس', friday: 'الجمعة', saturday: 'السبت'
+    saturday: 'السبت', sunday: 'الأحد', monday: 'الاثنين', tuesday: 'الثلاثاء', wednesday: 'الأربعاء',
+    thursday: 'الخميس', friday: 'الجمعة'
 };
-const timeSlots = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30',
-    '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-    '17:00', '17:30', '18:00'
-];
+
+const timeSlots = Array.from({ length: 48 }, (_, i) => {
+    const hour = Math.floor(i / 2);
+    const minute = i % 2 === 0 ? '00' : '30';
+    return `${hour.toString().padStart(2, '0')}:${minute}`;
+});
+
 
 export const WeeklyScheduleManager: React.FC<{ instructor: Instructor }> = ({ instructor }) => {
     const { requestScheduleChange } = useInstructorMutations();
@@ -34,7 +36,7 @@ export const WeeklyScheduleManager: React.FC<{ instructor: Instructor }> = ({ in
             const daySlots = prev[day as keyof WeeklySchedule] || [];
             const newDaySlots = daySlots.includes(time)
                 ? daySlots.filter(t => t !== time)
-                : [...daySlots, time].sort();
+                : [...daySlots, time].sort((a,b) => a.localeCompare(b));
             
             const newSchedule = { ...prev, [day]: newDaySlots };
             if (newDaySlots.length === 0) {

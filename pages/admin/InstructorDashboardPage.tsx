@@ -49,10 +49,21 @@ const InstructorDashboardPage: React.FC = () => {
                 packageDetails,
             }
         });
+        
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        const introSessionsThisMonth = enrichedBookings.filter(b => 
+            b.package_name === 'الجلسة التعريفية' &&
+            b.status === 'مكتمل' &&
+            new Date(b.booking_date).getMonth() === currentMonth &&
+            new Date(b.booking_date).getFullYear() === currentYear
+        ).length;
+
 
         return {
             instructor: currentInstructor,
             bookings: enrichedBookings,
+            introSessionsThisMonth
         };
     }, [isLoading, currentUser, instructors, rawBookings, allChildren, settingsData, allScheduledSessions]);
 
@@ -65,7 +76,7 @@ const InstructorDashboardPage: React.FC = () => {
         return <div className="text-center text-red-500 p-4">لم يتم العثور على ملف المدرب الخاص بك أو حدث خطأ في تحميل البيانات.</div>;
     }
 
-    const { instructor, bookings } = dashboardData;
+    const { instructor, bookings, introSessionsThisMonth } = dashboardData;
     
     const tabs = [
         { key: 'dashboard', label: 'لوحة التحكم', icon: <LayoutDashboard size={18} /> },
@@ -97,6 +108,7 @@ const InstructorDashboardPage: React.FC = () => {
                     <InstructorDashboardPanel 
                         instructor={instructor} 
                         bookings={bookings}
+                        introSessionsCount={introSessionsThisMonth}
                         onNavigateTab={setActiveTab}
                     />
                 </TabsContent>
@@ -104,10 +116,10 @@ const InstructorDashboardPage: React.FC = () => {
                     <InstructorJourneysPanel instructorBookings={bookings} />
                 </TabsContent>
                 <TabsContent value="financials">
-                    <InstructorFinancialsPanel bookings={bookings} instructorRate={instructor.rate_per_session || 0} />
+                    <InstructorFinancialsPanel bookings={bookings} instructor={instructor} />
                 </TabsContent>
                 <TabsContent value="schedule">
-                    <InstructorSchedulePanel instructor={instructor} />
+                    <InstructorSchedulePanel instructor={instructor} bookings={bookings} />
                 </TabsContent>
                 <TabsContent value="profile">
                     <InstructorProfilePanel instructor={instructor} />

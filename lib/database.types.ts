@@ -1,5 +1,3 @@
-// FIX: Replaced entire file to define and export all types, removing mock data and circular dependencies.
-
 export type Database = {};
 
 export type UserRole =
@@ -217,7 +215,7 @@ export interface SiteBranding {
 
 export type Prices = { [key: string]: number };
 
-export type ShippingCosts = { [governorate: string]: number };
+export type ShippingCosts = { [country: string]: { [region: string]: number } };
 
 export interface SocialLinks {
   id: number;

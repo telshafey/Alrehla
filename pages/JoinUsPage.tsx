@@ -1,13 +1,16 @@
+
 import React, { useState } from 'react';
-import { PenTool, Mic, Palette } from 'lucide-react';
+import { PenTool, Mic, Palette, Send } from 'lucide-react';
 import { useCommunicationMutations } from '../hooks/mutations/useCommunicationMutations';
-import { useToast } from '../contexts/ToastContext';
-import SupportForm from '../components/shared/SupportForm';
 import OpportunityCard from '../components/shared/OpportunityCard';
+import { Button } from '../components/ui/Button';
+import FormField from '../components/ui/FormField';
+import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
+import { Textarea } from '../components/ui/Textarea';
 
 const JoinUsPage: React.FC = () => {
     const { createJoinRequest } = useCommunicationMutations();
-    const { addToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -20,16 +23,19 @@ const JoinUsPage: React.FC = () => {
             await createJoinRequest.mutateAsync({
                 name: data.name as string,
                 email: data.email as string,
-                role: data.subject as string, // Using 'subject' field from SupportForm as role
+                role: data.role as string,
                 message: data.message as string,
+                portfolio_url: data.portfolio_url as string,
             });
             (e.target as HTMLFormElement).reset();
         } catch (error) {
-            // Error toast is handled in context
+            // Error toast is handled in the mutation hook
         } finally {
             setIsSubmitting(false);
         }
     };
+
+    const roleOptions = ["مدرب كتابة إبداعية", "رسام قصص أطفال", "معلق صوتي", "أخرى"];
 
     return (
         <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
@@ -64,11 +70,30 @@ const JoinUsPage: React.FC = () => {
                 
                 <section className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-lg">
                      <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">قدم طلبك الآن</h2>
-                     <SupportForm 
-                        onSubmit={handleSubmit}
-                        isSubmitting={isSubmitting}
-                        subjectOptions={["مدرب كتابة إبداعية", "رسام قصص أطفال", "معلق صوتي", "أخرى"]}
-                     />
+                     <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <FormField label="الاسم" htmlFor="name">
+                                <Input type="text" name="name" id="name" required />
+                            </FormField>
+                            <FormField label="البريد الإلكتروني" htmlFor="email">
+                                <Input type="email" name="email" id="email" required />
+                            </FormField>
+                        </div>
+                        <FormField label="الدور المطلوب" htmlFor="role">
+                            <Select name="role" id="role" required>
+                                {roleOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                            </Select>
+                        </FormField>
+                        <FormField label="رابط معرض الأعمال (اختياري)" htmlFor="portfolio_url">
+                            <Input type="url" name="portfolio_url" id="portfolio_url" placeholder="https://behance.net/yourname" />
+                        </FormField>
+                        <FormField label="رسالتك" htmlFor="message">
+                            <Textarea id="message" name="message" rows={5} required placeholder="أخبرنا المزيد عنك وعن سبب اهتمامك بالانضمام إلينا..."/>
+                        </FormField>
+                        <Button type="submit" loading={isSubmitting} icon={<Send size={18} />} className="w-full">
+                            {isSubmitting ? 'جاري الإرسال...' : 'إرسال الطلب'}
+                        </Button>
+                    </form>
                 </section>
             </div>
         </div>

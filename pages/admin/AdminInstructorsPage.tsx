@@ -11,10 +11,10 @@ import { Button } from '../../components/ui/Button';
 import ErrorState from '../../components/ui/ErrorState';
 
 const fieldLabels: { [key: string]: string } = {
+    name: 'الاسم',
+    specialty: 'التخصص',
     bio: 'النبذة التعريفية',
     rate_per_session: 'سعر الجلسة المقترح',
-    specialty: 'التخصص',
-    name: 'الاسم',
 };
 
 const PendingUpdateDetails: React.FC<{ updates: any }> = ({ updates }) => {

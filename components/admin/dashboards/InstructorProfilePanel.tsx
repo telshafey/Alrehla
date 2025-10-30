@@ -26,7 +26,7 @@ const InstructorProfilePanel: React.FC<InstructorProfilePanelProps> = ({ instruc
                 </div>
             ) : (
                 <p className="text-sm text-gray-600 mb-4 -mt-2">
-                   يمكنك تعديل نبذتك التعريفية أو السعر المقترح للجلسة. سيتم إرسال طلبك للمراجعة.
+                   يمكنك تعديل بياناتك الشخصية. سيتم إرسال طلبك للمراجعة قبل أن تظهر التغييرات على الموقع.
                 </p>
             )}
            

@@ -5,6 +5,9 @@ import { formatDate } from '../../../utils/helpers';
 import type { CreativeWritingBooking, ScheduledSession, CreativeWritingPackage } from '../../../lib/database.types';
 import { Button } from '../../ui/Button';
 import RequestSessionChangeModal from './RequestSessionChangeModal';
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+
 
 type EnrichedInstructorBooking = CreativeWritingBooking & {
     sessions: ScheduledSession[];
@@ -17,56 +20,33 @@ interface InstructorJourneysPanelProps {
 }
 
 const JourneyDetailsCard: React.FC<{ journey: EnrichedInstructorBooking }> = ({ journey }) => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedSession, setSelectedSession] = useState<ScheduledSession | null>(null);
 
     const totalSessions = parseInt(journey.packageDetails?.sessions?.match(/\d+/)?.[0] || '0', 10);
     const completedSessionsCount = journey.sessions.filter(s => s.status === 'completed').length;
     
-    const upcomingSessions = useMemo(() => 
-        journey.sessions
-            .filter(s => s.status === 'upcoming')
-            .sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime()),
-        [journey.sessions]
-    );
-
-    const handleChangeRequest = (session: ScheduledSession) => {
-        setSelectedSession(session);
-        setIsModalOpen(true);
-    };
-
     return (
         <>
-            <RequestSessionChangeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} session={selectedSession} childName={journey.child_profiles?.name} />
             <div className="bg-gray-50 p-4 rounded-lg border">
                 <div className="flex justify-between items-start">
-                    <div>
-                        <h3 className="font-bold text-lg">{journey.child_profiles?.name}</h3>
-                        <p className="text-sm text-gray-500">{journey.package_name}</p>
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 flex items-center justify-center bg-purple-100 text-purple-600 rounded-full flex-shrink-0"><BookOpen /></div>
+                        <div>
+                            <h3 className="font-bold text-lg">{journey.child_profiles?.name}</h3>
+                            <p className="text-sm text-gray-500">{journey.package_name}</p>
+                        </div>
                     </div>
-                    <div className="text-sm font-semibold">
-                        {completedSessionsCount} / {totalSessions || '?'} جلسات مكتملة
+                    <div className="text-sm font-semibold text-right">
+                        <p>{completedSessionsCount} / {totalSessions || '?'} </p>
+                        <p>جلسات مكتملة</p>
                     </div>
                 </div>
-                <div className="mt-4 border-t pt-4">
-                    <h4 className="text-sm font-bold mb-2">الجلسات القادمة:</h4>
-                    {upcomingSessions.length > 0 ? (
-                        <ul className="space-y-2">
-                            {upcomingSessions.map(session => (
-                                <li key={session.id} className="flex justify-between items-center p-2 bg-white rounded-md">
-                                    <div className="flex items-center gap-2">
-                                        <Clock size={14} className="text-blue-500"/>
-                                        <span className="text-sm font-semibold">{formatDate(session.session_date)} - {new Date(session.session_date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
-                                    </div>
-                                    <Button size="sm" variant="ghost" onClick={() => handleChangeRequest(session)}>
-                                        طلب تغيير
-                                    </Button>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-sm text-gray-500 text-center">لا توجد جلسات قادمة مجدولة لهذه الرحلة.</p>
-                    )}
+                 <div className="mt-4 border-t pt-4 flex justify-end">
+                    <Button asChild size="sm">
+                        <Link to={`/journey/${journey.id}`}>
+                            <span>افتح مساحة العمل</span>
+                            <ArrowLeft size={16} />
+                        </Link>
+                    </Button>
                 </div>
             </div>
         </>

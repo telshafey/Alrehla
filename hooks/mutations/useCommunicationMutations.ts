@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
 import type { TicketStatus, RequestStatus } from '../../lib/database.types';
@@ -23,7 +24,7 @@ export const useCommunicationMutations = () => {
     });
 
      const createJoinRequest = useMutation({
-        mutationFn: async (data: { name: string, email: string, role: string, message: string }) => {
+        mutationFn: async (data: { name: string, email: string, role: string, message: string, portfolio_url?: string }) => {
             await sleep(500);
             console.log('Creating join request (mock)', data);
             return { success: true };

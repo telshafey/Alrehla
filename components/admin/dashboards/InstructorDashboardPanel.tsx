@@ -1,6 +1,6 @@
 import React from 'react';
 import StatCard from '../StatCard';
-import { Calendar, BookOpen } from 'lucide-react';
+import { Calendar, BookOpen, Award } from 'lucide-react';
 import type { Instructor } from '../../../lib/database.types';
 
 type EnrichedBooking = any; 
@@ -9,16 +9,19 @@ type InstructorTab = 'dashboard' | 'journeys' | 'financials' | 'schedule' | 'pro
 interface InstructorDashboardPanelProps {
     instructor: Instructor;
     bookings: EnrichedBooking[];
+    introSessionsCount: number;
     onNavigateTab: (tab: InstructorTab) => void;
 }
 
-const InstructorDashboardPanel: React.FC<InstructorDashboardPanelProps> = ({ instructor, bookings, onNavigateTab }) => {
+const InstructorDashboardPanel: React.FC<InstructorDashboardPanelProps> = ({ instructor, bookings, introSessionsCount, onNavigateTab }) => {
 
     const upcomingSessionsCount = bookings.reduce((count, booking) => {
         return count + (booking.sessions?.filter((s: any) => s.status === 'upcoming').length || 0);
     }, 0);
 
     const activeJourneysCount = bookings.filter((b: any) => b.status === 'مؤكد').length;
+    
+    const introSessionGoalMet = introSessionsCount >= 1;
 
     return (
         <div className="space-y-8 mt-8">
@@ -29,7 +32,7 @@ const InstructorDashboardPanel: React.FC<InstructorDashboardPanelProps> = ({ ins
                     value={upcomingSessionsCount} 
                     icon={<Calendar size={28} className="text-blue-500" />} 
                     color="bg-blue-100"
-                    onClick={() => onNavigateTab('journeys')}
+                    onClick={() => onNavigateTab('schedule')}
                 />
                 <StatCard 
                     title="الرحلات النشطة" 
@@ -38,7 +41,18 @@ const InstructorDashboardPanel: React.FC<InstructorDashboardPanelProps> = ({ ins
                     color="bg-purple-100" 
                     onClick={() => onNavigateTab('journeys')}
                 />
+                <StatCard 
+                    title="الجلسات التعريفية (هذا الشهر)" 
+                    value={`${introSessionsCount} / 1`}
+                    icon={<Award size={28} className={introSessionGoalMet ? "text-green-500" : "text-yellow-500"} />} 
+                    color={introSessionGoalMet ? "bg-green-100" : "bg-yellow-100"}
+                />
             </div>
+             {!introSessionGoalMet && (
+                <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800">
+                    <p className="text-sm font-bold">تذكير: مطلوب منك إكمال جلسة تعريفية واحدة على الأقل شهرياً.</p>
+                </div>
+            )}
         </div>
     );
 };
