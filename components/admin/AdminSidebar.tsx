@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
     LayoutDashboard, Users, Settings, ShoppingBag, Gift, Edit, MessageSquare, UserPlus,
     BookOpen, UserCheck, FileText, Star, Truck, UserCog, ShieldQuestion,
-    Calendar
+    Calendar, Sparkles
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -35,6 +35,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen, isCollap
 
     const creativeWritingLinks = [
         { to: '/admin/creative-writing', label: 'الحجوزات', icon: <BookOpen size={20} />, permission: permissions.canManageCreativeWritingBookings },
+        { to: '/admin/service-orders', label: 'طلبات الخدمات', icon: <Sparkles size={20} />, permission: permissions.canManageCreativeWritingBookings },
         { to: '/admin/scheduled-sessions', label: 'الجلسات المجدولة', icon: <Calendar size={20} />, permission: permissions.canManageSchedules },
         { to: '/admin/instructors', label: 'المدربون', icon: <UserCheck size={20} />, permission: permissions.canManageCreativeWritingInstructors },
         { to: '/admin/creative-writing-settings', label: 'إعدادات القسم', icon: <UserCog size={20} />, permission: permissions.canManageCreativeWritingSettings },

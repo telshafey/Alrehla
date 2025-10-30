@@ -27,6 +27,7 @@ const AdminShippingPage = React.lazy(() => import('../../pages/admin/AdminShippi
 const AdminSupportRequestsPage = React.lazy(() => import('../../pages/admin/AdminSupportRequestsPage'));
 const AdminScheduledSessionsPage = React.lazy(() => import('../../pages/admin/AdminScheduledSessionsPage'));
 const AdminSubscriptionBoxPage = React.lazy(() => import('../../pages/admin/AdminSubscriptionBoxPage'));
+const AdminServiceOrdersPage = React.lazy(() => import('../../pages/admin/AdminServiceOrdersPage'));
 
 
 const PermissionBasedRoute: React.FC<{ children: React.ReactElement, permission: keyof Permissions }> = ({ children, permission }) => {
@@ -64,6 +65,7 @@ const AdminLayout: React.FC = () => {
               <Route path="personalized-products/:id" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminProductDetailPage /></PermissionBasedRoute>} />
               <Route path="shipping" element={<PermissionBasedRoute permission="canManageShipping"><AdminShippingPage /></PermissionBasedRoute>} />
               <Route path="creative-writing" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminCreativeWritingPage /></PermissionBasedRoute>} />
+              <Route path="service-orders" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminServiceOrdersPage /></PermissionBasedRoute>} />
               <Route path="creative-writing-settings" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminCreativeWritingSettingsPage /></PermissionBasedRoute>} />
               <Route path="instructors" element={<PermissionBasedRoute permission="canManageCreativeWritingInstructors"><AdminInstructorsPage /></PermissionBasedRoute>} />
               <Route path="support-requests" element={<PermissionBasedRoute permission="canManageSupportRequests"><AdminSupportRequestsPage /></PermissionBasedRoute>} />

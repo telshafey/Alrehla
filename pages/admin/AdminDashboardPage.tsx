@@ -7,7 +7,7 @@ import StatsSummaryWidget from '../../components/admin/dashboards/StatsSummaryWi
 import ErrorState from '../../components/ui/ErrorState';
 import RecentActivityWidget from '../../components/admin/dashboards/RecentActivityWidget';
 import DashboardWidget from '../../components/admin/dashboards/DashboardWidget';
-import { ShoppingBag, BookOpen, CalendarCheck, UserCog, MessageSquare, UserPlus, ShieldQuestion, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, BookOpen, CalendarCheck, UserCog, MessageSquare, UserPlus, ShieldQuestion, ArrowLeft, Sparkles } from 'lucide-react';
 
 // A new, reusable card for actionable items.
 const ActionItemCard: React.FC<{ title: string; value: number; icon: React.ReactNode; to: string; state?: any; color: string; }> = ({ title, value, icon, to, state, color }) => {
@@ -35,7 +35,7 @@ const AdminDashboardPage: React.FC = () => {
     const actionItems = useMemo(() => {
         if (!data) return [];
         
-        const { orders = [], bookings = [], instructors = [], supportTickets = [], joinRequests = [], supportSessionRequests = [] } = data;
+        const { orders = [], bookings = [], instructors = [], supportTickets = [], joinRequests = [], supportSessionRequests = [], serviceOrders = [] } = data;
 
         return [
             {
@@ -44,6 +44,13 @@ const AdminDashboardPage: React.FC = () => {
                 to: '/admin/orders',
                 color: 'border-pink-500',
                 permission: permissions.canManageEnhaLakOrders,
+            },
+            {
+                title: 'طلبات خدمات جديدة للمراجعة',
+                value: serviceOrders.filter((o: any) => o.status === 'بانتظار المراجعة').length,
+                to: '/admin/service-orders',
+                color: 'border-green-500',
+                permission: permissions.canManageCreativeWritingBookings,
             },
             {
                 title: 'حجوزات بانتظار تأكيد الدفع',

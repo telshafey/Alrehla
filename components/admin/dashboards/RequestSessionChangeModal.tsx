@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { X, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { Textarea } from '../../ui/Textarea';
 import FormField from '../../ui/FormField';
 import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
 import type { ScheduledSession } from '../../../lib/database.types';
 import { useAuth } from '../../../contexts/AuthContext';
-// FIX: Corrected import path for useAdminInstructors hook after refactoring.
 import { useAdminInstructors } from '../../../hooks/queries/admin/useAdminInstructorsQuery';
+import Modal from '../../ui/Modal';
 
 
 interface RequestSessionChangeModalProps {
@@ -24,7 +24,7 @@ const RequestSessionChangeModal: React.FC<RequestSessionChangeModalProps> = ({ i
     const [reason, setReason] = useState('');
     const isSaving = createSupportSessionRequest.isPending;
 
-    if (!isOpen || !session) return null;
+    if (!session) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,24 +42,24 @@ const RequestSessionChangeModal: React.FC<RequestSessionChangeModalProps> = ({ i
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center" onClick={onClose}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 m-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">طلب تعديل/إلغاء جلسة</h2>
-                    <Button variant="ghost" size="icon" onClick={onClose}><X /></Button>
-                </div>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <p>أنت تطلب تعديل الجلسة مع الطالب: <span className="font-bold">{childName}</span></p>
-                    <FormField label="السبب" htmlFor="reason">
-                        <Textarea id="reason" value={reason} onChange={e => setReason(e.target.value)} rows={4} required placeholder="يرجى توضيح سبب طلب التغيير أو الإلغاء..." />
-                    </FormField>
-                    <div className="flex justify-end gap-4 pt-4 border-t">
-                        <Button type="button" variant="ghost" onClick={onClose}>إلغاء</Button>
-                        <Button type="submit" loading={isSaving} icon={<Send />}>إرسال الطلب للإدارة</Button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="طلب تعديل/إلغاء جلسة"
+            footer={
+                <>
+                    <Button type="button" variant="ghost" onClick={onClose}>إلغاء</Button>
+                    <Button form="request-change-form" type="submit" loading={isSaving} icon={<Send />}>إرسال الطلب للإدارة</Button>
+                </>
+            }
+        >
+            <form id="request-change-form" onSubmit={handleSubmit} className="space-y-6">
+                <p>أنت تطلب تعديل الجلسة مع الطالب: <span className="font-bold">{childName}</span></p>
+                <FormField label="السبب" htmlFor="reason">
+                    <Textarea id="reason" value={reason} onChange={e => setReason(e.target.value)} rows={4} required placeholder="يرجى توضيح سبب طلب التغيير أو الإلغاء..." />
+                </FormField>
+            </form>
+        </Modal>
     );
 };
 

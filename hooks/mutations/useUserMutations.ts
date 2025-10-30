@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
+import type { UserProfile } from '../../lib/database.types';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -8,7 +9,7 @@ export const useUserMutations = () => {
     const { addToast } = useToast();
 
     const updateUser = useMutation({
-        mutationFn: async (payload: { id: string, name: string }) => {
+        mutationFn: async (payload: Partial<UserProfile> & { id: string }) => {
             await sleep(500);
             console.log("Updating user (mock)", payload);
             return payload;

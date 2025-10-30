@@ -17,6 +17,9 @@ export interface UserProfile {
   name: string;
   email: string;
   role: UserRole;
+  address?: string | null;
+  governorate?: string | null;
+  phone?: string | null;
 }
 
 export interface ChildProfile {
@@ -49,7 +52,9 @@ export type OrderStatus =
   | 'يحتاج مراجعة'
   | 'تم الشحن'
   | 'تم التسليم'
-  | 'ملغي';
+  | 'ملغي'
+  | 'قيد التنفيذ'
+  | 'مكتمل';
 
 export interface Order {
   id: string;
@@ -62,6 +67,18 @@ export interface Order {
   details: any;
   admin_comment: string | null;
   receipt_url: string | null;
+}
+
+export interface ServiceOrder {
+  id: string;
+  created_at: string;
+  user_id: string;
+  child_id: number;
+  service_id: number;
+  status: OrderStatus;
+  details: any; // e.g., { fileUrl: '...', userNotes: '...' }
+  total: number;
+  assigned_instructor_id: number | null;
 }
 
 export type SubscriptionStatus =
@@ -172,6 +189,16 @@ export interface AdditionalService {
   name: string;
   price: number;
   description: string | null;
+}
+
+export interface StandaloneService {
+  id: number;
+  name: string;
+  price: number;
+  description: string;
+  category: 'استشارات' | 'مراجعات' | 'نشر';
+  icon_name: string; // e.g., 'MessageSquare', 'FileCheck2'
+  requires_file_upload: boolean;
 }
 
 export type WeeklySchedule = {
@@ -356,16 +383,25 @@ export interface SupportSessionRequest {
   requested_at: string;
 }
 
+// Helper types for enriched data
+export type UserProfileWithRelations = UserProfile & {
+  children: ChildProfile[];
+};
+
 export type OrderWithRelations = Order & {
   users: { name: string; email: string } | null;
   child_profiles: { name: string } | null;
 };
 
-export type UserProfileWithRelations = UserProfile & {
-  children: ChildProfile[];
-};
-
 export type BookingWithRelations = CreativeWritingBooking & {
+  users: { name: string; email: string } | null;
   child_profiles: { name: string } | null;
   instructors: { name: string } | null;
+};
+
+export type ServiceOrderWithRelations = ServiceOrder & {
+  users: { name: string; email: string } | null;
+  child_profiles: { name: string } | null;
+  instructors: { name: string } | null;
+  standalone_services: { name: string } | null;
 };

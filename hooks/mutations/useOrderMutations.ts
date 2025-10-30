@@ -64,5 +64,31 @@ export const useOrderMutations = () => {
         }
     });
     
-    return { createOrder, updateOrderStatus, updateOrderComment, updateReceipt };
+    const updateServiceOrderStatus = useMutation({
+        mutationFn: async ({ orderId, newStatus }: { orderId: string, newStatus: OrderStatus }) => {
+            await sleep(300);
+            console.log("Updating service order status (mock)", { orderId, newStatus });
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminServiceOrders'] });
+            addToast('تم تحديث حالة الطلب.', 'success');
+        },
+        onError: (error: Error) => addToast(`فشل: ${error.message}`, 'error'),
+    });
+
+    const assignInstructorToServiceOrder = useMutation({
+        mutationFn: async ({ orderId, instructorId }: { orderId: string, instructorId: number | null }) => {
+            await sleep(300);
+            console.log("Assigning instructor to service order (mock)", { orderId, instructorId });
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminServiceOrders'] });
+            addToast('تم تعيين المدرب بنجاح.', 'success');
+        },
+        onError: (error: Error) => addToast(`فشل: ${error.message}`, 'error'),
+    });
+
+    return { createOrder, updateOrderStatus, updateOrderComment, updateReceipt, updateServiceOrderStatus, assignInstructorToServiceOrder };
 };

@@ -8,6 +8,7 @@ import {
     mockSocialLinks,
     mockPublicHolidays,
     mockSubscriptionPlans,
+    mockStandaloneServices, // Import new data
 } from '../../../data/mockData';
 
 const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
@@ -27,6 +28,7 @@ export const usePublicData = () => {
                 socialLinks: await mockFetch(mockSocialLinks),
                 publicHolidays: await mockFetch(mockPublicHolidays),
                 subscriptionPlans: await mockFetch(mockSubscriptionPlans),
+                standaloneServices: await mockFetch(mockStandaloneServices), // Add new data to fetch
             };
             return data;
         },

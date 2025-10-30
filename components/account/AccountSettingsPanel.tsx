@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import { User, Key, LogOut, Edit } from 'lucide-react';
+import { User, Key, LogOut, Edit, Home } from 'lucide-react';
 import { Button } from '../ui/Button';
 import FormField from '../ui/FormField';
 import { Input } from '../ui/Input';
+import { Textarea } from '../ui/Textarea';
+import { Select } from '../ui/Select';
+import { EGYPTIAN_GOVERNORATES } from '../../utils/governorates';
+
 
 const Section: React.FC<{title: string, icon: React.ReactNode, children: React.ReactNode}> = ({title, icon, children}) => (
     <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
@@ -18,18 +22,26 @@ const Section: React.FC<{title: string, icon: React.ReactNode, children: React.R
 );
 
 const AccountSettingsPanel: React.FC = () => {
-    const { currentUser, signOut } = useAuth();
+    const { currentUser, signOut, updateCurrentUser } = useAuth();
     const { updateUser, updateUserPassword } = useUserMutations();
     const [isEditingName, setIsEditingName] = useState(false);
     const [name, setName] = useState(currentUser!.name);
+    
     const [isEditingPassword, setIsEditingPassword] = useState(false);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
+    const [isEditingAddress, setIsEditingAddress] = useState(false);
+    const [address, setAddress] = useState(currentUser!.address || '');
+    const [governorate, setGovernorate] = useState(currentUser!.governorate || 'القاهرة');
+    const [phone, setPhone] = useState(currentUser!.phone || '');
+
     const handleNameSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await updateUser.mutateAsync({ id: currentUser!.id, name });
+        const payload = { id: currentUser!.id, name };
+        await updateUser.mutateAsync(payload);
+        updateCurrentUser({ name }); // Manually update context state
         setIsEditingName(false);
     };
     
@@ -44,6 +56,19 @@ const AccountSettingsPanel: React.FC = () => {
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
+    };
+    
+    const handleAddressSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const payload = { 
+            id: currentUser!.id,
+            address,
+            governorate,
+            phone
+        };
+        await updateUser.mutateAsync(payload);
+        updateCurrentUser(payload);
+        setIsEditingAddress(false);
     };
 
 
@@ -73,6 +98,37 @@ const AccountSettingsPanel: React.FC = () => {
                      <p className="font-semibold text-gray-600 text-sm">البريد الإلكتروني:</p>
                      <p>{currentUser!.email}</p>
                 </div>
+            </Section>
+
+            <Section title="عنوان التوصيل الافتراضي" icon={<Home />}>
+                {!isEditingAddress ? (
+                    <div>
+                        <div className="p-4 bg-gray-50 rounded-lg border space-y-2">
+                            <p><span className="font-semibold text-gray-600 text-sm">العنوان:</span> {currentUser?.address || 'لم يحدد'}</p>
+                            <p><span className="font-semibold text-gray-600 text-sm">المحافظة:</span> {currentUser?.governorate || 'لم يحدد'}</p>
+                            <p><span className="font-semibold text-gray-600 text-sm">رقم الهاتف:</span> {currentUser?.phone || 'لم يحدد'}</p>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => setIsEditingAddress(true)} icon={<Edit size={14}/>} className="mt-2">تعديل العنوان</Button>
+                    </div>
+                ) : (
+                    <form onSubmit={handleAddressSubmit} className="p-4 bg-gray-50 rounded-lg border space-y-4">
+                        <FormField label="العنوان التفصيلي" htmlFor="address">
+                            <Textarea id="address" value={address} onChange={e => setAddress(e.target.value)} />
+                        </FormField>
+                        <FormField label="المحافظة" htmlFor="governorate">
+                            <Select id="governorate" value={governorate} onChange={e => setGovernorate(e.target.value)}>
+                                {EGYPTIAN_GOVERNORATES.map(gov => <option key={gov} value={gov}>{gov}</option>)}
+                            </Select>
+                        </FormField>
+                        <FormField label="رقم الهاتف" htmlFor="phone">
+                            <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
+                        </FormField>
+                        <div className="flex gap-2">
+                            <Button type="submit" size="sm" loading={updateUser.isPending}>حفظ</Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditingAddress(false)}>إلغاء</Button>
+                        </div>
+                    </form>
+                )}
             </Section>
             
             <Section title="الأمان" icon={<Key />}>

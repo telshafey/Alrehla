@@ -26,10 +26,12 @@ const OrderPage = React.lazy(() => import('./pages/OrderPage'));
 // Creative Writing Feature Pages
 const CreativeWritingPage = React.lazy(() => import('./pages/CreativeWritingPage'));
 const CreativeWritingAboutPage = React.lazy(() => import('./pages/CreativeWritingAboutPage'));
-const CreativeWritingCurriculumPage = React.lazy(() => import('./pages/CreativeWritingCurriculumPage'));
+const CreativeWritingPackagesPage = React.lazy(() => import('./pages/CreativeWritingPackagesPage'));
 const CreativeWritingInstructorsPage = React.lazy(() => import('./pages/CreativeWritingInstructorsPage'));
 const InstructorProfilePage = React.lazy(() => import('./pages/InstructorProfilePage'));
 const CreativeWritingBookingPage = React.lazy(() => import('./pages/CreativeWritingBookingPage'));
+const CreativeWritingServicesPage = React.lazy(() => import('./pages/CreativeWritingServicesPage'));
+
 
 // User-centric Features
 const AccountPage = React.lazy(() => import('./pages/AccountPage'));
@@ -70,8 +72,9 @@ const AppRoutes: React.FC = () => {
                 {/* Creative Writing Project Routes */}
                 <Route path="/creative-writing" element={<CreativeWritingPage />} />
                 <Route path="/creative-writing/about" element={<CreativeWritingAboutPage />} />
-                <Route path="/creative-writing/curriculum" element={<CreativeWritingCurriculumPage />} />
+                <Route path="/creative-writing/packages" element={<CreativeWritingPackagesPage />} />
                 <Route path="/creative-writing/instructors" element={<CreativeWritingInstructorsPage />} />
+                <Route path="/creative-writing/services" element={<CreativeWritingServicesPage />} />
                 <Route path="/instructor/:slug" element={<InstructorProfilePage />} />
                 <Route path="/creative-writing/booking" element={<CreativeWritingBookingPage />} />
                 

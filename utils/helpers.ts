@@ -19,6 +19,8 @@ export const getStatusColor = (status: string | null): string => {
             return 'bg-orange-100 text-orange-800';
         case 'ملغي':
             return 'bg-red-100 text-red-800';
+        case 'قيد التنفيذ':
+            return 'bg-teal-100 text-teal-800';
         case 'نشط':
              return 'bg-indigo-100 text-indigo-800';
         default:

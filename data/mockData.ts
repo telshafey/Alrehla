@@ -3,11 +3,13 @@ import type {
     UserProfile, ChildProfile, Notification, Order, Subscription, CreativeWritingBooking, 
     PersonalizedProduct, CreativeWritingPackage, Instructor, SiteBranding, Prices, ShippingCosts, 
     SocialLinks, BlogPost, SupportTicket, JoinRequest, AdditionalService, SiteContent, ScheduledSession, SessionMessage, SessionAttachment, SupportSessionRequest,
-    SubscriptionPlan
+    SubscriptionPlan,
+    StandaloneService,
+    ServiceOrder
 } from '../lib/database.types';
 
 export const mockUsers: UserProfile[] = [
-    { id: 'usr_parent', created_at: '2023-00-01T10:00:00Z', name: 'أحمد عبدالله', email: 'parent@alrehlah.com', role: 'user' },
+    { id: 'usr_parent', created_at: '2023-00-01T10:00:00Z', name: 'أحمد عبدالله', email: 'parent@alrehlah.com', role: 'user', address: '123 شارع المثال، مدينة نصر', governorate: 'القاهرة', phone: '01234567890' },
     { id: 'usr_user', created_at: '2023-01-02T10:00:00Z', name: 'سارة خالد', email: 'user@alrehlah.com', role: 'user' },
     { id: 'usr_student', created_at: '2023-01-03T10:00:00Z', name: 'علي أحمد', email: 'student@alrehlah.com', role: 'student' },
     { id: 'usr_admin', created_at: '2023-01-04T10:00:00Z', name: 'مدير النظام', email: 'admin@alrehlah.com', role: 'super_admin' },
@@ -245,6 +247,26 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
     },
 ];
 
+export const mockStandaloneServices: StandaloneService[] = [
+    // --- خدمات لتنمية الكاتب ---
+    { id: 1, name: 'جلسة العصف الذهني المكثفة', price: 250, description: 'جلسة فردية مركزة (30 دقيقة) لمساعدة الطالب على تخطي "عقبة الكاتب"، تطوير فكرة، أو بناء شخصية معقدة.', category: 'استشارات', icon_name: 'MessageSquare', requires_file_upload: false },
+    { id: 2, name: 'المراجعة المتقدمة والتحرير', price: 350, description: 'تحرير كامل لنص (حتى 1000 كلمة) مع تصويبات لغوية وإعادة صياغة مقترحة لتحسين التدفق السردي.', category: 'مراجعات', icon_name: 'FileCheck2', requires_file_upload: true },
+    
+    // --- خدمات لتحويل الإبداع إلى واقع ---
+    { id: 4, name: 'باقة كتابي الأول', price: 1500, description: 'نحوّل أفضل قصة كتبها طفلك إلى كتاب حقيقي! تشمل الخدمة تحرير، تصميم غلاف، تنسيق، وطباعة 5 نسخ فاخرة.', category: 'نشر', icon_name: 'BookUp', requires_file_upload: true },
+    { id: 3, name: 'النشر في مجلة الرحلة', price: 500, description: 'فرصة لنشر أفضل قصة كتبها طفلك في العدد القادم من مجلتنا الإلكترونية الفصلية.', category: 'نشر', icon_name: 'Award', requires_file_upload: true },
+    { id: 5, name: 'تصميم الغلاف الاحترافي', price: 400, description: 'تصميم غلاف احترافي وجذاب لقصة طفلك، جاهز للمشاركة الرقمية أو الطباعة الشخصية.', category: 'نشر', icon_name: 'Palette', requires_file_upload: true },
+    { id: 6, name: 'التعليق الصوتي (AI)', price: 300, description: 'حوّل قصة طفلك إلى كتاب صوتي مسموع بأصوات طبيعية وجذابة باستخدام أحدث تقنيات الذكاء الاصطناعي.', category: 'نشر', icon_name: 'Mic', requires_file_upload: true },
+    
+    // --- خدمات داعمة لأولياء الأمور ---
+    { id: 7, name: 'جلسة إرشاد تربوي', price: 450, description: 'جلسة خاصة لولي الأمر (45 دقيقة) مع خبير تربوي لمناقشة أفضل السبل لدعم الموهبة الإبداعية لطفلك في المنزل.', category: 'استشارات', icon_name: 'Users', requires_file_upload: false },
+];
+
+
+export const mockServiceOrders: ServiceOrder[] = [
+  { id: 'ser_001', created_at: new Date().toISOString(), user_id: 'usr_parent', child_id: 1, service_id: 2, status: 'قيد التنفيذ', details: { fileUrl: '#', userNotes: 'الرجاء التركيز على بنية القصة.' }, total: 150, assigned_instructor_id: 1 },
+  { id: 'ser_002', created_at: new Date(Date.now() - 86400000).toISOString(), user_id: 'usr_user', child_id: 1, service_id: 3, status: 'بانتظار المراجعة', details: { fileUrl: '#', userNotes: 'نريد نشر هذه القصة في المجلة.' }, total: 500, assigned_instructor_id: null },
+];
 
 export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
     { 
@@ -412,9 +434,9 @@ export const mockSiteContent: SiteContent = {
         heroTitle: "رحلة كل طفل تبدأ بقصة... وقصته تبدأ هنا",
         heroSubtitle: "منصة تربوية عربية متكاملة تصنع قصصاً مخصصة تجعل طفلك بطلاً، وتطلق مواهبه في الكتابة الإبداعية",
         enhaLakTitle: "إنها لك",
-        enhaLakDescription: "قصص مخصصة ومنتجات تربوية فريدة تجعل طفلك بطل الحكاية الحقيقي",
+        enhaLakDescription: "ادخل إلى عالم الحكايات الشخصية، حيث يصبح طفلك هو البطل في قصص ومنتجات صُنعت خصيصاً له.",
         creativeWritingTitle: "بداية الرحلة",
-        creativeWritingDescription: "برنامج متكامل لتنمية مهارات الكتابة الإبداعية للأطفال والشباب من 8-18 سنة",
+        creativeWritingDescription: "بوابة إلى عالم الإبداع، حيث نطلق العنان للكاتب الصغير داخل طفلك من خلال رحلة تدريبية ملهمة.",
         valuePropositionTitle: "لماذا منصة الرحلة هي الأفضل لطفلك؟",
     },
     aboutPage: {
