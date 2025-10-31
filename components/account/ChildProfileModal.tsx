@@ -20,7 +20,7 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
     const [isSaving, setIsSaving] = useState(false);
     
     const [name, setName] = useState('');
-    const [age, setAge] = useState('');
+    const [birthDate, setBirthDate] = useState('');
     const [gender, setGender] = useState<'ذكر' | 'أنثى'>('ذكر');
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
@@ -31,14 +31,14 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
         if (isOpen) {
             if (childToEdit) {
                 setName(childToEdit.name);
-                setAge(childToEdit.age.toString());
+                setBirthDate(childToEdit.birth_date);
                 setGender(childToEdit.gender);
                 setPreview(childToEdit.avatar_url);
                 setInterests((childToEdit.interests || []).join(', '));
                 setStrengths((childToEdit.strengths || []).join(', '));
             } else {
                 setName('');
-                setAge('');
+                setBirthDate('');
                 setGender('ذكر');
                 setPreview(null);
                 setInterests('');
@@ -75,7 +75,7 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
             
             const profileData = {
                 name,
-                age: parseInt(age),
+                birth_date: birthDate,
                 gender,
                 avatar_url: newAvatarUrl,
                 interests: interestsArray.length > 0 ? interestsArray : null,
@@ -124,8 +124,8 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
                     <Input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required />
                 </FormField>
                 <div className="grid grid-cols-2 gap-4">
-                    <FormField label="العمر*" htmlFor="age">
-                        <Input type="number" id="age" value={age} onChange={(e) => setAge(e.target.value)} required />
+                    <FormField label="تاريخ الميلاد*" htmlFor="birthDate">
+                        <Input type="date" id="birthDate" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} required />
                     </FormField>
                     <FormField label="الجنس*" htmlFor="gender">
                         <Select id="gender" value={gender} onChange={(e) => setGender(e.target.value as 'ذكر' | 'أنثى')}>

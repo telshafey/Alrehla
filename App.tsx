@@ -5,7 +5,7 @@ import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import WhatsAppButton from './components/WhatsAppButton';
 import ScrollToTopButton from './components/ScrollToTopButton';
-import AppRoutes from './AppRoutes'; // Import the new routes component
+import AppRoutes from './AppRoutes';
 
 function App() {
   const location = useLocation();

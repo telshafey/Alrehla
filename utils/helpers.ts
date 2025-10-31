@@ -1,5 +1,21 @@
 import type { Subscription } from '../lib/database.types';
 
+export const calculateAge = (birthDateString: string | null | undefined): number | null => {
+    if (!birthDateString) return null;
+    try {
+        const birthDate = new Date(birthDateString);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age < 0 ? 0 : age;
+    } catch (e) {
+        return null;
+    }
+};
+
 export const getStatusColor = (status: string | null): string => {
     if (!status) return 'bg-gray-100 text-gray-800';
     switch (status) {

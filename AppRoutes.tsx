@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PageLoader from './components/ui/PageLoader';
+import PermissionBasedRoute from './components/auth/PermissionBasedRoute';
 
 // Lazy load pages to improve initial load time
 const PortalPage = lazy(() => import('./pages/PortalPage'));
@@ -48,6 +49,7 @@ const TrainingJourneyPage = lazy(() => import('./pages/TrainingJourneyPage'));
 const AdminCreativeWritingPackagesPage = lazy(() => import('./pages/admin/AdminCreativeWritingPackagesPage'));
 const AdminCreativeWritingServicesPage = lazy(() => import('./pages/admin/AdminCreativeWritingServicesPage'));
 const AdminIntroductorySessionsPage = lazy(() => import('./pages/admin/AdminIntroductorySessionsPage'));
+const AdminPriceReviewPage = lazy(() => import('./pages/admin/AdminPriceReviewPage'));
 
 
 const AppRoutes: React.FC = () => (

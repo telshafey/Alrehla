@@ -7,38 +7,51 @@ import { Input } from '../../ui/Input';
 import { Textarea } from '../../ui/Textarea';
 import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
 import type { Instructor } from '../../../lib/database.types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/Table';
+import { formatDate } from '../../../utils/helpers';
+import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
+
 
 interface InstructorFinancialsPanelProps {
     bookings: any[];
+    serviceOrders: any[];
+    payouts: any[];
     instructor: Instructor;
 }
 
-const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ bookings, instructor }) => {
+const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ bookings, serviceOrders, payouts, instructor }) => {
     const { requestProfileUpdate } = useInstructorMutations();
     const [proposedRate, setProposedRate] = useState(instructor.rate_per_session?.toString() || '');
     const [justification, setJustification] = useState('');
     
-    const completedSessionsThisMonth = useMemo(() => {
+    const currentMonthEarnings = useMemo(() => {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         
-        return bookings.reduce((acc, booking) => {
+        const completedSessionsThisMonth = bookings.reduce((acc, booking) => {
             const monthSessions = booking.sessions?.filter((s: any) => {
                 const sessionDate = new Date(s.session_date);
                 return s.status === 'completed' && sessionDate >= startOfMonth;
             }).length || 0;
             return acc + monthSessions;
         }, 0);
-    }, [bookings]);
-    
-    const currentMonthBalance = completedSessionsThisMonth * (instructor.rate_per_session || 0);
+
+        const sessionEarnings = completedSessionsThisMonth * (instructor.rate_per_session || 0);
+
+        const serviceEarnings = serviceOrders.filter(o => o.status === 'مكتمل' && new Date(o.created_at) >= startOfMonth)
+            .reduce((acc, order) => acc + (order.total * 0.7), 0); // Assuming 70% commission
+
+        return {
+            sessionEarnings,
+            serviceEarnings,
+            total: sessionEarnings + serviceEarnings,
+            completedSessionsCount: completedSessionsThisMonth,
+            completedServicesCount: serviceOrders.filter(o => o.status === 'مكتمل' && new Date(o.created_at) >= startOfMonth).length
+        };
+    }, [bookings, serviceOrders, instructor.rate_per_session]);
+
 
     const isRateUpdatePending = instructor.profile_update_status === 'pending' && instructor.pending_profile_data?.updates?.rate_per_session;
-
-    const financials = {
-        lastPayout: 1800,
-        lastPayoutDate: '2023-08-01',
-    };
     
     const handleRateChangeRequest = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,23 +66,46 @@ const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ b
     return (
         <div className="space-y-8">
             <AdminSection title="الملخص المالي" icon={<DollarSign />}>
-                <div className="space-y-4">
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                        <div className="flex justify-between items-center">
-                            <p className="font-semibold text-gray-600">الرصيد الحالي المستحق (هذا الشهر)</p>
-                            <p className="text-2xl font-bold text-green-600">{currentMonthBalance} ج.م</p>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1 text-left">بناءً على {completedSessionsThisMonth} جلسة مكتملة</p>
-                    </div>
-                    <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                        <p className="font-semibold text-gray-600">آخر دفعة</p>
-                        <div>
-                            <p className="font-bold text-right">{financials.lastPayout} ج.م</p>
-                            <p className="text-xs text-gray-500 text-right">في تاريخ {new Date(financials.lastPayoutDate).toLocaleDateString('ar-EG')}</p>
-                        </div>
-                    </div>
-                    <p className="text-xs text-gray-500 text-center pt-2">يتم تحويل المستحقات شهرياً بناءً على عدد الجلسات المكتملة.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">الرصيد الحالي المستحق (هذا الشهر)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-3xl font-bold text-green-600">{currentMonthEarnings.total} ج.م</p>
+                            <div className="text-xs text-gray-500 mt-2 space-y-1">
+                                <p>من {currentMonthEarnings.completedSessionsCount} جلسة مكتملة: {currentMonthEarnings.sessionEarnings} ج.م</p>
+                                <p>من {currentMonthEarnings.completedServicesCount} خدمة مكتملة: {currentMonthEarnings.serviceEarnings} ج.م</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                         <CardHeader>
+                            <CardTitle className="text-lg">سجل التعاملات المالية</CardTitle>
+                        </CardHeader>
+                         <CardContent className="max-h-60 overflow-y-auto">
+                           <Table>
+                               <TableHeader>
+                                   <TableRow>
+                                        <TableHead>التاريخ</TableHead>
+                                        <TableHead>المبلغ</TableHead>
+                                        <TableHead>التفاصيل</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {payouts.map(payout => (
+                                        <TableRow key={payout.id}>
+                                            <TableCell className="text-xs">{formatDate(payout.payout_date)}</TableCell>
+                                            <TableCell className="font-bold text-sm">{payout.amount} ج.م</TableCell>
+                                            <TableCell className="text-xs">{payout.details}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                         </CardContent>
+                    </Card>
                 </div>
+                <p className="text-xs text-gray-500 text-center pt-4">يتم تحويل المستحقات شهرياً بناءً على عدد الجلسات والخدمات المكتملة.</p>
             </AdminSection>
             
             <AdminSection title="إدارة سعر الجلسة" icon={<DollarSign />}>

@@ -24,6 +24,7 @@ export const ServiceSettingsModal: React.FC<ServiceSettingsModalProps> = ({ isOp
     const [category, setCategory] = useState<'استشارات' | 'مراجعات' | 'نشر'>('استشارات');
     const [iconName, setIconName] = useState('MessageSquare');
     const [requiresFileUpload, setRequiresFileUpload] = useState(false);
+    const [providerType, setProviderType] = useState<'company' | 'instructor'>('instructor');
 
     useEffect(() => {
         if (isOpen) {
@@ -34,6 +35,7 @@ export const ServiceSettingsModal: React.FC<ServiceSettingsModalProps> = ({ isOp
                 setCategory(serviceToEdit.category);
                 setIconName(serviceToEdit.icon_name);
                 setRequiresFileUpload(serviceToEdit.requires_file_upload);
+                setProviderType(serviceToEdit.provider_type || 'instructor');
             } else {
                 setName('');
                 setPrice('');
@@ -41,6 +43,7 @@ export const ServiceSettingsModal: React.FC<ServiceSettingsModalProps> = ({ isOp
                 setCategory('استشارات');
                 setIconName('MessageSquare');
                 setRequiresFileUpload(false);
+                setProviderType('instructor');
             }
         }
     }, [isOpen, serviceToEdit]);
@@ -55,6 +58,7 @@ export const ServiceSettingsModal: React.FC<ServiceSettingsModalProps> = ({ isOp
             category,
             icon_name: iconName,
             requires_file_upload: requiresFileUpload,
+            provider_type: providerType,
         };
         onSave(payload);
     };
@@ -77,9 +81,17 @@ export const ServiceSettingsModal: React.FC<ServiceSettingsModalProps> = ({ isOp
                     <FormField label="اسم الخدمة*" htmlFor="name">
                         <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
                     </FormField>
-                    <FormField label="السعر (ج.م)*" htmlFor="price">
-                        <Input id="price" type="number" value={price} onChange={e => setPrice(e.target.value)} required />
-                    </FormField>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField label="السعر (ج.م)*" htmlFor="price">
+                            <Input id="price" type="number" value={price} onChange={e => setPrice(e.target.value)} required />
+                        </FormField>
+                        <FormField label="مقدم الخدمة" htmlFor="provider_type">
+                            <Select id="provider_type" value={providerType} onChange={e => setProviderType(e.target.value as any)}>
+                                <option value="instructor">المدرب</option>
+                                <option value="company">الشركة</option>
+                            </Select>
+                        </FormField>
+                    </div>
                     <FormField label="الوصف*" htmlFor="description">
                         <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={3} required />
                     </FormField>

@@ -28,7 +28,7 @@ export interface ChildProfile {
   created_at: string;
   user_id: string;
   name: string;
-  age: number;
+  birth_date: string;
   gender: 'أنثى' | 'ذكر';
   avatar_url: string | null;
   interests: string[] | null;
@@ -200,6 +200,7 @@ export interface StandaloneService {
   category: 'استشارات' | 'مراجعات' | 'نشر';
   icon_name: string; // e.g., 'MessageSquare', 'FileCheck2'
   requires_file_upload: boolean;
+  provider_type: 'company' | 'instructor';
 }
 
 export type WeeklySchedule = {
@@ -227,10 +228,21 @@ export interface Instructor {
   slug: string;
   weekly_schedule: WeeklySchedule | {};
   availability: AvailableSlots | {};
+  intro_availability: AvailableSlots | {};
   rate_per_session: number;
+  service_rates?: { [key: string]: number } | null;
+  package_rates?: { [key: string]: number } | null;
   schedule_status: 'approved' | 'pending' | 'rejected';
   profile_update_status: 'approved' | 'pending' | 'rejected';
   pending_profile_data: any | null;
+}
+
+export interface InstructorPayout {
+  id: string;
+  instructor_id: number;
+  payout_date: string;
+  amount: number;
+  details: string; // e.g., "Payout for August 2024"
 }
 
 export interface SiteBranding {
@@ -428,6 +440,12 @@ export interface SupportSessionRequest {
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
   requested_at: string;
+}
+
+export interface PricingSettings {
+  id: number;
+  company_percentage: number; // Markup multiplier, e.g., 1.2 for 20%
+  fixed_fee: number; // A fixed fee added to the price
 }
 
 // Helper types for enriched data

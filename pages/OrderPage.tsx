@@ -20,6 +20,7 @@ import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import type { ChildProfile, PersonalizedProduct, TextFieldConfig } from '../lib/database.types';
 import { Card, CardContent } from '../components/ui/card';
+import { calculateAge } from '../utils/helpers';
 
 type OrderStep = string;
 
@@ -67,7 +68,7 @@ const OrderPage: React.FC = () => {
     const { addItemToCart } = useCart();
     const { shippingCosts, loading: productContextLoading } = useProduct();
     const { data: orderData, isLoading: orderDataLoading } = useOrderData();
-    const { isLoggedIn, childProfiles } = useAuth();
+    const { isLoggedIn, childProfiles, currentUser } = useAuth();
     
     const product = useMemo(() => 
         orderData?.personalizedProducts.find(p => p.key === productKey) as PersonalizedProduct | undefined, 
@@ -167,7 +168,7 @@ const OrderPage: React.FC = () => {
             setFormData(prev => ({
                 ...prev,
                 childName: child.name,
-                childAge: child.age.toString(),
+                childBirthDate: child.birth_date,
                 childGender: child.gender,
             }));
         } else {
@@ -175,12 +176,22 @@ const OrderPage: React.FC = () => {
             setFormData(prev => ({
                 ...prev,
                 childName: '',
-                childAge: '',
+                childBirthDate: '',
                 childGender: '',
             }));
         }
     };
     
+    const handleSelectSelf = () => {
+        setSelectedChildId(null);
+        setFormData(prev => ({
+            ...prev,
+            childName: currentUser?.name || '',
+            childBirthDate: '',
+            childGender: '',
+        }));
+    };
+
     const handleToggleAddon = (key: string) => {
         setSelectedAddons(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
     };
@@ -211,8 +222,7 @@ const OrderPage: React.FC = () => {
             case 'child':
             case 'child_context':
                 if (!formData.childName?.trim()) newErrors.childName = 'الاسم مطلوب.';
-                if (!formData.childAge) newErrors.childAge = 'عمر الطفل مطلوب.';
-                else if (parseInt(formData.childAge) <= 0) newErrors.childAge = 'العمر يجب أن يكون أكبر من صفر.';
+                if (!formData.childBirthDate) newErrors.childBirthDate = 'تاريخ ميلاد الطفل مطلوب.';
                 if (!formData.childGender) newErrors.childGender = 'الجنس مطلوب.';
                 if (productKey === 'emotion_story') checkRequiredTextFields(product.text_fields?.slice(0, 4) || []);
                 break;
@@ -294,8 +304,19 @@ const OrderPage: React.FC = () => {
     if (!product) return <div className="text-center py-20">المنتج غير موجود.</div>;
     
     const renderStepContent = () => {
+        const childDetailsProps = {
+            formData: { childName: formData.childName, childBirthDate: formData.childBirthDate, childGender: formData.childGender },
+            handleChange: handleChange,
+            errors: errors,
+            childProfiles: childProfiles,
+            onSelectChild: handleSelectChild,
+            selectedChildId: selectedChildId,
+            onSelectSelf: handleSelectSelf,
+            currentUser: currentUser
+        };
+
         switch (step) {
-            case 'child': return <ChildDetailsSection formData={{childName: formData.childName, childAge: formData.childAge, childGender: formData.childGender}} handleChange={handleChange} errors={errors} childProfiles={childProfiles} onSelectChild={handleSelectChild} selectedChildId={selectedChildId}/>;
+            case 'child': return <ChildDetailsSection {...childDetailsProps} />;
             case 'customization': return <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} onOpenIdeasModal={() => setIsIdeasModalOpen(true)} textFields={product.text_fields || null} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals}/>;
             case 'images': return <ImageUploadSection files={imageFiles} onFileChange={handleFileChange} errors={errors} imageSlots={product.image_slots || null}/>;
             case 'addons': return <AddonsSection addonProducts={addonProducts} selectedAddons={selectedAddons} onToggle={handleToggleAddon} />;
@@ -305,7 +326,7 @@ const OrderPage: React.FC = () => {
             case 'child_context':
                 return (
                     <div>
-                        <ChildDetailsSection formData={{childName: formData.childName, childAge: formData.childAge, childGender: formData.childGender}} handleChange={handleChange} errors={errors} childProfiles={childProfiles} onSelectChild={handleSelectChild} selectedChildId={selectedChildId}/>
+                        <ChildDetailsSection {...childDetailsProps} />
                         <div className="mt-8 pt-8 border-t">
                             <h3 className="text-xl font-bold text-gray-700 mb-4">معلومات إضافية عن السياق</h3>
                              <DynamicTextFields fields={product.text_fields?.slice(0, 4) || []} formData={formData} errors={errors} handleChange={handleChange} />
@@ -332,6 +353,8 @@ const OrderPage: React.FC = () => {
         }
     };
 
+    const ageForModal = calculateAge(formData.childBirthDate)?.toString() || '';
+
     return (
         <>
         <StoryIdeasModal 
@@ -339,7 +362,7 @@ const OrderPage: React.FC = () => {
             onClose={() => setIsIdeasModalOpen(false)}
             onSelectIdea={handleSelectIdea}
             childName={formData.childName}
-            childAge={formData.childAge}
+            childAge={ageForModal}
             childTraits={formData.childTraits}
         />
         <div className="bg-muted/50 py-12 sm:py-16">

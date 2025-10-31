@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Edit, Trash2, UserPlus, ShoppingBag, BookOpen, Star, ArrowLeft } from 'lucide-react';
 import type { ChildProfile, Order, CreativeWritingBooking, Subscription } from '../../lib/database.types';
 import { Button } from '../ui/Button';
-import { formatDate } from '../../utils/helpers';
+import { formatDate, calculateAge } from '../../utils/helpers';
 
 interface ChildDashboardCardProps {
     child: ChildProfile;
@@ -46,6 +46,8 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserA
             recent: allItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3)
         };
     }, [child, allUserActivity]);
+    
+    const age = calculateAge(child.birth_date);
 
     return (
         <div className="bg-gray-50 p-6 rounded-2xl shadow-md border">
@@ -58,7 +60,7 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserA
                 />
                 <div className="flex-grow text-center sm:text-right">
                     <h3 className="text-2xl font-bold text-gray-800">{child.name}</h3>
-                    <p className="text-gray-500">{child.age} سنوات</p>
+                    <p className="text-gray-500">{age !== null ? `${age} سنوات` : 'غير محدد'}</p>
                     {child.student_user_id ? (
                         <span className="text-xs font-semibold bg-green-100 text-green-800 px-2 py-1 rounded-full inline-block mt-2">حساب طالب مفعل</span>
                     ) : null}

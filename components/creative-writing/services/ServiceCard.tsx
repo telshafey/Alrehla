@@ -5,10 +5,43 @@ import { IconMap } from './IconMap';
 
 interface ServiceCardProps {
     service: StandaloneService;
-    onAddToCart: () => void;
+    minPrice: number;
+    maxPrice: number;
+    onViewProviders: () => void;
+    onOrderNow: () => void;
 }
 
-export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onAddToCart }) => {
+export const ServiceCard: React.FC<ServiceCardProps> = ({ service, minPrice, maxPrice, onViewProviders, onOrderNow }) => {
+    
+    const renderPrice = () => {
+        if (service.provider_type === 'company') {
+            return (
+                <>
+                    السعر
+                    <span className="text-2xl font-extrabold text-gray-800 mx-1">{service.price}</span>
+                    ج.م
+                </>
+            );
+        }
+        
+        if (minPrice === maxPrice) {
+            return (
+                <>
+                    يبدأ من
+                    <span className="text-2xl font-extrabold text-gray-800 mx-1">{minPrice}</span>
+                    ج.م
+                </>
+            );
+        }
+
+        return (
+            <>
+                <span className="text-xl font-extrabold text-gray-800">{minPrice} - {maxPrice}</span>
+                <span className="text-lg font-medium text-gray-600 ml-1">ج.م</span>
+            </>
+        );
+    };
+    
     return (
         <div className="bg-white p-6 rounded-2xl shadow-lg border flex flex-col h-full transform hover:-translate-y-2 transition-transform duration-300">
             <div className="flex items-center gap-4 mb-4">
@@ -19,10 +52,18 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onAddToCart }
             </div>
             <p className="text-gray-600 text-sm flex-grow">{service.description}</p>
             <div className="mt-6 pt-4 border-t flex justify-between items-center">
-                <p className="text-2xl font-extrabold text-gray-800">{service.price} <span className="text-base font-medium">ج.م</span></p>
-                <Button onClick={onAddToCart} size="sm">
-                    اطلب الخدمة
-                </Button>
+                <p className="text-sm font-semibold text-gray-500">
+                    {renderPrice()}
+                </p>
+                 {service.provider_type === 'instructor' ? (
+                    <Button onClick={onViewProviders} size="sm">
+                        عرض مقدمي الخدمة
+                    </Button>
+                ) : (
+                    <Button onClick={onOrderNow} size="sm">
+                        اطلب الآن
+                    </Button>
+                )}
             </div>
         </div>
     );

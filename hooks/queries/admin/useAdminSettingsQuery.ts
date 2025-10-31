@@ -5,6 +5,7 @@ import {
     mockSocialLinks,
     mockStandaloneServices,
     mockAiSettings,
+    mockPricingSettings,
 } from '../../../data/mockData';
 
 const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
@@ -26,8 +27,12 @@ export const useAdminSocialLinks = () => useQuery({
     queryFn: () => mockFetch(mockSocialLinks),
 });
 
-// FIX: Add missing useAdminAiSettings hook.
 export const useAdminAiSettings = () => useQuery({
     queryKey: ['adminAiSettings'],
     queryFn: () => mockFetch(mockAiSettings),
+});
+
+export const useAdminPricingSettings = () => useQuery({
+    queryKey: ['adminPricingSettings'],
+    queryFn: () => mockFetch(mockPricingSettings),
 });

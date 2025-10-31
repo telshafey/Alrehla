@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Link as LinkIcon, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Save, Link as LinkIcon, Image as ImageIcon, Sparkles, DollarSign } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
-// FIX: Import useAdminAiSettings hook to fetch AI settings.
-import { useAdminSocialLinks, useAdminAiSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
+import { useAdminSocialLinks, useAdminAiSettings, useAdminPricingSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import { Button } from '../../components/ui/Button';
@@ -61,13 +60,16 @@ const AdminSettingsPage: React.FC = () => {
 
     // Social Links
     const { data: socialLinksData, isLoading: socialsLoading, error: socialsError, refetch: refetchSocials } = useAdminSocialLinks();
-    // FIX: Destructure updateAiSettings from the useSettingsMutations hook.
-    const { updateSocialLinks, updateAiSettings } = useSettingsMutations();
     const [socials, setSocials] = useState({ facebook_url: '', twitter_url: '', instagram_url: '' });
     
     // AI Settings
     const { data: aiSettingsData, isLoading: aiSettingsLoading, error: aiError, refetch: refetchAi } = useAdminAiSettings();
     const [aiSettings, setAiSettings] = useState({ enable_story_ideas: false, story_ideas_prompt: '' });
+
+    // Pricing Settings
+    const { data: pricingSettingsData, isLoading: pricingLoading, error: pricingError, refetch: refetchPricing } = useAdminPricingSettings();
+    const { updateSocialLinks, updateAiSettings, updatePricingSettings } = useSettingsMutations();
+    const [pricing, setPricing] = useState({ company_percentage: 1.2, fixed_fee: 50 });
 
 
     useEffect(() => {
@@ -81,6 +83,10 @@ const AdminSettingsPage: React.FC = () => {
      useEffect(() => {
         if (aiSettingsData) setAiSettings(aiSettingsData as any);
     }, [aiSettingsData]);
+
+    useEffect(() => {
+        if (pricingSettingsData) setPricing(pricingSettingsData as any);
+    }, [pricingSettingsData]);
 
     const handleBrandingChange = (fieldKey: keyof SiteBranding, value: string) => {
         setBranding(prev => ({ ...prev, [fieldKey]: value }));
@@ -96,6 +102,10 @@ const AdminSettingsPage: React.FC = () => {
         setAiSettings(prev => ({...prev, [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value }));
     }
 
+    const handlePricingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setPricing({ ...pricing, [e.target.name]: parseFloat(e.target.value) || 0 });
+    };
+
     const handleBrandingSubmit = async () => {
         await setSiteBranding(branding);
     };
@@ -108,11 +118,16 @@ const AdminSettingsPage: React.FC = () => {
         await updateAiSettings.mutateAsync(aiSettings);
     }
 
-    const isLoading = brandingLoading || socialsLoading || aiSettingsLoading;
-    const error = socialsError || aiError;
+    const handlePricingSubmit = async () => {
+        await updatePricingSettings.mutateAsync(pricing);
+    };
+
+    const isLoading = brandingLoading || socialsLoading || aiSettingsLoading || pricingLoading;
+    const error = socialsError || aiError || pricingError;
     const refetch = () => {
         if (socialsError) refetchSocials();
         if (aiError) refetchAi();
+        if (pricingError) refetchPricing();
     };
 
     if (isLoading) return <PageLoader />;
@@ -127,6 +142,7 @@ const AdminSettingsPage: React.FC = () => {
                     <TabsTrigger value="branding"><ImageIcon className="ml-2" /> العلامة التجارية</TabsTrigger>
                     <TabsTrigger value="social"><LinkIcon className="ml-2" /> التواصل الاجتماعي</TabsTrigger>
                     <TabsTrigger value="ai"><Sparkles className="ml-2" /> الذكاء الاصطناعي</TabsTrigger>
+                    <TabsTrigger value="pricing"><DollarSign className="ml-2" /> إعدادات التسعير</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="branding">
@@ -181,11 +197,33 @@ const AdminSettingsPage: React.FC = () => {
                             </div>
                              <FormField label="موجه الأوامر (Prompt) لمولّد الأفكار" htmlFor="story_ideas_prompt">
                                 <Textarea id="story_ideas_prompt" name="story_ideas_prompt" value={aiSettings.story_ideas_prompt} onChange={handleAiSettingsChange} rows={8} />
-                                {/* FIX: Replaced template literal syntax with code tags to prevent parsing text as variables. */}
-                                <p className="text-xs text-muted-foreground mt-1">يمكنك استخدام متغيرات مثل: <code>{'$'}{'{childName}'}</code>، <code>{'$'}{'{childAge}'}</code>، <code>{'$'}{'{childTraits}'}</code></p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    يمكنك استخدام متغيرات مثل: <code>{`\${childName}`}</code>, <code>{`\${childAge}`}</code>, <code>{`\${childTraits}`}</code>
+                                </p>
                             </FormField>
                             <div className="flex justify-end">
                                 <Button onClick={handleAiSettingsSubmit} loading={updateAiSettings.isPending} icon={<Save />}>حفظ إعدادات الذكاء الاصطناعي</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="pricing">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>إدارة معادلة التسعير</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-sm text-muted-foreground">تُطبق هذه المعادلة على أسعار المدربين للوصول للسعر النهائي للعميل: <code className="font-mono bg-muted p-1 rounded-sm">السعر النهائي = (سعر المدرب * نسبة الشركة) + الرسوم الثابتة</code></p>
+                            <FormField label="نسبة الشركة (مُضاعِف)" htmlFor="company_percentage">
+                                <Input id="company_percentage" name="company_percentage" type="number" step="0.01" value={pricing.company_percentage || ''} onChange={handlePricingChange} />
+                                <p className="text-xs text-muted-foreground mt-1">مثال: أدخل 1.2 لإضافة 20% على سعر المدرب.</p>
+                            </FormField>
+                            <FormField label="الرسوم الثابتة (ج.م)" htmlFor="fixed_fee">
+                                <Input id="fixed_fee" name="fixed_fee" type="number" value={pricing.fixed_fee || ''} onChange={handlePricingChange} />
+                            </FormField>
+                            <div className="flex justify-end">
+                                <Button onClick={handlePricingSubmit} loading={updatePricingSettings.isPending} icon={<Save />}>حفظ إعدادات التسعير</Button>
                             </div>
                         </CardContent>
                     </Card>

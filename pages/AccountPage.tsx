@@ -16,7 +16,7 @@ import { Card } from '../components/ui/card';
 type AccountTab = 'dashboard' | 'myLibrary' | 'familyCenter' | 'settings' | 'notifications';
 
 const AccountPage: React.FC = () => {
-    const { isLoggedIn, loading: authLoading, hasAdminAccess, currentUser } = useAuth();
+    const { isLoggedIn, loading: authLoading, hasAdminAccess, currentUser, isParent } = useAuth();
     const location = useLocation();
     
     const defaultTab = (location.state as any)?.defaultTab || 'dashboard';
@@ -52,13 +52,18 @@ const AccountPage: React.FC = () => {
         );
     }
     
-    const tabs = [
+    let tabs = [
         { key: 'dashboard', label: 'لوحة التحكم', icon: <LayoutDashboard className="h-5 w-5" /> },
         { key: 'myLibrary', label: 'مكتبتي', icon: <BookOpen className="h-5 w-5" /> },
         { key: 'familyCenter', label: 'المركز العائلي', icon: <Users className="h-5 w-5" /> },
         { key: 'settings', label: 'الإعدادات', icon: <Settings className="h-5 w-5" /> },
         { key: 'notifications', label: 'الإشعارات', icon: <Bell className="h-5 w-5" /> },
     ];
+
+    if (!isParent && activeTab !== 'familyCenter') {
+        tabs = tabs.filter(tab => tab.key !== 'familyCenter');
+    }
+
 
     return (
         <>

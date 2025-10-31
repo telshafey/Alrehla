@@ -120,6 +120,7 @@ export const useInstructorMutations = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            queryClient.invalidateQueries({ queryKey: ['instructorData'] });
             addToast('تم إرسال طلب تحديث ملفك الشخصي للمراجعة.', 'success');
         },
         onError: (err: Error) => addToast(`فشل إرسال الطلب: ${err.message}`, 'error'),
@@ -164,5 +165,18 @@ export const useInstructorMutations = () => {
         onError: (err: Error) => addToast(`فشل إرسال الطلب: ${err.message}`, 'error'),
     });
 
-    return { createInstructor, updateInstructor, approveInstructorSchedule, rejectInstructorSchedule, updateInstructorAvailability, requestScheduleChange, requestProfileUpdate, approveSupportSessionRequest, rejectSupportSessionRequest, createSupportSessionRequest, approveInstructorProfileUpdate, rejectInstructorProfileUpdate };
+    const requestIntroAvailabilityChange = useMutation({
+        mutationFn: async ({ instructorId, availability }: { instructorId: number, availability: AvailableSlots }) => {
+            await sleep(500);
+            console.log("Requesting intro availability change (mock)", {instructorId, availability});
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            addToast('تم إرسال طلب تحديث المواعيد للمراجعة.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل إرسال الطلب: ${err.message}`, 'error'),
+    });
+
+    return { createInstructor, updateInstructor, approveInstructorSchedule, rejectInstructorSchedule, updateInstructorAvailability, requestScheduleChange, requestProfileUpdate, approveSupportSessionRequest, rejectSupportSessionRequest, createSupportSessionRequest, approveInstructorProfileUpdate, rejectInstructorProfileUpdate, requestIntroAvailabilityChange };
 }

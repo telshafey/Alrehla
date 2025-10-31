@@ -3,7 +3,8 @@ import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   LayoutDashboard, Users, Settings, ShoppingBag, BookOpen, MessageSquare, Edit,
-  Truck, Star, Gift, UserCheck, ShieldQuestion, CalendarCheck, Package, Sparkles, UserPlus
+  Truck, Star, Gift, UserCheck, ShieldQuestion, CalendarCheck, Package, Sparkles, UserPlus,
+  DollarSign, Calendar, User
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -45,23 +46,12 @@ const AdminSidebar: React.FC<{ isOpen: boolean; setIsOpen: (isOpen: boolean) => 
 
   const handleClose = () => setIsOpen(false);
   
-  const sidebarContent = (
+  const renderAdminMenu = () => (
     <>
-      <div className="flex items-center justify-center h-16 border-b px-4">
-        <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-          <img src="https://i.ibb.co/C0bSJJT/favicon.png" alt="Logo" className="h-8 w-auto" />
-          {!isCollapsed && <span>منصة الرحلة</span>}
-        </Link>
-      </div>
-      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
         {permissions.canViewDashboard && (
             <NavItem to="/admin" icon={<LayoutDashboard size={20} />} label="لوحة التحكم" isCollapsed={isCollapsed} onClick={handleClose} />
         )}
         
-        {currentUser?.role === 'instructor' && (
-            <NavItem to="/admin" icon={<LayoutDashboard size={20} />} label="لوحة التحكم" isCollapsed={isCollapsed} onClick={handleClose} />
-        )}
-
         {(permissions.canManageEnhaLakOrders || permissions.canManageEnhaLakProducts) && (
             <SectionTitle isCollapsed={isCollapsed}>إنها لك</SectionTitle>
         )}
@@ -102,6 +92,9 @@ const AdminSidebar: React.FC<{ isOpen: boolean; setIsOpen: (isOpen: boolean) => 
         {permissions.canManageCreativeWritingSettings && (
             <NavItem to="/admin/creative-writing-services" icon={<Sparkles size={20} />} label="إدارة الخدمات" isCollapsed={isCollapsed} onClick={handleClose} />
         )}
+        {permissions.canManagePrices && (
+            <NavItem to="/admin/pricing-review" icon={<DollarSign size={20} />} label="مراجعة التسعير" isCollapsed={isCollapsed} onClick={handleClose} />
+        )}
 
         {(permissions.canManageUsers || permissions.canManageSettings) && (
              <SectionTitle isCollapsed={isCollapsed}>الإدارة</SectionTitle>
@@ -128,6 +121,30 @@ const AdminSidebar: React.FC<{ isOpen: boolean; setIsOpen: (isOpen: boolean) => 
         {permissions.canManageSupportRequests && (
             <NavItem to="/admin/support-requests" icon={<ShieldQuestion size={20} />} label="جلسات الدعم" isCollapsed={isCollapsed} onClick={handleClose} />
         )}
+    </>
+  );
+
+  const renderInstructorMenu = () => (
+    <>
+        <NavItem to="/admin" icon={<LayoutDashboard size={20} />} label="لوحة التحكم" isCollapsed={isCollapsed} onClick={handleClose} />
+        <NavItem to="/admin/journeys" icon={<BookOpen size={20} />} label="رحلات الطلاب" isCollapsed={isCollapsed} onClick={handleClose} />
+        <NavItem to="/admin/financials" icon={<DollarSign size={20} />} label="الماليات" isCollapsed={isCollapsed} onClick={handleClose} />
+        <NavItem to="/admin/schedule" icon={<Calendar size={20} />} label="الجدول" isCollapsed={isCollapsed} onClick={handleClose} />
+        <NavItem to="/admin/pricing" icon={<DollarSign size={20} />} label="التسعير" isCollapsed={isCollapsed} onClick={handleClose} />
+        <NavItem to="/admin/profile" icon={<User size={20} />} label="ملفي الشخصي" isCollapsed={isCollapsed} onClick={handleClose} />
+    </>
+  );
+
+  const sidebarContent = (
+    <>
+      <div className="flex items-center justify-center h-16 border-b px-4">
+        <Link to="/" className="flex items-center gap-2 font-bold text-lg">
+          <img src="https://i.ibb.co/C0bSJJT/favicon.png" alt="Logo" className="h-8 w-auto" />
+          {!isCollapsed && <span>منصة الرحلة</span>}
+        </Link>
+      </div>
+      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+        {currentUser?.role === 'instructor' ? renderInstructorMenu() : renderAdminMenu()}
       </nav>
     </>
   );

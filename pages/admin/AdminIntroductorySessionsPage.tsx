@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-// FIX: Imported CheckCircle and AlertCircle icons.
 import { Star, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useAdminScheduledSessions } from '../../hooks/queries/admin/useAdminSchedulingQuery';

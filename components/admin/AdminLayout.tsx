@@ -21,7 +21,6 @@ const AdminSupportPage = React.lazy(() => import('../../pages/admin/AdminSupport
 const AdminJoinRequestsPage = React.lazy(() => import('../../pages/admin/AdminJoinRequestsPage'));
 const AdminBlogPage = React.lazy(() => import('../../pages/admin/AdminBlogPage'));
 const AdminSubscriptionsPage = React.lazy(() => import('../../pages/admin/AdminSubscriptionsPage'));
-const InstructorDashboardPage = React.lazy(() => import('../../pages/admin/InstructorDashboardPage'));
 const AdminShippingPage = React.lazy(() => import('../../pages/admin/AdminShippingPage'));
 const AdminSupportRequestsPage = React.lazy(() => import('../../pages/admin/AdminSupportRequestsPage'));
 const AdminScheduledSessionsPage = React.lazy(() => import('../../pages/admin/AdminScheduledSessionsPage'));
@@ -30,6 +29,15 @@ const AdminServiceOrdersPage = React.lazy(() => import('../../pages/admin/AdminS
 const AdminCreativeWritingPackagesPage = React.lazy(() => import('../../pages/admin/AdminCreativeWritingPackagesPage'));
 const AdminCreativeWritingServicesPage = React.lazy(() => import('../../pages/admin/AdminCreativeWritingServicesPage'));
 const AdminIntroductorySessionsPage = React.lazy(() => import('../../pages/admin/AdminIntroductorySessionsPage'));
+const AdminPriceReviewPage = React.lazy(() => import('../../pages/admin/AdminPriceReviewPage'));
+
+// Lazy load instructor pages
+const InstructorDashboardPage = React.lazy(() => import('../../pages/admin/instructor/InstructorDashboardPage'));
+const InstructorJourneysPage = React.lazy(() => import('../../pages/admin/instructor/InstructorJourneysPage'));
+const InstructorFinancialsPage = React.lazy(() => import('../../pages/admin/instructor/InstructorFinancialsPage'));
+const InstructorSchedulePage = React.lazy(() => import('../../pages/admin/instructor/InstructorSchedulePage'));
+const InstructorProfilePage = React.lazy(() => import('../../pages/admin/instructor/InstructorProfilePage'));
+const InstructorPricingPage = React.lazy(() => import('../../pages/admin/instructor/InstructorPricingPage'));
 
 
 const AdminLayout: React.FC = () => {
@@ -42,7 +50,13 @@ const AdminLayout: React.FC = () => {
   if (currentUser?.role === 'instructor') {
       routesContent = (
           <Routes>
-              <Route path="/*" element={<InstructorDashboardPage />} />
+              <Route index element={<InstructorDashboardPage />} />
+              <Route path="journeys" element={<InstructorJourneysPage />} />
+              <Route path="financials" element={<InstructorFinancialsPage />} />
+              <Route path="schedule" element={<InstructorSchedulePage />} />
+              <Route path="profile" element={<InstructorProfilePage />} />
+              <Route path="pricing" element={<InstructorPricingPage />} />
+              <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
       );
   } else {
@@ -64,6 +78,7 @@ const AdminLayout: React.FC = () => {
               <Route path="creative-writing-services" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminCreativeWritingServicesPage/></PermissionBasedRoute>} />
               <Route path="introductory-sessions" element={<PermissionBasedRoute permission="canManageSchedules"><AdminIntroductorySessionsPage/></PermissionBasedRoute>} />
               <Route path="instructors" element={<PermissionBasedRoute permission="canManageCreativeWritingInstructors"><AdminInstructorsPage /></PermissionBasedRoute>} />
+              <Route path="pricing-review" element={<PermissionBasedRoute permission="canManagePrices"><AdminPriceReviewPage/></PermissionBasedRoute>} />
               <Route path="support-requests" element={<PermissionBasedRoute permission="canManageSupportRequests"><AdminSupportRequestsPage /></PermissionBasedRoute>} />
               <Route path="content-management" element={<PermissionBasedRoute permission="canManageContent"><AdminContentManagementPage /></PermissionBasedRoute>} />
               <Route path="blog" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPage /></PermissionBasedRoute>} />

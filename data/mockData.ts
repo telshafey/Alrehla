@@ -1,4 +1,3 @@
-// FIX: Separated mock data from type definitions and corrected imports.
 import type { 
     UserProfile, ChildProfile, Notification, Order, Subscription, CreativeWritingBooking, 
     PersonalizedProduct, CreativeWritingPackage, Instructor, SiteBranding, Prices, ShippingCosts, 
@@ -6,7 +5,9 @@ import type {
     SubscriptionPlan,
     StandaloneService,
     ServiceOrder,
-    AiSettings
+    AiSettings,
+    InstructorPayout,
+    PricingSettings
 } from '../lib/database.types';
 
 export const mockUsers: UserProfile[] = [
@@ -23,8 +24,8 @@ export const mockUsers: UserProfile[] = [
 ];
 
 export const mockChildProfiles: ChildProfile[] = [
-    { id: 1, created_at: '2023-01-10T10:00:00Z', user_id: 'usr_parent', name: 'فاطمة أحمد', age: 8, gender: 'أنثى', avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', interests: ['الرسم', 'الفضاء'], strengths: ['مبدعة', 'فضولية'], student_user_id: 'usr_student' },
-    { id: 2, created_at: '2023-02-15T10:00:00Z', user_id: 'usr_parent', name: 'عمر أحمد', age: 6, gender: 'ذكر', avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', interests: ['الديناصورات', 'السيارات'], strengths: ['شجاع'], student_user_id: null },
+    { id: 1, created_at: '2023-01-10T10:00:00Z', user_id: 'usr_parent', name: 'فاطمة أحمد', birth_date: '2016-05-10', gender: 'أنثى', avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', interests: ['الرسم', 'الفضاء'], strengths: ['مبدعة', 'فضولية'], student_user_id: 'usr_student' },
+    { id: 2, created_at: '2023-02-15T10:00:00Z', user_id: 'usr_parent', name: 'عمر أحمد', birth_date: '2018-03-22', gender: 'ذكر', avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', interests: ['الديناصورات', 'السيارات'], strengths: ['شجاع'], student_user_id: null },
 ];
 
 export const mockNotifications: Notification[] = [
@@ -33,8 +34,8 @@ export const mockNotifications: Notification[] = [
 ];
 
 export const mockOrders: Order[] = [
-    { id: 'ord_123', order_date: new Date(Date.now() - 86400000 * 2).toISOString(), user_id: 'usr_parent', child_id: 1, item_summary: 'قصة مخصصة لـ فاطمة', total: 450, status: 'تم التسليم', details: { childName: 'فاطمة', childAge: 8, productKey: 'custom_story' }, admin_comment: null, receipt_url: null },
-    { id: 'ord_124', order_date: new Date().toISOString(), user_id: 'usr_parent', child_id: 2, item_summary: 'بوكس الهدية لـ عمر', total: 750, status: 'بانتظار الدفع', details: { childName: 'عمر', childAge: 6, productKey: 'gift_box' }, admin_comment: null, receipt_url: null },
+    { id: 'ord_123', order_date: new Date(Date.now() - 86400000 * 2).toISOString(), user_id: 'usr_parent', child_id: 1, item_summary: 'قصة مخصصة لـ فاطمة', total: 450, status: 'تم التسليم', details: { childName: 'فاطمة', childBirthDate: '2016-05-10', productKey: 'custom_story' }, admin_comment: null, receipt_url: null },
+    { id: 'ord_124', order_date: new Date().toISOString(), user_id: 'usr_parent', child_id: 2, item_summary: 'بوكس الهدية لـ عمر', total: 750, status: 'بانتظار الدفع', details: { childName: 'عمر', childBirthDate: '2018-03-22', productKey: 'gift_box' }, admin_comment: null, receipt_url: null },
 ];
 
 export const mockSubscriptions: Subscription[] = [
@@ -250,23 +251,24 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
 
 export const mockStandaloneServices: StandaloneService[] = [
     // --- خدمات لتنمية الكاتب ---
-    { id: 1, name: 'جلسة العصف الذهني المكثفة', price: 250, description: 'جلسة فردية مركزة (30 دقيقة) لمساعدة الطالب على تخطي "عقبة الكاتب"، تطوير فكرة، أو بناء شخصية معقدة.', category: 'استشارات', icon_name: 'MessageSquare', requires_file_upload: false },
-    { id: 2, name: 'المراجعة المتقدمة والتحرير', price: 350, description: 'تحرير كامل لنص (حتى 1000 كلمة) مع تصويبات لغوية وإعادة صياغة مقترحة لتحسين التدفق السردي.', category: 'مراجعات', icon_name: 'FileCheck2', requires_file_upload: true },
+    { id: 1, name: 'جلسة العصف الذهني المكثفة', price: 250, description: 'جلسة فردية مركزة (30 دقيقة) لمساعدة الطالب على تخطي "عقبة الكاتب"، تطوير فكرة، أو بناء شخصية معقدة.', category: 'استشارات', icon_name: 'MessageSquare', requires_file_upload: false, provider_type: 'instructor' },
+    { id: 2, name: 'المراجعة المتقدمة والتحرير', price: 350, description: 'تحرير كامل لنص (حتى 1000 كلمة) مع تصويبات لغوية وإعادة صياغة مقترحة لتحسين التدفق السردي.', category: 'مراجعات', icon_name: 'FileCheck2', requires_file_upload: true, provider_type: 'instructor' },
     
     // --- خدمات لتحويل الإبداع إلى واقع ---
-    { id: 4, name: 'باقة كتابي الأول', price: 1500, description: 'نحوّل أفضل قصة كتبها طفلك إلى كتاب حقيقي! تشمل الخدمة تحرير، تصميم غلاف، تنسيق، وطباعة 5 نسخ فاخرة.', category: 'نشر', icon_name: 'BookUp', requires_file_upload: true },
-    { id: 3, name: 'النشر في مجلة الرحلة', price: 500, description: 'فرصة لنشر أفضل قصة كتبها طفلك في العدد القادم من مجلتنا الإلكترونية الفصلية.', category: 'نشر', icon_name: 'Award', requires_file_upload: true },
-    { id: 5, name: 'تصميم الغلاف الاحترافي', price: 400, description: 'تصميم غلاف احترافي وجذاب لقصة طفلك، جاهز للمشاركة الرقمية أو الطباعة الشخصية.', category: 'نشر', icon_name: 'Palette', requires_file_upload: true },
-    { id: 6, name: 'التعليق الصوتي (AI)', price: 300, description: 'حوّل قصة طفلك إلى كتاب صوتي مسموع بأصوات طبيعية وجذابة باستخدام أحدث تقنيات الذكاء الاصطناعي.', category: 'نشر', icon_name: 'Mic', requires_file_upload: true },
+    { id: 4, name: 'باقة كتابي الأول', price: 1500, description: 'نحوّل أفضل قصة كتبها طفلك إلى كتاب حقيقي! تشمل الخدمة تحرير، تصميم غلاف، تنسيق، وطباعة 5 نسخ فاخرة.', category: 'نشر', icon_name: 'BookUp', requires_file_upload: true, provider_type: 'company' },
+    { id: 3, name: 'النشر في مجلة الرحلة', price: 500, description: 'فرصة لنشر أفضل قصة كتبها طفلك في العدد القادم من مجلتنا الإلكترونية الفصلية.', category: 'نشر', icon_name: 'Award', requires_file_upload: true, provider_type: 'company' },
+    { id: 5, name: 'تصميم الغلاف الاحترافي', price: 400, description: 'تصميم غلاف احترافي وجذاب لقصة طفلك، جاهز للمشاركة الرقمية أو الطباعة الشخصية.', category: 'نشر', icon_name: 'Palette', requires_file_upload: true, provider_type: 'company' },
+    { id: 6, name: 'التعليق الصوتي (AI)', price: 300, description: 'حوّل قصة طفلك إلى كتاب صوتي مسموع بأصوات طبيعية وجذابة باستخدام أحدث تقنيات الذكاء الاصطناعي.', category: 'نشر', icon_name: 'Mic', requires_file_upload: true, provider_type: 'company' },
     
     // --- خدمات داعمة لأولياء الأمور ---
-    { id: 7, name: 'جلسة إرشاد تربوي', price: 450, description: 'جلسة خاصة لولي الأمر (45 دقيقة) مع خبير تربوي لمناقشة أفضل السبل لدعم الموهبة الإبداعية لطفلك في المنزل.', category: 'استشارات', icon_name: 'Users', requires_file_upload: false },
+    { id: 7, name: 'جلسة إرشاد تربوي', price: 450, description: 'جلسة خاصة لولي الأمر (45 دقيقة) مع خبير تربوي لمناقشة أفضل السبل لدعم الموهبة الإبداعية لطفلك في المنزل.', category: 'استشارات', icon_name: 'Users', requires_file_upload: false, provider_type: 'instructor' },
 ];
 
 
 export const mockServiceOrders: ServiceOrder[] = [
-  { id: 'ser_001', created_at: new Date().toISOString(), user_id: 'usr_parent', child_id: 1, service_id: 2, status: 'قيد التنفيذ', details: { fileUrl: '#', userNotes: 'الرجاء التركيز على بنية القصة.' }, total: 150, assigned_instructor_id: 1 },
+  { id: 'ser_001', created_at: new Date(Date.now() - 86400000 * 5).toISOString(), user_id: 'usr_parent', child_id: 1, service_id: 2, status: 'مكتمل', details: { fileUrl: '#', userNotes: 'الرجاء التركيز على بنية القصة.' }, total: 350, assigned_instructor_id: 1 },
   { id: 'ser_002', created_at: new Date(Date.now() - 86400000).toISOString(), user_id: 'usr_user', child_id: 1, service_id: 3, status: 'بانتظار المراجعة', details: { fileUrl: '#', userNotes: 'نريد نشر هذه القصة في المجلة.' }, total: 500, assigned_instructor_id: null },
+  { id: 'ser_003', created_at: new Date(Date.now() - 86400000 * 10).toISOString(), user_id: 'usr_parent', child_id: 2, service_id: 1, status: 'مكتمل', details: { userNotes: 'جلسة عصف ذهني لشخصية جديدة' }, total: 250, assigned_instructor_id: 1 },
 ];
 
 export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
@@ -325,8 +327,47 @@ export const mockAdditionalServices: AdditionalService[] = [
 ];
 
 export const mockInstructors: Instructor[] = [
-    { id: 1, user_id: 'usr_instructor_1', name: 'أ. أحمد المصري', specialty: 'متخصص في بناء العوالم (13-18 سنة)', bio: 'كاتب وروائي...', avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', slug: 'ahmed-masri', weekly_schedule: { monday: ['17:00', '18:00'], wednesday: ['17:00', '18:00'] }, availability: {}, rate_per_session: 300, schedule_status: 'approved', profile_update_status: 'approved', pending_profile_data: null },
-    { id: 2, user_id: null, name: 'أ. نورة القحطاني', specialty: 'متخصصة في السرد القصصي (8-12 سنة)', bio: 'ماجستير في أدب الأطفال...', avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', slug: 'noura-qahtani', weekly_schedule: { tuesday: ['16:00', '17:00'], thursday: ['16:00', '17:00'] }, availability: {}, rate_per_session: 250, schedule_status: 'pending', profile_update_status: 'pending', pending_profile_data: { updates: { bio: "bio updated" }, justification: "test" } },
+    { 
+        id: 1, 
+        user_id: 'usr_instructor_1', 
+        name: 'أ. أحمد المصري', 
+        specialty: 'متخصص في بناء العوالم (13-18 سنة)', 
+        bio: 'كاتب وروائي...', 
+        avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', 
+        slug: 'ahmed-masri', 
+        weekly_schedule: { monday: ['17:00', '18:00'], wednesday: ['17:00', '18:00'] }, 
+        availability: {}, 
+        intro_availability: {}, 
+        rate_per_session: 300, 
+        service_rates: { '1': 280, '2': 400, '7': 500 },
+        package_rates: { '2': 1300, '3': 4200 },
+        schedule_status: 'approved', 
+        profile_update_status: 'approved', 
+        pending_profile_data: null 
+    },
+    { 
+        id: 2, 
+        user_id: null, 
+        name: 'أ. نورة القحطاني', 
+        specialty: 'متخصصة في السرد القصصي (8-12 سنة)', 
+        bio: 'ماجستير في أدب الأطفال...', 
+        avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', 
+        slug: 'noura-qahtani', 
+        weekly_schedule: { tuesday: ['16:00', '17:00'], thursday: ['16:00', '17:00'] }, 
+        availability: {}, 
+        intro_availability: {}, 
+        rate_per_session: 250, 
+        service_rates: { '1': 250, '2': 350 },
+        package_rates: { '2': 1200, '3': 4000, '4': 7200, '5': 9600 },
+        schedule_status: 'approved', 
+        profile_update_status: 'pending', 
+        pending_profile_data: { updates: { bio: "bio updated", rate_per_session: 275 }, justification: "test justification" } 
+    },
+];
+
+export const mockInstructorPayouts: InstructorPayout[] = [
+    { id: 'p_1', instructor_id: 1, payout_date: '2024-08-01T10:00:00Z', amount: 1800, details: 'مستحقات شهر يوليو 2024' },
+    { id: 'p_2', instructor_id: 1, payout_date: '2024-07-01T10:00:00Z', amount: 2100, details: 'مستحقات شهر يونيو 2024' },
 ];
 
 export const mockSiteBranding: SiteBranding = {
@@ -338,6 +379,12 @@ export const mockSiteBranding: SiteBranding = {
 };
 
 export const mockPrices: Prices = {};
+
+export const mockPricingSettings: PricingSettings = {
+  id: 1,
+  company_percentage: 1.2,
+  fixed_fee: 50,
+};
 
 export const mockShippingCosts: ShippingCosts = {
   "مصر": {
@@ -409,7 +456,7 @@ export const mockBlogPosts: BlogPost[] = [
         published_at: '2024-07-15', 
         title: 'من الخيال إلى الورق: كيف نطلق العنان للكاتب الصغير داخل طفلك؟', 
         slug: 'unleash-the-little-writer', 
-        content: 'كل طفل هو راوي قصص بالفطرة. عوالمهم الخيالية مليئة بالشخصيات المدهشة والمغامرات الجريئة. لكن كيف نساعدهم على نقل هذه العوالم من رؤوسهم إلى الورق؟ برنامج "بداية الرحلة" مصمم خصيصاً لهذا الغرض، وهو يعتمد على بضعة مبادئ أساسية يمكن لكل ولي أمر تطبيقها.\n\nابدأوا بالاستماع. عندما يروي طفلك قصة عن ديناصور طائر أو قطة تتكلم، استمعوا باهتمام واطرحوا أسئلة مفتوحة مثل "وماذا حدث بعد ذلك؟" أو "كيف كان شعور القطة؟". هذا يشجعهم على تطوير أفكارهم ويُشعرهم بأن قصصهم مهمة.\n\nثانياً، وفروا الأدوات دون ضغط. دفتر جميل، أقلام ملونة، أو حتى تطبيق للكتابة على جهاز لوحي يمكن أن يكون محفزاً. الفكرة هي جعل الكتابة نشاطاً ممتعاً ومتاحاً، وليس واجباً مدرسياً. لا تركزوا على الأخطاء الإملائية أو النحوية في البداية؛ ركزوا على تدفق الأفكار.\n\nثالثاً، استخدموا "صناديق الأفكار". املأوا صندوقاً بصور عشوائية من المجلات، أو كلمات مكتوبة على قصاصات ورق، أو أشياء صغيرة. يمكن للطفل أن يسحب عنصراً أو عنصرين ليبدأ قصته. هذا يكسر حاجز "الورقة البيضاء" المخيف.\n\nأخيراً، احتفوا بإبداعاتهم. سواء كانت قصة من سطرين أو فصلاً كاملاً، اقرأوها بصوت عالٍ، علقوها على الثلاجة، أو شاركوها مع أفراد العائلة. هذا الاحتفاء هو الوقود الذي يغذي ثقة الكاتب الصغير ويجعله يرغب في كتابة المزيد. تذكروا، الهدف ليس خلق روائي عالمي، بل تنشئة طفل واثق من صوته وقادر على التعبير عن نفسه بإبداع.', 
+        content: 'كل طفل هو راوي قصص بالفطرة. عوالمهم الخيالية مليئة بالشخصيات المدهشة والمغامرات الجريئة. لكن كيف نساعدهم على نقل هذه العوالم من رؤوسهم إلى الورق؟ برنامج "بداية الرحلة" مصمم خصصياً لهذا الغرض، وهو يعتمد على بضعة مبادئ أساسية يمكن لكل ولي أمر تطبيقها.\n\nابدأوا بالاستماع. عندما يروي طفلك قصة عن ديناصور طائر أو قطة تتكلم، استمعوا باهتمام واطرحوا أسئلة مفتوحة مثل "وماذا حدث بعد ذلك؟" أو "كيف كان شعور القطة؟". هذا يشجعهم على تطوير أفكارهم ويُشعرهم بأن قصصهم مهمة.\n\nثانياً، وفروا الأدوات دون ضغط. دفتر جميل، أقلام ملونة، أو حتى تطبيق للكتابة على جهاز لوحي يمكن أن يكون محفزاً. الفكرة هي جعل الكتابة نشاطاً ممتعاً ومتاحاً، وليس واجباً مدرسياً. لا تركزوا على الأخطاء الإملائية أو النحوية في البداية؛ ركزوا على تدفق الأفكار.\n\nثالثاً، استخدموا "صناديق الأفكار". املأوا صندوقاً بصور عشوائية من المجلات، أو كلمات مكتوبة على قصاصات ورق، أو أشياء صغيرة. يمكن للطفل أن يسحب عنصراً أو عنصرين ليبدأ قصته. هذا يكسر حاجز "الورقة البيضاء" المخيف.\n\nأخيراً، احتفوا بإبداعاتهم. سواء كانت قصة من سطرين أو فصلاً كاملاً، اقرأوها بصوت عالٍ، علقوها على الثلاجة، أو شاركوها مع أفراد العائلة. هذا الاحتفاء هو الوقود الذي يغذي ثقة الكاتب الصغير ويجعله يرغب في كتابة المزيد. تذكروا، الهدف ليس خلق روائي عالمي، بل تنشئة طفل واثق من صوته وقادر على التعبير عن نفسه بإبداع.', 
         image_url: 'https://i.ibb.co/C0Wp1kK/blog-child-writing.jpg', 
         author_name: 'فريق المنصة', 
         status: 'published' 

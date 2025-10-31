@@ -88,6 +88,7 @@ export const getPermissions = (role: UserRole): Permissions => {
         canManageUsers: true,
         canManageEnhaLakOrders: true,
         canManageCreativeWritingBookings: true,
+        canManagePrices: true,
       };
 
     case 'enha_lak_supervisor':
@@ -98,7 +99,6 @@ export const getPermissions = (role: UserRole): Permissions => {
         canManageEnhaLakOrders: true,
         canManageEnhaLakSubscriptions: true,
         canManageEnhaLakProducts: true,
-        canManagePrices: true,
         canManageShipping: true,
       };
 
@@ -113,6 +113,7 @@ export const getPermissions = (role: UserRole): Permissions => {
         canManageInstructorUpdates: true,
         canManageSupportRequests: true,
         canManageSchedules: true,
+        canManagePrices: true,
       };
 
     case 'instructor':

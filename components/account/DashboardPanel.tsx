@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, ShoppingBag, Star, ArrowLeft, Video, BookOpen } from 'lucide-react';
+import { Calendar, ShoppingBag, Star, ArrowLeft, Video, BookOpen, Users, UserPlus } from 'lucide-react';
 import { useUserAccountData } from '../../hooks/queries/user/useUserDataQuery';
+import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../utils/helpers';
 import type { Order, Subscription, CreativeWritingBooking } from '../../lib/database.types';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Button } from '../ui/Button';
 
-type AccountTab = 'dashboard' | 'myLibrary' | 'settings' | 'notifications';
+type AccountTab = 'dashboard' | 'myLibrary' | 'familyCenter' | 'settings' | 'notifications';
 
 interface DashboardPanelProps {
     onNavigateTab: (tab: AccountTab) => void;
@@ -27,6 +29,7 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: React.Re
 
 const DashboardPanel: React.FC<DashboardPanelProps> = ({ onNavigateTab }) => {
     const { data } = useUserAccountData();
+    const { isParent } = useAuth();
     const { userOrders: orders = [], userSubscriptions: subscriptions = [], userBookings: bookings = [] } = data || {};
 
     const unifiedItems = useMemo(() => {
@@ -58,6 +61,20 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({ onNavigateTab }) => {
                 <StatCard title="الاشتراكات النشطة" value={activeSubscriptions.length} icon={<Star className="h-4 w-4 text-muted-foreground"/>} onClick={() => onNavigateTab('myLibrary')} />
                 <StatCard title="الجلسات القادمة" value={upcomingSessions.length} icon={<Calendar className="h-4 w-4 text-muted-foreground"/>} onClick={() => onNavigateTab('myLibrary')} />
             </div>
+
+            {!isParent && (
+                <Card className="bg-blue-50 border-blue-200">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-3"><Users /> إدارة العائلة</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground mb-4">أضف ملفات أطفالك لتتمكن من طلب منتجات مخصصة لهم بسهولة ومتابعة رحلاتهم الإبداعية.</p>
+                        <Button onClick={() => onNavigateTab('familyCenter')} icon={<UserPlus />}>
+                            إضافة طفل الآن
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Upcoming Sessions */}
             <Card>

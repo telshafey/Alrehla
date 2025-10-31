@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useBookingData } from '../hooks/queries/public/usePageDataQuery';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
 import { Button } from '../components/ui/Button';
 import { CheckCircle, X, ArrowLeft, Star, Clock, User, Video } from 'lucide-react';
-import type { CreativeWritingPackage } from '../lib/database.types';
+import type { CreativeWritingPackage, Instructor } from '../lib/database.types';
 
 const FeatureRow: React.FC<{ label: string; values: (string | boolean)[] }> = ({ label, values }) => (
     <tr className="border-b last:border-b-0">
@@ -22,13 +22,27 @@ const FeatureRow: React.FC<{ label: string; values: (string | boolean)[] }> = ({
 );
 
 const CreativeWritingPackagesPage: React.FC = () => {
-    const { data, isLoading } = useBookingData();
+    const { data, isLoading } = usePublicData();
 
     if (isLoading) {
         return <PageLoader text="جاري تحميل الباقات..." />;
     }
 
-    const packages = (data?.cw_packages || []) as CreativeWritingPackage[];
+    const packages = (data?.creativeWritingPackages || []) as CreativeWritingPackage[];
+    const instructors = (data?.instructors || []) as Instructor[];
+    
+    const getPackagePriceRange = (pkg: CreativeWritingPackage) => {
+        if (pkg.price === 0) return { min: 0, max: 0 };
+
+        const prices = instructors
+            .map(i => i.package_rates?.[pkg.id])
+            .filter((price): price is number => price !== undefined && price !== null);
+
+        if (prices.length === 0) {
+            return { min: pkg.price, max: pkg.price }; // Fallback to base price
+        }
+        return { min: Math.min(...prices), max: Math.max(...prices) };
+    };
     
     // Define features to compare
     const features = [
@@ -91,11 +105,22 @@ const CreativeWritingPackagesPage: React.FC = () => {
                             ))}
                             <tr className="border-b">
                                 <th scope="row" className="py-4 px-2 sm:px-4 text-right font-semibold text-gray-700 bg-gray-50">السعر</th>
-                                {packages.map(pkg => (
-                                    <td key={pkg.id} className="py-4 px-2 sm:px-4 text-center font-extrabold text-2xl text-gray-800">
-                                        {pkg.price === 0 ? 'مجانية' : `${pkg.price} ج.م`}
-                                    </td>
-                                ))}
+                                {packages.map(pkg => {
+                                    const priceRange = getPackagePriceRange(pkg);
+                                    return (
+                                        <td key={pkg.id} className="py-4 px-2 sm:px-4 text-center font-extrabold text-gray-800">
+                                            { priceRange.min === 0 && priceRange.max === 0
+                                                ? <span className="text-2xl">مجانية</span>
+                                                : priceRange.min === priceRange.max
+                                                ? <span className="text-2xl">{priceRange.min} ج.م</span>
+                                                : <div className="text-xl">
+                                                    <span>{priceRange.min} - {priceRange.max}</span>
+                                                    <span className="text-base font-medium text-gray-600 ml-1">ج.م</span>
+                                                  </div>
+                                            }
+                                        </td>
+                                    )
+                                })}
                             </tr>
                         </tbody>
                         <tfoot>

@@ -7,6 +7,7 @@ import { formatDate } from '../../../utils/helpers';
 import Accordion from '../../ui/Accordion';
 import { Button } from '../../ui/Button';
 import RequestSessionChangeModal from './RequestSessionChangeModal';
+import IntroductoryAvailabilityManager from './IntroductoryAvailabilityManager';
 
 type EnrichedInstructorBooking = any;
 
@@ -117,12 +118,21 @@ const InstructorSchedulePanel: React.FC<InstructorSchedulePanelProps> = ({ instr
                     </div>
                 </AdminSection>
                 
-                 <Accordion title="إدارة التوافر الأسبوعي">
+                 <Accordion title="إدارة التوافر الأسبوعي (للباقات المدفوعة)">
                     <div className="p-6 border-t">
                         <p className="text-sm text-gray-600 mb-4">
                             حدد الأوقات التي تكون فيها متاحًا بشكل أسبوعي. سيتم مراجعة طلبك من قبل الإدارة قبل تطبيقه على النظام.
                         </p>
                         <WeeklyScheduleManager instructor={instructor} />
+                    </div>
+                </Accordion>
+
+                 <Accordion title="إدارة التوافر للجلسات التعريفية المجانية">
+                    <div className="p-6 border-t">
+                        <p className="text-sm text-gray-600 mb-4">
+                            حدد الأيام والأوقات التي ترغب في تخصيصها للجلسات التعريفية المجانية.
+                        </p>
+                        <IntroductoryAvailabilityManager instructor={instructor} />
                     </div>
                 </Accordion>
             </div>

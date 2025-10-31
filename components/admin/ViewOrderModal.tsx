@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, Loader2, Link as LinkIcon } from 'lucide-react';
 import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
 import type { Order, OrderStatus } from '../../lib/database.types';
-import { formatDate, getStatusColor } from '../../utils/helpers';
+import { formatDate, getStatusColor, calculateAge } from '../../utils/helpers';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
@@ -46,6 +46,7 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
 
     const details = order.details as any || {};
     const isEmotionStory = details.productKey === 'emotion_story';
+    const age = calculateAge(details.childBirthDate);
 
     const statuses: OrderStatus[] = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "قيد التنفيذ", "تم الشحن", "تم التسليم", "مكتمل", "ملغي"];
     
@@ -67,7 +68,7 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
                     <DetailRow label="العميل" value={order.users?.name} />
                     <DetailRow label="البريد الإلكتروني" value={order.users?.email} />
                     <DetailRow label="الطفل" value={details.childName || order.child_profiles?.name} />
-                    <DetailRow label="العمر" value={details.childAge} />
+                    <DetailRow label="العمر" value={age !== null ? `${age} سنوات` : 'غير محدد'} />
                     <DetailRow label="الجنس" value={details.childGender} />
                 </div>
 

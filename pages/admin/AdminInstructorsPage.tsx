@@ -17,7 +17,8 @@ const fieldLabels: { [key: string]: string } = {
     name: 'الاسم',
     specialty: 'التخصص',
     bio: 'النبذة التعريفية',
-    rate_per_session: 'سعر الجلسة المقترح',
+    rate_per_session: 'سعر الجلسة',
+    service_rates: 'تسعير الخدمات',
 };
 
 const PendingUpdateDetails: React.FC<{ updates: any }> = ({ updates }) => {
@@ -29,7 +30,9 @@ const PendingUpdateDetails: React.FC<{ updates: any }> = ({ updates }) => {
             {Object.entries(updates).map(([key, value]) => (
                 <li key={key}>
                     <span className="font-semibold">{fieldLabels[key] || key}:</span>{' '}
-                    <span className="text-muted-foreground whitespace-pre-wrap">{String(value)}</span>
+                    <span className="text-muted-foreground whitespace-pre-wrap">
+                        {typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)}
+                    </span>
                 </li>
             ))}
         </ul>

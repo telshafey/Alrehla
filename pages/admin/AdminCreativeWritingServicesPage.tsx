@@ -72,6 +72,7 @@ const AdminCreativeWritingServicesPage: React.FC = () => {
                                    <TableRow>
                                         <TableHead>الخدمة</TableHead>
                                         <TableHead>الفئة</TableHead>
+                                        <TableHead>مقدم الخدمة</TableHead>
                                         <TableHead>السعر</TableHead>
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
@@ -81,6 +82,7 @@ const AdminCreativeWritingServicesPage: React.FC = () => {
                                         <TableRow key={service.id}>
                                             <TableCell className="font-semibold">{service.name}</TableCell>
                                             <TableCell>{service.category}</TableCell>
+                                            <TableCell>{service.provider_type === 'company' ? 'الشركة' : 'المدرب'}</TableCell>
                                             <TableCell className="font-bold">{service.price} ج.م</TableCell>
                                             <TableCell className="flex items-center gap-2">
                                                 <Button variant="ghost" size="icon" onClick={() => handleOpenModal(service)}><Edit size={20} /></Button>

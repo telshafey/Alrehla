@@ -6,7 +6,8 @@ import PageLoader from '../components/ui/PageLoader';
 import { Sparkles, ArrowLeft } from 'lucide-react';
 import { ServiceCard } from '../components/creative-writing/services/ServiceCard';
 import { ServiceOrderModal } from '../components/creative-writing/services/ServiceOrderModal';
-import type { StandaloneService } from '../lib/database.types';
+import { ServiceProvidersModal } from '../components/creative-writing/services/ServiceProvidersModal';
+import type { StandaloneService, Instructor } from '../lib/database.types';
 import { Link } from 'react-router-dom';
 
 const CreativeWritingServicesPage: React.FC = () => {
@@ -14,9 +15,11 @@ const CreativeWritingServicesPage: React.FC = () => {
     const { addItemToCart } = useCart();
     const { addToast } = useToast();
     
-    const [modalService, setModalService] = useState<StandaloneService | null>(null);
+    const [orderModalService, setOrderModalService] = useState<StandaloneService | null>(null);
+    const [providerModalService, setProviderModalService] = useState<StandaloneService | null>(null);
 
-    const services = (data as any)?.standaloneServices || [];
+    const services = data?.standaloneServices || [];
+    const instructors = data?.instructors || [];
     
     const servicesByCategory = useMemo(() => {
         return (services as StandaloneService[]).reduce((acc, service) => {
@@ -29,9 +32,54 @@ const CreativeWritingServicesPage: React.FC = () => {
         }, {} as Record<string, StandaloneService[]>);
     }, [services]);
 
-    const handleAddToCart = (service: StandaloneService) => {
+    const getPriceRange = (service: StandaloneService) => {
+        if (service.provider_type !== 'instructor' || !instructors) {
+            return { min: service.price, max: service.price };
+        }
+        const prices = instructors
+            .map((i: Instructor) => i.service_rates?.[service.id])
+            .filter((price): price is number => price !== undefined && price !== null);
+
+        if (prices.length === 0) {
+            return { min: service.price, max: service.price }; // Fallback to base price
+        }
+        return { min: Math.min(...prices), max: Math.max(...prices) };
+    };
+
+    const handleServiceSelection = (service: StandaloneService) => {
+        setProviderModalService(service);
+    };
+
+    const handleProviderSelection = (service: StandaloneService, instructor: Instructor) => {
+        setProviderModalService(null);
+
+        const price = instructor.service_rates?.[service.id] ?? service.price;
+
         if (service.requires_file_upload) {
-            setModalService(service);
+            // Pass instructor and final price to the next modal via the service object
+            const serviceWithContext = { ...service, selectedInstructor: instructor, finalPrice: price };
+            setOrderModalService(serviceWithContext);
+        } else {
+            addItemToCart({
+                type: 'order', // Using a generic order type for services
+                payload: {
+                    productKey: `service_${service.id}`,
+                    summary: `خدمة: ${service.name} (مع ${instructor.name})`,
+                    totalPrice: price,
+                    details: {
+                        serviceId: service.id,
+                        serviceName: service.name,
+                        assigned_instructor_id: instructor.id,
+                    },
+                },
+            });
+            addToast(`تمت إضافة "${service.name}" إلى السلة بنجاح!`, 'success');
+        }
+    };
+
+    const handleOrderCompanyService = (service: StandaloneService) => {
+        if (service.requires_file_upload) {
+            setOrderModalService(service);
         } else {
             addItemToCart({
                 type: 'order',
@@ -42,34 +90,36 @@ const CreativeWritingServicesPage: React.FC = () => {
                     details: {
                         serviceId: service.id,
                         serviceName: service.name,
+                        assigned_instructor_id: null, // Company service
                     },
                 },
             });
             addToast(`تمت إضافة "${service.name}" إلى السلة بنجاح!`, 'success');
         }
     };
-
+    
     const handleModalConfirm = (service: StandaloneService, file: File, notes: string) => {
+        const { selectedInstructor, finalPrice } = service as any;
+        const isCompanyService = !selectedInstructor;
+
         addItemToCart({
             type: 'order',
             payload: {
                 productKey: `service_${service.id}`,
-                summary: `خدمة: ${service.name}`,
-                totalPrice: service.price,
-                // The actual file object is passed here to be handled by the checkout mutation.
-                // Note: This works because our cart is in-memory/session-storage for the session.
-                // A backend-based cart would require uploading the file first.
+                summary: isCompanyService ? `خدمة: ${service.name}` : `خدمة: ${service.name} (مع ${selectedInstructor.name})`,
+                totalPrice: isCompanyService ? service.price : finalPrice,
                 files: { service_file: file },
                 details: {
                     serviceId: service.id,
                     serviceName: service.name,
                     userNotes: notes,
                     fileName: file.name,
+                    assigned_instructor_id: isCompanyService ? null : selectedInstructor.id,
                 },
             },
         });
         addToast(`تمت إضافة "${service.name}" إلى السلة بنجاح!`, 'success');
-        setModalService(null);
+        setOrderModalService(null);
     };
 
     if (isLoading) {
@@ -78,10 +128,16 @@ const CreativeWritingServicesPage: React.FC = () => {
 
     return (
         <>
+            <ServiceProvidersModal
+                isOpen={!!providerModalService}
+                onClose={() => setProviderModalService(null)}
+                service={providerModalService}
+                onSelect={handleProviderSelection}
+            />
             <ServiceOrderModal
-                isOpen={!!modalService}
-                onClose={() => setModalService(null)}
-                service={modalService}
+                isOpen={!!orderModalService}
+                onClose={() => setOrderModalService(null)}
+                service={orderModalService}
                 onConfirm={handleModalConfirm}
             />
             <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
@@ -102,14 +158,19 @@ const CreativeWritingServicesPage: React.FC = () => {
                                 {category}
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {/* FIX: Cast categoryServices to an array of StandaloneService to resolve type inference issue. */}
-                                {(categoryServices as StandaloneService[]).map(service => (
-                                    <ServiceCard 
-                                        key={service.id} 
-                                        service={service} 
-                                        onAddToCart={() => handleAddToCart(service)} 
-                                    />
-                                ))}
+                                {(categoryServices as StandaloneService[]).map(service => {
+                                    const { min, max } = getPriceRange(service);
+                                    return (
+                                        <ServiceCard 
+                                            key={service.id} 
+                                            service={service} 
+                                            minPrice={min}
+                                            maxPrice={max}
+                                            onViewProviders={() => handleServiceSelection(service)}
+                                            onOrderNow={() => handleOrderCompanyService(service)}
+                                        />
+                                    )
+                                })}
                             </div>
                         </section>
                     ))}

@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, BookOpen, UserPlus, MessageSquare, Clock } from 'lucide-react';
-// FIX: Replaced missing DashboardWidget with existing AdminSection component.
 import AdminSection from '../AdminSection';
 
 const formatTimeAgo = (dateString: string) => {

@@ -58,7 +58,7 @@ const SubscriptionPage: React.FC = () => {
     const [step, setStep] = useState<SubscriptionStep>('plan');
     const [formData, setFormData] = useState({
         childName: '',
-        childAge: '',
+        childBirthDate: '',
         childGender: 'ذكر' as 'ذكر' | 'أنثى',
         childTraits: '',
         familyNames: '',
@@ -103,8 +103,7 @@ const SubscriptionPage: React.FC = () => {
                 break;
             case 'child':
                 if (!formData.childName.trim()) newErrors.childName = 'اسم الطفل مطلوب.';
-                if (!formData.childAge) newErrors.childAge = 'عمر الطفل مطلوب.';
-                else if (parseInt(formData.childAge) <= 0) newErrors.childAge = 'العمر يجب أن يكون أكبر من صفر.';
+                if (!formData.childBirthDate) newErrors.childBirthDate = 'تاريخ ميلاد الطفل مطلوب.';
                 break;
             case 'images':
                  if (!imageFiles['child_photo_1']) newErrors['child_photo_1'] = 'صورة وجه الطفل إلزامية.';
@@ -185,8 +184,8 @@ const SubscriptionPage: React.FC = () => {
                             <FormField label="اسم الطفل*" htmlFor="childName" error={errors.childName}>
                                 <Input type="text" id="childName" name="childName" value={formData.childName} onChange={handleChange} required />
                             </FormField>
-                            <FormField label="العمر*" htmlFor="childAge" error={errors.childAge}>
-                                <Input type="number" id="childAge" name="childAge" value={formData.childAge} onChange={handleChange} required />
+                            <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={errors.childBirthDate}>
+                                <Input type="date" id="childBirthDate" name="childBirthDate" value={formData.childBirthDate} onChange={handleChange} required />
                             </FormField>
                             <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2">
                                 <Select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange}>

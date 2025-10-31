@@ -1,70 +1,54 @@
-import React, { useState, useMemo } from 'react';
-import { BookOpen, Clock } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { BookOpen } from 'lucide-react';
 import AdminSection from '../AdminSection';
-import { formatDate } from '../../../utils/helpers';
+import InstructorStudentCard from './InstructorStudentCard';
 import type { CreativeWritingBooking, ScheduledSession, CreativeWritingPackage } from '../../../lib/database.types';
-import { Button } from '../../ui/Button';
-import RequestSessionChangeModal from './RequestSessionChangeModal';
-import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-
 
 type EnrichedInstructorBooking = CreativeWritingBooking & {
     sessions: ScheduledSession[];
     packageDetails?: CreativeWritingPackage;
-    child_profiles: { name: string } | null;
+    child_profiles: { id: number; name: string; avatar_url: string | null } | null;
 };
 
 interface InstructorJourneysPanelProps {
     instructorBookings: EnrichedInstructorBooking[];
 }
 
-const JourneyDetailsCard: React.FC<{ journey: EnrichedInstructorBooking }> = ({ journey }) => {
-
-    const totalSessions = parseInt(journey.packageDetails?.sessions?.match(/\d+/)?.[0] || '0', 10);
-    const completedSessionsCount = journey.sessions.filter(s => s.status === 'completed').length;
-    
-    return (
-        <>
-            <div className="bg-gray-50 p-4 rounded-lg border">
-                <div className="flex justify-between items-start">
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 flex items-center justify-center bg-purple-100 text-purple-600 rounded-full flex-shrink-0"><BookOpen /></div>
-                        <div>
-                            <h3 className="font-bold text-lg">{journey.child_profiles?.name}</h3>
-                            <p className="text-sm text-gray-500">{journey.package_name}</p>
-                        </div>
-                    </div>
-                    <div className="text-sm font-semibold text-right">
-                        <p>{completedSessionsCount} / {totalSessions || '?'} </p>
-                        <p>جلسات مكتملة</p>
-                    </div>
-                </div>
-                 <div className="mt-4 border-t pt-4 flex justify-end">
-                    <Button asChild size="sm">
-                        <Link to={`/journey/${journey.id}`}>
-                            <span>افتح مساحة العمل</span>
-                            <ArrowLeft size={16} />
-                        </Link>
-                    </Button>
-                </div>
-            </div>
-        </>
-    );
-};
-
-
 const InstructorJourneysPanel: React.FC<InstructorJourneysPanelProps> = ({ instructorBookings }) => {
+    
+    const students = useMemo(() => {
+        const studentMap = new Map<number, { studentProfile: any, journeys: EnrichedInstructorBooking[] }>();
+        
+        instructorBookings.forEach(booking => {
+            if (!booking.child_profiles) return;
+            const childId = booking.child_id;
+            
+            if (!studentMap.has(childId)) {
+                studentMap.set(childId, {
+                    studentProfile: booking.child_profiles,
+                    journeys: [],
+                });
+            }
+            studentMap.get(childId)!.journeys.push(booking);
+        });
+
+        return Array.from(studentMap.values());
+    }, [instructorBookings]);
+
     return (
-        <AdminSection title="كل الرحلات التدريبية" icon={<BookOpen />}>
-            {instructorBookings.length > 0 ? (
-                <div className="space-y-6">
-                    {instructorBookings.map(journey => (
-                        <JourneyDetailsCard key={journey.id} journey={journey} />
+        <AdminSection title="رحلات الطلاب" icon={<BookOpen />}>
+            {students.length > 0 ? (
+                <div className="space-y-8">
+                    {students.map(({ studentProfile, journeys }) => (
+                        <InstructorStudentCard 
+                            key={studentProfile.id} 
+                            student={studentProfile} 
+                            journeys={journeys} 
+                        />
                     ))}
                 </div>
             ) : (
-                <p className="text-center text-gray-500 py-8">لم يتم تعيين أي رحلات لك بعد.</p>
+                <p className="text-center text-gray-500 py-8">لم يتم تعيين أي طلاب لك بعد.</p>
             )}
         </AdminSection>
     );

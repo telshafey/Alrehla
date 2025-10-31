@@ -20,6 +20,7 @@ interface AuthContextType {
     hasAdminAccess: boolean;
     permissions: Permissions;
     childProfiles: ChildProfile[];
+    isParent: boolean;
     addChildProfile: (profileData: Omit<ChildProfile, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
     updateChildProfile: (profileData: Partial<ChildProfile> & { id: number }) => Promise<void>;
 }
@@ -151,6 +152,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return newUser;
         });
     };
+    
+    const isParent = useMemo(() => childProfiles.length > 0, [childProfiles]);
 
     const value: AuthContextType = useMemo(() => ({
         currentUser,
@@ -165,9 +168,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         hasAdminAccess: currentUser ? getPermissions(currentUser.role).canViewDashboard : false,
         permissions: currentUser ? getPermissions(currentUser.role) : getPermissions('user'),
         childProfiles,
+        isParent,
         addChildProfile,
         updateChildProfile,
-    }), [currentUser, currentChildProfile, loading, error, childProfiles]);
+    }), [currentUser, currentChildProfile, loading, error, childProfiles, isParent]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

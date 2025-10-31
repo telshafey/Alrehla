@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
@@ -35,7 +35,7 @@ const CreativeWritingBookingPage: React.FC = () => {
     
     const [step, setStep] = useState<BookingStep>('child');
     const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
-    const [childData, setChildData] = useState({ childName: '', childAge: '', childGender: '' as 'ذكر' | 'أنثى' | '' });
+    const [childData, setChildData] = useState({ childName: '', childBirthDate: '', childGender: '' as 'ذكر' | 'أنثى' | '' });
     const [selectedPackage, setSelectedPackage] = useState<CreativeWritingPackage | null>(null);
     const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
     const [selectedDateTime, setSelectedDateTime] = useState<{ date: Date, time: string } | null>(null);
@@ -66,6 +66,26 @@ const CreativeWritingBookingPage: React.FC = () => {
 
     const { instructors = [], cw_packages = [], holidays = [] } = bookingData || {};
     
+    const finalPrice = useMemo(() => {
+        if (!selectedPackage) return null;
+        if (selectedPackage.price === 0) return 0;
+        if (selectedInstructor && selectedPackage) {
+            return selectedInstructor.package_rates?.[selectedPackage.id] ?? selectedPackage.price;
+        }
+        return null; // When instructor is not yet selected
+    }, [selectedPackage, selectedInstructor]);
+
+    const priceRange = useMemo(() => {
+        if (!selectedPackage || finalPrice !== null) return null;
+        const prices = instructors
+            .map((i: Instructor) => i.package_rates?.[selectedPackage.id])
+            .filter((price): price is number => price !== undefined && price !== null);
+
+        if (prices.length === 0) return { min: selectedPackage.price, max: selectedPackage.price };
+        return { min: Math.min(...prices), max: Math.max(...prices) };
+    }, [selectedPackage, finalPrice, instructors]);
+
+
     const handleNext = () => {
         const currentIndex = stepsConfig.findIndex(s => s.key === step);
         if (currentIndex < stepsConfig.length - 1) {
@@ -105,18 +125,28 @@ const CreativeWritingBookingPage: React.FC = () => {
             setSelectedChildId(child.id);
             setChildData({
                 childName: child.name,
-                childAge: child.age.toString(),
+                childBirthDate: child.birth_date,
                 childGender: child.gender,
             });
         } else {
             setSelectedChildId(null);
+            setChildData({ childName: '', childBirthDate: '', childGender: '' });
         }
+    };
+    
+    const handleSelectSelf = () => {
+        setSelectedChildId(null);
+        setChildData({
+            childName: currentUser!.name,
+            childBirthDate: '',
+            childGender: '',
+        });
     };
 
 
     const isNextDisabled = () => {
         switch (step) {
-            case 'child': return !childData.childName || !childData.childAge || !childData.childGender;
+            case 'child': return !childData.childName || !childData.childBirthDate || !childData.childGender;
             case 'package': return !selectedPackage;
             case 'instructor': return !selectedInstructor;
             case 'schedule': return !selectedDateTime;
@@ -125,26 +155,20 @@ const CreativeWritingBookingPage: React.FC = () => {
     };
 
     const handleSubmit = async () => {
-        if (!childData.childName || !selectedPackage || !selectedInstructor || !selectedDateTime) {
+        if (!childData.childName || !selectedPackage || !selectedInstructor || !selectedDateTime || finalPrice === null) {
             addToast('بيانات الحجز غير مكتملة.', 'error');
             return;
         }
         
         setIsSubmitting(true);
         
-        const childForCart: ChildProfile = selectedChildId
+        const childForCart: Partial<ChildProfile> = selectedChildId
             ? childProfiles.find(c => c.id === selectedChildId)!
             : {
                 id: -1,
                 name: childData.childName,
-                age: parseInt(childData.childAge, 10),
+                birth_date: childData.childBirthDate,
                 gender: childData.childGender as 'ذكر' | 'أنثى',
-                user_id: currentUser!.id,
-                created_at: new Date().toISOString(),
-                avatar_url: null,
-                interests: null,
-                strengths: null,
-                student_user_id: null,
             };
 
         addItemToCart({
@@ -154,7 +178,7 @@ const CreativeWritingBookingPage: React.FC = () => {
                 package: selectedPackage,
                 instructor: selectedInstructor,
                 dateTime: selectedDateTime,
-                total: selectedPackage.price,
+                total: finalPrice,
                 summary: `${selectedPackage.name} لـ ${childData.childName}`
             }
         });
@@ -174,6 +198,8 @@ const CreativeWritingBookingPage: React.FC = () => {
                             formData={childData}
                             handleChange={handleChildDataChange}
                             errors={{}}
+                            currentUser={currentUser}
+                            onSelectSelf={handleSelectSelf}
                         />;
             case 'package':
                 return <PackageSelection packages={cw_packages} onSelect={setSelectedPackage} />;
@@ -223,6 +249,8 @@ const CreativeWritingBookingPage: React.FC = () => {
                                 onSubmit={handleSubmit}
                                 isSubmitting={isSubmitting}
                                 isConfirmStep={step === 'schedule'}
+                                finalPrice={finalPrice}
+                                priceRange={priceRange}
                            />
                         </div>
                     </div>

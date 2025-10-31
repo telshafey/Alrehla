@@ -1,12 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo, useCallback } from 'react';
-
-// A self-contained UUID generator to avoid potential module resolution issues with external libraries.
-function uuidv4() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
+import { v4 as uuidv4 } from 'uuid';
 
 export type CartItem = {
     id: string; // Unique ID for the cart item itself

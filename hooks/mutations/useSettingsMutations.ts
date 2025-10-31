@@ -22,7 +22,6 @@ export const useSettingsMutations = () => {
         }
     });
 
-    // FIX: Add missing updateAiSettings mutation.
     const updateAiSettings = useMutation({
         mutationFn: async (settings: any) => {
             await sleep(500);
@@ -38,6 +37,21 @@ export const useSettingsMutations = () => {
         }
     });
 
+    const updatePricingSettings = useMutation({
+        mutationFn: async (settings: any) => {
+            await sleep(500);
+            console.log("Updating Pricing settings (mock)", settings);
+            return settings;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminPricingSettings'] });
+            addToast('تم تحديث إعدادات التسعير بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث الإعدادات: ${error.message}`, 'error');
+        }
+    });
 
-    return { updateSocialLinks, updateAiSettings };
+
+    return { updateSocialLinks, updateAiSettings, updatePricingSettings };
 }

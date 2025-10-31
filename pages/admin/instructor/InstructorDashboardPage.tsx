@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useInstructorData } from '../../hooks/queries/instructor/useInstructorDataQuery';
-import PageLoader from '../../components/ui/PageLoader';
-import StatCard from '../../components/admin/StatCard';
+import { useInstructorData } from '../../../hooks/queries/instructor/useInstructorDataQuery';
+import PageLoader from '../../../components/ui/PageLoader';
+import StatCard from '../../../components/admin/StatCard';
 import { Calendar, BookOpen, Award } from 'lucide-react';
 
 const InstructorDashboardPage: React.FC = () => {

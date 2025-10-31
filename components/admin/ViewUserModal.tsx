@@ -2,6 +2,7 @@ import React from 'react';
 import { Mail, User, Shield } from 'lucide-react';
 import type { UserProfileWithRelations } from '../../lib/database.types';
 import { roleNames } from '../../lib/roles';
+import { calculateAge } from '../../utils/helpers';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/Button';
 
@@ -39,9 +40,12 @@ const ViewUserModal: React.FC<ViewUserModalProps> = ({ isOpen, onClose, user }) 
                     <div>
                             <p className="text-sm font-semibold text-muted-foreground my-2">الأطفال المرتبطون:</p>
                             <div className="space-y-2">
-                            {user.children.map(child => (
-                                <div key={child.id} className="p-2 bg-muted rounded-md text-sm">{child.name} ({child.age} سنوات)</div>
-                            ))}
+                            {user.children.map(child => {
+                                const age = calculateAge(child.birth_date);
+                                return (
+                                    <div key={child.id} className="p-2 bg-muted rounded-md text-sm">{child.name} ({age !== null ? `${age} سنوات` : ''})</div>
+                                );
+                            })}
                             </div>
                     </div>
                 )}

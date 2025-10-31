@@ -13,6 +13,8 @@ interface BookingSummaryProps {
     onSubmit: () => void;
     isSubmitting: boolean;
     isConfirmStep: boolean;
+    finalPrice: number | null;
+    priceRange: { min: number, max: number } | null;
 }
 
 const SummaryRow: React.FC<{ icon: React.ReactNode, label: string, value: string | null }> = ({ icon, label, value }) => (
@@ -33,9 +35,23 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
     dateTime,
     onSubmit,
     isSubmitting,
-    isConfirmStep
+    isConfirmStep,
+    finalPrice,
+    priceRange
 }) => {
     
+    const renderPrice = () => {
+        if (finalPrice !== null) {
+            return finalPrice === 0 ? 'مجاني' : `${finalPrice} ج.م`;
+        }
+        if (priceRange) {
+            return priceRange.min === priceRange.max 
+                ? `${priceRange.min} ج.م` 
+                : `${priceRange.min} - ${priceRange.max} ج.م`;
+        }
+        return '...';
+    };
+
     return (
         <Card>
             <CardHeader>
@@ -56,7 +72,7 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
                 <CardFooter className="flex-col items-stretch space-y-2 border-t pt-6">
                     <div className="flex justify-between items-center text-xl font-bold">
                         <span>الإجمالي</span>
-                        <span>{pkg.price === 0 ? 'مجاني' : `${pkg.price} ج.م`}</span>
+                        <span>{renderPrice()}</span>
                     </div>
                      <Button
                         onClick={onSubmit}
@@ -65,7 +81,7 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
                         className="w-full mt-6"
                         icon={<CreditCard />}
                     >
-                        {isSubmitting ? 'جاري الإضافة...' : (pkg?.price === 0 ? 'تأكيد الحجز المجاني' : 'أضف للسلة وأكمل')}
+                        {isSubmitting ? 'جاري الإضافة...' : (finalPrice === 0 ? 'تأكيد الحجز المجاني' : 'أضف للسلة وأكمل')}
                     </Button>
                 </CardFooter>
             )}
