@@ -70,7 +70,22 @@ export const useSettingsMutations = () => {
             addToast(`فشل تحديث الصلاحيات: ${error.message}`, 'error');
         }
     });
+    
+    const updateJitsiSettings = useMutation({
+        mutationFn: async (settings: any) => {
+            await sleep(500);
+            console.log("Updating Jitsi settings (mock)", settings);
+            return settings;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminJitsiSettings'] });
+            addToast('تم تحديث إعدادات Jitsi بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث الإعدادات: ${error.message}`, 'error');
+        }
+    });
 
 
-    return { updateSocialLinks, updateCommunicationSettings, updatePricingSettings, updateRolePermissions };
+    return { updateSocialLinks, updateCommunicationSettings, updatePricingSettings, updateRolePermissions, updateJitsiSettings };
 }

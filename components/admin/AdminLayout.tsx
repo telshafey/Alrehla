@@ -24,6 +24,7 @@ const AdminJoinRequestsPage = React.lazy(() => import('../../pages/admin/AdminJo
 const AdminBlogPage = React.lazy(() => import('../../pages/admin/AdminBlogPage'));
 const AdminSubscriptionsPage = React.lazy(() => import('../../pages/admin/AdminSubscriptionsPage'));
 const AdminShippingPage = React.lazy(() => import('../../pages/admin/AdminShippingPage'));
+const AdminIntegrationsPage = React.lazy(() => import('../../pages/admin/AdminIntegrationsPage'));
 
 const AdminScheduledSessionsPage = React.lazy(() => import('../../pages/admin/AdminScheduledSessionsPage'));
 const AdminSubscriptionBoxPage = React.lazy(() => import('../../pages/admin/AdminSubscriptionBoxPage'));
@@ -67,6 +68,7 @@ const AdminLayout: React.FC = () => {
               <Route index element={<AdminDashboardPage />} />
               <Route path="users" element={<PermissionBasedRoute permission="canManageUsers"><AdminUsersPage /></PermissionBasedRoute>} />
               <Route path="settings" element={<PermissionBasedRoute permission="canManageSettings"><AdminSettingsPage /></PermissionBasedRoute>} />
+              <Route path="integrations" element={<PermissionBasedRoute permission="canManageSettings"><AdminIntegrationsPage /></PermissionBasedRoute>} />
               <Route path="orders" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminOrdersPage /></PermissionBasedRoute>} />
               <Route path="subscriptions" element={<PermissionBasedRoute permission="canManageEnhaLakSubscriptions"><AdminSubscriptionsPage /></PermissionBasedRoute>} />
               <Route path="subscription-box" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminSubscriptionBoxPage /></PermissionBasedRoute>} />

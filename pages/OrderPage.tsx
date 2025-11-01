@@ -137,7 +137,7 @@ const OrderPage: React.FC = () => {
     }, [formData.governorate, formData.deliveryType, shippingCosts]);
     
     const totalPrice = basePrice + addonsPrice;
-
+    
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         const isCheckbox = type === 'checkbox';
@@ -327,7 +327,7 @@ const OrderPage: React.FC = () => {
 
         switch (step) {
             case 'child': return <ChildDetailsSection {...childDetailsProps} />;
-            case 'customization': return <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} textFields={product.text_fields || null} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals}/>;
+            case 'customization': return <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} textFields={product.text_fields || null} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals} />;
             case 'images': return <ImageUploadSection files={imageFiles} onFileChange={handleFileChange} errors={errors} imageSlots={product.image_slots || null}/>;
             case 'addons': return <AddonsSection addonProducts={addonProducts} selectedAddons={selectedAddons} onToggle={handleToggleAddon} />;
             case 'delivery': return <DeliverySection formData={formData as any} handleChange={handleChange} product={product} errors={errors} />;
@@ -347,7 +347,7 @@ const OrderPage: React.FC = () => {
                 return (
                      <div>
                         <h3 className="text-2xl font-bold text-gray-800 mb-6">رحلة المشاعر</h3>
-                        <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} textFields={[]} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals}/>
+                        <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} textFields={[]} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals} />
                         <div className="mt-6">
                             <DynamicTextFields fields={product.text_fields?.slice(4, 8) || []} formData={formData} errors={errors} handleChange={handleChange} />
                         </div>

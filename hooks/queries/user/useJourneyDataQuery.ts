@@ -91,3 +91,15 @@ export const useStudentDashboardData = () => {
         enabled: !!currentChildProfile,
     });
 };
+
+export const useSessionDetails = (sessionId: string | undefined) => {
+    return useQuery({
+        queryKey: ['sessionDetails', sessionId],
+        queryFn: async () => {
+            if (!sessionId) return null;
+            const session = mockScheduledSessions.find(s => s.id === sessionId);
+            return mockFetch(session || null);
+        },
+        enabled: !!sessionId,
+    });
+};

@@ -285,6 +285,16 @@ export interface CommunicationSettings {
   whatsapp_default_message: string;
 }
 
+export interface JitsiSettings {
+  id: number;
+  domain: string;
+  room_prefix: string;
+  join_minutes_before: number;
+  expire_minutes_after: number;
+  start_with_audio_muted: boolean;
+  start_with_video_muted: boolean;
+}
+
 export interface BlogPost {
   id: number;
   created_at: string;

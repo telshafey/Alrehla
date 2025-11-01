@@ -5,7 +5,7 @@ import type { Permissions } from '../../lib/roles';
 import {
   LayoutDashboard, Users, Settings, ShoppingBag, BookOpen, MessageSquare, Edit,
   Truck, Star, Gift, UserCheck, Package, Sparkles, UserPlus,
-  DollarSign, Calendar, User
+  DollarSign, Calendar, User, Plug,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -52,6 +52,7 @@ const navConfig: NavConfigItem[] = [
   { type: 'section', label: 'الإدارة', permission: ['canManageUsers', 'canManageSettings'], role: 'admin' },
   { type: 'link', to: '/admin/users', icon: <Users size={20} />, label: 'المستخدمون', permission: 'canManageUsers', role: 'admin' },
   { type: 'link', to: '/admin/content-management', icon: <Edit size={20} />, label: 'المحتوى', permission: 'canManageContent', role: 'admin' },
+  { type: 'link', to: '/admin/integrations', icon: <Plug size={20} />, label: 'إدارة التكاملات', permission: 'canManageSettings', role: 'admin' },
   { type: 'link', to: '/admin/settings', icon: <Settings size={20} />, label: 'الإعدادات العامة', permission: 'canManageSettings', role: 'admin' },
 
   // Communication Section

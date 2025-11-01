@@ -7,6 +7,7 @@ import {
     mockPricingSettings,
     mockRolePermissions,
     mockCommunicationSettings,
+    mockJitsiSettings,
 } from '../../../data/mockData';
 
 const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
@@ -31,6 +32,11 @@ export const useAdminSocialLinks = () => useQuery({
 export const useAdminCommunicationSettings = () => useQuery({
     queryKey: ['adminCommunicationSettings'],
     queryFn: () => mockFetch(mockCommunicationSettings),
+});
+
+export const useAdminJitsiSettings = () => useQuery({
+    queryKey: ['adminJitsiSettings'],
+    queryFn: () => mockFetch(mockJitsiSettings),
 });
 
 export const useAdminPricingSettings = () => useQuery({

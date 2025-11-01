@@ -9,7 +9,8 @@ import type {
     PricingSettings,
     Badge,
     ChildBadge,
-    CommunicationSettings
+    CommunicationSettings,
+    JitsiSettings
 } from '../lib/database.types';
 import { getPermissions, Permissions, UserRole } from '../lib/roles';
 
@@ -64,8 +65,8 @@ export const mockSubscriptionPlans: SubscriptionPlan[] = [
 ];
 
 export const mockBookings: CreativeWritingBooking[] = [
-    { id: 'bk_abc', created_at: '2023-07-20T10:00:00Z', user_id: 'usr_parent', user_name: 'أحمد عبدالله', child_id: 1, package_name: 'باقة الانطلاق', instructor_id: 1, booking_date: '2023-08-10T17:00:00Z', booking_time: '17:00', total: 1200, status: 'مؤكد', progress_notes: 'أظهرت فاطمة تقدماً ملحوظاً في بناء الشخصيات.', receipt_url: 'https://example.com/receipt.jpg', session_id: 'AlRehlah-Session-bk_abc' },
-    { id: 'bk_def', created_at: '2023-08-01T11:00:00Z', user_id: 'usr_parent', user_name: 'أحمد عبدالله', child_id: 2, package_name: 'الجلسة التعريفية', instructor_id: 1, booking_date: '2023-08-15T14:00:00Z', booking_time: '14:00', total: 0, status: 'مؤكد', progress_notes: null, receipt_url: null, session_id: 'AlRehlah-Session-bk_def' }
+    { id: 'bk_abc', created_at: '2023-07-20T10:00:00Z', user_id: 'usr_parent', user_name: 'أحمد عبدالله', child_id: 1, package_name: 'باقة الانطلاق', instructor_id: 1, booking_date: '2023-08-10T17:00:00Z', booking_time: '17:00', total: 1200, status: 'مؤكد', progress_notes: 'أظهرت فاطمة تقدماً ملحوظاً في بناء الشخصيات.', receipt_url: 'https://example.com/receipt.jpg', session_id: 'ses_2' },
+    { id: 'bk_def', created_at: '2023-08-01T11:00:00Z', user_id: 'usr_parent', user_name: 'أحمد عبدالله', child_id: 2, package_name: 'الجلسة التعريفية', instructor_id: 1, booking_date: '2023-08-15T14:00:00Z', booking_time: '14:00', total: 0, status: 'مؤكد', progress_notes: null, receipt_url: null, session_id: 'ses_6' }
 ];
 
 export const mockPersonalizedProducts: PersonalizedProduct[] = [
@@ -441,6 +442,16 @@ export const mockCommunicationSettings: CommunicationSettings = {
   join_us_email: 'hr@alrehlah.com',
   whatsapp_number: '+201234567890',
   whatsapp_default_message: "مرحباً، لدي استفسار بخصوص منصة الرحلة",
+};
+
+export const mockJitsiSettings: JitsiSettings = {
+  id: 1,
+  domain: 'meet.jit.si',
+  room_prefix: 'AlRehlah-Session-',
+  join_minutes_before: 15,
+  expire_minutes_after: 120, // 2 hours
+  start_with_audio_muted: false,
+  start_with_video_muted: false,
 };
 
 export const mockRolePermissions: Record<UserRole, Permissions> = {

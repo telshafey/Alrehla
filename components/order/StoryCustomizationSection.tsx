@@ -22,13 +22,13 @@ const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({
     goalConfig,
     storyGoals,
 }) => {
-    
     const showGoalSelector = goalConfig === 'predefined' || goalConfig === 'predefined_and_custom';
     const allowCustomGoal = goalConfig === 'custom' || goalConfig === 'predefined_and_custom';
 
     return (
         <div>
             <h3 className="text-2xl font-bold text-gray-800 mb-6">تخصيص القصة</h3>
+
             <div className="space-y-6">
                 {(textFields || []).map(field => (
                      <FormField key={field.id} label={field.label} htmlFor={field.id} error={errors[field.id]}>
