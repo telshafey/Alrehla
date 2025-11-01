@@ -13,6 +13,7 @@ import {
 import { Button } from './ui/Button';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 
+// --- Sub-components for Header ---
 
 const NotificationIcon: React.FC<{ type: string }> = ({ type }) => {
     switch (type) {
@@ -21,6 +22,94 @@ const NotificationIcon: React.FC<{ type: string }> = ({ type }) => {
         default: return <Info className="w-5 h-5 text-muted-foreground" />;
     }
 };
+
+const NotificationDropdown: React.FC<{
+    notifications: any[];
+    onClose: () => void;
+    onMarkAsRead: (id: number) => void;
+    onDelete: (e: React.MouseEvent, id: number) => void;
+}> = ({ notifications, onClose, onMarkAsRead, onDelete }) => (
+    <Card className="absolute top-full left-0 mt-2 w-80 animate-fadeIn z-50">
+        <CardHeader className="p-3 border-b">
+            <h3 className="font-semibold text-sm">الإشعارات</h3>
+        </CardHeader>
+        <CardContent className="p-0 max-h-80 overflow-y-auto">
+            {notifications.length > 0 ? notifications.map((notif: any) => (
+                <Link
+                    key={notif.id}
+                    to={notif.link}
+                    state={notif.link === '/account' ? { defaultTab: 'myLibrary' } : undefined}
+                    onClick={() => { onClose(); onMarkAsRead(notif.id); }}
+                    className={`flex items-start gap-3 p-3 text-sm hover:bg-accent ${!notif.read ? 'bg-blue-50' : ''}`}
+                >
+                    <NotificationIcon type={notif.type} />
+                    <div className="flex-grow">
+                        <p className="text-foreground">{notif.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{formatDate(notif.created_at)}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => onDelete(e, notif.id)}>
+                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive"/>
+                    </Button>
+                </Link>
+            )) : (
+                <p className="p-4 text-center text-sm text-muted-foreground">لا توجد إشعارات.</p>
+            )}
+        </CardContent>
+        <CardFooter className="p-2 border-t">
+            <Button asChild variant="link" size="sm" className="w-full">
+                <Link to="/account" state={{ defaultTab: 'notifications' }} onClick={onClose}>
+                    عرض كل الإشعارات
+                </Link>
+            </Button>
+        </CardFooter>
+    </Card>
+);
+
+const UserDropdown: React.FC<{
+    currentUser: any;
+    hasAdminAccess: boolean;
+    onSignOut: () => void;
+    onClose: () => void;
+}> = ({ currentUser, hasAdminAccess, onSignOut, onClose }) => (
+     <Card className="absolute top-full left-0 mt-2 w-56 animate-fadeIn z-50">
+         <CardHeader className="p-4">
+            <p className="text-sm font-semibold">مرحباً، {currentUser?.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{currentUser?.email}</p>
+        </CardHeader>
+        <CardContent className="p-1">
+            <Link to="/account" onClick={onClose} className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent">حسابي</Link>
+            {hasAdminAccess && <Link to="/admin" onClick={onClose} className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent">لوحة التحكم</Link>}
+        </CardContent>
+        <CardFooter className="p-1 border-t">
+                <button onClick={onClose} className="w-full">
+                    <span onClick={onSignOut} className="w-full text-right flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md">
+                        <LogOut size={16} /> تسجيل الخروج
+                    </span>
+                </button>
+        </CardFooter>
+    </Card>
+);
+
+const MobileMenu: React.FC<{
+    navLinks: { key: string; to: string; text: string; icon?: React.ReactNode }[];
+    isLoggedIn: boolean;
+    onClose: () => void;
+    NavItemComponent: React.FC<{ to: string; text: string; icon?: React.ReactNode }>;
+}> = ({ navLinks, isLoggedIn, onClose, NavItemComponent }) => (
+    <div className="lg:hidden bg-background border-t">
+        <nav className="flex flex-col items-center gap-6 p-6">
+            {navLinks.map(link => (
+                <NavItemComponent key={link.key} to={link.to} text={link.text} icon={link.icon} />
+            ))}
+            {!isLoggedIn && (
+                <Button asChild size="md"><Link to="/account" onClick={onClose}>تسجيل الدخول</Link></Button>
+            )}
+        </nav>
+    </div>
+);
+
+
+// --- Main Header Component ---
 
 const Header: React.FC = () => {
     const { isLoggedIn, currentUser, hasAdminAccess, signOut } = useAuth();
@@ -74,6 +163,7 @@ const Header: React.FC = () => {
             { key: 'creative-writing', to: '/creative-writing', text: 'بداية الرحلة' },
             { key: 'about', to: '/about', text: 'عنا' },
             { key: 'blog', to: '/blog', text: 'المدونة' },
+            { key: 'join-us', to: '/join-us', text: 'انضم إلينا' },
             { key: 'support', to: '/support', text: 'الدعم' },
         ];
         
@@ -134,8 +224,7 @@ const Header: React.FC = () => {
         <header className={`bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 ${headerStyle}`} dir="rtl">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
-                    {/* Logo */}
-                    <Link to="/" className="flex items-center gap-3">
+                    <Link to="/" className="flex items-center gap-3" onClick={closeAllMenus}>
                         <img src={siteBranding?.logoUrl || "https://i.ibb.co/C0bSJJT/favicon.png"} alt="شعار منصة الرحلة" className="h-10 w-auto" />
                          <div className="hidden sm:flex items-baseline gap-2">
                              <span className="text-lg font-bold text-foreground">منصة الرحلة</span>
@@ -143,12 +232,10 @@ const Header: React.FC = () => {
                         </div>
                     </Link>
 
-                    {/* Desktop Navigation */}
                     <nav className="hidden lg:flex items-center gap-6">
                         {currentNavLinks.map(link => <NavItem key={link.key} to={link.to} text={link.text} icon={link.icon} />)}
                     </nav>
 
-                    {/* Actions */}
                     <div className="flex items-center gap-1 sm:gap-2">
                         <Button asChild variant="ghost" size="icon" aria-label="Shopping Cart">
                             <Link to="/cart" className="relative">
@@ -163,7 +250,6 @@ const Header: React.FC = () => {
                         
                         {isLoggedIn ? (
                             <>
-                                {/* Notifications Dropdown */}
                                 <div ref={el => (menusRef.current['notifications'] = el)} className="relative">
                                      <Button variant="ghost" size="icon" onClick={() => toggleMenu('notifications')} aria-label="Notifications">
                                         <Bell className="h-5 w-5" />
@@ -174,62 +260,26 @@ const Header: React.FC = () => {
                                         )}
                                     </Button>
                                     {openMenu === 'notifications' && (
-                                        <Card className="absolute top-full left-0 mt-2 w-80 animate-fadeIn z-50">
-                                            <CardHeader className="p-3 border-b">
-                                                <h3 className="font-semibold text-sm">الإشعارات</h3>
-                                            </CardHeader>
-                                            <CardContent className="p-0 max-h-80 overflow-y-auto">
-                                                {(notifications as any[]).length > 0 ? (notifications as any[]).map((notif: any) => (
-                                                    <Link 
-                                                        key={notif.id} 
-                                                        to={notif.link} 
-                                                        state={notif.link === '/account' ? { defaultTab: 'myLibrary' } : undefined}
-                                                        onClick={() => { closeAllMenus(); markNotificationAsRead.mutate({ notificationId: notif.id }); }}
-                                                        className={`flex items-start gap-3 p-3 text-sm hover:bg-accent ${!notif.read ? 'bg-blue-50' : ''}`}
-                                                    >
-                                                        <NotificationIcon type={notif.type} />
-                                                        <div className="flex-grow">
-                                                            <p className="text-foreground">{notif.message}</p>
-                                                            <p className="text-xs text-muted-foreground mt-1">{formatDate(notif.created_at)}</p>
-                                                        </div>
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleDeleteNotification(e, notif.id)}><Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive"/></Button>
-                                                    </Link>
-                                                )) : (
-                                                    <p className="p-4 text-center text-sm text-muted-foreground">لا توجد إشعارات.</p>
-                                                )}
-                                            </CardContent>
-                                            <CardFooter className="p-2 border-t">
-                                                <Button asChild variant="link" size="sm" className="w-full">
-                                                    <Link to="/account" state={{ defaultTab: 'notifications' }} onClick={closeAllMenus}>
-                                                        عرض كل الإشعارات
-                                                    </Link>
-                                                </Button>
-                                            </CardFooter>
-                                        </Card>
+                                        <NotificationDropdown 
+                                            notifications={notifications}
+                                            onClose={closeAllMenus}
+                                            onMarkAsRead={(id) => markNotificationAsRead.mutate({ notificationId: id })}
+                                            onDelete={handleDeleteNotification}
+                                        />
                                     )}
                                 </div>
                                 
-                                 {/* User Menu Dropdown */}
                                 <div ref={el => (menusRef.current['user'] = el)} className="relative">
                                     <Button variant="ghost" size="icon" onClick={() => toggleMenu('user')} aria-label="User Menu">
                                         <User className="h-5 w-5" />
                                     </Button>
                                     {openMenu === 'user' && (
-                                        <Card className="absolute top-full left-0 mt-2 w-56 animate-fadeIn z-50">
-                                             <CardHeader className="p-4">
-                                                <p className="text-sm font-semibold">مرحباً، {currentUser?.name}</p>
-                                                <p className="text-xs text-muted-foreground truncate">{currentUser?.email}</p>
-                                            </CardHeader>
-                                            <CardContent className="p-1">
-                                                <Link to="/account" onClick={closeAllMenus} className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent">حسابي</Link>
-                                                {hasAdminAccess && <Link to="/admin" onClick={closeAllMenus} className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent">لوحة التحكم</Link>}
-                                            </CardContent>
-                                            <CardFooter className="p-1 border-t">
-                                                 <button onClick={() => { signOut(); closeAllMenus(); }} className="w-full text-right flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md">
-                                                    <LogOut size={16} /> تسجيل الخروج
-                                                </button>
-                                            </CardFooter>
-                                        </Card>
+                                        <UserDropdown 
+                                            currentUser={currentUser}
+                                            hasAdminAccess={hasAdminAccess}
+                                            onSignOut={signOut}
+                                            onClose={closeAllMenus}
+                                        />
                                     )}
                                 </div>
                             </>
@@ -237,7 +287,6 @@ const Header: React.FC = () => {
                             <Button asChild size="sm" className="hidden lg:inline-flex"><Link to="/account">تسجيل الدخول</Link></Button>
                         )}
 
-                        {/* Mobile Menu Button */}
                         <Button
                             variant="ghost"
                             size="icon"
@@ -251,18 +300,13 @@ const Header: React.FC = () => {
                 </div>
             </div>
 
-            {/* Mobile Menu */}
             {isMobileMenuOpen && (
-                <div className="lg:hidden bg-background border-t">
-                    <nav className="flex flex-col items-center gap-6 p-6">
-                        {currentNavLinks.map(link => (
-                            <NavItem key={link.key} to={link.to} text={link.text} icon={link.icon} />
-                        ))}
-                         {!isLoggedIn && (
-                             <Button asChild size="md"><Link to="/account" onClick={closeAllMenus}>تسجيل الدخول</Link></Button>
-                         )}
-                    </nav>
-                </div>
+                <MobileMenu
+                    navLinks={currentNavLinks}
+                    isLoggedIn={isLoggedIn}
+                    onClose={closeAllMenus}
+                    NavItemComponent={NavItem}
+                />
             )}
         </header>
     );

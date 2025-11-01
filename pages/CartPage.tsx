@@ -37,7 +37,10 @@ const CartPage: React.FC = () => {
                                         <div key={item.id} className="flex items-center gap-4 border-b pb-4 last:border-b-0 last:pb-0">
                                             <span className="text-3xl">{getItemIcon(item.type)}</span>
                                             <div className="flex-grow">
-                                                <p className="font-bold text-foreground">{item.payload.summary}</p>
+                                                <p className="font-bold text-foreground flex items-center gap-2">
+                                                    {item.payload.formData?.shippingOption === 'gift' && <span title="هدية">🎁</span>}
+                                                    {item.payload.summary}
+                                                </p>
                                                 <p className="text-sm text-muted-foreground">{item.payload.total || item.payload.totalPrice} ج.م</p>
                                             </div>
                                             <Button onClick={() => removeItemFromCart(item.id)} variant="ghost" size="icon" aria-label={`إزالة ${item.payload.summary}`} className="text-destructive">

@@ -5,6 +5,7 @@ import type { CreativeWritingBooking, BookingStatus } from '../../lib/database.t
 import { formatDate, getStatusColor } from '../../utils/helpers';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/Button';
+import DetailRow from '../shared/DetailRow';
 
 type BookingWithRelations = CreativeWritingBooking & { child_profiles: { name: string } | null; instructors: { name: string } | null };
 
@@ -13,13 +14,6 @@ interface BookingDetailsModalProps {
     onClose: () => void;
     booking: BookingWithRelations | null;
 }
-
-const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-    <div className="py-2">
-        <p className="text-sm text-gray-500">{label}</p>
-        <p className="font-semibold text-gray-800">{value}</p>
-    </div>
-);
 
 export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClose, booking }) => {
     const { updateBookingStatus } = useBookingMutations();
@@ -60,7 +54,7 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen
                     {booking.receipt_url && <DetailRow label="الإيصال" value={<a href={booking.receipt_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1"><LinkIcon size={14}/><span>عرض</span></a>} />}
 
                 {booking.progress_notes && (
-                    <DetailRow label="ملاحظات التقدم" value={<p className="whitespace-pre-wrap p-2 bg-gray-50 rounded border">{booking.progress_notes}</p>} />
+                    <DetailRow label="ملاحظات التقدم" value={<p className="whitespace-pre-wrap p-2 bg-gray-50 rounded border">{booking.progress_notes}</p>} isTextArea />
                 )}
             </div>
         </Modal>

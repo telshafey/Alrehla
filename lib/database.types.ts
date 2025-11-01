@@ -36,6 +36,20 @@ export interface ChildProfile {
   student_user_id: string | null;
 }
 
+export interface Badge {
+  id: number;
+  name: string;
+  description: string;
+  icon_name: string; // From lucide-react icons
+}
+
+export interface ChildBadge {
+    id: number;
+    child_id: number;
+    badge_id: number;
+    earned_at: string;
+}
+
 export interface Notification {
   id: number;
   user_id: string;
@@ -197,7 +211,7 @@ export interface StandaloneService {
   name: string;
   price: number;
   description: string;
-  category: 'استشارات' | 'مراجعات' | 'نشر';
+  category: 'استشارات' | 'مراجعات' | 'نشر' | 'قصص فيديو' | 'قصص مسموعة';
   icon_name: string; // e.g., 'MessageSquare', 'FileCheck2'
   requires_file_upload: boolean;
   provider_type: 'company' | 'instructor';
@@ -264,10 +278,11 @@ export interface SocialLinks {
   instagram_url: string | null;
 }
 
-export interface AiSettings {
-  id: number;
-  enable_story_ideas: boolean;
-  story_ideas_prompt: string;
+export interface CommunicationSettings {
+  support_email: string;
+  join_us_email: string;
+  whatsapp_number: string;
+  whatsapp_default_message: string;
 }
 
 export interface BlogPost {
@@ -301,6 +316,7 @@ export interface JoinRequest {
   created_at: string;
   name: string;
   email: string;
+  phone: string;
   role: string;
   message: string;
   status: RequestStatus;

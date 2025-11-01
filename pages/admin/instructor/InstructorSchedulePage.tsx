@@ -16,7 +16,7 @@ const InstructorSchedulePage: React.FC = () => {
 
     return (
         <div className="animate-fadeIn space-y-8">
-            <h1 className="text-3xl font-extrabold text-foreground">جدولي</h1>
+            <h1 className="text-3xl font-extrabold text-foreground">إدارة الجدول الأسبوعي</h1>
             <InstructorSchedulePanel instructor={data.instructor} bookings={data.bookings} />
         </div>
     );

@@ -1,11 +1,11 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
-import { getPermissions, Permissions, UserRole } from '../lib/roles';
+import { getPermissions, Permissions, type UserRole } from '../lib/roles';
 import type { ChildProfile, UserProfile } from '../lib/database.types';
 import { useToast } from './ToastContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { mockUsers, mockChildProfiles } from '../data/mockData';
 
-export type { UserProfile, ChildProfile };
+export type { UserProfile, ChildProfile, UserRole };
 
 interface AuthContextType {
     currentUser: UserProfile | null;

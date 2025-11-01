@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sparkles, Plus, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Sparkles, Plus, Edit, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminCWSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useCreativeWritingSettingsMutations } from '../../hooks/mutations/useCreativeWritingSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -12,11 +12,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 
 const AdminCreativeWritingServicesPage: React.FC = () => {
     const { data, isLoading, error, refetch } = useAdminCWSettings();
-    const standaloneServices = data?.standaloneServices || [];
     const { createStandaloneService, updateStandaloneService, deleteStandaloneService } = useCreativeWritingSettingsMutations();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [serviceToEdit, setServiceToEdit] = useState<StandaloneService | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: keyof StandaloneService; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
+
+    const standaloneServices = useMemo(() => {
+        let sortableItems = [...(data?.standaloneServices || [])];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [data?.standaloneServices, sortConfig]);
+
     const isSaving = createStandaloneService.isPending || updateStandaloneService.isPending;
 
     const handleOpenModal = (service: StandaloneService | null) => {
@@ -40,6 +53,27 @@ const AdminCreativeWritingServicesPage: React.FC = () => {
             await deleteStandaloneService.mutateAsync({ serviceId });
         }
     };
+
+    const handleSort = (key: keyof StandaloneService) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableTh: React.FC<{ sortKey: keyof StandaloneService; label: string }> = ({ sortKey, label }) => (
+        <TableHead>
+            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
+                <div className="flex items-center">
+                   <span>{label}</span>
+                    {sortConfig?.key === sortKey && (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
+                    )}
+                </div>
+            </Button>
+        </TableHead>
+    );
     
     if (isLoading) return <PageLoader />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
@@ -70,10 +104,10 @@ const AdminCreativeWritingServicesPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <TableHead>الخدمة</TableHead>
-                                        <TableHead>الفئة</TableHead>
-                                        <TableHead>مقدم الخدمة</TableHead>
-                                        <TableHead>السعر</TableHead>
+                                        <SortableTh sortKey="name" label="الخدمة" />
+                                        <SortableTh sortKey="category" label="الفئة" />
+                                        <SortableTh sortKey="provider_type" label="مقدم الخدمة" />
+                                        <SortableTh sortKey="price" label="السعر" />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>

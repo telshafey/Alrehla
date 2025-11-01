@@ -65,9 +65,12 @@ const SubscriptionPage: React.FC = () => {
         friendNames: '',
         shippingOption: 'my_address' as 'my_address' | 'gift',
         governorate: 'القاهرة',
-        giftName: '',
-        giftAddress: '',
-        giftPhone: '',
+        recipientName: '',
+        recipientAddress: '',
+        recipientPhone: '',
+        recipientEmail: '',
+        giftMessage: '',
+        sendDigitalCard: true,
     });
     const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,8 +80,15 @@ const SubscriptionPage: React.FC = () => {
     const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(bestValuePlan);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type } = e.target;
+        const isCheckbox = type === 'checkbox';
+        const checked = (e.target as HTMLInputElement).checked;
+
+        setFormData(prev => ({ 
+            ...prev, 
+            [name]: isCheckbox ? checked : value 
+        }));
+        
         if(errors[name]) setErrors(prev => {
             const newErrors = {...prev};
             delete newErrors[name];
@@ -110,9 +120,9 @@ const SubscriptionPage: React.FC = () => {
                 break;
             case 'delivery':
                 if (formData.shippingOption === 'gift') {
-                    if (!formData.giftName) newErrors.giftName = 'اسم المستلم مطلوب.';
-                    if (!formData.giftAddress) newErrors.giftAddress = 'عنوان المستلم مطلوب.';
-                    if (!formData.giftPhone) newErrors.giftPhone = 'هاتف المستلم مطلوب.';
+                    if (!formData.recipientName) newErrors.recipientName = 'اسم المستلم مطلوب.';
+                    if (!formData.recipientAddress) newErrors.recipientAddress = 'عنوان المستلم مطلوب.';
+                    if (!formData.recipientPhone) newErrors.recipientPhone = 'هاتف المستلم مطلوب.';
                 }
                 break;
         }
@@ -243,16 +253,28 @@ const SubscriptionPage: React.FC = () => {
                             </div>
 
                             {formData.shippingOption === 'gift' && (
-                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4 animate-fadeIn">
-                                    <FormField label="اسم المستلم*" htmlFor="giftName" className="md:col-span-2" error={errors.giftName}>
-                                        <Input type="text" id="giftName" name="giftName" value={formData.giftName} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4 animate-fadeIn">
+                                    <FormField label="اسم المستلم*" htmlFor="recipientName" error={errors.recipientName} className="md:col-span-2">
+                                        <Input type="text" id="recipientName" name="recipientName" value={formData.recipientName} onChange={handleChange} required={formData.shippingOption === 'gift'} />
                                     </FormField>
-                                    <FormField label="عنوان المستلم*" htmlFor="giftAddress" className="md:col-span-2" error={errors.giftAddress}>
-                                        <Input type="text" id="giftAddress" name="giftAddress" value={formData.giftAddress} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                                    <FormField label="عنوان المستلم*" htmlFor="recipientAddress" error={errors.recipientAddress} className="md:col-span-2">
+                                        <Input type="text" id="recipientAddress" name="recipientAddress" value={formData.recipientAddress} onChange={handleChange} required={formData.shippingOption === 'gift'} />
                                     </FormField>
-                                    <FormField label="هاتف المستلم*" htmlFor="giftPhone" error={errors.giftPhone}>
-                                        <Input type="tel" id="giftPhone" name="giftPhone" value={formData.giftPhone} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                                    <FormField label="هاتف المستلم*" htmlFor="recipientPhone" error={errors.recipientPhone}>
+                                        <Input type="tel" id="recipientPhone" name="recipientPhone" value={formData.recipientPhone} onChange={handleChange} required={formData.shippingOption === 'gift'} />
                                     </FormField>
+                                    <FormField label="البريد الإلكتروني للمستلم (لإرسال بطاقة الهدية)" htmlFor="recipientEmail">
+                                        <Input type="email" id="recipientEmail" name="recipientEmail" value={formData.recipientEmail} onChange={handleChange} />
+                                    </FormField>
+                                    <FormField label="رسالة الهدية" htmlFor="giftMessage">
+                                        <Textarea id="giftMessage" name="giftMessage" value={formData.giftMessage} onChange={handleChange} rows={3} placeholder="اكتب رسالتك هنا..."/>
+                                    </FormField>
+                                    <div>
+                                        <label className="flex items-center gap-2 text-sm">
+                                            <input type="checkbox" name="sendDigitalCard" checked={formData.sendDigitalCard} onChange={handleChange} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
+                                            <span>إرسال بطاقة هدية رقمية للمستلم فور تأكيد الطلب</span>
+                                        </label>
+                                    </div>
                                 </div>
                             )}
                             

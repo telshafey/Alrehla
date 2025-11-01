@@ -11,7 +11,9 @@ import {
     mockAdditionalServices,
     mockUsers,
     mockOrders,
-    mockSubscriptions
+    mockSubscriptions,
+    mockBadges,
+    mockChildBadges
 } from '../../../data/mockData';
 
 const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
@@ -70,11 +72,20 @@ export const useStudentDashboardData = () => {
             const studentOrders = mockOrders.filter(o => o.child_id === currentChildProfile.id);
             const studentSubscriptions = mockSubscriptions.filter(s => s.child_id === currentChildProfile.id);
             
+            const earnedBadgeIds = mockChildBadges.filter(cb => cb.child_id === currentChildProfile.id).map(cb => cb.badge_id);
+            const badges = mockBadges.filter(b => earnedBadgeIds.includes(b.id));
+            
+            const studentBookingIds = new Set(studentBookings.map(b => b.id));
+            const attachments = mockSessionAttachments.filter(att => studentBookingIds.has(att.booking_id));
+
+
             return mockFetch({
                 parentName: parent?.name,
                 journeys: studentBookings,
                 orders: studentOrders,
                 subscriptions: studentSubscriptions,
+                badges,
+                attachments,
             });
         },
         enabled: !!currentChildProfile,

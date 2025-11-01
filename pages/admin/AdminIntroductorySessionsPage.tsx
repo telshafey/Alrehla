@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Star, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
+import { Star, Calendar, CheckCircle, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useAdminScheduledSessions } from '../../hooks/queries/admin/useAdminSchedulingQuery';
 import PageLoader from '../../components/ui/PageLoader';
@@ -17,6 +17,7 @@ const AdminIntroductorySessionsPage: React.FC = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'instructorName', direction: 'asc' });
 
     const isLoading = instructorsLoading || sessionsLoading;
     const error = instructorsError || sessionsError;
@@ -25,12 +26,12 @@ const AdminIntroductorySessionsPage: React.FC = () => {
         if (sessionsError) refetchSessions();
     };
 
-    const instructorSessionStatus = useMemo(() => {
+    const sortedInstructorSessionStatus = useMemo(() => {
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
 
-        return instructors.map(instructor => {
+        let data = instructors.map(instructor => {
             const introSessionThisMonth = (sessions as any[]).find(s =>
                 s.instructor_id === instructor.id &&
                 s.package_name === 'الجلسة التعريفية' &&
@@ -38,17 +39,51 @@ const AdminIntroductorySessionsPage: React.FC = () => {
                 new Date(s.session_date).getFullYear() === currentYear
             );
             return {
+                instructorName: instructor.name,
+                instructorId: instructor.id,
                 instructor,
                 hasScheduled: !!introSessionThisMonth,
                 sessionDate: introSessionThisMonth ? introSessionThisMonth.session_date : null,
             };
         });
-    }, [instructors, sessions]);
+
+        if (sortConfig !== null) {
+            data.sort((a, b) => {
+                const aVal = a[sortConfig.key as keyof typeof a];
+                const bVal = b[sortConfig.key as keyof typeof b];
+                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return data;
+    }, [instructors, sessions, sortConfig]);
     
     const handleOpenScheduler = (instructor: Instructor) => {
         setSelectedInstructor(instructor);
         setIsModalOpen(true);
     };
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableTh: React.FC<{ sortKey: string; label: string }> = ({ sortKey, label }) => (
+        <TableHead>
+            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
+                <div className="flex items-center">
+                   <span>{label}</span>
+                    {sortConfig?.key === sortKey && (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
+                    )}
+                </div>
+            </Button>
+        </TableHead>
+    );
 
     if (isLoading) return <PageLoader text="جاري تحميل بيانات الجلسات..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
@@ -77,13 +112,13 @@ const AdminIntroductorySessionsPage: React.FC = () => {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>المدرب</TableHead>
-                                        <TableHead>الحالة</TableHead>
+                                        <SortableTh sortKey="instructorName" label="المدرب" />
+                                        <SortableTh sortKey="hasScheduled" label="الحالة" />
                                         <TableHead>إجراء</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {instructorSessionStatus.map(({ instructor, hasScheduled, sessionDate }) => (
+                                    {sortedInstructorSessionStatus.map(({ instructor, hasScheduled, sessionDate }) => (
                                         <TableRow key={instructor.id}>
                                             <TableCell className="font-semibold">{instructor.name}</TableCell>
                                             <TableCell>

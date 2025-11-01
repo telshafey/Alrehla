@@ -1,9 +1,25 @@
 import React from 'react';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Loader2 } from 'lucide-react';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 
 const WhatsAppButton: React.FC = () => {
-    const phoneNumber = "+201234567890"; // Placeholder phone number
-    const message = encodeURIComponent("مرحباً، لدي استفسار بخصوص منصة الرحلة");
+    const { data, isLoading } = usePublicData();
+    const comms = data?.communicationSettings;
+
+    if (isLoading) {
+        return (
+             <div className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-16 h-16 bg-gray-400 rounded-full text-white shadow-lg">
+                <Loader2 className="animate-spin" />
+            </div>
+        );
+    }
+    
+    if (!comms?.whatsapp_number) {
+        return null;
+    }
+
+    const phoneNumber = comms.whatsapp_number;
+    const message = encodeURIComponent(comms.whatsapp_default_message || "مرحباً");
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
 
     return (

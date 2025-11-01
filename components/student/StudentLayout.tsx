@@ -1,10 +1,10 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, Loader2 } from 'lucide-react';
+import { useNavigate, NavLink, Outlet } from 'react-router-dom';
+import { LogOut, LayoutDashboard, GalleryVertical } from 'lucide-react';
 import { useStudentDashboardData } from '../../hooks/queries/user/useJourneyDataQuery';
 
-const StudentLayout: React.FC<{children: React.ReactNode}> = ({children}) => {
+const StudentLayout: React.FC = () => {
     const { currentChildProfile, signOut } = useAuth();
     const navigate = useNavigate();
     const { data, isLoading } = useStudentDashboardData();
@@ -44,8 +44,27 @@ const StudentLayout: React.FC<{children: React.ReactNode}> = ({children}) => {
                     </div>
                 </div>
             </header>
+            
+            <div className="bg-white border-b sticky top-20 z-9">
+                <nav className="container mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 rtl:space-x-reverse">
+                    <NavLink 
+                        to="/student/dashboard" 
+                        end 
+                        className={({ isActive }) => `whitespace-nowrap flex items-center gap-2 py-3 px-1 border-b-2 font-semibold text-sm ${isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                    >
+                        <LayoutDashboard size={16} /> لوحة التحكم
+                    </NavLink>
+                    <NavLink 
+                        to="/student/portfolio" 
+                        className={({ isActive }) => `whitespace-nowrap flex items-center gap-2 py-3 px-1 border-b-2 font-semibold text-sm ${isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                    >
+                        <GalleryVertical size={16} /> معرض أعمالي
+                    </NavLink>
+                </nav>
+            </div>
+            
             <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
-                {children}
+                <Outlet />
             </main>
         </div>
     );

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Edit, Plus, Edit2, Trash2, CheckCircle, FileText } from 'lucide-react';
+import { Edit, Plus, Edit2, Trash2, CheckCircle, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminBlogPosts } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useContentMutations } from '../../hooks/mutations/useContentMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -25,6 +25,7 @@ const AdminBlogPage: React.FC = () => {
     const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
     const [statusFilter, setStatusFilter] = useState<PostStatus | 'all'>('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: keyof BlogPost; direction: 'asc' | 'desc' } | null>({ key: 'published_at', direction: 'desc' });
     
     const isSaving = createBlogPost.isPending || updateBlogPost.isPending;
 
@@ -35,13 +36,26 @@ const AdminBlogPage: React.FC = () => {
         };
     }, [posts]);
 
-    const filteredPosts = useMemo(() => {
-        return posts.filter(post => {
+    const sortedAndFilteredPosts = useMemo(() => {
+        let filtered = [...posts].filter(post => {
             const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
             const matchesSearch = searchTerm === '' || post.title.toLowerCase().includes(searchTerm.toLowerCase());
             return matchesStatus && matchesSearch;
         });
-    }, [posts, statusFilter, searchTerm]);
+
+        if (sortConfig !== null) {
+            filtered.sort((a, b) => {
+                const aVal = a[sortConfig.key];
+                const bVal = b[sortConfig.key];
+                if (aVal === null || aVal === undefined) return 1;
+                if (bVal === null || bVal === undefined) return -1;
+                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return filtered;
+    }, [posts, statusFilter, searchTerm, sortConfig]);
 
     const handleOpenModal = (post: BlogPost | null) => {
         setSelectedPost(post);
@@ -64,6 +78,27 @@ const AdminBlogPage: React.FC = () => {
             await deleteBlogPost.mutateAsync({ postId });
         }
     };
+    
+    const handleSort = (key: keyof BlogPost) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableTh: React.FC<{ sortKey: keyof BlogPost; label: string }> = ({ sortKey, label }) => (
+        <TableHead>
+            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
+                <div className="flex items-center">
+                   <span>{label}</span>
+                    {sortConfig?.key === sortKey && (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
+                    )}
+                </div>
+            </Button>
+        </TableHead>
+    );
     
     if (isLoading) return <PageLoader text="جاري تحميل المدونة..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
@@ -131,15 +166,15 @@ const AdminBlogPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <TableHead>العنوان</TableHead>
-                                        <TableHead>الكاتب</TableHead>
-                                        <TableHead>الحالة</TableHead>
-                                        <TableHead>تاريخ النشر</TableHead>
+                                        <SortableTh sortKey="title" label="العنوان" />
+                                        <SortableTh sortKey="author_name" label="الكاتب" />
+                                        <SortableTh sortKey="status" label="الحالة" />
+                                        <SortableTh sortKey="published_at" label="تاريخ النشر" />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredPosts.map(post => (
+                                    {sortedAndFilteredPosts.map(post => (
                                         <TableRow key={post.id}>
                                             <TableCell className="font-semibold">{post.title}</TableCell>
                                             <TableCell>{post.author_name}</TableCell>
@@ -157,7 +192,7 @@ const AdminBlogPage: React.FC = () => {
                                     ))}
                                 </TableBody>
                             </Table>
-                             {filteredPosts.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد مقالات تطابق بحثك.</p>}
+                             {sortedAndFilteredPosts.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد مقالات تطابق بحثك.</p>}
                         </div>
                     </CardContent>
                 </Card>

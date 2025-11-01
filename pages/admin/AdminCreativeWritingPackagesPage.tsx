@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Package, Plus, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Package, Plus, Edit, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminCWSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useCreativeWritingSettingsMutations } from '../../hooks/mutations/useCreativeWritingSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -12,11 +12,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 
 const AdminCreativeWritingPackagesPage: React.FC = () => {
     const { data, isLoading, error, refetch } = useAdminCWSettings();
-    const packages = data?.packages || [];
     const { createPackage, updatePackage, deletePackage } = useCreativeWritingSettingsMutations();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [packageToEdit, setPackageToEdit] = useState<CreativeWritingPackage | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: keyof CreativeWritingPackage; direction: 'asc' | 'desc' } | null>({ key: 'price', direction: 'asc' });
+
+    const packages = useMemo(() => {
+        let sortableItems = [...(data?.packages || [])];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [data?.packages, sortConfig]);
+
     const isSaving = createPackage.isPending || updatePackage.isPending;
 
     const handleOpenModal = (pkg: CreativeWritingPackage | null) => {
@@ -40,6 +53,27 @@ const AdminCreativeWritingPackagesPage: React.FC = () => {
             await deletePackage.mutateAsync({ packageId });
         }
     };
+
+    const handleSort = (key: keyof CreativeWritingPackage) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableTh: React.FC<{ sortKey: keyof CreativeWritingPackage; label: string }> = ({ sortKey, label }) => (
+        <TableHead>
+            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
+                <div className="flex items-center">
+                   <span>{label}</span>
+                    {sortConfig?.key === sortKey && (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
+                    )}
+                </div>
+            </Button>
+        </TableHead>
+    );
     
     if (isLoading) return <PageLoader />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
@@ -70,9 +104,9 @@ const AdminCreativeWritingPackagesPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <TableHead>الباقة</TableHead>
-                                        <TableHead>الجلسات</TableHead>
-                                        <TableHead>السعر</TableHead>
+                                        <SortableTh sortKey="name" label="الباقة" />
+                                        <SortableTh sortKey="sessions" label="الجلسات" />
+                                        <SortableTh sortKey="price" label="السعر" />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>

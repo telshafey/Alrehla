@@ -15,22 +15,24 @@ export const useSettingsMutations = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminSocialLinks'] });
+            queryClient.invalidateQueries({ queryKey: ['publicData'] });
             addToast('تم تحديث الروابط بنجاح.', 'success');
         },
         onError: (error: Error) => {
             addToast(`فشل تحديث الروابط: ${error.message}`, 'error');
         }
     });
-
-    const updateAiSettings = useMutation({
+    
+    const updateCommunicationSettings = useMutation({
         mutationFn: async (settings: any) => {
             await sleep(500);
-            console.log("Updating AI settings (mock)", settings);
+            console.log("Updating communication settings (mock)", settings);
             return settings;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminAiSettings'] });
-            addToast('تم تحديث إعدادات الذكاء الاصطناعي بنجاح.', 'success');
+            queryClient.invalidateQueries({ queryKey: ['adminCommunicationSettings'] });
+            queryClient.invalidateQueries({ queryKey: ['publicData'] });
+            addToast('تم تحديث إعدادات التواصل بنجاح.', 'success');
         },
         onError: (error: Error) => {
             addToast(`فشل تحديث الإعدادات: ${error.message}`, 'error');
@@ -52,6 +54,23 @@ export const useSettingsMutations = () => {
         }
     });
 
+    const updateRolePermissions = useMutation({
+        mutationFn: async (permissions: any) => {
+            await sleep(800);
+            console.log("Updating Role Permissions (mock)", permissions);
+            // In a real app, this would update the database.
+            // Here, we'll just invalidate to simulate a refetch, though mock data won't change unless we manipulate it.
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminRolePermissions'] });
+            addToast('تم تحديث صلاحيات الأدوار بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث الصلاحيات: ${error.message}`, 'error');
+        }
+    });
 
-    return { updateSocialLinks, updateAiSettings, updatePricingSettings };
+
+    return { updateSocialLinks, updateCommunicationSettings, updatePricingSettings, updateRolePermissions };
 }

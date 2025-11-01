@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Star, FileText, Package, Plus, Edit, Trash2, Save } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Star, FileText, Package, Plus, Edit, Trash2, Save, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminSubscriptionPlans } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useSubscriptionMutations } from '../../hooks/mutations/useSubscriptionMutations';
@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 
 const AdminSubscriptionBoxPage: React.FC = () => {
     // Queries
-    const { data: plans = [], isLoading: plansLoading, error: plansError, refetch: refetchPlans } = useAdminSubscriptionPlans();
+    const { data: rawPlans = [], isLoading: plansLoading, error: plansError, refetch: refetchPlans } = useAdminSubscriptionPlans();
     const { data: siteContentData, isLoading: contentLoading, error: contentError, refetch: refetchContent } = useAdminSiteContent();
     
     // Mutations
@@ -28,6 +28,20 @@ const AdminSubscriptionBoxPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [planToEdit, setPlanToEdit] = useState<SubscriptionPlan | null>(null);
     const [content, setContent] = useState<SiteContent['enhaLakPage']['subscription'] | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: keyof SubscriptionPlan; direction: 'asc' | 'desc' } | null>({ key: 'price', direction: 'asc' });
+
+
+    const plans = useMemo(() => {
+        let sortableItems = [...rawPlans];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [rawPlans, sortConfig]);
 
     const isLoading = plansLoading || contentLoading;
     const isSavingPlans = createSubscriptionPlan.isPending || updateSubscriptionPlan.isPending;
@@ -71,6 +85,27 @@ const AdminSubscriptionBoxPage: React.FC = () => {
             await updateSiteContent.mutateAsync(newSiteContent);
         }
     };
+
+    const handleSort = (key: keyof SubscriptionPlan) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableTh: React.FC<{ sortKey: keyof SubscriptionPlan; label: string }> = ({ sortKey, label }) => (
+        <TableHead>
+            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
+                <div className="flex items-center">
+                   <span>{label}</span>
+                    {sortConfig?.key === sortKey && (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
+                    )}
+                </div>
+            </Button>
+        </TableHead>
+    );
 
     const error = plansError || contentError;
     const refetch = () => {
@@ -131,10 +166,10 @@ const AdminSubscriptionBoxPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <TableHead>الباقة</TableHead>
-                                        <TableHead>المدة</TableHead>
-                                        <TableHead>السعر الإجمالي</TableHead>
-                                        <TableHead>السعر الشهري</TableHead>
+                                        <SortableTh sortKey="name" label="الباقة" />
+                                        <SortableTh sortKey="duration_months" label="المدة" />
+                                        <SortableTh sortKey="price" label="السعر الإجمالي" />
+                                        <SortableTh sortKey="price_per_month" label="السعر الشهري" />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>

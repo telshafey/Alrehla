@@ -12,6 +12,34 @@ export const useOrderMutations = () => {
         mutationFn: async (payload: any) => {
             await sleep(1000);
             console.log("Creating order (mock)", payload);
+
+            const { formData } = payload;
+            if (formData?.shippingOption === 'gift' && formData?.sendDigitalCard && formData?.recipientEmail) {
+                console.log("Simulating sending gift email...");
+                try {
+                    await fetch('/api/sendEmail', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: formData.recipientEmail,
+                            subject: `🎁 لديك هدية من ${payload.userName}!`,
+                            html: `
+                                <h1>مرحباً ${formData.recipientName},</h1>
+                                <p>لديك هدية مميزة من <strong>${payload.userName}</strong> عبر منصة الرحلة!</p>
+                                <p>نص الرسالة:</p>
+                                <blockquote style="border-right: 4px solid #ccc; padding-right: 1em; margin-right: 0;">
+                                    <em>${formData.giftMessage || 'أتمنى أن تنال إعجابك!'}</em>
+                                </blockquote>
+                                <p>هديتك قيد التجهيز الآن وستصلك قريباً.</p>
+                                <p>مع تحيات،<br>فريق منصة الرحلة</p>
+                            `
+                        })
+                    });
+                } catch (e) {
+                    console.error("Failed to send mock email:", e);
+                }
+            }
+
             return { ...payload, id: `ord_${Math.random()}` };
         },
         onError: (error: Error) => {

@@ -6,12 +6,12 @@ import { useCart } from '../contexts/CartContext';
 import { useToast } from '../contexts/ToastContext';
 import { useBookingMutations } from '../hooks/mutations/useBookingMutations';
 import PageLoader from '../components/ui/PageLoader';
-import WritingDraftPanel from '../components/student/WritingDraftPanel'; // Import new panel
-import { MessageSquare, Paperclip, FileText, Target, Award, Calendar, Clock, User, Video, CheckCircle, AlertTriangle, X, Send, Upload, Save, Sparkles, FileCheck2, BookUp, ArrowLeft, PenSquare } from 'lucide-react';
+import WritingDraftPanel from '../components/student/WritingDraftPanel';
+import { MessageSquare, Paperclip, FileText, Target, Award, Calendar, Clock, User, Video, CheckCircle, AlertTriangle, X, Send, Upload, Save, Sparkles, FileCheck2, BookUp, ArrowLeft, PenSquare, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
 import { formatDate } from '../utils/helpers';
-import type { SessionAttachment } from '../lib/database.types';
+import type { SessionAttachment, ScheduledSession, CreativeWritingPackage } from '../lib/database.types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 
@@ -132,45 +132,12 @@ const NotesSection: React.FC<{
     );
 };
 
-const AdvancedOpportunities: React.FC<{ onOrderService: (serviceName: string) => void }> = ({ onOrderService }) => (
-    <div className="mt-6 border-t pt-4">
-        <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-            <Award className="text-yellow-500" />
-            خطوتك التالية
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-            لقد أظهرت تقدماً رائعاً! الآن يمكنك الانتقال بإبداعك إلى مستوى جديد.
-        </p>
-        <div className="space-y-3">
-            <Button 
-                className="w-full justify-between text-left h-auto py-2" 
-                variant="outline" 
-                onClick={() => onOrderService('المشاركة في الإصدار القادم')}>
-                <div className="flex items-center gap-3">
-                    <Award size={20} className="text-yellow-600"/>
-                    <div>
-                        <p className="font-semibold">المشاركة في الإصدار القادم</p>
-                        <p className="text-xs font-normal text-muted-foreground">انشر قصتك في كتابنا المجمع</p>
-                    </div>
-                </div>
-                <ArrowLeft size={16} />
-            </Button>
-            <Button 
-                className="w-full justify-between text-left h-auto py-2" 
-                variant="outline" 
-                onClick={() => onOrderService('طلب إصدار خاص')}>
-                <div className="flex items-center gap-3">
-                    <BookUp size={20} className="text-green-600"/>
-                    <div>
-                        <p className="font-semibold">طلب إصدار خاص</p>
-                        <p className="text-xs font-normal text-muted-foreground">حوّل قصتك إلى كتاب مطبوع</p>
-                    </div>
-                </div>
-                 <ArrowLeft size={16} />
-            </Button>
-        </div>
-    </div>
-);
+const parseTotalSessions = (sessionString: string | undefined): number => {
+    if (!sessionString) return 0;
+    if (sessionString.includes('واحدة')) return 1;
+    const match = sessionString.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 0;
+};
 
 
 const TrainingJourneyPage: React.FC = () => {
@@ -200,38 +167,30 @@ const TrainingJourneyPage: React.FC = () => {
         return child?.name || '';
     }, [data, childProfiles]);
 
-    const allSessions = useMemo(() => {
-        if (!data) return { upcoming: [], past: [] };
+    const { upcomingSessions, pastSessions, totalSessions, completedSessionsCount, progress } = useMemo(() => {
+        if (!data) return { upcomingSessions: [], pastSessions: [], totalSessions: 0, completedSessionsCount: 0, progress: 0 };
 
-        const scheduled = data.scheduledSessions.map(s => ({ ...s, isSupport: false }));
-        const support = data.approvedSupportSessions.map(s => ({
-            id: `support-${s.id}`,
-            session_date: s.requested_at, // Use requested_at as a placeholder date
-            status: 'upcoming',
-            isSupport: true,
-            child_id: s.child_id,
-            instructor_id: s.instructor_id,
-        }));
-        
-        const combined = [...scheduled, ...support];
-
-        const upcoming = combined
+        const allSessions = data.scheduledSessions || [];
+        const upcoming = allSessions
             .filter(s => s.status === 'upcoming')
             .sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
             
-        const past = combined
+        const past = allSessions
             .filter(s => s.status !== 'upcoming')
-            .sort((a, b) => new Date(b.session_date).getTime() - new Date(a.date).getTime());
+            .sort((a, b) => new Date(b.session_date).getTime() - new Date(a.session_date).getTime());
 
-        return { upcoming, past };
+        const total = parseTotalSessions(data.package?.sessions);
+        const completed = past.filter(s => s.status === 'completed').length;
+        
+        return { 
+            upcomingSessions: upcoming, 
+            pastSessions: past,
+            totalSessions: total,
+            completedSessionsCount: completed,
+            progress: total > 0 ? (completed / total) * 100 : 0
+        };
 
     }, [data]);
-    
-    const completedSessionsCount = useMemo(() => {
-        if (!data) return 0;
-        return data.scheduledSessions.filter(s => s.status === 'completed').length;
-    }, [data]);
-
 
     if (isLoading) return <PageLoader text="جاري تحميل رحلتك التدريبية..." />;
     if (error || !data) return <div className="text-center text-red-500 py-20">{error?.message || 'لم يتم العثور على الرحلة.'}</div>;
@@ -259,12 +218,11 @@ const TrainingJourneyPage: React.FC = () => {
         }
         
         addItemToCart({
-            type: 'order', // Using 'order' as a generic type for one-off purchases
+            type: 'order',
             payload: {
                 productKey: `service_${service.id}`,
                 summary,
                 totalPrice: service.price,
-                // Add context for admins
                 details: {
                     serviceName: service.name,
                     childId: booking.child_id,
@@ -274,7 +232,6 @@ const TrainingJourneyPage: React.FC = () => {
             }
         });
         addToast(`تمت إضافة "${service.name}" إلى السلة بنجاح!`, 'success');
-        
     };
 
     const workspaceTabs = [
@@ -290,86 +247,79 @@ const TrainingJourneyPage: React.FC = () => {
                  <Card className="mb-8">
                     <CardHeader>
                         <CardTitle className="text-3xl">{pkg?.name || booking.package_name}</CardTitle>
-                        <CardDescription>مع المدرب: {instructor?.name}</CardDescription>
+                        <CardDescription>هذه هي مساحة العمل الخاصة برحلتك الإبداعية. بالتوفيق!</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-3 text-sm">
-                        {pkg?.goal_description && <p className="flex items-start gap-3"><Target className="text-primary mt-1 flex-shrink-0"/><span><strong className="font-semibold">الهدف:</strong> {pkg.goal_description}</span></p>}
-                        {pkg?.final_product_description && <p className="flex items-start gap-3"><Award className="text-green-500 mt-1 flex-shrink-0"/><span><strong className="font-semibold">المنتج النهائي:</strong> {pkg.final_product_description}</span></p>}
-                    </CardContent>
                 </Card>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <Card className="lg:col-span-2">
-                        <CardContent className="pt-6">
-                            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
-                                <TabsList>
-                                    {workspaceTabs.map(tab => (
-                                        <TabsTrigger key={tab.key} value={tab.key}>
-                                            {tab.icon} {tab.label}
-                                        </TabsTrigger>
-                                    ))}
-                                </TabsList>
-                                <TabsContent value="draft"><WritingDraftPanel journeyId={booking.id} canInteract={canInteract} /></TabsContent>
-                                <TabsContent value="discussion"><DiscussionSection messages={messages} journeyId={booking.id} canInteract={canInteract} /></TabsContent>
-                                <TabsContent value="attachments"><AttachmentsSection attachments={attachments} journeyId={booking.id} canInteract={canInteract} isStudentOrParent={isStudentOrParent} onOrderReview={(att) => handleOrderService('مراجعة نص', { attachmentId: att.id, fileName: att.file_name })} /></TabsContent>
-                                <TabsContent value="notes">
-                                    <NotesSection 
-                                        notes={notesContent}
-                                        isInstructor={isInstructor}
-                                        onNotesChange={setNotesContent}
-                                        onSave={handleSaveNotes}
-                                        isSaving={updateBookingProgressNotes.isPending}
-                                    />
-                                </TabsContent>
-                            </Tabs>
-                        </CardContent>
-                    </Card>
+                    <div className="lg:col-span-2">
+                        <Card>
+                            <CardContent className="pt-6">
+                                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+                                    <TabsList>
+                                        {workspaceTabs.map(tab => (
+                                            <TabsTrigger key={tab.key} value={tab.key}>
+                                                {tab.icon} {tab.label}
+                                            </TabsTrigger>
+                                        ))}
+                                    </TabsList>
+                                    <TabsContent value="draft"><WritingDraftPanel journeyId={booking.id} canInteract={canInteract} /></TabsContent>
+                                    <TabsContent value="discussion"><DiscussionSection messages={messages} journeyId={booking.id} canInteract={canInteract} /></TabsContent>
+                                    <TabsContent value="attachments"><AttachmentsSection attachments={attachments} journeyId={booking.id} canInteract={canInteract} isStudentOrParent={isStudentOrParent} onOrderReview={(att) => handleOrderService('مراجعة نص', { attachmentId: att.id, fileName: att.file_name })} /></TabsContent>
+                                    <TabsContent value="notes">
+                                        <NotesSection 
+                                            notes={notesContent}
+                                            isInstructor={isInstructor}
+                                            onNotesChange={setNotesContent}
+                                            onSave={handleSaveNotes}
+                                            isSaving={updateBookingProgressNotes.isPending}
+                                        />
+                                    </TabsContent>
+                                </Tabs>
+                            </CardContent>
+                        </Card>
+                    </div>
                     
-                    <div className="lg:col-span-1 space-y-6">
-                        <Card className="sticky top-24">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Calendar /> الجلسات</CardTitle>
+                    <div className="lg:col-span-1 space-y-6 sticky top-24">
+                        <Card>
+                             <CardHeader>
+                                <div className="flex items-center gap-3">
+                                    <img src={instructor?.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={instructor?.name} className="w-12 h-12 rounded-full object-cover"/>
+                                    <div>
+                                        <CardTitle className="text-lg">المدرب</CardTitle>
+                                        <CardDescription>{instructor?.name}</CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent>
-                                <h3 className="font-semibold text-muted-foreground mb-2 text-sm">القادمة</h3>
-                                {allSessions.upcoming.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {allSessions.upcoming.map((s: any) => (
-                                            <div key={s.id} className="p-3 bg-muted rounded-lg flex justify-between items-center">
-                                                <div>
-                                                    <p className="font-bold text-sm flex items-center gap-2">{s.isSupport ? <><AlertTriangle size={14} className="text-orange-500"/> جلسة دعم (15 د)</> : <><Clock size={14}/> {new Date(s.session_date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</>}</p>
-                                                    <p className="text-xs text-muted-foreground">{formatDate(s.session_date)}</p>
-                                                </div>
-                                                {!s.isSupport && <Button asChild size="sm" variant="success"><Link to={`/session/${s.id}`}><Video size={14}/> انضم</Link></Button>}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : <p className="text-sm text-muted-foreground text-center py-2">لا توجد جلسات قادمة.</p>}
+                                <h3 className="text-sm font-bold text-muted-foreground mb-2">تقدم الرحلة</h3>
+                                <div className="w-full bg-muted rounded-full h-2.5">
+                                    <div className="bg-primary h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1 text-center">{completedSessionsCount}/{totalSessions} جلسة مكتملة</p>
 
-                                <h3 className="font-semibold text-muted-foreground mb-2 mt-6 border-t pt-4 text-sm">السابقة</h3>
-                                {allSessions.past.length > 0 ? (
-                                    <div className="space-y-2">
-                                    {allSessions.past.map((s: any) => (
-                                        <div key={s.id} className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            {s.status === 'completed' ? <CheckCircle size={14} className="text-green-500"/> : <X size={14} className="text-destructive"/>}
-                                            <span>{formatDate(s.session_date)}</span>
+                                {upcomingSessions[0] && (
+                                    <div className="mt-4 pt-4 border-t">
+                                        <h3 className="text-sm font-bold text-muted-foreground mb-2">اللقاء القادم</h3>
+                                        <div className="p-3 bg-primary/10 rounded-lg flex justify-between items-center">
+                                            <div>
+                                                <p className="font-bold text-sm">{formatDate(upcomingSessions[0].session_date)}</p>
+                                                <p className="text-xs">{new Date(upcomingSessions[0].session_date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
+                                            </div>
+                                            <Button asChild size="sm" variant="success"><Link to={`/session/${upcomingSessions[0].id}`}><Video size={14}/> انضم</Link></Button>
                                         </div>
-                                    ))}
-                                    </div>
-                                ) : <p className="text-sm text-muted-foreground text-center py-2">لا توجد جلسات سابقة.</p>}
-                                
-                                {canInteract && (
-                                    <div className="mt-6 border-t pt-4">
-                                        <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2"><Sparkles /> خدمات سريعة</h3>
-                                        <Button className="w-full" variant="outline" onClick={() => handleOrderService('استشارة خاصة')}>
-                                            اطلب جلسة استشارية خاصة
-                                        </Button>
                                     </div>
                                 )}
-                                
-                                {completedSessionsCount >= 8 && canInteract && (
-                                    <AdvancedOpportunities onOrderService={handleOrderService} />
-                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                             <CardHeader>
+                                <CardTitle className="text-lg">كل الجلسات</CardTitle>
+                            </CardHeader>
+                            <CardContent className="max-h-60 overflow-y-auto space-y-2">
+                                {upcomingSessions.map(s => <div key={s.id} className="flex items-center gap-2 text-sm text-foreground"><Clock size={14} className="text-primary"/><span>{formatDate(s.session_date)}</span></div>)}
+                                {pastSessions.map(s => <div key={s.id} className="flex items-center gap-2 text-sm text-muted-foreground"><CheckCircle size={14} className="text-green-500"/><span>{formatDate(s.session_date)}</span></div>)}
                             </CardContent>
                         </Card>
                     </div>

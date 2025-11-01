@@ -3,14 +3,11 @@ import FormField from '../ui/FormField';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
 import { Input } from '../ui/Input';
-import { Button } from '../ui/Button';
-import { Sparkles } from 'lucide-react';
 import type { TextFieldConfig, GoalConfig, StoryGoal } from '../../lib/database.types';
 
 interface StoryCustomizationSectionProps {
     formData: { [key: string]: any };
     handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-    onOpenIdeasModal: () => void;
     errors: { [key: string]: string };
     textFields: TextFieldConfig[] | null;
     goalConfig: GoalConfig;
@@ -20,7 +17,6 @@ interface StoryCustomizationSectionProps {
 const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({
     formData,
     handleChange,
-    onOpenIdeasModal,
     errors,
     textFields,
     goalConfig,
@@ -63,12 +59,7 @@ const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({
                 
                 {goalConfig !== 'none' && (
                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <label htmlFor="storyValue" className="block text-sm font-bold text-gray-700">اختر الهدف من القصة*</label>
-                            <Button type="button" variant="ghost" size="sm" onClick={onOpenIdeasModal} icon={<Sparkles size={14} />}>
-                                اقترح أفكار بالذكاء الاصطناعي
-                            </Button>
-                        </div>
+                        <label htmlFor="storyValue" className="block text-sm font-bold text-gray-700 mb-2">اختر الهدف من القصة*</label>
                         {showGoalSelector && (
                             <Select id="storyValue" name="storyValue" value={formData.storyValue} onChange={handleChange} required className={errors.storyValue ? 'border-red-500' : ''}>
                                 <option value="">-- اختر قيمة --</option>

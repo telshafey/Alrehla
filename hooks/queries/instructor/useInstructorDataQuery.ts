@@ -8,9 +8,10 @@ import {
     mockScheduledSessions,
     mockInstructorPayouts,
     mockServiceOrders,
+    mockSessionAttachments, // Added import
 } from '../../../data/mockData';
 import { transformCwBookings } from '../admin/useAdminBookingsQuery';
-import type { Instructor, CreativeWritingBooking, CreativeWritingPackage, ScheduledSession, ChildProfile } from '../../../lib/database.types';
+import type { Instructor, CreativeWritingBooking, CreativeWritingPackage, ScheduledSession, ChildProfile, SessionAttachment } from '../../../lib/database.types';
 
 const mockFetch = (data: any, delay = 100) => new Promise(resolve => setTimeout(() => resolve(data), delay));
 
@@ -30,7 +31,8 @@ export const useInstructorData = () => {
                 allPackages, 
                 allScheduledSessions, 
                 allPayouts,
-                allServiceOrders
+                allServiceOrders,
+                allAttachments // Added fetch
             ] = await Promise.all([
                 mockFetch(mockInstructors) as Promise<Instructor[]>,
                 mockFetch(mockBookings) as Promise<CreativeWritingBooking[]>,
@@ -38,7 +40,8 @@ export const useInstructorData = () => {
                 mockFetch(mockCreativeWritingPackages) as Promise<CreativeWritingPackage[]>,
                 mockFetch(mockScheduledSessions) as Promise<ScheduledSession[]>,
                 mockFetch(mockInstructorPayouts),
-                mockFetch(mockServiceOrders)
+                mockFetch(mockServiceOrders),
+                mockFetch(mockSessionAttachments) as Promise<SessionAttachment[]> // Added fetch
             ]);
 
             const currentInstructor = allInstructors.find((i: Instructor) => i.user_id === currentUser.id);
@@ -69,6 +72,10 @@ export const useInstructorData = () => {
 
             const instructorPayouts = (allPayouts as any[]).filter(p => p.instructor_id === currentInstructor.id);
             const instructorServiceOrders = (allServiceOrders as any[]).filter(o => o.assigned_instructor_id === currentInstructor.id);
+            
+            const instructorBookingIds = new Set(instructorBookings.map(b => b.id));
+            const instructorAttachments = allAttachments.filter(att => instructorBookingIds.has(att.booking_id));
+
 
             return {
                 instructor: currentInstructor,
@@ -76,6 +83,7 @@ export const useInstructorData = () => {
                 introSessionsThisMonth,
                 payouts: instructorPayouts,
                 serviceOrders: instructorServiceOrders,
+                attachments: instructorAttachments, // Added attachments to returned data
             };
         },
         enabled: !!currentUser,

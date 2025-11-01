@@ -68,7 +68,6 @@ This application is designed to run in a pre-configured web-based environment.
 
 1.  All dependencies are managed via an `importmap`.
 2.  The application uses mock data, so no database setup is required.
-3.  Environment variables, such as `API_KEY` for the Gemini API, are assumed to be provided by the execution environment.
 
 ---
 

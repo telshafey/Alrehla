@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Star, Calendar, Pause, Play, XCircle, DollarSign, Users } from 'lucide-react';
+import { Star, Calendar, Pause, Play, XCircle, DollarSign, Users, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminSubscriptions, useAdminSubscriptionPlans } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useSubscriptionMutations } from '../../hooks/mutations/useSubscriptionMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -32,6 +32,7 @@ const AdminSubscriptionsPage: React.FC = () => {
     const [isSchedulerOpen, setIsSchedulerOpen] = useState(false);
     const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: keyof Subscription; direction: 'asc' | 'desc' } | null>({ key: 'start_date', direction: 'desc' });
     
     const isLoading = subsLoading || plansLoading;
     const error = subsError || plansError;
@@ -61,17 +62,47 @@ const AdminSubscriptionsPage: React.FC = () => {
     }, [subscriptions, plans]);
 
 
-    const filteredSubscriptions = useMemo(() => {
-        return subscriptions.filter(sub => 
+    const sortedAndFilteredSubscriptions = useMemo(() => {
+        let filtered = [...subscriptions].filter(sub => 
             sub.user_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
             sub.child_name.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [subscriptions, searchTerm]);
+
+        if (sortConfig !== null) {
+            filtered.sort((a, b) => {
+                if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return filtered;
+    }, [subscriptions, searchTerm, sortConfig]);
 
     const handleOpenScheduler = (subscription: Subscription) => {
         setSelectedSubscription(subscription);
         setIsSchedulerOpen(true);
     };
+
+    const handleSort = (key: keyof Subscription) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableTh: React.FC<{ sortKey: keyof Subscription; label: string }> = ({ sortKey, label }) => (
+        <TableHead>
+            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
+                <div className="flex items-center">
+                   <span>{label}</span>
+                    {sortConfig?.key === sortKey && (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
+                    )}
+                </div>
+            </Button>
+        </TableHead>
+    );
 
     if (isLoading) return <PageLoader text="جاري تحميل الاشتراكات..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
@@ -111,16 +142,16 @@ const AdminSubscriptionsPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <TableHead>ولي الأمر</TableHead>
-                                        <TableHead>الطفل</TableHead>
-                                        <TableHead>الباقة</TableHead>
-                                        <TableHead>التجديد القادم</TableHead>
-                                        <TableHead>الحالة</TableHead>
+                                        <SortableTh sortKey="user_name" label="ولي الأمر" />
+                                        <SortableTh sortKey="child_name" label="الطفل" />
+                                        <SortableTh sortKey="plan_name" label="الباقة" />
+                                        <SortableTh sortKey="next_renewal_date" label="التجديد القادم" />
+                                        <SortableTh sortKey="status" label="الحالة" />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredSubscriptions.map(sub => {
+                                    {sortedAndFilteredSubscriptions.map(sub => {
                                         const statusInfo = getStatusInfo(sub.status);
                                         return (
                                             <TableRow key={sub.id}>
@@ -156,7 +187,7 @@ const AdminSubscriptionsPage: React.FC = () => {
                                     })}
                                 </TableBody>
                             </Table>
-                            {filteredSubscriptions.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد اشتراكات.</p>}
+                            {sortedAndFilteredSubscriptions.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد اشتراكات.</p>}
                         </div>
                     </CardContent>
                 </Card>

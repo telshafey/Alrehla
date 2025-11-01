@@ -2,24 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { Save, Calendar } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useSchedulingMutations } from '../../hooks/mutations/useSchedulingMutations';
+import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import type { Instructor } from '../../lib/database.types';
 import { Button } from '../ui/Button';
 import FormField from '../ui/FormField';
 import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 import Modal from '../ui/Modal';
 
 interface IntroductorySessionSchedulerModalProps {
     isOpen: boolean;
     onClose: () => void;
-    instructor: Instructor | null;
+    instructor?: Instructor | null;
 }
 
 const IntroductorySessionSchedulerModal: React.FC<IntroductorySessionSchedulerModalProps> = ({ isOpen, onClose, instructor }) => {
     const { addToast } = useToast();
     const { scheduleIntroductorySession } = useSchedulingMutations();
+    const { data: instructors = [], isLoading: instructorsLoading } = useAdminInstructors();
 
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
+    const [selectedInstructorId, setSelectedInstructorId] = useState<string>('');
     
     const isSaving = scheduleIntroductorySession.isPending;
 
@@ -27,20 +31,24 @@ const IntroductorySessionSchedulerModal: React.FC<IntroductorySessionSchedulerMo
         if (isOpen) {
             setDate(new Date().toISOString().split('T')[0]);
             setTime('17:00');
+            setSelectedInstructorId(instructor?.id.toString() || '');
         }
-    }, [isOpen]);
-
-    if (!instructor) return null;
+    }, [isOpen, instructor]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const instructorId = instructor?.id || parseInt(selectedInstructorId);
+        if (!instructorId) {
+            addToast('يرجى اختيار مدرب.', 'warning');
+            return;
+        }
         if (!date || !time) {
             addToast('يرجى تحديد التاريخ والوقت.', 'warning');
             return;
         }
         try {
             await scheduleIntroductorySession.mutateAsync({
-                instructorId: instructor.id,
+                instructorId,
                 date,
                 time,
             });
@@ -54,7 +62,7 @@ const IntroductorySessionSchedulerModal: React.FC<IntroductorySessionSchedulerMo
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={`جدولة جلسة تعريفية للمدرب: ${instructor.name}`}
+            title={instructor ? `جدولة جلسة للمدرب: ${instructor.name}` : 'جدولة جلسة تعريفية جديدة'}
             footer={
                 <>
                     <Button type="button" onClick={onClose} disabled={isSaving} variant="ghost">إلغاء</Button>
@@ -65,7 +73,17 @@ const IntroductorySessionSchedulerModal: React.FC<IntroductorySessionSchedulerMo
             }
         >
             <form id="scheduler-form" onSubmit={handleSubmit} className="space-y-6">
-                <p className="text-muted-foreground">اختر التاريخ والوقت لجدولة الجلسة التعريفية المجانية.</p>
+                <p className="text-muted-foreground">اختر المدرب والتاريخ والوقت لجدولة الجلسة التعريفية المجانية.</p>
+                
+                {!instructor && (
+                    <FormField label="اختر المدرب" htmlFor="instructor-select">
+                        <Select id="instructor-select" value={selectedInstructorId} onChange={e => setSelectedInstructorId(e.target.value)} disabled={instructorsLoading} required>
+                            <option value="">-- اختر --</option>
+                            {instructors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                        </Select>
+                    </FormField>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField label="التاريخ" htmlFor="session-date">
                         <Input type="date" id="session-date" value={date} onChange={e => setDate(e.target.value)} required />

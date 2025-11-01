@@ -20,7 +20,7 @@ const FamilyCenterPanel: React.FC = () => {
     const [isCreateStudentModalOpen, setIsCreateStudentModalOpen] = useState(false);
     const [childToLink, setChildToLink] = useState<ChildProfile | null>(null);
     
-    const { userOrders = [], userBookings = [], userSubscriptions = [] } = accountData || {};
+    const { userOrders = [], userBookings = [], userSubscriptions = [], childBadges = [], allBadges = [] } = accountData || {};
     
     const allUserActivity = useMemo(() => ({
         orders: userOrders,
@@ -85,6 +85,8 @@ const FamilyCenterPanel: React.FC = () => {
                                 key={child.id}
                                 child={child}
                                 allUserActivity={allUserActivity}
+                                allBadges={allBadges}
+                                childBadges={childBadges}
                                 onEdit={handleEditChild}
                                 onDelete={handleDeleteChild}
                                 onCreateStudentAccount={handleCreateStudentAccount}

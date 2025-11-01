@@ -20,6 +20,7 @@ const ViewJoinRequestModal: React.FC<{
             <div className="space-y-4 text-sm">
                 <p><span className="font-semibold text-muted-foreground">الاسم:</span> <span className="text-foreground">{request.name}</span></p>
                 <p><span className="font-semibold text-muted-foreground">البريد الإلكتروني:</span> <span className="text-foreground">{request.email}</span></p>
+                <p><span className="font-semibold text-muted-foreground">رقم الهاتف:</span> <span className="text-foreground">{request.phone}</span></p>
                 <p><span className="font-semibold text-muted-foreground">مهتم بالانضمام كـ:</span> <span className="text-foreground">{request.role}</span></p>
                 {request.portfolio_url && (
                     <p className="flex items-center gap-2">

@@ -15,12 +15,23 @@ interface StudentJourneyCardProps {
     journey: EnrichedStudentBooking;
 }
 
+const parseTotalSessions = (sessionString: string | undefined): number => {
+    if (!sessionString) return 0;
+    if (sessionString.includes('واحدة')) return 1;
+    const match = sessionString.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 0;
+};
+
 const StudentJourneyCard: React.FC<StudentJourneyCardProps> = ({ journey }) => {
     const upcomingSessions = journey.sessions
         .filter(s => s.status === 'upcoming')
         .sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
     
     const nextSession = upcomingSessions[0];
+    
+    const totalSessions = parseTotalSessions(journey.packageDetails?.sessions);
+    const completedSessionsCount = journey.sessions.filter(s => s.status === 'completed').length;
+    const progress = totalSessions > 0 ? (completedSessionsCount / totalSessions) * 100 : 0;
 
     return (
         <Card className="transition-transform transform hover:-translate-y-1">
@@ -32,15 +43,26 @@ const StudentJourneyCard: React.FC<StudentJourneyCardProps> = ({ journey }) => {
                 </div>
             </CardHeader>
             <CardContent>
-                {nextSession && (
+                 <div className="space-y-3">
                     <div>
-                        <h4 className="text-sm font-bold text-muted-foreground mb-2">جلستك القادمة:</h4>
-                        <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                            <Clock size={16} className="text-primary" />
-                            <p className="text-sm font-semibold">{formatDate(nextSession.session_date)} - {new Date(nextSession.session_date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <div className="flex justify-between items-center mb-1 text-xs text-muted-foreground font-semibold">
+                            <span>تقدم الرحلة</span>
+                            <span>{completedSessionsCount}/{totalSessions} جلسة مكتملة</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2.5">
+                            <div className="bg-primary h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
                         </div>
                     </div>
-                )}
+                    {nextSession && (
+                        <div>
+                            <h4 className="text-sm font-bold text-muted-foreground mb-1">جلستك القادمة:</h4>
+                            <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                                <Clock size={16} className="text-primary" />
+                                <p className="text-sm font-semibold">{formatDate(nextSession.session_date)} - {new Date(nextSession.session_date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </CardContent>
              <CardFooter>
                  <Link to={`/journey/${journey.id}`} className="flex items-center justify-center gap-2 bg-purple-600 text-white text-sm font-bold py-2 px-4 rounded-full hover:bg-purple-700 transition-colors w-full sm:w-auto">

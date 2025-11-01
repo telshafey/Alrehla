@@ -2,7 +2,6 @@ import React, { Suspense, lazy } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PageLoader from './components/ui/PageLoader';
-import PermissionBasedRoute from './components/auth/PermissionBasedRoute';
 
 // Lazy load pages to improve initial load time
 const PortalPage = lazy(() => import('./pages/PortalPage'));
@@ -40,16 +39,11 @@ const PaymentStatusPage = lazy(() => import('./pages/PaymentStatusPage'));
 
 // Protected Areas
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
-const StudentDashboardPage = lazy(() => import('./pages/student/StudentDashboardPage'));
 const StudentLayout = lazy(() => import('./components/student/StudentLayout'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
 const TrainingJourneyPage = lazy(() => import('./pages/TrainingJourneyPage'));
-
-// New Admin Pages
-const AdminCreativeWritingPackagesPage = lazy(() => import('./pages/admin/AdminCreativeWritingPackagesPage'));
-const AdminCreativeWritingServicesPage = lazy(() => import('./pages/admin/AdminCreativeWritingServicesPage'));
-const AdminIntroductorySessionsPage = lazy(() => import('./pages/admin/AdminIntroductorySessionsPage'));
-const AdminPriceReviewPage = lazy(() => import('./pages/admin/AdminPriceReviewPage'));
+const StudentDashboardPage = lazy(() => import('./pages/student/StudentDashboardPage'));
+const StudentPortfolioPage = lazy(() => import('./pages/student/StudentPortfolioPage'));
 
 
 const AppRoutes: React.FC = () => (
@@ -94,14 +88,18 @@ const AppRoutes: React.FC = () => (
       <Route path="/journey/:journeyId" element={<ProtectedRoute><TrainingJourneyPage /></ProtectedRoute>} />
 
       {/* Student Area */}
-      <Route path="/student/dashboard" element={
-        <ProtectedRoute studentOnly>
-          <StudentLayout>
-            <StudentDashboardPage />
-          </StudentLayout>
-        </ProtectedRoute>
-      } />
-      <Route path="/student/*" element={<Navigate to="/student/dashboard" replace />} />
+      <Route
+        path="/student"
+        element={
+          <ProtectedRoute studentOnly>
+            <StudentLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<StudentDashboardPage />} />
+        <Route path="portfolio" element={<StudentPortfolioPage />} />
+      </Route>
 
       {/* Admin Area */}
       <Route path="/admin/*" element={

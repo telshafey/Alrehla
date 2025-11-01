@@ -21,7 +21,7 @@ export const ServiceSettingsModal: React.FC<ServiceSettingsModalProps> = ({ isOp
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [description, setDescription] = useState('');
-    const [category, setCategory] = useState<'استشارات' | 'مراجعات' | 'نشر'>('استشارات');
+    const [category, setCategory] = useState<'استشارات' | 'مراجعات' | 'نشر' | 'قصص فيديو' | 'قصص مسموعة'>('استشارات');
     const [iconName, setIconName] = useState('MessageSquare');
     const [requiresFileUpload, setRequiresFileUpload] = useState(false);
     const [providerType, setProviderType] = useState<'company' | 'instructor'>('instructor');
@@ -101,6 +101,8 @@ export const ServiceSettingsModal: React.FC<ServiceSettingsModalProps> = ({ isOp
                                 <option value="استشارات">استشارات</option>
                                 <option value="مراجعات">مراجعات</option>
                                 <option value="نشر">نشر</option>
+                                <option value="قصص فيديو">قصص فيديو</option>
+                                <option value="قصص مسموعة">قصص مسموعة</option>
                             </Select>
                         </FormField>
                         <FormField label="الأيقونة" htmlFor="icon_name">

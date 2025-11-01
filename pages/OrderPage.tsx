@@ -13,14 +13,12 @@ import ImageUploadSection from '../components/order/ImageUploadSection';
 import AddonsSection from '../components/order/AddonsSection';
 import DeliverySection from '../components/order/DeliverySection';
 import InteractivePreview from '../components/order/InteractivePreview';
-import StoryIdeasModal from '../components/order/StoryIdeasModal'; // Import the new modal
 import { Button } from '../components/ui/Button';
 import FormField from '../components/ui/FormField';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import type { ChildProfile, PersonalizedProduct, TextFieldConfig } from '../lib/database.types';
 import { Card, CardContent } from '../components/ui/card';
-import { calculateAge } from '../utils/helpers';
 
 type OrderStep = string;
 
@@ -82,13 +80,18 @@ const OrderPage: React.FC = () => {
         deliveryType: 'printed',
         shippingOption: 'my_address',
         governorate: 'القاهرة',
+        recipientName: '',
+        recipientAddress: '',
+        recipientPhone: '',
+        recipientEmail: '',
+        giftMessage: '',
+        sendDigitalCard: true,
     });
     const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
     const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({});
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-    const [isIdeasModalOpen, setIsIdeasModalOpen] = useState(false);
 
     
     useEffect(() => {
@@ -136,8 +139,15 @@ const OrderPage: React.FC = () => {
     const totalPrice = basePrice + addonsPrice;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type } = e.target;
+        const isCheckbox = type === 'checkbox';
+        const checked = (e.target as HTMLInputElement).checked;
+
+        setFormData(prev => ({ 
+            ...prev, 
+            [name]: isCheckbox ? checked : value 
+        }));
+
         if(errors[name]) setErrors(prev => {
             const newErrors = {...prev};
             delete newErrors[name];
@@ -196,16 +206,6 @@ const OrderPage: React.FC = () => {
         setSelectedAddons(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
     };
 
-    const handleSelectIdea = (idea: { title: string; goal: string }) => {
-        setFormData(prev => ({
-            ...prev,
-            storyValue: 'custom',
-            customGoal: idea.goal
-        }));
-        addToast('تم اختيار الفكرة وتطبيقها.', 'success');
-        setIsIdeasModalOpen(false);
-    };
-
      const validateStep = () => {
         const newErrors: { [key: string]: string } = {};
         if (!product) return false;
@@ -246,6 +246,13 @@ const OrderPage: React.FC = () => {
                     }
                 });
                 break;
+            case 'delivery':
+                 if (formData.deliveryType === 'printed' && formData.shippingOption === 'gift') {
+                    if (!formData.recipientName) newErrors.recipientName = 'اسم المستلم مطلوب.';
+                    if (!formData.recipientAddress) newErrors.recipientAddress = 'عنوان المستلم مطلوب.';
+                    if (!formData.recipientPhone) newErrors.recipientPhone = 'هاتف المستلم مطلوب.';
+                }
+                break;
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -273,7 +280,10 @@ const OrderPage: React.FC = () => {
     };
 
     const handleSubmit = () => {
-        if (!validateStep()) return;
+        if (!validateStep()) {
+             addToast('يرجى مراجعة بيانات التوصيل.', 'warning');
+            return;
+        }
         if (!isLoggedIn) {
             addToast('الرجاء تسجيل الدخول أولاً لإضافة الطلب للسلة.', 'warning');
             navigate('/account');
@@ -317,10 +327,10 @@ const OrderPage: React.FC = () => {
 
         switch (step) {
             case 'child': return <ChildDetailsSection {...childDetailsProps} />;
-            case 'customization': return <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} onOpenIdeasModal={() => setIsIdeasModalOpen(true)} textFields={product.text_fields || null} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals}/>;
+            case 'customization': return <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} textFields={product.text_fields || null} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals}/>;
             case 'images': return <ImageUploadSection files={imageFiles} onFileChange={handleFileChange} errors={errors} imageSlots={product.image_slots || null}/>;
             case 'addons': return <AddonsSection addonProducts={addonProducts} selectedAddons={selectedAddons} onToggle={handleToggleAddon} />;
-            case 'delivery': return <DeliverySection formData={formData as any} handleChange={handleChange} product={product} />;
+            case 'delivery': return <DeliverySection formData={formData as any} handleChange={handleChange} product={product} errors={errors} />;
             
             // Emotion Story Steps
             case 'child_context':
@@ -337,7 +347,7 @@ const OrderPage: React.FC = () => {
                 return (
                      <div>
                         <h3 className="text-2xl font-bold text-gray-800 mb-6">رحلة المشاعر</h3>
-                        <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} onOpenIdeasModal={() => setIsIdeasModalOpen(true)} textFields={[]} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals}/>
+                        <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} textFields={[]} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals}/>
                         <div className="mt-6">
                             <DynamicTextFields fields={product.text_fields?.slice(4, 8) || []} formData={formData} errors={errors} handleChange={handleChange} />
                         </div>
@@ -353,18 +363,8 @@ const OrderPage: React.FC = () => {
         }
     };
 
-    const ageForModal = calculateAge(formData.childBirthDate)?.toString() || '';
-
     return (
         <>
-        <StoryIdeasModal 
-            isOpen={isIdeasModalOpen}
-            onClose={() => setIsIdeasModalOpen(false)}
-            onSelectIdea={handleSelectIdea}
-            childName={formData.childName}
-            childAge={ageForModal}
-            childTraits={formData.childTraits}
-        />
         <div className="bg-muted/50 py-12 sm:py-16">
             <div className="container mx-auto px-4">
                 <div className="max-w-5xl mx-auto">

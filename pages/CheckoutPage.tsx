@@ -100,7 +100,10 @@ const CheckoutPage: React.FC = () => {
                                 <h3 className="font-bold text-lg">ملخص السلة</h3>
                                 {cart.map(item => (
                                      <div key={item.id} className="flex justify-between items-center text-sm">
-                                        <span className="font-semibold text-foreground">{item.payload.summary}</span>
+                                        <span className="font-semibold text-foreground flex items-center gap-2">
+                                            {item.payload.formData?.shippingOption === 'gift' && <span title="هدية">🎁</span>}
+                                            {item.payload.summary}
+                                        </span>
                                         <span className="font-bold text-foreground">{item.payload.total || item.payload.totalPrice} ج.م</span>
                                     </div>
                                 ))}

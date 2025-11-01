@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MessageSquare, Eye } from 'lucide-react';
+import { MessageSquare, Eye, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminSupportTickets } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useCommunicationMutations } from '../../hooks/mutations/useCommunicationMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -29,6 +29,8 @@ const AdminSupportPage: React.FC = () => {
     const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
     const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: keyof SupportTicket; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
+
 
     const statusCounts = useMemo(() => {
         const counts: { [key in TicketStatus]?: number } = {};
@@ -38,15 +40,24 @@ const AdminSupportPage: React.FC = () => {
         return counts;
     }, [tickets]);
 
-    const filteredTickets = useMemo(() => {
-        return tickets.filter(ticket => {
+    const sortedAndFilteredTickets = useMemo(() => {
+        let filtered = [...tickets].filter(ticket => {
             const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
             const matchesSearch = searchTerm === '' ||
                 ticket.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 ticket.subject.toLowerCase().includes(searchTerm.toLowerCase());
             return matchesStatus && matchesSearch;
         });
-    }, [tickets, statusFilter, searchTerm]);
+
+        if (sortConfig !== null) {
+            filtered.sort((a, b) => {
+                if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return filtered;
+    }, [tickets, statusFilter, searchTerm, sortConfig]);
 
     const handleViewTicket = (ticket: SupportTicket) => {
         setSelectedTicket(ticket);
@@ -56,6 +67,27 @@ const AdminSupportPage: React.FC = () => {
     const handleStatusChange = (ticketId: string, newStatus: TicketStatus) => {
         updateSupportTicketStatus.mutate({ ticketId, newStatus });
     };
+
+    const handleSort = (key: keyof SupportTicket) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableTh: React.FC<{ sortKey: keyof SupportTicket; label: string }> = ({ sortKey, label }) => (
+        <TableHead>
+            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
+                <div className="flex items-center">
+                   <span>{label}</span>
+                    {sortConfig?.key === sortKey && (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
+                    )}
+                </div>
+            </Button>
+        </TableHead>
+    );
 
     if (isLoading) return <PageLoader text="جاري تحميل رسائل الدعم..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
@@ -97,15 +129,15 @@ const AdminSupportPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <TableHead>الاسم</TableHead>
-                                        <TableHead>الموضوع</TableHead>
-                                        <TableHead>التاريخ</TableHead>
-                                        <TableHead>الحالة</TableHead>
+                                        <SortableTh sortKey="name" label="الاسم" />
+                                        <SortableTh sortKey="subject" label="الموضوع" />
+                                        <SortableTh sortKey="created_at" label="التاريخ" />
+                                        <SortableTh sortKey="status" label="الحالة" />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredTickets.map(ticket => (
+                                    {sortedAndFilteredTickets.map(ticket => (
                                         <TableRow key={ticket.id}>
                                             <TableCell className="font-semibold">{ticket.name}</TableCell>
                                             <TableCell>{ticket.subject}</TableCell>
@@ -122,7 +154,7 @@ const AdminSupportPage: React.FC = () => {
                                     ))}
                                 </TableBody>
                             </Table>
-                             {filteredTickets.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد رسائل دعم تطابق بحثك.</p>}
+                             {sortedAndFilteredTickets.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد رسائل دعم تطابق بحثك.</p>}
                         </div>
                     </CardContent>
                 </Card>

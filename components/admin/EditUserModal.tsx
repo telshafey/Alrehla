@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Save, AlertCircle } from 'lucide-react';
-import type { UserProfile as User } from '../../contexts/AuthContext.tsx';
+import type { UserProfile as User, UserRole } from '../../contexts/AuthContext.tsx';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
+import { useAuth } from '../../contexts/AuthContext';
+import { roleNames } from '../../lib/roles';
+import { Select } from '../ui/Select';
 
 interface EditUserModalProps {
     isOpen: boolean;
@@ -15,20 +18,25 @@ interface EditUserModalProps {
 }
 
 const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, onSave, user, isSaving }) => {
+    const { currentUser } = useAuth();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [role, setRole] = useState<UserRole>('user');
 
     const isEditMode = !!user;
+    const canChangeRole = currentUser?.role === 'super_admin';
 
     useEffect(() => {
         if (user) {
             setName(user.name);
             setEmail(user.email);
+            setRole(user.role);
         } else {
             setName('');
             setEmail('');
             setPassword('');
+            setRole('user');
         }
     }, [user, isOpen]);
 
@@ -37,8 +45,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, onSave, 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const payload = isEditMode
-            ? { id: user.id, name }
-            : { name, email, password };
+            ? { id: user.id, name, role }
+            : { name, email, password, role };
         onSave(payload);
     };
 
@@ -60,10 +68,20 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, onSave, 
                 <FormField label="الاسم*" htmlFor="name">
                     <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
                 </FormField>
-                    <FormField label="البريد الإلكتروني*" htmlFor="email">
+                <FormField label="البريد الإلكتروني*" htmlFor="email">
                     <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isEditMode} />
                 </FormField>
-                    {!isEditMode && (
+                {canChangeRole && (
+                    <FormField label="الدور" htmlFor="role">
+                        <Select id="role" value={role} onChange={e => setRole(e.target.value as UserRole)} disabled={user?.id === currentUser?.id}>
+                             {Object.entries(roleNames).map(([key, name]) => (
+                                <option key={key} value={key}>{name}</option>
+                            ))}
+                        </Select>
+                         {user?.id === currentUser?.id && <p className="text-xs text-muted-foreground mt-1">لا يمكنك تغيير دور حسابك.</p>}
+                    </FormField>
+                )}
+                {!isEditMode && (
                     <FormField label="كلمة المرور*" htmlFor="password">
                         <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                             <div className="mt-2 flex items-start gap-2 text-xs text-yellow-700 bg-yellow-50 p-2 rounded-md">

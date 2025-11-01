@@ -8,6 +8,9 @@ import {
     mockScheduledSessions,
     mockCreativeWritingPackages,
     mockInstructors,
+    mockChildBadges,
+    mockBadges,
+    mockSessionAttachments,
 } from '../../../data/mockData';
 
 const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
@@ -40,10 +43,23 @@ export const useUserAccountData = () => {
                     const sessions = mockScheduledSessions.filter(s => s.booking_id === booking.id);
                     const packageDetails = mockCreativeWritingPackages.find(p => p.name === booking.package_name);
                     const instructorName = mockInstructors.find(i => i.id === booking.instructor_id)?.name || 'N/A';
-                    return { ...booking, sessions, packageDetails, instructorName };
+                    const child = childProfiles.find(c => c.id === booking.child_id);
+                    return { 
+                        ...booking, 
+                        sessions, 
+                        packageDetails, 
+                        instructorName,
+                        child_profiles: child ? { name: child.name } : null // Add child profile info
+                    };
                 });
+            
+            const childBadges = mockChildBadges.filter(cb => childProfiles.some(p => p.id === cb.child_id));
+            const allBadges = mockBadges;
 
-            return mockFetch({ userOrders, userSubscriptions, userBookings });
+            const userBookingIds = new Set(userBookings.map(b => b.id));
+            const attachments = mockSessionAttachments.filter(att => userBookingIds.has(att.booking_id));
+
+            return mockFetch({ userOrders, userSubscriptions, userBookings, childBadges, allBadges, attachments });
         },
         enabled: !!currentUser,
     });

@@ -4,21 +4,26 @@ import FormField from '../ui/FormField';
 import { Select } from '../ui/Select';
 import { Input } from '../ui/Input';
 import type { PersonalizedProduct } from '../../lib/database.types';
+import { Textarea } from '../ui/Textarea';
 
 interface DeliverySectionProps {
     formData: {
         deliveryType: 'printed' | 'electronic';
         shippingOption: 'my_address' | 'gift';
         governorate: string;
-        giftName: string;
-        giftAddress: string;
-        giftPhone: string;
+        recipientName: string;
+        recipientAddress: string;
+        recipientPhone: string;
+        recipientEmail: string;
+        giftMessage: string;
+        sendDigitalCard: boolean;
     };
-    handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+    handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
     product: PersonalizedProduct | null;
+    errors: { [key: string]: string };
 }
 
-const DeliverySection: React.FC<DeliverySectionProps> = ({ formData, handleChange, product }) => {
+const DeliverySection: React.FC<DeliverySectionProps> = ({ formData, handleChange, product, errors }) => {
     return (
         <div>
             <h3 className="text-2xl font-bold text-gray-800 mb-6">تفاصيل التوصيل</h3>
@@ -47,16 +52,28 @@ const DeliverySection: React.FC<DeliverySectionProps> = ({ formData, handleChang
                         </div>
 
                         {formData.shippingOption === 'gift' && (
-                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4 animate-fadeIn">
-                                <FormField label="اسم المستلم*" htmlFor="giftName" className="md:col-span-2">
-                                    <Input type="text" id="giftName" name="giftName" value={formData.giftName} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4 animate-fadeIn">
+                                <FormField label="اسم المستلم*" htmlFor="recipientName" error={errors.recipientName}>
+                                    <Input type="text" id="recipientName" name="recipientName" value={formData.recipientName} onChange={handleChange} required={formData.shippingOption === 'gift'} />
                                 </FormField>
-                                <FormField label="عنوان المستلم*" htmlFor="giftAddress" className="md:col-span-2">
-                                    <Input type="text" id="giftAddress" name="giftAddress" value={formData.giftAddress} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                                <FormField label="عنوان المستلم*" htmlFor="recipientAddress" error={errors.recipientAddress}>
+                                    <Input type="text" id="recipientAddress" name="recipientAddress" value={formData.recipientAddress} onChange={handleChange} required={formData.shippingOption === 'gift'} />
                                 </FormField>
-                                <FormField label="هاتف المستلم*" htmlFor="giftPhone">
-                                    <Input type="tel" id="giftPhone" name="giftPhone" value={formData.giftPhone} onChange={handleChange} required={formData.shippingOption === 'gift'} />
+                                <FormField label="هاتف المستلم*" htmlFor="recipientPhone" error={errors.recipientPhone}>
+                                    <Input type="tel" id="recipientPhone" name="recipientPhone" value={formData.recipientPhone} onChange={handleChange} required={formData.shippingOption === 'gift'} />
                                 </FormField>
+                                <FormField label="البريد الإلكتروني للمستلم (لإرسال بطاقة الهدية)" htmlFor="recipientEmail">
+                                    <Input type="email" id="recipientEmail" name="recipientEmail" value={formData.recipientEmail} onChange={handleChange} />
+                                </FormField>
+                                <FormField label="رسالة الهدية" htmlFor="giftMessage">
+                                    <Textarea id="giftMessage" name="giftMessage" value={formData.giftMessage} onChange={handleChange} rows={3} placeholder="اكتب رسالتك هنا..."/>
+                                </FormField>
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm">
+                                        <input type="checkbox" name="sendDigitalCard" checked={formData.sendDigitalCard} onChange={handleChange} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
+                                        <span>إرسال بطاقة هدية رقمية للمستلم فور تأكيد الطلب</span>
+                                    </label>
+                                </div>
                             </div>
                         )}
                         

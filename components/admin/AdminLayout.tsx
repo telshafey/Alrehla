@@ -16,19 +16,21 @@ const AdminPersonalizedProductsPage = React.lazy(() => import('../../pages/admin
 const AdminProductDetailPage = React.lazy(() => import('../../pages/admin/AdminProductDetailPage'));
 const AdminCreativeWritingPage = React.lazy(() => import('../../pages/admin/AdminCreativeWritingPage'));
 const AdminInstructorsPage = React.lazy(() => import('../../pages/admin/AdminInstructorsPage'));
+const AdminInstructorDetailPage = React.lazy(() => import('../../pages/admin/AdminInstructorDetailPage'));
 const AdminContentManagementPage = React.lazy(() => import('../../pages/admin/AdminContentManagementPage'));
+const AdminPageContentEditor = React.lazy(() => import('../../pages/admin/content-editor/AdminPageContentEditor'));
 const AdminSupportPage = React.lazy(() => import('../../pages/admin/AdminSupportPage'));
 const AdminJoinRequestsPage = React.lazy(() => import('../../pages/admin/AdminJoinRequestsPage'));
 const AdminBlogPage = React.lazy(() => import('../../pages/admin/AdminBlogPage'));
 const AdminSubscriptionsPage = React.lazy(() => import('../../pages/admin/AdminSubscriptionsPage'));
 const AdminShippingPage = React.lazy(() => import('../../pages/admin/AdminShippingPage'));
-const AdminSupportRequestsPage = React.lazy(() => import('../../pages/admin/AdminSupportRequestsPage'));
+
 const AdminScheduledSessionsPage = React.lazy(() => import('../../pages/admin/AdminScheduledSessionsPage'));
 const AdminSubscriptionBoxPage = React.lazy(() => import('../../pages/admin/AdminSubscriptionBoxPage'));
 const AdminServiceOrdersPage = React.lazy(() => import('../../pages/admin/AdminServiceOrdersPage'));
 const AdminCreativeWritingPackagesPage = React.lazy(() => import('../../pages/admin/AdminCreativeWritingPackagesPage'));
 const AdminCreativeWritingServicesPage = React.lazy(() => import('../../pages/admin/AdminCreativeWritingServicesPage'));
-const AdminIntroductorySessionsPage = React.lazy(() => import('../../pages/admin/AdminIntroductorySessionsPage'));
+
 const AdminPriceReviewPage = React.lazy(() => import('../../pages/admin/AdminPriceReviewPage'));
 
 // Lazy load instructor pages
@@ -76,11 +78,14 @@ const AdminLayout: React.FC = () => {
               <Route path="service-orders" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminServiceOrdersPage /></PermissionBasedRoute>} />
               <Route path="creative-writing-packages" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminCreativeWritingPackagesPage/></PermissionBasedRoute>} />
               <Route path="creative-writing-services" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminCreativeWritingServicesPage/></PermissionBasedRoute>} />
-              <Route path="introductory-sessions" element={<PermissionBasedRoute permission="canManageSchedules"><AdminIntroductorySessionsPage/></PermissionBasedRoute>} />
+              
               <Route path="instructors" element={<PermissionBasedRoute permission="canManageCreativeWritingInstructors"><AdminInstructorsPage /></PermissionBasedRoute>} />
+              <Route path="instructors/new" element={<PermissionBasedRoute permission="canManageCreativeWritingInstructors"><AdminInstructorDetailPage /></PermissionBasedRoute>} />
+              <Route path="instructors/:id" element={<PermissionBasedRoute permission="canManageCreativeWritingInstructors"><AdminInstructorDetailPage /></PermissionBasedRoute>} />
               <Route path="pricing-review" element={<PermissionBasedRoute permission="canManagePrices"><AdminPriceReviewPage/></PermissionBasedRoute>} />
-              <Route path="support-requests" element={<PermissionBasedRoute permission="canManageSupportRequests"><AdminSupportRequestsPage /></PermissionBasedRoute>} />
+              
               <Route path="content-management" element={<PermissionBasedRoute permission="canManageContent"><AdminContentManagementPage /></PermissionBasedRoute>} />
+              <Route path="content/:pageKey" element={<PermissionBasedRoute permission="canManageContent"><AdminPageContentEditor /></PermissionBasedRoute>} />
               <Route path="blog" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPage /></PermissionBasedRoute>} />
               <Route path="support" element={<PermissionBasedRoute permission="canManageSupportTickets"><AdminSupportPage /></PermissionBasedRoute>} />
               <Route path="join-requests" element={<PermissionBasedRoute permission="canManageJoinRequests"><AdminJoinRequestsPage /></PermissionBasedRoute>} />

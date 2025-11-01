@@ -118,10 +118,10 @@ const InstructorSchedulePanel: React.FC<InstructorSchedulePanelProps> = ({ instr
                     </div>
                 </AdminSection>
                 
-                 <Accordion title="إدارة التوافر الأسبوعي (للباقات المدفوعة)">
+                 <Accordion title="إدارة جدول التوافر الأسبوعي (القالب)">
                     <div className="p-6 border-t">
                         <p className="text-sm text-gray-600 mb-4">
-                            حدد الأوقات التي تكون فيها متاحًا بشكل أسبوعي. سيتم مراجعة طلبك من قبل الإدارة قبل تطبيقه على النظام.
+                           هنا تحدد قالب توافرك الأسبوعي الثابت. بعد موافقة الإدارة، سيقوم النظام تلقائيًا بفتح هذه المواعيد في صفحتك الشخصية للحجوزات الجديدة، مما يقلل من التدخل الإداري.
                         </p>
                         <WeeklyScheduleManager instructor={instructor} />
                     </div>

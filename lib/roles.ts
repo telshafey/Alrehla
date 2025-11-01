@@ -40,6 +40,59 @@ export interface Permissions {
   canViewSupportStats: boolean;
 }
 
+export const permissionKeys: (keyof Permissions)[] = [
+    'canViewDashboard',
+    'canManageUsers',
+    'canManageSettings',
+    'canManageEnhaLakOrders',
+    'canManageEnhaLakSubscriptions',
+    'canManageEnhaLakProducts',
+    'canManagePrices',
+    'canManageShipping',
+    'canManageCreativeWritingBookings',
+    'canManageCreativeWritingSettings',
+    'canManageCreativeWritingInstructors',
+    'canManageInstructorUpdates',
+    'canManageSupportRequests',
+    'canManageContent',
+    'canManageBlog',
+    'canManageSupportTickets',
+    'canManageJoinRequests',
+    'canManageSchedules',
+    'canViewGlobalStats',
+    'canViewEnhaLakStats',
+    'canViewCreativeWritingStats',
+    'canViewContentStats',
+    'canViewSupportStats',
+];
+
+export const permissionLabels: Record<keyof Permissions, string> = {
+    canViewDashboard: 'عرض لوحة التحكم',
+    canManageUsers: 'إدارة المستخدمين',
+    canManageSettings: 'إدارة الإعدادات العامة',
+    canManageEnhaLakOrders: 'إدارة طلبات "إنها لك"',
+    canManageEnhaLakSubscriptions: 'إدارة اشتراكات "إنها لك"',
+    canManageEnhaLakProducts: 'إدارة منتجات "إنها لك"',
+    canManagePrices: 'إدارة الأسعار',
+    canManageShipping: 'إدارة الشحن',
+    canManageCreativeWritingBookings: 'إدارة حجوزات "بداية الرحلة"',
+    canManageCreativeWritingSettings: 'إدارة إعدادات "بداية الرحلة"',
+    canManageCreativeWritingInstructors: 'إدارة مدربي "بداية الرحلة"',
+    canManageInstructorUpdates: 'إدارة تحديثات المدربين',
+    canManageSupportRequests: 'إدارة طلبات الدعم',
+    canManageContent: 'إدارة المحتوى',
+    canManageBlog: 'إدارة المدونة',
+    canManageSupportTickets: 'إدارة رسائل الدعم',
+    canManageJoinRequests: 'إدارة طلبات الانضمام',
+    canManageSchedules: 'إدارة الجداول',
+    canViewGlobalStats: 'عرض الإحصائيات العامة',
+    canViewEnhaLakStats: 'عرض إحصائيات "إنها لك"',
+    canViewCreativeWritingStats: 'عرض إحصائيات "بداية الرحلة"',
+    canViewContentStats: 'عرض إحصائيات المحتوى',
+    canViewSupportStats: 'عرض إحصائيات الدعم',
+};
+
+
 const allPermissions: Permissions = {
   canViewDashboard: true,
   canManageUsers: true,

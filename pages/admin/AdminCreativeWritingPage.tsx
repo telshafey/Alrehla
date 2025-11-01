@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { BookOpen, Eye, Edit, Loader2 } from 'lucide-react';
+import { BookOpen, Eye, Edit, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminRawCwBookings, transformCwBookings } from '../../hooks/queries/admin/useAdminBookingsQuery';
 import { useAdminAllChildProfiles } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
@@ -49,6 +49,8 @@ const AdminCreativeWritingPage: React.FC = () => {
     
     const [statusFilter, setStatusFilter] = useState<BookingStatus | 'all'>((location.state as any)?.statusFilter || 'all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [bookingsSortConfig, setBookingsSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
+    const [studentsSortConfig, setStudentsSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
 
     const isLoading = bookingsLoading || childrenLoading || instructorsLoading;
 
@@ -84,6 +86,20 @@ const AdminCreativeWritingPage: React.FC = () => {
         });
         return Array.from(studentMap.values());
     }, [bookings]);
+
+     const sortedStudents = useMemo(() => {
+        let sortableItems = [...students];
+        if (studentsSortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                const aVal = studentsSortConfig.key === 'bookings' ? a.bookings.length : a[studentsSortConfig.key as keyof Student];
+                const bVal = studentsSortConfig.key === 'bookings' ? b.bookings.length : b[studentsSortConfig.key as keyof Student];
+                if (aVal < bVal) return studentsSortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return studentsSortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [students, studentsSortConfig]);
     
     const statusCounts = useMemo(() => {
         const counts: { [key in BookingStatus]?: number } = {};
@@ -93,8 +109,8 @@ const AdminCreativeWritingPage: React.FC = () => {
         return counts;
     }, [bookings]);
 
-    const filteredBookings = useMemo(() => {
-        let filtered = bookings;
+    const sortedAndFilteredBookings = useMemo(() => {
+        let filtered = [...bookings];
         if (statusFilter !== 'all') {
             filtered = filtered.filter(b => b.status === statusFilter);
         }
@@ -105,8 +121,19 @@ const AdminCreativeWritingPage: React.FC = () => {
                 b.id.toLowerCase().includes(lowercasedTerm)
             );
         }
+
+        if (bookingsSortConfig !== null) {
+            filtered.sort((a, b) => {
+                const getNestedValue = (obj: any, path: string) => path.split('.').reduce((o, i) => (o ? o[i] : null), obj);
+                const aVal = getNestedValue(a, bookingsSortConfig.key);
+                const bVal = getNestedValue(b, bookingsSortConfig.key);
+                if (aVal < bVal) return bookingsSortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return bookingsSortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
         return filtered;
-    }, [bookings, statusFilter, searchTerm]);
+    }, [bookings, statusFilter, searchTerm, bookingsSortConfig]);
 
     const handleViewDetails = (booking: BookingWithRelations) => {
         setSelectedBooking(booking);
@@ -116,6 +143,34 @@ const AdminCreativeWritingPage: React.FC = () => {
     const handleEditProgress = (student: Student) => {
         setSelectedStudent(student);
         setIsProgressModalOpen(true);
+    };
+
+    const handleSort = (table: 'students' | 'bookings', key: string) => {
+        if (table === 'students') {
+            let direction: 'asc' | 'desc' = 'asc';
+            if (studentsSortConfig && studentsSortConfig.key === key && studentsSortConfig.direction === 'asc') direction = 'desc';
+            setStudentsSortConfig({ key, direction });
+        } else {
+            let direction: 'asc' | 'desc' = 'asc';
+            if (bookingsSortConfig && bookingsSortConfig.key === key && bookingsSortConfig.direction === 'asc') direction = 'desc';
+            setBookingsSortConfig({ key, direction });
+        }
+    };
+
+    const SortableTh: React.FC<{ table: 'students' | 'bookings', sortKey: string; label: string }> = ({ table, sortKey, label }) => {
+        const sortConfig = table === 'students' ? studentsSortConfig : bookingsSortConfig;
+        return (
+            <TableHead>
+                <Button variant="ghost" onClick={() => handleSort(table, sortKey)} className="px-0 h-auto py-0">
+                    <div className="flex items-center">
+                       <span>{label}</span>
+                        {sortConfig?.key === sortKey && (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
+                        )}
+                    </div>
+                </Button>
+            </TableHead>
+        );
     };
     
     const error = bookingsError || childrenError || instructorsError;
@@ -145,14 +200,14 @@ const AdminCreativeWritingPage: React.FC = () => {
                              <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>الطالب</TableHead>
-                                        <TableHead>عدد الجلسات المحجوزة</TableHead>
-                                        <TableHead>آخر ملاحظات</TableHead>
+                                        <SortableTh table="students" sortKey="name" label="الطالب" />
+                                        <SortableTh table="students" sortKey="bookings" label="عدد الجلسات المحجوزة" />
+                                        <SortableTh table="students" sortKey="lastProgressNote" label="آخر ملاحظات" />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {students.map(student => (
+                                    {sortedStudents.map(student => (
                                         <TableRow key={student.id}>
                                             <TableCell className="font-semibold">{student.name}</TableCell>
                                             <TableCell>{student.bookings.length}</TableCell>
@@ -202,16 +257,16 @@ const AdminCreativeWritingPage: React.FC = () => {
                                 <Table>
                                    <TableHeader>
                                        <TableRow>
-                                            <TableHead>الطالب</TableHead>
-                                            <TableHead>الباقة</TableHead>
-                                            <TableHead>المدرب</TableHead>
-                                            <TableHead>الحالة</TableHead>
-                                            <TableHead>تاريخ الجلسة</TableHead>
+                                            <SortableTh table="bookings" sortKey="child_profiles.name" label="الطالب" />
+                                            <SortableTh table="bookings" sortKey="package_name" label="الباقة" />
+                                            <SortableTh table="bookings" sortKey="instructors.name" label="المدرب" />
+                                            <SortableTh table="bookings" sortKey="status" label="الحالة" />
+                                            <SortableTh table="bookings" sortKey="booking_date" label="تاريخ الجلسة" />
                                             <TableHead>إجراءات</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredBookings.map(booking => (
+                                        {sortedAndFilteredBookings.map(booking => (
                                             <TableRow key={booking.id}>
                                                 <TableCell className="font-semibold">{booking.child_profiles?.name}</TableCell>
                                                 <TableCell>{booking.package_name}</TableCell>
@@ -237,7 +292,7 @@ const AdminCreativeWritingPage: React.FC = () => {
                                         ))}
                                     </TableBody>
                                 </Table>
-                                {filteredBookings.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد حجوزات تطابق بحثك أو الفلتر المحدد.</p>}
+                                {sortedAndFilteredBookings.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد حجوزات تطابق بحثك أو الفلتر المحدد.</p>}
                             </div>
                         </CardContent>
                     </Card>

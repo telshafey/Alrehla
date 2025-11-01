@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings } from 'lucide-react';
+import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useProductMutations } from '../../hooks/mutations/useProductMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -14,7 +14,45 @@ const AdminPersonalizedProductsPage: React.FC = () => {
     const navigate = useNavigate();
     const { data: personalizedProducts = [], isLoading, error, refetch } = useAdminPersonalizedProducts();
     const { deletePersonalizedProduct } = useProductMutations();
+    const [sortConfig, setSortConfig] = useState<{ key: keyof PersonalizedProduct; direction: 'asc' | 'desc' } | null>({ key: 'sort_order', direction: 'asc' });
     
+    const sortedProducts = useMemo(() => {
+        let sortableItems = [...personalizedProducts];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                const aVal = a[sortConfig.key];
+                const bVal = b[sortConfig.key];
+                if (aVal === null || aVal === undefined) return 1;
+                if (bVal === null || bVal === undefined) return -1;
+                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [personalizedProducts, sortConfig]);
+
+    const handleSort = (key: keyof PersonalizedProduct) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableTh: React.FC<{ sortKey: keyof PersonalizedProduct; label: string }> = ({ sortKey, label }) => (
+        <TableHead>
+            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
+                <div className="flex items-center">
+                   <span>{label}</span>
+                    {sortConfig?.key === sortKey && (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
+                    )}
+                </div>
+            </Button>
+        </TableHead>
+    );
+
     const handleDeleteProduct = async (productId: number) => {
         if (window.confirm('هل أنت متأكد من حذف هذا المنتج؟ هذه العملية لا يمكن التراجع عنها.')) {
             await deletePersonalizedProduct.mutateAsync({ productId });
@@ -23,8 +61,6 @@ const AdminPersonalizedProductsPage: React.FC = () => {
 
     if (isLoading) return <PageLoader text="جاري تحميل المنتجات..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
-
-    const sortedProducts = [...personalizedProducts].sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99));
 
     return (
         <div className="animate-fadeIn space-y-8">
@@ -44,9 +80,9 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>المنتج</TableHead>
-                                    <TableHead>الأسعار (مطبوع/إلكتروني)</TableHead>
-                                    <TableHead>الترتيب</TableHead>
+                                    <SortableTh sortKey="title" label="المنتج" />
+                                    <SortableTh sortKey="price_printed" label="الأسعار (مطبوع/إلكتروني)" />
+                                    <SortableTh sortKey="sort_order" label="الترتيب" />
                                     <TableHead className="text-center"><Star size={16} className="mx-auto" /></TableHead>
                                     <TableHead className="text-center"><Puzzle size={16} className="mx-auto" /></TableHead>
                                     <TableHead>إجراءات</TableHead>

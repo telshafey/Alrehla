@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Eye, ShoppingBag, DollarSign, AlertCircle } from 'lucide-react';
+import { Eye, ShoppingBag, DollarSign, AlertCircle, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import { useAdminOrders } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
+import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import ViewOrderModal from '../../components/admin/ViewOrderModal';
 import { formatDate, getStatusColor } from '../../utils/helpers';
@@ -8,6 +9,7 @@ import type { OrderWithRelations, OrderStatus } from '../../lib/database.types';
 import { Button } from '../../components/ui/Button';
 import StatFilterCard from '../../components/admin/StatFilterCard';
 import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
@@ -29,10 +31,12 @@ const statusColors: { [key in OrderStatus]: string } = {
 
 const AdminOrdersPage: React.FC = () => {
     const { data: orders = [], isLoading, error, refetch } = useAdminOrders();
+    const { updateOrderStatus } = useOrderMutations();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<OrderWithRelations | null>(null);
     const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'order_date', direction: 'desc' });
 
     const statusCounts = useMemo(() => {
         const counts: { [key in OrderStatus]?: number } = {};
@@ -42,8 +46,8 @@ const AdminOrdersPage: React.FC = () => {
         return counts;
     }, [orders]);
 
-    const filteredOrders = useMemo(() => {
-        let filtered = orders;
+    const sortedAndFilteredOrders = useMemo(() => {
+        let filtered = [...orders];
         if (statusFilter !== 'all') {
             filtered = filtered.filter(o => o.status === statusFilter);
         }
@@ -55,8 +59,29 @@ const AdminOrdersPage: React.FC = () => {
                 o.id.toLowerCase().includes(lowercasedTerm)
             );
         }
+        
+        if (sortConfig !== null) {
+            filtered.sort((a, b) => {
+                const getNestedValue = (obj: any, path: string) => path.split('.').reduce((o, i) => (o ? o[i] : null), obj);
+                
+                const aVal = getNestedValue(a, sortConfig.key);
+                const bVal = getNestedValue(b, sortConfig.key);
+
+                if (aVal === null || aVal === undefined) return 1;
+                if (bVal === null || bVal === undefined) return -1;
+
+                if (aVal < bVal) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aVal > bVal) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+
         return filtered;
-    }, [orders, statusFilter, searchTerm]);
+    }, [orders, statusFilter, searchTerm, sortConfig]);
     
     const totalRevenue = useMemo(() => {
         return orders
@@ -73,6 +98,27 @@ const AdminOrdersPage: React.FC = () => {
         setSelectedOrder(order);
         setIsModalOpen(true);
     };
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableTh: React.FC<{ sortKey: string; label: string }> = ({ sortKey, label }) => (
+        <TableHead>
+            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
+                <div className="flex items-center">
+                   <span>{label}</span>
+                    {sortConfig?.key === sortKey && (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
+                    )}
+                </div>
+            </Button>
+        </TableHead>
+    );
     
     if (isLoading) return <PageLoader text="جاري تحميل الطلبات..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
@@ -122,24 +168,36 @@ const AdminOrdersPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <TableHead>العميل</TableHead>
-                                        <TableHead>الطفل</TableHead>
-                                        <TableHead>التاريخ</TableHead>
-                                        <TableHead>الملخص</TableHead>
-                                        <TableHead>الإجمالي</TableHead>
-                                        <TableHead>الحالة</TableHead>
+                                        <SortableTh sortKey="users.name" label="العميل" />
+                                        <SortableTh sortKey="child_profiles.name" label="الطفل" />
+                                        <SortableTh sortKey="order_date" label="التاريخ" />
+                                        <SortableTh sortKey="item_summary" label="الملخص" />
+                                        <SortableTh sortKey="total" label="الإجمالي" />
+                                        <SortableTh sortKey="status" label="الحالة" />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredOrders.map(order => (
+                                    {sortedAndFilteredOrders.map(order => (
                                         <TableRow key={order.id}>
                                             <TableCell className="font-semibold">{order.users?.name || 'N/A'}</TableCell>
                                             <TableCell>{order.child_profiles?.name || 'N/A'}</TableCell>
                                             <TableCell className="text-sm">{formatDate(order.order_date)}</TableCell>
                                             <TableCell className="text-sm">{order.item_summary}</TableCell>
                                             <TableCell className="font-bold">{order.total} ج.م</TableCell>
-                                            <TableCell><span className={`px-2 py-1 text-xs font-bold rounded-full ${getStatusColor(order.status)}`}>{order.status}</span></TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <Select
+                                                        value={order.status}
+                                                        onChange={e => updateOrderStatus.mutate({ orderId: order.id, newStatus: e.target.value as OrderStatus })}
+                                                        className={`w-full p-1 text-xs font-bold ${getStatusColor(order.status)}`}
+                                                        disabled={updateOrderStatus.isPending && updateOrderStatus.variables?.orderId === order.id}
+                                                    >
+                                                        {orderStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                                    </Select>
+                                                    {updateOrderStatus.isPending && updateOrderStatus.variables?.orderId === order.id && <Loader2 className="animate-spin" size={16} />}
+                                                </div>
+                                            </TableCell>
                                             <TableCell>
                                                 <Button variant="ghost" size="icon" onClick={() => handleViewOrder(order)}><Eye size={20} /></Button>
                                             </TableCell>
@@ -147,7 +205,7 @@ const AdminOrdersPage: React.FC = () => {
                                     ))}
                                 </TableBody>
                             </Table>
-                             {filteredOrders.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد طلبات تطابق بحثك.</p>}
+                             {sortedAndFilteredOrders.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد طلبات تطابق بحثك.</p>}
                         </div>
                     </CardContent>
                 </Card>

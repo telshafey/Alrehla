@@ -11,6 +11,34 @@ export const useSubscriptionMutations = () => {
         mutationFn: async (payload: any) => {
             await sleep(1000);
             console.log("Creating subscription (mock)", payload);
+
+            const { formData } = payload;
+            if (formData?.shippingOption === 'gift' && formData?.sendDigitalCard && formData?.recipientEmail) {
+                console.log("Simulating sending gift email for subscription...");
+                try {
+                    await fetch('/api/sendEmail', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: formData.recipientEmail,
+                            subject: `🎁 لديك هدية اشتراك من ${payload.userName}!`,
+                            html: `
+                                <h1>مرحباً ${formData.recipientName},</h1>
+                                <p>لديك هدية اشتراك مميزة في <strong>صندوق الرحلة الشهري</strong> من <strong>${payload.userName}</strong>!</p>
+                                <p>نص الرسالة:</p>
+                                <blockquote style="border-right: 4px solid #ccc; padding-right: 1em; margin-right: 0;">
+                                    <em>${formData.giftMessage || 'أتمنى أن تنال إعجابك!'}</em>
+                                </blockquote>
+                                <p>سيصلك صندوقك الأول قريباً. استعد لمغامرة متجددة كل شهر!</p>
+                                <p>مع تحيات،<br>فريق منصة الرحلة</p>
+                            `
+                        })
+                    });
+                } catch (e) {
+                    console.error("Failed to send mock email:", e);
+                }
+            }
+
             return { ...payload, id: `sub_${Math.random()}` };
         },
         onError: (error: Error) => {

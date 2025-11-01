@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Edit, Trash2, UserPlus, ShoppingBag, BookOpen, Star, ArrowLeft } from 'lucide-react';
-import type { ChildProfile, Order, CreativeWritingBooking, Subscription } from '../../lib/database.types';
+import { Edit, Trash2, UserPlus, ShoppingBag, BookOpen, Star, ArrowLeft, Award } from 'lucide-react';
+import type { ChildProfile, Order, CreativeWritingBooking, Subscription, Badge, ChildBadge } from '../../lib/database.types';
 import { Button } from '../ui/Button';
 import { formatDate, calculateAge } from '../../utils/helpers';
+import BadgeDisplay from '../shared/BadgeDisplay';
 
 interface ChildDashboardCardProps {
     child: ChildProfile;
@@ -12,6 +13,8 @@ interface ChildDashboardCardProps {
         bookings: CreativeWritingBooking[];
         subscriptions: Subscription[];
     };
+    allBadges: Badge[];
+    childBadges: ChildBadge[];
     onEdit: (child: ChildProfile) => void;
     onDelete: (childId: number) => void;
     onCreateStudentAccount: (child: ChildProfile) => void;
@@ -26,7 +29,7 @@ const ActivityIcon: React.FC<{type: string}> = ({type}) => {
     }
 }
 
-const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserActivity, onEdit, onDelete, onCreateStudentAccount }) => {
+const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserActivity, allBadges, childBadges, onEdit, onDelete, onCreateStudentAccount }) => {
     
     const childActivity = useMemo(() => {
         const orders = allUserActivity.orders.filter(o => o.child_id === child.id);
@@ -34,9 +37,9 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserA
         const subscriptions = allUserActivity.subscriptions.filter(s => s.child_id === child.id);
         
         const allItems = [
-            ...orders.map(o => ({ type: 'order' as const, date: o.order_date, summary: o.item_summary, id: o.id, link: `/enha-lak/store`})),
+            ...orders.map(o => ({ type: 'order' as const, date: o.order_date, summary: o.item_summary, id: o.id, link: `/account`})),
             ...bookings.map(b => ({ type: 'booking' as const, date: b.created_at, summary: b.package_name, id: b.id, link: `/journey/${b.id}` })),
-            ...subscriptions.map(s => ({ type: 'subscription' as const, date: s.start_date, summary: 'صندوق الرحلة الشهري', id: s.id, link: '/enha-lak/subscription' }))
+            ...subscriptions.map(s => ({ type: 'subscription' as const, date: s.start_date, summary: 'صندوق الرحلة الشهري', id: s.id, link: '/account' }))
         ];
 
         return {
@@ -46,6 +49,14 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserA
             recent: allItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3)
         };
     }, [child, allUserActivity]);
+
+    const earnedBadges = useMemo(() => {
+        const earned = childBadges
+            .filter(cb => cb.child_id === child.id)
+            .sort((a,b) => new Date(b.earned_at).getTime() - new Date(a.earned_at).getTime());
+
+        return earned.map(cb => allBadges.find(b => b.id === cb.badge_id)).filter(b => b !== undefined) as Badge[];
+    }, [child, childBadges, allBadges]);
     
     const age = calculateAge(child.birth_date);
 
@@ -97,10 +108,10 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserA
                         </div>
                     </div>
                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                        <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-orange-100 text-orange-600 rounded-full"><Star /></div>
+                        <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-yellow-100 text-yellow-600 rounded-full"><Award /></div>
                         <div>
-                            <p className="text-xl font-bold">{childActivity.subscriptions.length}</p>
-                            <p className="text-xs text-gray-500">اشتراكات نشطة</p>
+                            <p className="text-xl font-bold">{earnedBadges.length}</p>
+                            <p className="text-xs text-gray-500">إنجازات</p>
                         </div>
                     </div>
                 </div>
@@ -110,7 +121,7 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserA
                     <h4 className="font-bold text-gray-700 mb-3">أحدث الأنشطة</h4>
                     <div className="space-y-3">
                          {childActivity.recent.length > 0 ? childActivity.recent.map(item => (
-                            <Link to={item.link} key={item.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border hover:border-blue-400 hover:bg-blue-50/50 transition-colors">
+                            <Link to={item.link} state={{ defaultTab: 'myLibrary' }} key={item.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border hover:border-blue-400 hover:bg-blue-50/50 transition-colors">
                                 <div className="flex-shrink-0"><ActivityIcon type={item.type}/></div>
                                 <div className="flex-grow">
                                     <p className="font-semibold text-sm text-gray-800">{item.summary}</p>
@@ -118,8 +129,18 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserA
                                 </div>
                                 <ArrowLeft size={16} className="text-gray-400"/>
                             </Link>
-                         )) : <p className="text-sm text-center text-gray-500 py-8">لا توجد أنشطة مسجلة لهذا الطفل بعد.</p>}
+                         )) : <p className="text-sm text-center text-gray-500 py-4">لا توجد أنشطة مسجلة لهذا الطفل بعد.</p>}
                     </div>
+                    {earnedBadges.length > 0 && (
+                        <div className="mt-4 pt-4 border-t">
+                            <h4 className="font-bold text-gray-700 mb-2">أحدث الإنجازات</h4>
+                            <div className="flex gap-4">
+                                {earnedBadges.slice(0, 2).map(badge => (
+                                    <BadgeDisplay key={badge.id} badge={badge} size="lg" />
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

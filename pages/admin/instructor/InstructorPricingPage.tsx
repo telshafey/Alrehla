@@ -1,7 +1,7 @@
 import React from 'react';
 import { useInstructorData } from '../../../hooks/queries/instructor/useInstructorDataQuery';
 import PageLoader from '../../../components/ui/PageLoader';
-import InstructorPricingPanel from '../../../components/admin/dashboards/InstructorDashboardPanel';
+import InstructorPricingPanel from '../../../components/admin/dashboards/InstructorPricingPanel';
 
 const InstructorPricingPage: React.FC = () => {
     const { data, isLoading } = useInstructorData();

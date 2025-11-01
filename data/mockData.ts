@@ -5,10 +5,13 @@ import type {
     SubscriptionPlan,
     StandaloneService,
     ServiceOrder,
-    AiSettings,
     InstructorPayout,
-    PricingSettings
+    PricingSettings,
+    Badge,
+    ChildBadge,
+    CommunicationSettings
 } from '../lib/database.types';
+import { getPermissions, Permissions, UserRole } from '../lib/roles';
 
 export const mockUsers: UserProfile[] = [
     { id: 'usr_parent', created_at: '2023-08-01T10:00:00Z', last_sign_in_at: '2024-08-10T12:00:00Z', name: 'أحمد عبدالله', email: 'parent@alrehlah.com', role: 'user', address: '123 شارع المثال، مدينة نصر', governorate: 'القاهرة', phone: '01234567890' },
@@ -26,6 +29,18 @@ export const mockUsers: UserProfile[] = [
 export const mockChildProfiles: ChildProfile[] = [
     { id: 1, created_at: '2023-01-10T10:00:00Z', user_id: 'usr_parent', name: 'فاطمة أحمد', birth_date: '2016-05-10', gender: 'أنثى', avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', interests: ['الرسم', 'الفضاء'], strengths: ['مبدعة', 'فضولية'], student_user_id: 'usr_student' },
     { id: 2, created_at: '2023-02-15T10:00:00Z', user_id: 'usr_parent', name: 'عمر أحمد', birth_date: '2018-03-22', gender: 'ذكر', avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', interests: ['الديناصورات', 'السيارات'], strengths: ['شجاع'], student_user_id: null },
+];
+
+export const mockBadges: Badge[] = [
+    { id: 1, name: 'الكاتب الناشئ', description: 'أكملت أول قصة قصيرة لك!', icon_name: 'Feather' },
+    { id: 2, name: 'صانع العوالم', description: 'أتممت رحلة تدريبية كاملة!', icon_name: 'Globe2' },
+    { id: 3, name: 'البطل الملتزم', description: 'حضرت 5 جلسات متتالية.', icon_name: 'Trophy' },
+    { id: 4, name: 'مستكشف الكلمات', description: 'استخدمت 10 كلمات جديدة ومميزة.', icon_name: 'Search' },
+];
+
+export const mockChildBadges: ChildBadge[] = [
+    { id: 1, child_id: 1, badge_id: 1, earned_at: '2023-07-25T10:00:00Z' },
+    { id: 2, child_id: 1, badge_id: 2, earned_at: '2023-08-10T10:00:00Z' },
 ];
 
 export const mockNotifications: Notification[] = [
@@ -258,7 +273,8 @@ export const mockStandaloneServices: StandaloneService[] = [
     { id: 4, name: 'باقة كتابي الأول', price: 1500, description: 'نحوّل أفضل قصة كتبها طفلك إلى كتاب حقيقي! تشمل الخدمة تحرير، تصميم غلاف، تنسيق، وطباعة 5 نسخ فاخرة.', category: 'نشر', icon_name: 'BookUp', requires_file_upload: true, provider_type: 'company' },
     { id: 3, name: 'النشر في مجلة الرحلة', price: 500, description: 'فرصة لنشر أفضل قصة كتبها طفلك في العدد القادم من مجلتنا الإلكترونية الفصلية.', category: 'نشر', icon_name: 'Award', requires_file_upload: true, provider_type: 'company' },
     { id: 5, name: 'تصميم الغلاف الاحترافي', price: 400, description: 'تصميم غلاف احترافي وجذاب لقصة طفلك، جاهز للمشاركة الرقمية أو الطباعة الشخصية.', category: 'نشر', icon_name: 'Palette', requires_file_upload: true, provider_type: 'company' },
-    { id: 6, name: 'التعليق الصوتي (AI)', price: 300, description: 'حوّل قصة طفلك إلى كتاب صوتي مسموع بأصوات طبيعية وجذابة باستخدام أحدث تقنيات الذكاء الاصطناعي.', category: 'نشر', icon_name: 'Mic', requires_file_upload: true, provider_type: 'company' },
+    { id: 8, name: 'قصة فيديو', price: 800, description: 'نحول قصة طفلك المكتوبة إلى فيديو رسوم متحركة بسيط وجذاب مع تعليق صوتي احترافي.', category: 'قصص فيديو', icon_name: 'Video', requires_file_upload: true, provider_type: 'company' },
+    { id: 9, name: 'قصة مسموعة', price: 500, description: 'تسجيل صوتي احترافي لقصة طفلك مع مؤثرات صوتية لإضفاء الحيوية عليها.', category: 'قصص مسموعة', icon_name: 'Mic', requires_file_upload: true, provider_type: 'company' },
     
     // --- خدمات داعمة لأولياء الأمور ---
     { id: 7, name: 'جلسة إرشاد تربوي', price: 450, description: 'جلسة خاصة لولي الأمر (45 دقيقة) مع خبير تربوي لمناقشة أفضل السبل لدعم الموهبة الإبداعية لطفلك في المنزل.', category: 'استشارات', icon_name: 'Users', requires_file_upload: false, provider_type: 'instructor' },
@@ -418,12 +434,25 @@ export const mockShippingCosts: ShippingCosts = {
   }
 };
 
-export const mockSocialLinks: SocialLinks = { id: 1, facebook_url: '#', twitter_url: '#', instagram_url: '#' };
+export const mockSocialLinks: SocialLinks = { id: 1, facebook_url: 'https://facebook.com', twitter_url: 'https://twitter.com', instagram_url: 'https://instagram.com' };
 
-export const mockAiSettings: AiSettings = {
-  id: 1,
-  enable_story_ideas: true,
-  story_ideas_prompt: 'أنت كاتب قصص أطفال مبدع. استنادًا إلى المعلومات التالية عن طفل، قم بتوليد 3 أفكار فريدة ومناسبة لقصص أطفال باللغة العربية. يجب أن يكون لكل فكرة عنوان جذاب وهدف تربوي واضح.',
+export const mockCommunicationSettings: CommunicationSettings = {
+  support_email: 'support@alrehlah.com',
+  join_us_email: 'hr@alrehlah.com',
+  whatsapp_number: '+201234567890',
+  whatsapp_default_message: "مرحباً، لدي استفسار بخصوص منصة الرحلة",
+};
+
+export const mockRolePermissions: Record<UserRole, Permissions> = {
+    'super_admin': getPermissions('super_admin'),
+    'general_supervisor': getPermissions('general_supervisor'),
+    'enha_lak_supervisor': getPermissions('enha_lak_supervisor'),
+    'creative_writing_supervisor': getPermissions('creative_writing_supervisor'),
+    'instructor': getPermissions('instructor'),
+    'content_editor': getPermissions('content_editor'),
+    'support_agent': getPermissions('support_agent'),
+    'user': getPermissions('user'),
+    'student': getPermissions('student'),
 };
 
 
@@ -479,7 +508,7 @@ export const mockSupportTickets: SupportTicket[] = [
 ];
 
 export const mockJoinRequests: JoinRequest[] = [
-    { id: 'join_1', created_at: new Date().toISOString(), name: 'مبدع جديد', email: 'creative@test.com', role: 'رسام قصص أطفال', message: 'أنا رسام مهتم.', status: 'جديد', portfolio_url: 'https://example.com' },
+    { id: 'join_1', created_at: new Date().toISOString(), name: 'مبدع جديد', email: 'creative@test.com', phone: '01012345678', role: 'رسام قصص أطفال', message: 'أنا رسام مهتم.', status: 'جديد', portfolio_url: 'https://example.com' },
 ];
 
 export const mockPublicHolidays: string[] = ['2023-10-06'];
@@ -602,7 +631,9 @@ export const mockSessionMessages: SessionMessage[] = [
 ];
 
 export const mockSessionAttachments: SessionAttachment[] = [
-    { id: 'att_1', booking_id: 'bk_abc', uploader_id: 'usr_student', uploader_role: 'student', file_name: 'قصتي-الأولى.pdf', file_url: '#', created_at: new Date().toISOString() },
+    { id: 'att_1', booking_id: 'bk_abc', uploader_id: 'usr_student', uploader_role: 'student', file_name: 'قصتي-الأولى-مسودة.pdf', file_url: '#', created_at: '2023-07-28T10:00:00Z' },
+    { id: 'att_2', booking_id: 'bk_abc', uploader_id: 'usr_student', uploader_role: 'student', file_name: 'القصة-النهائية-مغامرة-الفضاء.pdf', file_url: '#', created_at: '2023-08-05T10:00:00Z' },
+    { id: 'att_3', booking_id: 'bk_def', uploader_id: 'usr_student', uploader_role: 'student', file_name: 'فكرة-قصة-الديناصور.txt', file_url: '#', created_at: '2023-08-02T10:00:00Z' },
 ];
 
 export const mockSupportSessionRequests: SupportSessionRequest[] = [

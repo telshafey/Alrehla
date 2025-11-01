@@ -2,9 +2,10 @@ import React from 'react';
 import { useStudentDashboardData } from '../../hooks/queries/user/useJourneyDataQuery';
 import PageLoader from '../../components/ui/PageLoader';
 import StudentJourneyCard from '../../components/student/StudentJourneyCard';
-import { BookOpen, ShoppingBag, Star } from 'lucide-react';
+import BadgeDisplay from '../../components/shared/BadgeDisplay';
+import { BookOpen, ShoppingBag, Star, Award } from 'lucide-react';
 import { getStatusColor, getSubStatusColor, getSubStatusText, formatDate } from '../../utils/helpers';
-import type { Order, Subscription } from '../../lib/database.types';
+import type { Order, Subscription, Badge } from '../../lib/database.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 
 const OrderCard: React.FC<{ order: Order }> = React.memo(({ order }) => (
@@ -56,7 +57,7 @@ const StudentDashboardPage: React.FC = () => {
         return <div className="text-center text-red-500 py-20">{error?.message || 'حدث خطأ في تحميل بياناتك.'}</div>;
     }
 
-    const { journeys = [], orders = [], subscriptions = [] } = data;
+    const { journeys = [], orders = [], subscriptions = [], badges = [] } = data;
     const displayJourneys = journeys.filter((j: any) => ['مؤكد', 'مكتمل'].includes(j.status));
 
     return (
@@ -75,6 +76,26 @@ const StudentDashboardPage: React.FC = () => {
                     <EmptyStateCard 
                         title="لا توجد رحلات نشطة"
                         message="عندما يتم حجز باقة لك، ستظهر رحلتك هنا."
+                    />
+                )}
+            </section>
+
+             <section>
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
+                    <Award /> إنجازاتي
+                </h2>
+                {badges.length > 0 ? (
+                    <Card>
+                        <CardContent className="pt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                            {(badges as Badge[]).map(badge => (
+                                <BadgeDisplay key={badge.id} badge={badge} />
+                            ))}
+                        </CardContent>
+                    </Card>
+                ) : (
+                     <EmptyStateCard 
+                        title="لم تحصل على شارات بعد"
+                        message="مع كل إنجاز تحققه في رحلتك، ستظهر شاراتك هنا."
                     />
                 )}
             </section>

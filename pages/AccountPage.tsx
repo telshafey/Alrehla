@@ -8,12 +8,13 @@ import DashboardPanel from '../components/account/DashboardPanel';
 import MyLibraryPanel from '../components/account/MyLibraryPanel';
 import AccountSettingsPanel from '../components/account/AccountSettingsPanel';
 import NotificationPanel from '../components/account/NotificationPanel';
-import FamilyCenterPanel from '../components/account/FamilyCenterPanel'; // Import the new panel
+import FamilyCenterPanel from '../components/account/FamilyCenterPanel';
+import PortfolioPanel from '../components/account/PortfolioPanel';
 import PaymentModal from '../components/PaymentModal';
-import { LayoutDashboard, BookOpen, Settings, Bell, Users } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Settings, Bell, Users, GalleryVertical } from 'lucide-react';
 import { Card } from '../components/ui/card';
 
-type AccountTab = 'dashboard' | 'myLibrary' | 'familyCenter' | 'settings' | 'notifications';
+type AccountTab = 'dashboard' | 'myLibrary' | 'portfolio' | 'familyCenter' | 'settings' | 'notifications';
 
 const AccountPage: React.FC = () => {
     const { isLoggedIn, loading: authLoading, hasAdminAccess, currentUser, isParent } = useAuth();
@@ -55,6 +56,7 @@ const AccountPage: React.FC = () => {
     let tabs = [
         { key: 'dashboard', label: 'لوحة التحكم', icon: <LayoutDashboard className="h-5 w-5" /> },
         { key: 'myLibrary', label: 'مكتبتي', icon: <BookOpen className="h-5 w-5" /> },
+        { key: 'portfolio', label: 'معرض أعمالي', icon: <GalleryVertical className="h-5 w-5" /> },
         { key: 'familyCenter', label: 'المركز العائلي', icon: <Users className="h-5 w-5" /> },
         { key: 'settings', label: 'الإعدادات', icon: <Settings className="h-5 w-5" /> },
         { key: 'notifications', label: 'الإشعارات', icon: <Bell className="h-5 w-5" /> },
@@ -94,6 +96,7 @@ const AccountPage: React.FC = () => {
                     <div className="lg:col-span-3">
                         {activeTab === 'dashboard' && <DashboardPanel onNavigateTab={setActiveTab} />}
                         {activeTab === 'myLibrary' && <MyLibraryPanel onPay={setPaymentItem} />}
+                        {activeTab === 'portfolio' && <PortfolioPanel />}
                         {activeTab === 'familyCenter' && <FamilyCenterPanel />}
                         {activeTab === 'settings' && <AccountSettingsPanel />}
                         {activeTab === 'notifications' && <NotificationPanel />}

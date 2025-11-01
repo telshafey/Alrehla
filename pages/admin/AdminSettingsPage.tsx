@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Link as LinkIcon, Image as ImageIcon, Sparkles, DollarSign } from 'lucide-react';
+import { Save, Link as LinkIcon, Image as ImageIcon, DollarSign, Shield, Mail } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
-import { useAdminSocialLinks, useAdminAiSettings, useAdminPricingSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
+import { useAdminSocialLinks, useAdminPricingSettings, useAdminCommunicationSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import { Button } from '../../components/ui/Button';
@@ -11,6 +11,9 @@ import { Textarea } from '../../components/ui/Textarea';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
+import PermissionsManager from '../../components/admin/PermissionsManager';
+import { useAuth } from '../../contexts/AuthContext';
+
 
 // Helper component for image upload fields
 const ImageUploadField: React.FC<{
@@ -54,36 +57,37 @@ const ImageUploadField: React.FC<{
 
 
 const AdminSettingsPage: React.FC = () => {
+    const { permissions } = useAuth();
     // Branding
     const { siteBranding: initialBranding, setSiteBranding, loading: brandingLoading } = useProduct();
     const [branding, setBranding] = useState<Partial<SiteBranding>>({});
 
+    // Communication Settings (new)
+    const { data: commsData, isLoading: commsLoading, error: commsError, refetch: refetchComms } = useAdminCommunicationSettings();
+    const [commSettings, setCommSettings] = useState({ support_email: '', join_us_email: '', whatsapp_number: '', whatsapp_default_message: '' });
+    
     // Social Links
     const { data: socialLinksData, isLoading: socialsLoading, error: socialsError, refetch: refetchSocials } = useAdminSocialLinks();
     const [socials, setSocials] = useState({ facebook_url: '', twitter_url: '', instagram_url: '' });
     
-    // AI Settings
-    const { data: aiSettingsData, isLoading: aiSettingsLoading, error: aiError, refetch: refetchAi } = useAdminAiSettings();
-    const [aiSettings, setAiSettings] = useState({ enable_story_ideas: false, story_ideas_prompt: '' });
-
     // Pricing Settings
     const { data: pricingSettingsData, isLoading: pricingLoading, error: pricingError, refetch: refetchPricing } = useAdminPricingSettings();
-    const { updateSocialLinks, updateAiSettings, updatePricingSettings } = useSettingsMutations();
+    const { updateSocialLinks, updateCommunicationSettings, updatePricingSettings } = useSettingsMutations();
     const [pricing, setPricing] = useState({ company_percentage: 1.2, fixed_fee: 50 });
 
 
     useEffect(() => {
         if (initialBranding) setBranding(initialBranding);
     }, [initialBranding]);
+    
+    useEffect(() => {
+        if (commsData) setCommSettings(commsData as any);
+    }, [commsData]);
 
     useEffect(() => {
         if (socialLinksData) setSocials(socialLinksData as any);
     }, [socialLinksData]);
     
-     useEffect(() => {
-        if (aiSettingsData) setAiSettings(aiSettingsData as any);
-    }, [aiSettingsData]);
-
     useEffect(() => {
         if (pricingSettingsData) setPricing(pricingSettingsData as any);
     }, [pricingSettingsData]);
@@ -91,17 +95,15 @@ const AdminSettingsPage: React.FC = () => {
     const handleBrandingChange = (fieldKey: keyof SiteBranding, value: string) => {
         setBranding(prev => ({ ...prev, [fieldKey]: value }));
     };
+    
+    const handleCommsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setCommSettings({ ...commSettings, [e.target.name]: e.target.value });
+    };
 
     const handleSocialsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSocials({ ...socials, [e.target.name]: e.target.value });
     };
     
-    const handleAiSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value, type } = e.target;
-        const isCheckbox = type === 'checkbox';
-        setAiSettings(prev => ({...prev, [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value }));
-    }
-
     const handlePricingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setPricing({ ...pricing, [e.target.name]: parseFloat(e.target.value) || 0 });
     };
@@ -110,24 +112,21 @@ const AdminSettingsPage: React.FC = () => {
         await setSiteBranding(branding);
     };
 
-    const handleSocialsSubmit = async () => {
+    const handleCommunicationSubmit = async () => {
+        await updateCommunicationSettings.mutateAsync(commSettings);
         await updateSocialLinks.mutateAsync(socials);
     };
     
-    const handleAiSettingsSubmit = async () => {
-        await updateAiSettings.mutateAsync(aiSettings);
-    }
-
     const handlePricingSubmit = async () => {
         await updatePricingSettings.mutateAsync(pricing);
     };
 
-    const isLoading = brandingLoading || socialsLoading || aiSettingsLoading || pricingLoading;
-    const error = socialsError || aiError || pricingError;
+    const isLoading = brandingLoading || socialsLoading || pricingLoading || commsLoading;
+    const error = socialsError || pricingError || commsError;
     const refetch = () => {
         if (socialsError) refetchSocials();
-        if (aiError) refetchAi();
         if (pricingError) refetchPricing();
+        if (commsError) refetchComms();
     };
 
     if (isLoading) return <PageLoader />;
@@ -138,11 +137,11 @@ const AdminSettingsPage: React.FC = () => {
             <h1 className="text-3xl font-extrabold text-foreground">الإعدادات العامة للمنصة</h1>
             
             <Tabs defaultValue="branding">
-                <TabsList>
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
                     <TabsTrigger value="branding"><ImageIcon className="ml-2" /> العلامة التجارية</TabsTrigger>
-                    <TabsTrigger value="social"><LinkIcon className="ml-2" /> التواصل الاجتماعي</TabsTrigger>
-                    <TabsTrigger value="ai"><Sparkles className="ml-2" /> الذكاء الاصطناعي</TabsTrigger>
-                    <TabsTrigger value="pricing"><DollarSign className="ml-2" /> إعدادات التسعير</TabsTrigger>
+                    <TabsTrigger value="communication"><Mail className="ml-2" /> التواصل</TabsTrigger>
+                    <TabsTrigger value="pricing"><DollarSign className="ml-2" /> التسعير</TabsTrigger>
+                    {permissions.canManageUsers && <TabsTrigger value="permissions"><Shield className="ml-2" /> صلاحيات الأدوار</TabsTrigger>}
                 </TabsList>
                 
                 <TabsContent value="branding">
@@ -162,52 +161,56 @@ const AdminSettingsPage: React.FC = () => {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
+                 <TabsContent value="communication">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>إدارة قنوات التواصل</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-8">
+                             <section>
+                                <h3 className="text-lg font-semibold mb-4 border-b pb-2">توجيه رسائل البريد الإلكتروني</h3>
+                                <div className="space-y-4">
+                                    <FormField label="بريد استلام رسائل الدعم" htmlFor="support_email">
+                                        <Input id="support_email" name="support_email" type="email" value={commSettings.support_email || ''} onChange={handleCommsChange} dir="ltr"/>
+                                    </FormField>
+                                    <FormField label="بريد استلام طلبات الانضمام" htmlFor="join_us_email">
+                                        <Input id="join_us_email" name="join_us_email" type="email" value={commSettings.join_us_email || ''} onChange={handleCommsChange} dir="ltr"/>
+                                    </FormField>
+                                </div>
+                            </section>
+                            <section>
+                                <h3 className="text-lg font-semibold mb-4 border-b pb-2">إعدادات واتساب</h3>
+                                <div className="space-y-4">
+                                    <FormField label="رقم الهاتف (مع رمز الدولة)" htmlFor="whatsapp_number">
+                                        <Input id="whatsapp_number" name="whatsapp_number" value={commSettings.whatsapp_number || ''} onChange={handleCommsChange} dir="ltr" placeholder="+201234567890"/>
+                                    </FormField>
+                                    <FormField label="الرسالة الافتراضية" htmlFor="whatsapp_default_message">
+                                        <Textarea id="whatsapp_default_message" name="whatsapp_default_message" value={commSettings.whatsapp_default_message || ''} onChange={handleCommsChange} rows={3}/>
+                                    </FormField>
+                                </div>
+                            </section>
+                            <section>
+                                <h3 className="text-lg font-semibold mb-4 border-b pb-2">روابط التواصل الاجتماعي</h3>
+                                <div className="space-y-4">
+                                    <FormField label="رابط فيسبوك" htmlFor="facebook_url">
+                                        <Input id="facebook_url" name="facebook_url" value={socials.facebook_url || ''} onChange={handleSocialsChange} dir="ltr"/>
+                                    </FormField>
+                                    <FormField label="رابط تويتر (X)" htmlFor="twitter_url">
+                                        <Input id="twitter_url" name="twitter_url" value={socials.twitter_url || ''} onChange={handleSocialsChange} dir="ltr"/>
+                                    </FormField>
+                                    <FormField label="رابط انستغرام" htmlFor="instagram_url">
+                                        <Input id="instagram_url" name="instagram_url" value={socials.instagram_url || ''} onChange={handleSocialsChange} dir="ltr"/>
+                                    </FormField>
+                                </div>
+                            </section>
+                            <div className="flex justify-end pt-4 border-t">
+                                <Button onClick={handleCommunicationSubmit} loading={updateCommunicationSettings.isPending || updateSocialLinks.isPending} icon={<Save />}>حفظ إعدادات التواصل</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
                 
-                <TabsContent value="social">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>إدارة روابط التواصل الاجتماعي</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <FormField label="رابط فيسبوك" htmlFor="facebook_url">
-                                <Input id="facebook_url" name="facebook_url" value={socials.facebook_url || ''} onChange={handleSocialsChange} dir="ltr"/>
-                            </FormField>
-                             <FormField label="رابط تويتر (X)" htmlFor="twitter_url">
-                                <Input id="twitter_url" name="twitter_url" value={socials.twitter_url || ''} onChange={handleSocialsChange} dir="ltr"/>
-                            </FormField>
-                            <FormField label="رابط انستغرام" htmlFor="instagram_url">
-                                <Input id="instagram_url" name="instagram_url" value={socials.instagram_url || ''} onChange={handleSocialsChange} dir="ltr"/>
-                            </FormField>
-                            <div className="flex justify-end">
-                                <Button onClick={handleSocialsSubmit} loading={updateSocialLinks.isPending} icon={<Save />}>حفظ الروابط</Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="ai">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>إعدادات الذكاء الاصطناعي (Gemini)</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
-                                <input type="checkbox" checked={aiSettings.enable_story_ideas} onChange={handleAiSettingsChange} name="enable_story_ideas" id="enable_story_ideas" className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                                <label htmlFor="enable_story_ideas" className="text-sm font-medium text-foreground">تفعيل "مولّد أفكار القصص" في صفحة الطلب</label>
-                            </div>
-                             <FormField label="موجه الأوامر (Prompt) لمولّد الأفكار" htmlFor="story_ideas_prompt">
-                                <Textarea id="story_ideas_prompt" name="story_ideas_prompt" value={aiSettings.story_ideas_prompt} onChange={handleAiSettingsChange} rows={8} />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    يمكنك استخدام متغيرات مثل: <code>{`\${childName}`}</code>, <code>{`\${childAge}`}</code>, <code>{`\${childTraits}`}</code>
-                                </p>
-                            </FormField>
-                            <div className="flex justify-end">
-                                <Button onClick={handleAiSettingsSubmit} loading={updateAiSettings.isPending} icon={<Save />}>حفظ إعدادات الذكاء الاصطناعي</Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
                 <TabsContent value="pricing">
                     <Card>
                         <CardHeader>
@@ -227,6 +230,10 @@ const AdminSettingsPage: React.FC = () => {
                             </div>
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                <TabsContent value="permissions">
+                    <PermissionsManager />
                 </TabsContent>
             </Tabs>
 
