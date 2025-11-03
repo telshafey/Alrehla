@@ -12,13 +12,14 @@ import { ArrowLeft, Save, Plus, Trash2, Gift, Settings, Type, Image as ImageIcon
 import type { PersonalizedProduct } from '../../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Checkbox } from '../../components/ui/Checkbox';
 
 const AdminProductDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const isNew = !id || id === 'new';
     
-    const { data: products = [], isLoading: productsLoading } = useAdminPersonalizedProducts();
+    const { data: allProducts = [], isLoading: productsLoading } = useAdminPersonalizedProducts();
     const { createPersonalizedProduct, updatePersonalizedProduct } = useProductMutations();
     const isSaving = createPersonalizedProduct.isPending || updatePersonalizedProduct.isPending;
 
@@ -37,18 +38,19 @@ const AdminProductDetailPage: React.FC = () => {
         text_fields: [],
         goal_config: 'predefined_and_custom',
         story_goals: [],
+        component_keys: [],
     });
 
     useEffect(() => {
-        if (!isNew && products.length > 0) {
-            const productToEdit = products.find(p => p.id === parseInt(id!));
+        if (!isNew && allProducts.length > 0) {
+            const productToEdit = allProducts.find(p => p.id === parseInt(id!));
             if (productToEdit) {
                 setProduct(productToEdit);
             } else {
                 navigate('/admin/personalized-products');
             }
         }
-    }, [id, isNew, products, navigate]);
+    }, [id, isNew, allProducts, navigate]);
 
     if (productsLoading && !isNew) return <PageLoader />;
     
@@ -171,6 +173,37 @@ const AdminProductDetailPage: React.FC = () => {
                                     </div>
                                 ))}
                                 <Button type="button" variant="outline" onClick={() => addDynamicListItem('image_slots')} icon={<Plus />}>إضافة حقل صورة</Button>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Gift /> مكونات المنتج (للباقات)
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    اختر المنتجات التي يتكون منها هذا المنتج تلقائياً. هذا مفيد للمنتجات المجمعة مثل "بوكس الهدية".
+                                </p>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    {allProducts.filter(p => p.id !== product.id && p.key !== 'subscription_box').map(component => (
+                                        <label key={component.id} className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50 cursor-pointer hover:border-primary">
+                                            <Checkbox
+                                                checked={(product.component_keys || []).includes(component.key)}
+                                                onCheckedChange={(checked) => {
+                                                    const key = component.key;
+                                                    const currentComponents = product.component_keys || [];
+                                                    const newComponents = checked
+                                                        ? [...currentComponents, key]
+                                                        : currentComponents.filter(k => k !== key);
+                                                    setProduct(prev => ({ ...prev, component_keys: newComponents }));
+                                                }}
+                                            />
+                                            <span>{component.title}</span>
+                                        </label>
+                                    ))}
+                                </div>
                             </CardContent>
                         </Card>
 

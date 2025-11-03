@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, NavLink, Outlet } from 'react-router-dom';
 import { LogOut, LayoutDashboard, GalleryVertical } from 'lucide-react';
 import { useStudentDashboardData } from '../../hooks/queries/user/useJourneyDataQuery';
+import Image from '../ui/Image';
 
 const StudentLayout: React.FC = () => {
     const { currentChildProfile, signOut } = useAuth();
@@ -20,11 +21,10 @@ const StudentLayout: React.FC = () => {
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-20">
                         <div className="flex items-center gap-4">
-                            <img 
+                            <Image 
                                 src={currentChildProfile?.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
                                 alt={currentChildProfile?.name || 'Student'} 
-                                className="w-12 h-12 rounded-full object-cover border-2 border-blue-200"
-                                loading="lazy"
+                                className="w-12 h-12 rounded-full border-2 border-blue-200"
                             />
                             <div>
                                 <h1 className="text-xl font-bold text-gray-800">أهلاً بك، {currentChildProfile?.name}</h1>

@@ -1,9 +1,9 @@
 import React from 'react';
 import FormField from '../ui/FormField';
-import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
-import { Input } from '../ui/Input';
-import type { TextFieldConfig, GoalConfig, StoryGoal } from '../../lib/database.types';
+import { Textarea } from '../ui/Textarea';
+import type { TextFieldConfig, StoryGoal, GoalConfig } from '../../lib/database.types';
+import DynamicTextFields from './DynamicTextFields';
 
 interface StoryCustomizationSectionProps {
     formData: { [key: string]: any };
@@ -14,7 +14,7 @@ interface StoryCustomizationSectionProps {
     storyGoals: StoryGoal[];
 }
 
-const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({
+const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = React.memo(({
     formData,
     handleChange,
     errors,
@@ -22,72 +22,40 @@ const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({
     goalConfig,
     storyGoals,
 }) => {
-    const showGoalSelector = goalConfig === 'predefined' || goalConfig === 'predefined_and_custom';
-    const allowCustomGoal = goalConfig === 'custom' || goalConfig === 'predefined_and_custom';
-
+    const showPredefinedGoals = goalConfig === 'predefined' || goalConfig === 'predefined_and_custom';
+    const showCustomGoal = goalConfig === 'custom' || goalConfig === 'predefined_and_custom';
+    
     return (
-        <div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">تخصيص القصة</h3>
+        <div className="space-y-8">
+            {textFields && textFields.length > 0 && (
+                <div className="p-4 bg-gray-50 rounded-lg border">
+                    <h4 className="text-xl font-bold text-gray-700 mb-4">تفاصيل القصة</h4>
+                    <DynamicTextFields fields={textFields} formData={formData} errors={errors} handleChange={handleChange} />
+                </div>
+            )}
 
-            <div className="space-y-6">
-                {(textFields || []).map(field => (
-                     <FormField key={field.id} label={field.label} htmlFor={field.id} error={errors[field.id]}>
-                        {field.type === 'textarea' ? (
-                            <Textarea
-                                id={field.id}
-                                name={field.id}
-                                value={formData[field.id] || ''}
-                                onChange={handleChange}
-                                rows={4}
-                                placeholder={field.placeholder}
-                                className={errors[field.id] ? 'border-red-500' : ''}
-                                required={field.required}
-                            />
-                        ) : (
-                             <Input
-                                id={field.id}
-                                name={field.id}
-                                value={formData[field.id] || ''}
-                                onChange={handleChange}
-                                placeholder={field.placeholder}
-                                className={errors[field.id] ? 'border-red-500' : ''}
-                                required={field.required}
-                            />
-                        )}
+            {goalConfig !== 'none' && (
+                <div className="p-4 bg-gray-50 rounded-lg border">
+                    <FormField label="الهدف من القصة*" htmlFor="storyValue" error={errors.storyValue}>
+                        <Select id="storyValue" name="storyValue" value={formData.storyValue || ''} onChange={handleChange} required>
+                            <option value="" disabled>-- اختر هدفًا --</option>
+                            {showPredefinedGoals && storyGoals.map(goal => (
+                                <option key={goal.key} value={goal.key}>{goal.title}</option>
+                            ))}
+                            {showCustomGoal && <option value="custom">هدف آخر (مخصص)</option>}
+                        </Select>
                     </FormField>
-                ))}
-                
-                {goalConfig !== 'none' && (
-                     <div className="space-y-2">
-                        <label htmlFor="storyValue" className="block text-sm font-bold text-gray-700 mb-2">اختر الهدف من القصة*</label>
-                        {showGoalSelector && (
-                            <Select id="storyValue" name="storyValue" value={formData.storyValue} onChange={handleChange} required className={errors.storyValue ? 'border-red-500' : ''}>
-                                <option value="">-- اختر قيمة --</option>
-                                {storyGoals.map(goal => (
-                                    <option key={goal.key} value={goal.key}>{goal.title}</option>
-                                ))}
-                                {allowCustomGoal && <option value="custom">هدف آخر (أكتبه بنفسي)</option>}
-                            </Select>
-                        )}
-                        {errors.storyValue && <p className="mt-2 text-sm text-red-600">{errors.storyValue}</p>}
-                    </div>
-                )}
-               
-                {allowCustomGoal && formData.storyValue === 'custom' && (
-                    <FormField label="اكتب الهدف التربوي المخصص" htmlFor="customGoal">
-                        <Input
-                            type="text"
-                            id="customGoal"
-                            name="customGoal"
-                            value={formData.customGoal}
-                            onChange={handleChange}
-                            placeholder="مثال: تعلم أهمية مساعدة كبار السن"
-                        />
-                    </FormField>
-                )}
-            </div>
+
+                    {showCustomGoal && formData.storyValue === 'custom' && (
+                        <FormField label="الهدف المخصص*" htmlFor="customGoal" error={errors.customGoal} className="mt-4">
+                            <Textarea id="customGoal" name="customGoal" value={formData.customGoal || ''} onChange={handleChange} rows={3} placeholder="اكتب الهدف الذي تريد التركيز عليه في القصة..." required />
+                        </FormField>
+                    )}
+                </div>
+            )}
         </div>
     );
-};
+});
+StoryCustomizationSection.displayName = "StoryCustomizationSection";
 
 export default StoryCustomizationSection;

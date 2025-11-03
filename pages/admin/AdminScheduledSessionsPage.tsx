@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, CheckCircle, Clock, XCircle, Star, Package, Gift, ArrowUp, ArrowDown, ShieldQuestion, Check, X } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, XCircle, Star, Package, Gift, ShieldQuestion, Check, X } from 'lucide-react';
 import { useAdminScheduledSessions } from '../../hooks/queries/admin/useAdminSchedulingQuery';
 import { useAdminSupportSessionRequests } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 import { Button } from '../../components/ui/Button';
 import IntroductorySessionSchedulerModal from '../../components/admin/IntroductorySessionSchedulerModal';
+import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 
 
 const getStatusInfo = (status: SessionStatus) => {
@@ -76,10 +77,6 @@ const AdminScheduledSessionsPage: React.FC = () => {
         setSortConfig({ key, direction });
     };
 
-    const SortableTh: React.FC<{ sortKey: string; label: string }> = ({ sortKey, label }) => (
-        <TableHead><Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0"><div className="flex items-center"><span>{label}</span>{sortConfig?.key === sortKey && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />)}</div></Button></TableHead>
-    );
-
     if (isLoading) return <PageLoader text="جاري تحميل الجلسات..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={() => { refetchSessions(); refetchSupport(); }} />;
 
@@ -133,7 +130,13 @@ const AdminScheduledSessionsPage: React.FC = () => {
                             )}
                             <div className="overflow-x-auto">
                                 <Table>
-                                    <TableHeader><TableRow><SortableTh sortKey="child_name" label="الطالب" /><SortableTh sortKey="instructor_name" label="المدرب" /><SortableTh sortKey="session_date" label="التاريخ والوقت" /><SortableTh sortKey="type" label="النوع" /><SortableTh sortKey="status" label="الحالة" /></TableRow></TableHeader>
+                                    <TableHeader><TableRow>
+                                        <SortableTableHead<EnrichedSession> sortKey="child_name" label="الطالب" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<EnrichedSession> sortKey="instructor_name" label="المدرب" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<EnrichedSession> sortKey="session_date" label="التاريخ والوقت" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<EnrichedSession> sortKey="type" label="النوع" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<EnrichedSession> sortKey="status" label="الحالة" sortConfig={sortConfig} onSort={handleSort} />
+                                    </TableRow></TableHeader>
                                     <TableBody>
                                         {sortedAndFilteredSessions.map(session => {
                                             const statusInfo = getStatusInfo(session.status);

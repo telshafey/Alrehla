@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Eye, Sparkles, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { Eye, Sparkles, Loader2 } from 'lucide-react';
 import { useAdminServiceOrders } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -13,6 +13,7 @@ import { Select } from '../../components/ui/Select';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 
 const orderStatuses: OrderStatus[] = ["بانتظار المراجعة", "قيد التنفيذ", "مكتمل", "ملغي"];
 const statusColors: { [key in OrderStatus]?: string } = {
@@ -77,19 +78,6 @@ const AdminServiceOrdersPage: React.FC = () => {
         setSortConfig({ key, direction });
     };
 
-    const SortableTh: React.FC<{ sortKey: string; label: string }> = ({ sortKey, label }) => (
-        <TableHead>
-            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
-                <div className="flex items-center">
-                   <span>{label}</span>
-                    {sortConfig?.key === sortKey && (
-                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
-                    )}
-                </div>
-            </Button>
-        </TableHead>
-    );
-    
     if (isLoading) return <PageLoader text="جاري تحميل طلبات الخدمات..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
@@ -132,12 +120,12 @@ const AdminServiceOrdersPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <SortableTh sortKey="users.name" label="العميل" />
-                                        <SortableTh sortKey="child_profiles.name" label="الطفل" />
-                                        <SortableTh sortKey="standalone_services.name" label="الخدمة" />
-                                        <SortableTh sortKey="instructors.name" label="المدرب المسؤول" />
-                                        <SortableTh sortKey="total" label="الإجمالي" />
-                                        <SortableTh sortKey="status" label="الحالة" />
+                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="users.name" label="العميل" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="child_profiles.name" label="الطفل" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="standalone_services.name" label="الخدمة" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="instructors.name" label="المدرب المسؤول" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="total" label="الإجمالي" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="status" label="الحالة" sortConfig={sortConfig} onSort={handleSort} />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>

@@ -4,6 +4,7 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import type { ChildProfile, UserProfile } from '../../lib/database.types';
 import { UserPlus, User as UserIcon } from 'lucide-react';
+import { Button } from '../ui/Button';
 
 interface ChildDetailsSectionProps {
     formData: {
@@ -22,9 +23,10 @@ interface ChildDetailsSectionProps {
     selectedChildId: number | null;
     onSelectSelf: () => void;
     currentUser: UserProfile | null;
+    onAddChild: () => void;
 }
 
-const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({ 
+const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = React.memo(({ 
     formData, 
     handleChange, 
     errors, 
@@ -32,7 +34,8 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
     onSelectChild, 
     selectedChildId, 
     onSelectSelf,
-    currentUser
+    currentUser,
+    onAddChild
 }) => {
     
     type SelectionMode = 'profile' | 'self' | 'manual';
@@ -67,8 +70,6 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
 
     return (
         <div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">لمن هذا الطلب؟</h3>
-            
             {hasMultipleOptions && (
                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     {childProfiles.map(child => (
@@ -104,13 +105,13 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
             {(mode === 'manual' || mode === 'self' || childProfiles.length === 0) && (
                 <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
                     <FormField label="الاسم*" htmlFor="childName" error={errors.childName}>
-                        <Input type="text" id="childName" name="childName" value={formData.childName} onChange={handleChange} required className={errors.childName ? 'border-red-500' : ''} disabled={mode === 'self'} />
+                        <Input type="text" id="childName" name="childName" value={formData.childName} onChange={handleChange} required aria-invalid={!!errors.childName} disabled={mode === 'self'} />
                     </FormField>
                     <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={errors.childBirthDate}>
-                        <Input type="date" id="childBirthDate" name="childBirthDate" value={formData.childBirthDate} onChange={handleChange} required className={errors.childBirthDate ? 'border-red-500' : ''} />
+                        <Input type="date" id="childBirthDate" name="childBirthDate" value={formData.childBirthDate} onChange={handleChange} required aria-invalid={!!errors.childBirthDate} />
                     </FormField>
                     <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={errors.childGender}>
-                        <Select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange} required className={errors.childGender ? 'border-red-500' : ''}>
+                        <Select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange} required aria-invalid={!!errors.childGender}>
                             <option value="" disabled>-- اختر الجنس --</option>
                             <option value="ذكر">ذكر</option>
                             <option value="أنثى">أنثى</option>
@@ -118,8 +119,15 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
                     </FormField>
                 </div>
             )}
+
+             <div className="mt-6 text-center">
+                <Button variant="link" onClick={onAddChild} icon={<UserPlus size={16}/>}>
+                    إضافة طفل جديد للملف العائلي
+                </Button>
+            </div>
         </div>
     );
-};
+});
+ChildDetailsSection.displayName = "ChildDetailsSection";
 
 export default ChildDetailsSection;

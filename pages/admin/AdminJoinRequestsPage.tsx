@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { UserPlus, Eye, ArrowUp, ArrowDown } from 'lucide-react';
+import { UserPlus, Eye } from 'lucide-react';
 import { useAdminJoinRequests } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useCommunicationMutations } from '../../hooks/mutations/useCommunicationMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -13,6 +13,7 @@ import { Input } from '../../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import ErrorState from '../../components/ui/ErrorState';
+import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 
 const requestStatuses: RequestStatus[] = ["جديد", "تمت المراجعة", "مقبول", "مرفوض"];
 const statusColors: { [key in RequestStatus]: string } = {
@@ -76,19 +77,6 @@ const AdminJoinRequestsPage: React.FC = () => {
         setSortConfig({ key, direction });
     };
 
-    const SortableTh: React.FC<{ sortKey: keyof JoinRequest; label: string }> = ({ sortKey, label }) => (
-        <TableHead>
-            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
-                <div className="flex items-center">
-                   <span>{label}</span>
-                    {sortConfig?.key === sortKey && (
-                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
-                    )}
-                </div>
-            </Button>
-        </TableHead>
-    );
-
     if (isLoading) return <PageLoader text="جاري تحميل طلبات الانضمام..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
@@ -129,10 +117,10 @@ const AdminJoinRequestsPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <SortableTh sortKey="name" label="الاسم" />
-                                        <SortableTh sortKey="role" label="الدور المطلوب" />
-                                        <SortableTh sortKey="created_at" label="التاريخ" />
-                                        <SortableTh sortKey="status" label="الحالة" />
+                                        <SortableTableHead<JoinRequest> sortKey="name" label="الاسم" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<JoinRequest> sortKey="role" label="الدور المطلوب" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<JoinRequest> sortKey="created_at" label="التاريخ" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<JoinRequest> sortKey="status" label="الحالة" sortConfig={sortConfig} onSort={handleSort} />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>

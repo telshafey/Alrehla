@@ -128,10 +128,8 @@ const CreativeWritingPackagesPage: React.FC = () => {
                                 <td></td>
                                 {packages.map(pkg => (
                                     <td key={pkg.id} className="py-6 px-2 sm:px-4 text-center">
-                                        <Button asChild>
-                                            <Link to="/creative-writing/booking">
-                                                {pkg.price === 0 ? 'ابدأ الآن' : 'اطلب الباقة'}
-                                            </Link>
+                                        <Button as={Link} to="/creative-writing/booking">
+                                            {pkg.price === 0 ? 'ابدأ الآن' : 'اطلب الباقة'}
                                         </Button>
                                     </td>
                                 ))}

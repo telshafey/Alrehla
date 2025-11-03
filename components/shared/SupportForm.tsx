@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { Send } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -13,7 +14,7 @@ interface SupportFormProps {
   subjectOptions: string[];
 }
 
-const SupportForm: React.FC<SupportFormProps> = ({ onSubmit, isSubmitting, subjectOptions }) => {
+const SupportForm: React.FC<SupportFormProps> = React.memo(({ onSubmit, isSubmitting, subjectOptions }) => {
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -37,6 +38,7 @@ const SupportForm: React.FC<SupportFormProps> = ({ onSubmit, isSubmitting, subje
       </Button>
     </form>
   );
-};
+});
+SupportForm.displayName = 'SupportForm';
 
 export default SupportForm;

@@ -5,6 +5,7 @@ import PageLoader from '../components/ui/PageLoader';
 import { formatDate } from '../utils/helpers';
 import ShareButtons from '../components/shared/ShareButtons';
 import { ArrowLeft } from 'lucide-react';
+import Image from '../components/ui/Image';
 
 const BlogPostPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
@@ -43,7 +44,7 @@ const BlogPostPage: React.FC = () => {
                         </header>
                         
                         {post.image_url && (
-                             <img src={post.image_url} alt={post.title} className="w-full rounded-2xl shadow-lg mb-8" />
+                             <Image src={post.image_url} alt={post.title} className="w-full rounded-2xl shadow-lg mb-8 aspect-video" />
                         )}
 
                         <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed text-right">

@@ -22,8 +22,8 @@ const sizeClasses = {
 };
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer, size = 'lg' }) => {
-    const modalRef = useRef<HTMLDivElement>(null);
-    const closeButtonRef = useRef<HTMLButtonElement>(null);
+    const modalRef = useRef<HTMLElement>(null);
+    const closeButtonRef = useRef<HTMLElement>(null);
 
     useModalAccessibility({ modalRef, isOpen, onClose, initialFocusRef: closeButtonRef });
 

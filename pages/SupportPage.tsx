@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Mail, HelpCircle } from 'lucide-react';
+import { Mail, HelpCircle, MessageCircle } from 'lucide-react';
 import SupportForm from '../components/shared/SupportForm';
 import FAQSection from '../components/shared/FAQSection';
 import { useCommunicationMutations } from '../hooks/mutations/useCommunicationMutations';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import { useToast } from '../contexts/ToastContext';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Button } from '../components/ui/Button';
 
 const faqs = {
   enhaLak: [
@@ -35,8 +37,15 @@ const faqs = {
 
 const SupportPage: React.FC = () => {
     const { createSupportTicket } = useCommunicationMutations();
+    const { data: publicData } = usePublicData();
     const { addToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const comms = publicData?.communicationSettings;
+    const whatsappUrl = comms?.whatsapp_number 
+        ? `https://wa.me/${comms.whatsapp_number}?text=${encodeURIComponent(comms.whatsapp_default_message || "مرحباً")}`
+        : '#';
+
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -65,7 +74,7 @@ const SupportPage: React.FC = () => {
                 <div className="text-center mb-16">
                     <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">الدعم والمساعدة</h1>
                     <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-                        هل لديك سؤال؟ لقد أجبنا على أكثر الاستفسارات شيوعًا هنا.
+                        نحن هنا لمساعدتك. تصفح الأسئلة الشائعة أو تواصل معنا مباشرة.
                     </p>
                 </div>
 
@@ -83,11 +92,22 @@ const SupportPage: React.FC = () => {
                         </CardContent>
                     </Card>
                     
-                    {/* Contact Form */}
-                    <div className="lg:col-span-1">
-                        <Card className="sticky top-24">
+                    {/* Contact Forms */}
+                    <div className="lg:col-span-1 space-y-8">
+                         <Card className="sticky top-24">
                             <CardHeader>
-                              <CardTitle className="text-2xl flex items-center gap-3"><Mail /> لم تجد إجابتك؟ تواصل معنا</CardTitle>
+                              <CardTitle className="text-xl flex items-center gap-3"><MessageCircle className="text-green-500"/> للاستفسارات العاجلة</CardTitle>
+                              <CardDescription>تواصل معنا عبر واتساب لرد أسرع.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Button as="a" href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-full bg-green-500 hover:bg-green-600">
+                                    التواصل عبر واتساب
+                                </Button>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                              <CardTitle className="text-xl flex items-center gap-3"><Mail /> أو أرسل لنا رسالة</CardTitle>
                             </CardHeader>
                             <CardContent>
                               <SupportForm 

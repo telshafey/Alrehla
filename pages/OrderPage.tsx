@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useReducer, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft, ShoppingCart } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,14 +14,132 @@ import AddonsSection from '../components/order/AddonsSection';
 import DeliverySection from '../components/order/DeliverySection';
 import InteractivePreview from '../components/order/InteractivePreview';
 import { Button } from '../components/ui/Button';
-import FormField from '../components/ui/FormField';
-import { Input } from '../components/ui/Input';
-import { Textarea } from '../components/ui/Textarea';
-import type { ChildProfile, PersonalizedProduct, TextFieldConfig } from '../lib/database.types';
-import { Card, CardContent } from '../components/ui/card';
+import type { ChildProfile, PersonalizedProduct } from '../lib/database.types';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import DynamicTextFields from '../components/order/DynamicTextFields';
+import ChildProfileModal from '../components/account/ChildProfileModal';
+
+// --- State Management with Reducer ---
 
 type OrderStep = string;
 
+type State = {
+  step: OrderStep;
+  selectedChildId: number | null;
+  formData: { [key: string]: any };
+  selectedAddons: string[];
+  imageFiles: { [key: string]: File | null };
+  errors: { [key: string]: string };
+  imagePreviewUrl: string | null;
+  isChildModalOpen: boolean;
+  isSubmitting: boolean;
+};
+
+type Action =
+  | { type: 'SET_STEP'; payload: OrderStep }
+  | { type: 'SET_SELECTED_CHILD'; payload: { child: ChildProfile | null } }
+  | { type: 'SELECT_SELF'; payload: { name: string } }
+  | { type: 'UPDATE_FORM_DATA'; payload: { name: string; value: any } }
+  | { type: 'SET_FORM_DATA'; payload: { [key: string]: any } }
+  | { type: 'TOGGLE_ADDON'; payload: string }
+  | { type: 'SET_ADDONS'; payload: string[] }
+  | { type: 'SET_IMAGE_FILE'; payload: { id: string; file: File | null; isPreviewSource?: boolean } }
+  | { type: 'SET_ERRORS'; payload: { [key: string]: string } }
+  | { type: 'CLEAR_ERROR'; payload: string }
+  | { type: 'OPEN_CHILD_MODAL' }
+  | { type: 'CLOSE_CHILD_MODAL' }
+  | { type: 'SET_SUBMITTING'; payload: boolean };
+
+
+const orderReducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case 'SET_STEP':
+      return { ...state, step: action.payload, errors: {} };
+    case 'SET_SELECTED_CHILD':
+      if (action.payload.child) {
+        return {
+          ...state,
+          selectedChildId: action.payload.child.id,
+          formData: {
+            ...state.formData,
+            childName: action.payload.child.name,
+            childBirthDate: action.payload.child.birth_date,
+            childGender: action.payload.child.gender,
+          },
+        };
+      }
+      return {
+        ...state,
+        selectedChildId: null,
+        formData: {
+          ...state.formData,
+          childName: '',
+          childBirthDate: '',
+          childGender: '',
+        },
+      };
+    case 'SELECT_SELF':
+        return {
+            ...state,
+            selectedChildId: null,
+            formData: {
+                ...state.formData,
+                childName: action.payload.name,
+                childBirthDate: '',
+                childGender: '',
+            }
+        };
+    case 'UPDATE_FORM_DATA':
+      const newErrors = { ...state.errors };
+      delete newErrors[action.payload.name];
+      return {
+        ...state,
+        formData: { ...state.formData, [action.payload.name]: action.payload.value },
+        errors: newErrors,
+      };
+    case 'SET_FORM_DATA':
+      return { ...state, formData: { ...state.formData, ...action.payload } };
+    case 'TOGGLE_ADDON':
+      const newAddons = state.selectedAddons.includes(action.payload)
+        ? state.selectedAddons.filter(k => k !== action.payload)
+        : [...state.selectedAddons, action.payload];
+      return { ...state, selectedAddons: newAddons };
+    case 'SET_ADDONS':
+        return { ...state, selectedAddons: action.payload };
+    case 'SET_IMAGE_FILE':
+      const newImageFiles = { ...state.imageFiles, [action.payload.id]: action.payload.file };
+      const newImageErrors = { ...state.errors };
+      delete newImageErrors[action.payload.id];
+
+      let imagePreviewUrl = state.imagePreviewUrl;
+      if (action.payload.isPreviewSource) {
+          if (action.payload.file) {
+              imagePreviewUrl = URL.createObjectURL(action.payload.file);
+          } else {
+              imagePreviewUrl = null;
+          }
+      }
+      
+      return { ...state, imageFiles: newImageFiles, errors: newImageErrors, imagePreviewUrl };
+    case 'SET_ERRORS':
+      return { ...state, errors: action.payload };
+    case 'CLEAR_ERROR':
+        const clearedErrors = { ...state.errors };
+        delete clearedErrors[action.payload];
+        return { ...state, errors: clearedErrors };
+    case 'OPEN_CHILD_MODAL':
+      return { ...state, isChildModalOpen: true };
+    case 'CLOSE_CHILD_MODAL':
+      return { ...state, isChildModalOpen: false };
+    case 'SET_SUBMITTING':
+      return { ...state, isSubmitting: action.payload };
+    default:
+      return state;
+  }
+};
+
+
+// --- Steps Configuration ---
 const defaultSteps = [
     { key: 'child', title: 'بيانات الطفل' },
     { key: 'customization', title: 'تخصيص القصة' },
@@ -39,26 +157,7 @@ const emotionStorySteps = [
     { key: 'delivery', title: 'التوصيل' },
 ];
 
-const DynamicTextFields: React.FC<{
-    fields: TextFieldConfig[];
-    formData: { [key: string]: any };
-    errors: { [key: string]: string };
-    handleChange: (e: any) => void;
-}> = ({ fields, formData, errors, handleChange }) => (
-    <div className="space-y-6">
-        {fields.map(field => (
-            <FormField key={field.id} label={field.label} htmlFor={field.id} error={errors[field.id]}>
-                {field.type === 'textarea' ? (
-                    <Textarea id={field.id} name={field.id} value={formData[field.id] || ''} onChange={handleChange} rows={4} placeholder={field.placeholder} required={field.required} />
-                ) : (
-                    <Input id={field.id} name={field.id} value={formData[field.id] || ''} onChange={handleChange} placeholder={field.placeholder} required={field.required} />
-                )}
-            </FormField>
-        ))}
-    </div>
-);
-
-
+// --- Component ---
 const OrderPage: React.FC = () => {
     const { productKey } = useParams<{ productKey: string }>();
     const navigate = useNavigate();
@@ -74,43 +173,50 @@ const OrderPage: React.FC = () => {
 
     const stepsConfig = useMemo(() => productKey === 'emotion_story' ? emotionStorySteps : defaultSteps, [productKey]);
     
-    const [step, setStep] = useState<OrderStep>(stepsConfig[0].key);
-    const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
-    const [formData, setFormData] = useState<{[key: string]: any}>({
-        deliveryType: 'printed',
-        shippingOption: 'my_address',
-        governorate: 'القاهرة',
-        recipientName: '',
-        recipientAddress: '',
-        recipientPhone: '',
-        recipientEmail: '',
-        giftMessage: '',
-        sendDigitalCard: true,
-    });
-    const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
-    const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({});
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+    const initialState: State = {
+        step: stepsConfig[0].key,
+        selectedChildId: null,
+        formData: {
+            deliveryType: 'printed',
+            shippingOption: 'my_address',
+            governorate: 'القاهرة',
+            recipientName: '',
+            recipientAddress: '',
+            recipientPhone: '',
+            recipientEmail: '',
+            giftMessage: '',
+            sendDigitalCard: true,
+        },
+        selectedAddons: [],
+        imageFiles: {},
+        errors: {},
+        imagePreviewUrl: null,
+        isChildModalOpen: false,
+        isSubmitting: false,
+    };
+    
+    const [state, dispatch] = useReducer(orderReducer, initialState);
+    const { step, selectedChildId, formData, selectedAddons, imageFiles, errors, imagePreviewUrl, isChildModalOpen, isSubmitting } = state;
 
     
     useEffect(() => {
-        if (product && !product.has_printed_version) {
-            setFormData(prev => ({ ...prev, deliveryType: 'electronic' }));
+        if (product) {
+            if (!product.has_printed_version) {
+                dispatch({ type: 'UPDATE_FORM_DATA', payload: { name: 'deliveryType', value: 'electronic' } });
+            }
+            if (product.component_keys && product.component_keys.length > 0) {
+                dispatch({ type: 'SET_ADDONS', payload: product.component_keys });
+            } else {
+                dispatch({ type: 'SET_ADDONS', payload: [] });
+            }
         }
-        if(product?.key === 'gift_box' && orderData) {
-            const addonKeys = orderData.personalizedProducts
-                .filter(p => p.is_addon)
-                .map(p => p.key);
-            setSelectedAddons(addonKeys);
-        }
-    }, [product, orderData]);
+    }, [product]);
 
     const isLoading = productContextLoading || orderDataLoading;
     
-    const addonProducts = useMemo(() => 
-        orderData?.personalizedProducts.filter(p => p.is_addon) || [],
-    [orderData]);
+    const allProducts = useMemo(() => orderData?.personalizedProducts || [], [orderData]);
+    
+    const addonProducts = useMemo(() => allProducts.filter(p => p.is_addon), [allProducts]);
 
     const storyGoals = useMemo(() => product?.story_goals || [], [product]);
 
@@ -124,12 +230,12 @@ const OrderPage: React.FC = () => {
     
     const addonsPrice = useMemo(() => {
         return selectedAddons.reduce((total, key) => {
-            const addonProd = addonProducts.find(p => p.key === key);
-            if (!addonProd) return total;
-            const price = addonProd.has_printed_version ? addonProd.price_printed : addonProd.price_electronic;
+            const componentProd = allProducts.find(p => p.key === key);
+            if (!componentProd) return total;
+            const price = componentProd.has_printed_version ? componentProd.price_printed : componentProd.price_electronic;
             return total + (price || 0);
         }, 0);
-    }, [selectedAddons, addonProducts]);
+    }, [selectedAddons, allProducts]);
 
     const shippingPrice = useMemo(() => {
         if (formData.deliveryType === 'electronic' || !shippingCosts) return 0;
@@ -138,79 +244,11 @@ const OrderPage: React.FC = () => {
     
     const totalPrice = basePrice + addonsPrice;
     
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value, type } = e.target;
-        const isCheckbox = type === 'checkbox';
-        const checked = (e.target as HTMLInputElement).checked;
-
-        setFormData(prev => ({ 
-            ...prev, 
-            [name]: isCheckbox ? checked : value 
-        }));
-
-        if(errors[name]) setErrors(prev => {
-            const newErrors = {...prev};
-            delete newErrors[name];
-            return newErrors;
-        });
-    };
-
-    const handleFileChange = (id: string, file: File | null) => {
-        setImageFiles(prev => ({ ...prev, [id]: file }));
-         if (id === product?.image_slots?.find(s => s.required)?.id) {
-            if (file) {
-                const url = URL.createObjectURL(file);
-                setImagePreviewUrl(url);
-            } else {
-                setImagePreviewUrl(null);
-            }
-        }
-        if(errors[id]) setErrors(prev => {
-            const newErrors = {...prev};
-            delete newErrors[id];
-            return newErrors;
-        });
-    };
-
-    const handleSelectChild = (child: ChildProfile | null) => {
-        if (child) {
-            setSelectedChildId(child.id);
-            setFormData(prev => ({
-                ...prev,
-                childName: child.name,
-                childBirthDate: child.birth_date,
-                childGender: child.gender,
-            }));
-        } else {
-            setSelectedChildId(null);
-            setFormData(prev => ({
-                ...prev,
-                childName: '',
-                childBirthDate: '',
-                childGender: '',
-            }));
-        }
-    };
-    
-    const handleSelectSelf = () => {
-        setSelectedChildId(null);
-        setFormData(prev => ({
-            ...prev,
-            childName: currentUser?.name || '',
-            childBirthDate: '',
-            childGender: '',
-        }));
-    };
-
-    const handleToggleAddon = (key: string) => {
-        setSelectedAddons(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
-    };
-
      const validateStep = () => {
         const newErrors: { [key: string]: string } = {};
         if (!product) return false;
         
-        const checkRequiredTextFields = (fields: TextFieldConfig[]) => {
+        const checkRequiredTextFields = (fields: any[]) => {
             fields.forEach(field => {
                 if (field.required && !formData[field.id]?.trim()) {
                     newErrors[field.id] = `${field.label.replace('*','')} مطلوب.`;
@@ -254,7 +292,7 @@ const OrderPage: React.FC = () => {
                 }
                 break;
         }
-        setErrors(newErrors);
+        dispatch({ type: 'SET_ERRORS', payload: newErrors });
         return Object.keys(newErrors).length === 0;
     };
     
@@ -263,17 +301,16 @@ const OrderPage: React.FC = () => {
             addToast('يرجى إكمال الحقول المطلوبة للمتابعة.', 'warning');
             return;
         }
-        errors && setErrors({});
         const currentIndex = stepsConfig.findIndex(s => s.key === step);
         if (currentIndex < stepsConfig.length - 1) {
-            setStep(stepsConfig[currentIndex + 1].key as OrderStep);
+            dispatch({ type: 'SET_STEP', payload: stepsConfig[currentIndex + 1].key as OrderStep });
         }
     };
     
     const handleBack = () => {
         const currentIndex = stepsConfig.findIndex(s => s.key === step);
         if (currentIndex > 0) {
-            setStep(stepsConfig[currentIndex - 1].key as OrderStep);
+            dispatch({ type: 'SET_STEP', payload: stepsConfig[currentIndex - 1].key as OrderStep });
         } else {
             navigate(-1);
         }
@@ -290,7 +327,7 @@ const OrderPage: React.FC = () => {
             return;
         }
 
-        setIsSubmitting(true);
+        dispatch({ type: 'SET_SUBMITTING', payload: true });
         addItemToCart({
             type: 'order',
             payload: {
@@ -306,65 +343,66 @@ const OrderPage: React.FC = () => {
         
         addToast('تمت إضافة الطلب إلى السلة بنجاح!', 'success');
         navigate('/cart');
-        setIsSubmitting(false);
+        dispatch({ type: 'SET_SUBMITTING', payload: false });
     };
 
 
     if (isLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
     if (!product) return <div className="text-center py-20">المنتج غير موجود.</div>;
     
-    const renderStepContent = () => {
-        const childDetailsProps = {
-            formData: { childName: formData.childName, childBirthDate: formData.childBirthDate, childGender: formData.childGender },
-            handleChange: handleChange,
-            errors: errors,
-            childProfiles: childProfiles,
-            onSelectChild: handleSelectChild,
-            selectedChildId: selectedChildId,
-            onSelectSelf: handleSelectSelf,
-            currentUser: currentUser
-        };
+    const previewSourceSlot = product.image_slots?.find(s => s.required)?.id;
 
-        switch (step) {
-            case 'child': return <ChildDetailsSection {...childDetailsProps} />;
-            case 'customization': return <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} textFields={product.text_fields || null} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals} />;
-            case 'images': return <ImageUploadSection files={imageFiles} onFileChange={handleFileChange} errors={errors} imageSlots={product.image_slots || null}/>;
-            case 'addons': return <AddonsSection addonProducts={addonProducts} selectedAddons={selectedAddons} onToggle={handleToggleAddon} />;
-            case 'delivery': return <DeliverySection formData={formData as any} handleChange={handleChange} product={product} errors={errors} />;
-            
-            // Emotion Story Steps
-            case 'child_context':
-                return (
-                    <div>
-                        <ChildDetailsSection {...childDetailsProps} />
-                        <div className="mt-8 pt-8 border-t">
-                            <h3 className="text-xl font-bold text-gray-700 mb-4">معلومات إضافية عن السياق</h3>
-                             <DynamicTextFields fields={product.text_fields?.slice(0, 4) || []} formData={formData} errors={errors} handleChange={handleChange} />
-                        </div>
-                    </div>
-                );
-            case 'emotion_journey':
-                return (
-                     <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-6">رحلة المشاعر</h3>
-                        <StoryCustomizationSection formData={formData} handleChange={handleChange} errors={errors} textFields={[]} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals} />
-                        <div className="mt-6">
-                            <DynamicTextFields fields={product.text_fields?.slice(4, 8) || []} formData={formData} errors={errors} handleChange={handleChange} />
-                        </div>
-                    </div>
-                );
-            case 'creative_touches':
-                 return (
-                     <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-6">لمسات إبداعية</h3>
-                        <DynamicTextFields fields={product.text_fields?.slice(8, 11) || []} formData={formData} errors={errors} handleChange={handleChange} />
-                    </div>
-                );
-        }
+    const childDetailsProps = {
+        formData: { childName: formData.childName, childBirthDate: formData.childBirthDate, childGender: formData.childGender },
+        handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => dispatch({ type: 'UPDATE_FORM_DATA', payload: { name: e.target.name, value: e.target.value } }),
+        errors: errors,
+        childProfiles: childProfiles,
+        onSelectChild: (child: ChildProfile | null) => dispatch({ type: 'SET_SELECTED_CHILD', payload: { child } }),
+        selectedChildId: selectedChildId,
+        onSelectSelf: () => dispatch({ type: 'SELECT_SELF', payload: { name: currentUser?.name || '' } }),
+        currentUser: currentUser,
+        onAddChild: () => dispatch({ type: 'OPEN_CHILD_MODAL' })
     };
+
+    const stepContentMap: { [key: string]: React.ReactNode } = {
+        'child': <ChildDetailsSection {...childDetailsProps} />,
+        'customization': <StoryCustomizationSection formData={formData} handleChange={(e) => dispatch({ type: 'UPDATE_FORM_DATA', payload: { name: e.target.name, value: e.target.value } })} errors={errors} textFields={product.text_fields || null} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals} />,
+        'images': <ImageUploadSection files={imageFiles} onFileChange={(id, file) => dispatch({ type: 'SET_IMAGE_FILE', payload: { id, file, isPreviewSource: id === previewSourceSlot } })} errors={errors} imageSlots={product.image_slots || null}/>,
+        'addons': <AddonsSection addonProducts={addonProducts} selectedAddons={selectedAddons} onToggle={(key) => dispatch({ type: 'TOGGLE_ADDON', payload: key })} />,
+        'delivery': <DeliverySection formData={formData as any} handleChange={(e) => dispatch({ type: 'UPDATE_FORM_DATA', payload: { name: e.target.name, value: e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value } })} product={product} errors={errors} />,
+        
+        // Emotion Story Steps
+        'child_context': (
+            <div>
+                <ChildDetailsSection {...childDetailsProps} />
+                <div className="mt-8 pt-8 border-t">
+                    <h3 className="text-xl font-bold text-gray-700 mb-4">معلومات إضافية عن السياق</h3>
+                     <DynamicTextFields fields={product.text_fields?.slice(0, 4) || []} formData={formData} errors={errors} handleChange={(e) => dispatch({ type: 'UPDATE_FORM_DATA', payload: { name: e.target.name, value: e.target.value } })} />
+                </div>
+            </div>
+        ),
+        'emotion_journey': (
+             <div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-6">رحلة المشاعر</h3>
+                <StoryCustomizationSection formData={formData} handleChange={(e) => dispatch({ type: 'UPDATE_FORM_DATA', payload: { name: e.target.name, value: e.target.value } })} errors={errors} textFields={[]} goalConfig={product.goal_config || 'none'} storyGoals={storyGoals} />
+                <div className="mt-6">
+                    <DynamicTextFields fields={product.text_fields?.slice(4, 8) || []} formData={formData} errors={errors} handleChange={(e) => dispatch({ type: 'UPDATE_FORM_DATA', payload: { name: e.target.name, value: e.target.value } })} />
+                </div>
+            </div>
+        ),
+        'creative_touches': (
+             <div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-6">لمسات إبداعية</h3>
+                <DynamicTextFields fields={product.text_fields?.slice(8, 11) || []} formData={formData} errors={errors} handleChange={(e) => dispatch({ type: 'UPDATE_FORM_DATA', payload: { name: e.target.name, value: e.target.value } })} />
+            </div>
+        ),
+    };
+
+    const currentStepTitle = stepsConfig.find(s => s.key === step)?.title;
 
     return (
         <>
+        <ChildProfileModal isOpen={isChildModalOpen} onClose={() => dispatch({ type: 'CLOSE_CHILD_MODAL' })} childToEdit={null} />
         <div className="bg-muted/50 py-12 sm:py-16">
             <div className="container mx-auto px-4">
                 <div className="max-w-5xl mx-auto">
@@ -374,8 +412,13 @@ const OrderPage: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                         <Card className="lg:col-span-2">
-                           <CardContent className="pt-8 space-y-10">
-                              {renderStepContent()}
+                            {currentStepTitle && (
+                                <CardHeader>
+                                    <CardTitle className="text-2xl">{currentStepTitle}</CardTitle>
+                                </CardHeader>
+                            )}
+                           <CardContent className="pt-2 space-y-10">
+                              {stepContentMap[step]}
                               <div className="flex justify-between pt-6 border-t">
                                   <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />}>
                                       {step === stepsConfig[0].key ? 'رجوع' : 'السابق'}
@@ -394,12 +437,13 @@ const OrderPage: React.FC = () => {
                                 product={product}
                                 basePrice={basePrice}
                                 addons={selectedAddons.map(key => {
-                                    const addonProd = addonProducts.find(p => p.key === key);
-                                    if (!addonProd) return { key, title: '', price: 0 };
-                                    const price = addonProd.has_printed_version ? addonProd.price_printed : addonProd.price_electronic;
-                                    return { key, title: addonProd?.title || '', price: price || 0 };
+                                    const componentProd = allProducts.find(p => p.key === key);
+                                    if (!componentProd) return { key, title: `Unknown (${key})`, price: 0 };
+                                    const price = componentProd.has_printed_version ? componentProd.price_printed : componentProd.price_electronic;
+                                    return { key, title: componentProd?.title || '', price: price || 0 };
                                 })}
                                 totalPrice={totalPrice}
+                                shippingPrice={shippingPrice}
                                 imagePreviewUrl={imagePreviewUrl}
                                 storyGoals={storyGoals}
                             />

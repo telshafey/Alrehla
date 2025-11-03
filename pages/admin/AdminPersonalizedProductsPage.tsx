@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings, ArrowUp, ArrowDown } from 'lucide-react';
+import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings } from 'lucide-react';
 import { useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useProductMutations } from '../../hooks/mutations/useProductMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import ErrorState from '../../components/ui/ErrorState';
+import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 
 const AdminPersonalizedProductsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -40,19 +41,6 @@ const AdminPersonalizedProductsPage: React.FC = () => {
         setSortConfig({ key, direction });
     };
 
-    const SortableTh: React.FC<{ sortKey: keyof PersonalizedProduct; label: string }> = ({ sortKey, label }) => (
-        <TableHead>
-            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
-                <div className="flex items-center">
-                   <span>{label}</span>
-                    {sortConfig?.key === sortKey && (
-                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
-                    )}
-                </div>
-            </Button>
-        </TableHead>
-    );
-
     const handleDeleteProduct = async (productId: number) => {
         if (window.confirm('هل أنت متأكد من حذف هذا المنتج؟ هذه العملية لا يمكن التراجع عنها.')) {
             await deletePersonalizedProduct.mutateAsync({ productId });
@@ -80,9 +68,9 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <SortableTh sortKey="title" label="المنتج" />
-                                    <SortableTh sortKey="price_printed" label="الأسعار (مطبوع/إلكتروني)" />
-                                    <SortableTh sortKey="sort_order" label="الترتيب" />
+                                    <SortableTableHead<PersonalizedProduct> sortKey="title" label="المنتج" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableTableHead<PersonalizedProduct> sortKey="price_printed" label="الأسعار (مطبوع/إلكتروني)" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableTableHead<PersonalizedProduct> sortKey="sort_order" label="الترتيب" sortConfig={sortConfig} onSort={handleSort} />
                                     <TableHead className="text-center"><Star size={16} className="mx-auto" /></TableHead>
                                     <TableHead className="text-center"><Puzzle size={16} className="mx-auto" /></TableHead>
                                     <TableHead>إجراءات</TableHead>

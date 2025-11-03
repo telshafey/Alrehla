@@ -1,7 +1,8 @@
 import { useQueries } from '@tanstack/react-query';
 import {
     mockUsers, mockOrders, mockBookings, mockSubscriptions, mockSupportTickets, mockJoinRequests,
-    mockBlogPosts, mockInstructors, mockSupportSessionRequests, mockScheduledSessions, mockServiceOrders
+    mockBlogPosts, mockInstructors, mockSupportSessionRequests, mockScheduledSessions, mockServiceOrders,
+    mockSessionAttachments
 } from '../../../data/mockData';
 
 const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
@@ -18,6 +19,7 @@ const queries = [
     { key: 'supportSessionRequests', fn: () => mockFetch(mockSupportSessionRequests) },
     { key: 'scheduledSessions', fn: () => mockFetch(mockScheduledSessions) },
     { key: 'serviceOrders', fn: () => mockFetch(mockServiceOrders) },
+    { key: 'attachments', fn: () => mockFetch(mockSessionAttachments) },
 ];
 
 export const useAdminDashboardData = () => {

@@ -1,10 +1,11 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSessionDetails } from '../hooks/queries/user/useJourneyDataQuery';
 import { useAdminJitsiSettings } from '../hooks/queries/admin/useAdminSettingsQuery';
-import { Loader2, ShieldAlert, Clock, CheckCircle } from 'lucide-react';
+import { Loader2, ShieldAlert, Clock, CheckCircle, Headphones, Video, Wind, Sparkles } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+
 
 declare global {
   interface Window {
@@ -30,6 +31,7 @@ const CountdownTimer: React.FC<{ targetDate: Date; onComplete: () => void }> = (
     const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
     useEffect(() => {
+        const difference = +targetDate - +new Date();
         const timer = setTimeout(() => {
             const newTimeLeft = calculateTimeLeft();
             setTimeLeft(newTimeLeft);
@@ -38,7 +40,6 @@ const CountdownTimer: React.FC<{ targetDate: Date; onComplete: () => void }> = (
             }
         }, 1000);
         
-        const difference = +targetDate - +new Date();
         if (difference <= 0) {
           onComplete();
         }
@@ -54,7 +55,7 @@ const CountdownTimer: React.FC<{ targetDate: Date; onComplete: () => void }> = (
         `${timeLeft.seconds} ثانية`,
     ].filter(Boolean).join(' و ');
 
-    return <p className="text-xl font-bold">{timerComponents}</p>;
+    return <p className="text-xl sm:text-2xl font-bold text-primary">{timerComponents}</p>;
 };
 
 const SessionPage: React.FC = () => {
@@ -68,6 +69,21 @@ const SessionPage: React.FC = () => {
     const [status, setStatus] = useState<'loading' | 'waiting' | 'active' | 'ended' | 'error'>('loading');
     const [error, setError] = useState<string | null>(null);
     const [joinTime, setJoinTime] = useState<Date | null>(null);
+    const [jitsiScriptLoaded, setJitsiScriptLoaded] = useState(false);
+
+    // Dynamically load Jitsi script
+    useEffect(() => {
+        const script = document.createElement('script');
+        script.src = 'https://meet.jit.si/external_api.js';
+        script.async = true;
+        script.onload = () => setJitsiScriptLoaded(true);
+        document.head.appendChild(script);
+
+        return () => {
+            document.head.removeChild(script);
+        };
+    }, []);
+
 
     // Effect to check session status and timing
     useEffect(() => {
@@ -94,7 +110,7 @@ const SessionPage: React.FC = () => {
         }
 
         const startTime = new Date(session.session_date);
-        const joinMinutesBefore = jitsiSettings.join_minutes_before || 15;
+        const joinMinutesBefore = jitsiSettings.join_minutes_before ?? 10;
         const expireMinutesAfter = jitsiSettings.expire_minutes_after || 120;
         
         const calculatedJoinTime = new Date(startTime.getTime() - joinMinutesBefore * 60000);
@@ -115,7 +131,7 @@ const SessionPage: React.FC = () => {
 
     // Effect to initialize Jitsi when status becomes active
     useEffect(() => {
-        if (status !== 'active' || !jitsiSettings || !session || !currentUser) {
+        if (status !== 'active' || !jitsiScriptLoaded || !jitsiSettings || !session || !currentUser) {
             return;
         }
 
@@ -173,7 +189,7 @@ const SessionPage: React.FC = () => {
         return () => {
             jitsiApi?.dispose();
         };
-    }, [status, currentUser, session, jitsiSettings]);
+    }, [status, currentUser, session, jitsiSettings, jitsiScriptLoaded]);
 
     const renderContent = () => {
         switch (status) {
@@ -185,12 +201,38 @@ const SessionPage: React.FC = () => {
                     </div>
                 );
             case 'waiting':
+                const tips = [
+                    { icon: <Headphones/>, text: 'تأكد من سماعاتك وميكروفونك.'},
+                    { icon: <Video/>, text: 'تأكد من أن الكاميرا تعمل جيداً.'},
+                    { icon: <Wind/>, text: 'اختر مكاناً هادئاً وخالياً من المشتتات.'},
+                    { icon: <Sparkles/>, text: 'استعد للإبداع واطلاق العنان لخيالك!'},
+                ];
                 return (
-                    <div className="flex flex-col justify-center items-center h-full text-white text-center p-4">
-                        <Clock className="h-16 w-16 text-blue-300 mb-4" />
-                        <h2 className="text-2xl font-bold mb-2">الجلسة لم تبدأ بعد</h2>
-                        <p className="max-w-md text-gray-300 mb-4">سيتم فتح الغرفة تلقائياً عند بدء موعد الجلسة.</p>
-                        {joinTime && <CountdownTimer targetDate={joinTime} onComplete={() => setStatus('active')} />}
+                    <div className="flex flex-col justify-center items-center h-full text-white text-center p-4 bg-gray-900/50">
+                        <Card className="max-w-lg w-full text-center animate-fadeIn bg-background/90 backdrop-blur-sm">
+                            <CardHeader>
+                                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-muted mb-4">
+                                    <Clock className="h-8 w-8 text-primary" />
+                                </div>
+                                <CardTitle className="text-2xl">الجلسة لم تبدأ بعد</CardTitle>
+                                <CardDescription>سيتم فتح الغرفة تلقائياً عند بدء موعد الجلسة. يتبقى:</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {joinTime && <CountdownTimer targetDate={joinTime} onComplete={() => setStatus('active')} />}
+                                
+                                <div className="text-right border-t pt-4">
+                                    <h4 className="font-bold text-foreground mb-3">نصائح لجلسة رائعة:</h4>
+                                    <ul className="space-y-2 text-sm text-muted-foreground">
+                                        {tips.map((tip, index) => (
+                                            <li key={index} className="flex items-center gap-3">
+                                                <div className="flex-shrink-0 text-primary">{tip.icon}</div>
+                                                <span>{tip.text}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 );
             case 'ended':

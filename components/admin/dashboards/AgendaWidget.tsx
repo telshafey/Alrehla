@@ -5,7 +5,8 @@ import AdminSection from '../AdminSection';
 import { formatDate } from '../../../utils/helpers';
 import { Button } from '../../ui/Button';
 
-const AgendaWidget: React.FC<{ bookings: any[], attachments: any[] }> = ({ bookings, attachments }) => {
+const AgendaWidget = React.forwardRef<HTMLElement, { bookings: any[], attachments: any[] } & React.HTMLAttributes<HTMLElement>>(
+    ({ bookings, attachments, ...props }, ref) => {
     
     const todaysSessions = useMemo(() => {
         const today = new Date().toDateString();
@@ -40,7 +41,7 @@ const AgendaWidget: React.FC<{ bookings: any[], attachments: any[] }> = ({ booki
 
 
     return (
-        <AdminSection title="أجندة اليوم والمهام العاجلة" icon={<Calendar />}>
+        <AdminSection ref={ref} title="أجندة اليوم والمهام العاجلة" icon={<Calendar />} {...props}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div>
                     <h3 className="font-bold mb-3">جلسات اليوم</h3>
@@ -88,6 +89,7 @@ const AgendaWidget: React.FC<{ bookings: any[], attachments: any[] }> = ({ booki
             </div>
         </AdminSection>
     );
-};
+});
+AgendaWidget.displayName = "AgendaWidget";
 
 export default AgendaWidget;

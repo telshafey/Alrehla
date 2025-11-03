@@ -28,7 +28,8 @@ const activityConfig = {
     ticket: { icon: <MessageSquare size={20} className="text-cyan-500" />, link: '/admin/support', actionText: 'عرض الرسالة' }
 };
 
-const RecentActivityWidget: React.FC<{ data: any }> = ({ data }) => {
+const RecentActivityWidget = React.forwardRef<HTMLElement, { data: any } & React.HTMLAttributes<HTMLElement>>(
+    ({ data, ...props }, ref) => {
 
     const recentActivities = useMemo(() => {
         const { orders = [], bookings = [], users = [], supportTickets = [] } = data || {};
@@ -66,7 +67,7 @@ const RecentActivityWidget: React.FC<{ data: any }> = ({ data }) => {
     }, [data]);
 
     return (
-        <AdminSection title="أحدث الأنشطة" icon={<Clock className="text-gray-500" />}>
+        <AdminSection ref={ref} title="أحدث الأنشطة" icon={<Clock className="text-gray-500" />} {...props}>
             {recentActivities.length > 0 ? (
                 <div className="flow-root">
                     <ul role="list" className="-mb-8">
@@ -107,6 +108,7 @@ const RecentActivityWidget: React.FC<{ data: any }> = ({ data }) => {
             )}
         </AdminSection>
     );
-};
+});
+RecentActivityWidget.displayName = "RecentActivityWidget";
 
 export default RecentActivityWidget;

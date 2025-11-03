@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Star, Calendar, Pause, Play, XCircle, DollarSign, Users, ArrowUp, ArrowDown } from 'lucide-react';
+import { Star, Calendar, Pause, Play, XCircle, DollarSign, Users } from 'lucide-react';
 import { useAdminSubscriptions, useAdminSubscriptionPlans } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useSubscriptionMutations } from '../../hooks/mutations/useSubscriptionMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -12,6 +12,7 @@ import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import StatCard from '../../components/admin/StatCard';
+import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 
 
 const getStatusInfo = (status: Subscription['status']) => {
@@ -91,19 +92,6 @@ const AdminSubscriptionsPage: React.FC = () => {
         setSortConfig({ key, direction });
     };
 
-    const SortableTh: React.FC<{ sortKey: keyof Subscription; label: string }> = ({ sortKey, label }) => (
-        <TableHead>
-            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
-                <div className="flex items-center">
-                   <span>{label}</span>
-                    {sortConfig?.key === sortKey && (
-                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
-                    )}
-                </div>
-            </Button>
-        </TableHead>
-    );
-
     if (isLoading) return <PageLoader text="جاري تحميل الاشتراكات..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
@@ -142,11 +130,11 @@ const AdminSubscriptionsPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <SortableTh sortKey="user_name" label="ولي الأمر" />
-                                        <SortableTh sortKey="child_name" label="الطفل" />
-                                        <SortableTh sortKey="plan_name" label="الباقة" />
-                                        <SortableTh sortKey="next_renewal_date" label="التجديد القادم" />
-                                        <SortableTh sortKey="status" label="الحالة" />
+                                        <SortableTableHead<Subscription> sortKey="user_name" label="ولي الأمر" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<Subscription> sortKey="child_name" label="الطفل" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<Subscription> sortKey="plan_name" label="الباقة" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<Subscription> sortKey="next_renewal_date" label="التجديد القادم" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<Subscription> sortKey="status" label="الحالة" sortConfig={sortConfig} onSort={handleSort} />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>

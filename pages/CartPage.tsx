@@ -20,7 +20,7 @@ const CartPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-muted/50 py-12 sm:py-16 min-h-[70vh]">
+        <div className="bg-muted/50 py-12 sm:py-16 min-h-[70vh] animate-fadeIn">
             <div className="container mx-auto px-4">
                 <div className="max-w-3xl mx-auto">
                      {cart.length > 0 ? (
@@ -63,11 +63,9 @@ const CartPage: React.FC = () => {
                                      <Button onClick={() => navigate('/checkout')} className="w-full sm:w-auto" size="lg" icon={<CreditCard />}>
                                         الانتقال إلى الدفع
                                     </Button>
-                                    <Button asChild variant="outline" className="w-full sm:w-auto" size="lg">
-                                        <Link to="/">
-                                            <ArrowLeft size={20} className="transform rotate-180 ml-2" />
-                                            <span>متابعة التسوق</span>
-                                        </Link>
+                                    <Button as={Link} to="/" variant="outline" className="w-full sm:w-auto" size="lg">
+                                        <ArrowLeft size={20} className="transform rotate-180 ml-2" />
+                                        <span>متابعة التسوق</span>
                                     </Button>
                                 </div>
                             </CardFooter>

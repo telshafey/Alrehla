@@ -8,6 +8,8 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import Image from '../components/ui/Image';
+import { useProduct } from '../contexts/ProductContext';
 
 const ValueCard: React.FC<{ icon: React.ReactNode; title: string; description: string; }> = ({ icon, title, description }) => (
     <div className="text-center">
@@ -23,6 +25,7 @@ const ValueCard: React.FC<{ icon: React.ReactNode; title: string; description: s
 const JoinUsPage: React.FC = () => {
     const { createJoinRequest } = useCommunicationMutations();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { siteBranding } = useProduct();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -68,7 +71,7 @@ const JoinUsPage: React.FC = () => {
                             </p>
                         </div>
                         <div>
-                            <img src="https://i.ibb.co/L5B6m9f/join-us-hero.jpg" alt="فريق عمل مبدع" className="rounded-2xl shadow-xl"/>
+                            <Image src={siteBranding?.joinUsImageUrl || "https://i.ibb.co/L5B6m9f/join-us-hero.jpg"} alt="فريق عمل مبدع" className="rounded-2xl shadow-xl aspect-video" />
                         </div>
                     </div>
                 </section>

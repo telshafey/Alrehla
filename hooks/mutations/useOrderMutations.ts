@@ -15,8 +15,8 @@ export const useOrderMutations = () => {
 
             const { formData } = payload;
             if (formData?.shippingOption === 'gift' && formData?.sendDigitalCard && formData?.recipientEmail) {
-                console.log("Simulating sending gift email...");
-                try {
+                console.log("Simulating sending gift email for order...");
+                 try {
                     await fetch('/api/sendEmail', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -25,12 +25,12 @@ export const useOrderMutations = () => {
                             subject: `🎁 لديك هدية من ${payload.userName}!`,
                             html: `
                                 <h1>مرحباً ${formData.recipientName},</h1>
-                                <p>لديك هدية مميزة من <strong>${payload.userName}</strong> عبر منصة الرحلة!</p>
+                                <p>لديك هدية مميزة (${payload.summary}) من <strong>${payload.userName}</strong>!</p>
                                 <p>نص الرسالة:</p>
                                 <blockquote style="border-right: 4px solid #ccc; padding-right: 1em; margin-right: 0;">
                                     <em>${formData.giftMessage || 'أتمنى أن تنال إعجابك!'}</em>
                                 </blockquote>
-                                <p>هديتك قيد التجهيز الآن وستصلك قريباً.</p>
+                                <p>سيصلك طلبك قريباً.</p>
                                 <p>مع تحيات،<br>فريق منصة الرحلة</p>
                             `
                         })
@@ -53,43 +53,11 @@ export const useOrderMutations = () => {
             console.log("Updating order status (mock)", { orderId, newStatus });
             return { success: true };
         },
-        onSuccess: (_, vars) => {
-            queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
-            addToast(`تم تحديث حالة الطلب ${vars.orderId} بنجاح.`, 'success');
-        },
-        onError: (error: Error) => {
-            addToast(`فشل تحديث الحالة: ${error.message}`, 'error');
-        }
-    });
-    
-    const updateOrderComment = useMutation({
-        mutationFn: async ({ orderId, comment }: { orderId: string, comment: string }) => {
-            await sleep(300);
-            console.log("Updating order comment (mock)", { orderId, comment });
-            return { success: true };
-        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
-            addToast('تم حفظ الملاحظة.', 'success');
+            addToast('تم تحديث حالة الطلب.', 'success');
         },
-        onError: (error: Error) => {
-            addToast(`فشل حفظ الملاحظة: ${error.message}`, 'error');
-        }
-    });
-
-    const updateReceipt = useMutation({
-        mutationFn: async (payload: { itemId: string; itemType: string; receiptFile: File }) => {
-             await sleep(1000);
-             console.log("Uploading receipt (mock)", payload);
-             return { success: true, url: 'https://example.com/mock-receipt.jpg' };
-        },
-        onSuccess: () => {
-            addToast('تم رفع الإيصال بنجاح. طلبك قيد المراجعة.', 'success');
-            queryClient.invalidateQueries({ queryKey: ['userAccountData']});
-        },
-        onError: (error: Error) => {
-            addToast(`فشل رفع الإيصال: ${error.message}`, 'error');
-        }
+        onError: (error: Error) => addToast(`فشل تحديث الحالة: ${error.message}`, 'error'),
     });
     
     const updateServiceOrderStatus = useMutation({
@@ -102,7 +70,7 @@ export const useOrderMutations = () => {
             queryClient.invalidateQueries({ queryKey: ['adminServiceOrders'] });
             addToast('تم تحديث حالة الطلب.', 'success');
         },
-        onError: (error: Error) => addToast(`فشل: ${error.message}`, 'error'),
+        onError: (error: Error) => addToast(`فشل تحديث الحالة: ${error.message}`, 'error'),
     });
 
     const assignInstructorToServiceOrder = useMutation({
@@ -115,8 +83,74 @@ export const useOrderMutations = () => {
             queryClient.invalidateQueries({ queryKey: ['adminServiceOrders'] });
             addToast('تم تعيين المدرب بنجاح.', 'success');
         },
-        onError: (error: Error) => addToast(`فشل: ${error.message}`, 'error'),
+        onError: (error: Error) => addToast(`فشل تعيين المدرب: ${error.message}`, 'error'),
     });
 
-    return { createOrder, updateOrderStatus, updateOrderComment, updateReceipt, updateServiceOrderStatus, assignInstructorToServiceOrder };
+
+    const updateOrderComment = useMutation({
+        mutationFn: async ({ orderId, comment }: { orderId: string, comment: string }) => {
+            await sleep(300);
+            console.log("Updating order comment (mock)", { orderId, comment });
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+            addToast('تم حفظ الملاحظة.', 'success');
+        },
+        onError: (error: Error) => addToast(`فشل حفظ الملاحظة: ${error.message}`, 'error'),
+    });
+
+    const updateReceipt = useMutation({
+        mutationFn: async ({ itemId, itemType, receiptFile }: { itemId: string; itemType: 'order' | 'booking' | 'subscription'; receiptFile: File; }) => {
+            await sleep(1000);
+            console.log("Uploading receipt (mock)", { itemId, itemType, fileName: receiptFile.name });
+            // In a real app, this would upload the file and return a URL.
+            return { receiptUrl: 'https://example.com/mock-receipt.jpg' };
+        },
+        onSuccess: (data, variables) => {
+             queryClient.invalidateQueries({ queryKey: ['userAccountData'] });
+             addToast('تم رفع الإيصال بنجاح. طلبك قيد المراجعة.', 'success');
+        },
+        onError: (error: Error) => {
+             addToast(`فشل رفع الإيصال: ${error.message}`, 'error');
+        }
+    });
+
+    // --- BULK ACTIONS ---
+    const bulkUpdateOrderStatus = useMutation({
+        mutationFn: async ({ orderIds, status }: { orderIds: string[], status: OrderStatus }) => {
+            await sleep(500);
+            console.log("Bulk updating order status (mock)", { orderIds, status });
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+            addToast('تم تحديث حالة الطلبات المحددة.', 'success');
+        },
+        onError: (error: Error) => addToast(`فشل تحديث الحالات: ${error.message}`, 'error'),
+    });
+
+    const bulkDeleteOrders = useMutation({
+        mutationFn: async ({ orderIds }: { orderIds: string[] }) => {
+            await sleep(500);
+            console.log("Bulk deleting orders (mock)", { orderIds });
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+            addToast('تم حذف الطلبات المحددة.', 'info');
+        },
+        onError: (error: Error) => addToast(`فشل حذف الطلبات: ${error.message}`, 'error'),
+    });
+
+    return { 
+        createOrder, 
+        updateOrderStatus, 
+        updateOrderComment, 
+        updateReceipt, 
+        updateServiceOrderStatus, 
+        assignInstructorToServiceOrder,
+        bulkUpdateOrderStatus,
+        bulkDeleteOrders
+    };
 };

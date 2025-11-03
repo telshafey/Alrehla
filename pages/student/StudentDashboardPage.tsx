@@ -8,8 +8,8 @@ import { getStatusColor, getSubStatusColor, getSubStatusText, formatDate } from 
 import type { Order, Subscription, Badge } from '../../lib/database.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 
-const OrderCard: React.FC<{ order: Order }> = React.memo(({ order }) => (
-    <Card className="transition-transform transform hover:-translate-y-1">
+const OrderCard = React.memo(React.forwardRef<HTMLElement, { order: Order }>(({ order }, ref) => (
+    <Card ref={ref} className="transition-transform transform hover:-translate-y-1">
         <CardContent className="pt-6 flex justify-between items-center">
             <div>
                 <p className="font-bold text-foreground">{order.item_summary}</p>
@@ -20,10 +20,12 @@ const OrderCard: React.FC<{ order: Order }> = React.memo(({ order }) => (
             </span>
         </CardContent>
     </Card>
-));
+)));
+OrderCard.displayName = "OrderCard";
 
-const SubscriptionCard: React.FC<{ subscription: Subscription }> = React.memo(({ subscription }) => (
-    <Card className="transition-transform transform hover:-translate-y-1">
+
+const SubscriptionCard = React.memo(React.forwardRef<HTMLElement, { subscription: Subscription }>(({ subscription }, ref) => (
+    <Card ref={ref} className="transition-transform transform hover:-translate-y-1">
          <CardContent className="pt-6 flex justify-between items-center">
             <div>
                 <p className="font-bold text-foreground">صندوق الرحلة الشهري</p>
@@ -34,16 +36,18 @@ const SubscriptionCard: React.FC<{ subscription: Subscription }> = React.memo(({
             </span>
         </CardContent>
     </Card>
-));
+)));
+SubscriptionCard.displayName = "SubscriptionCard";
 
-const EmptyStateCard: React.FC<{ title: string; message: string }> = ({ title, message }) => (
-    <Card>
+const EmptyStateCard = React.forwardRef<HTMLElement, { title: string; message: string }>(({ title, message }, ref) => (
+    <Card ref={ref}>
         <CardContent className="text-center py-10">
             <h3 className="text-lg font-bold text-foreground">{title}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{message}</p>
         </CardContent>
     </Card>
-);
+));
+EmptyStateCard.displayName = "EmptyStateCard";
 
 
 const StudentDashboardPage: React.FC = () => {

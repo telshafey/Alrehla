@@ -22,11 +22,31 @@ const FamilyCenterPanel: React.FC = () => {
     
     const { userOrders = [], userBookings = [], userSubscriptions = [], childBadges = [], allBadges = [] } = accountData || {};
     
-    const allUserActivity = useMemo(() => ({
-        orders: userOrders,
-        bookings: userBookings,
-        subscriptions: userSubscriptions,
-    }), [userOrders, userBookings, userSubscriptions]);
+    const activityByChildId = useMemo(() => {
+        const map = new Map<number, { orders: any[], bookings: any[], subscriptions: any[] }>();
+
+        childProfiles.forEach(child => {
+            map.set(child.id, { orders: [], bookings: [], subscriptions: [] });
+        });
+        
+        userOrders.forEach(order => {
+            if (map.has(order.child_id)) {
+                map.get(order.child_id)!.orders.push(order);
+            }
+        });
+        userBookings.forEach(booking => {
+            if (map.has(booking.child_id)) {
+                map.get(booking.child_id)!.bookings.push(booking);
+            }
+        });
+        userSubscriptions.forEach(subscription => {
+            if (map.has(subscription.child_id)) {
+                map.get(subscription.child_id)!.subscriptions.push(subscription);
+            }
+        });
+
+        return map;
+    }, [childProfiles, userOrders, userBookings, userSubscriptions]);
 
 
     const handleAddChild = () => {
@@ -84,7 +104,7 @@ const FamilyCenterPanel: React.FC = () => {
                            <ChildDashboardCard 
                                 key={child.id}
                                 child={child}
-                                allUserActivity={allUserActivity}
+                                childActivity={activityByChildId.get(child.id) || { orders: [], bookings: [], subscriptions: [] }}
                                 allBadges={allBadges}
                                 childBadges={childBadges}
                                 onEdit={handleEditChild}

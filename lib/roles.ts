@@ -1,9 +1,8 @@
-import type { UserRole } from './database.types';
-
+import { UserRole } from './database.types';
 export type { UserRole };
 
-export const roleNames: { [key in UserRole]: string } = {
-  user: 'مستخدم',
+export const roleNames: Record<UserRole, string> = {
+  user: 'مستخدم عادي',
   student: 'طالب',
   super_admin: 'مدير النظام',
   general_supervisor: 'مشرف عام',
@@ -16,184 +15,180 @@ export const roleNames: { [key in UserRole]: string } = {
 
 export interface Permissions {
   canViewDashboard: boolean;
-  canManageUsers: boolean;
-  canManageSettings: boolean;
+  canViewGlobalStats: boolean;
+  canViewContentStats: boolean;
   canManageEnhaLakOrders: boolean;
-  canManageEnhaLakSubscriptions: boolean;
-  canManageEnhaLakProducts: boolean;
-  canManagePrices: boolean;
-  canManageShipping: boolean;
   canManageCreativeWritingBookings: boolean;
+  canManageEnhaLakProducts: boolean;
   canManageCreativeWritingSettings: boolean;
-  canManageCreativeWritingInstructors: boolean;
+  canManageUsers: boolean;
+  canManageInstructors: boolean;
   canManageInstructorUpdates: boolean;
-  canManageSupportRequests: boolean;
-  canManageContent: boolean;
   canManageBlog: boolean;
+  canManageSiteContent: boolean;
   canManageSupportTickets: boolean;
   canManageJoinRequests: boolean;
-  canManageSchedules: boolean;
-  canViewGlobalStats: boolean;
-  canViewEnhaLakStats: boolean;
-  canViewCreativeWritingStats: boolean;
-  canViewContentStats: boolean;
-  canViewSupportStats: boolean;
+  canManageSettings: boolean;
+  canManageFinancials: boolean; 
+  canViewAuditLog: boolean; // New permission
+  // instructor permissions
+  isInstructor: boolean;
+  canManageOwnSchedule: boolean;
+  canManageOwnProfile: boolean;
+  canViewOwnFinancials: boolean;
 }
 
 export const permissionKeys: (keyof Permissions)[] = [
     'canViewDashboard',
-    'canManageUsers',
-    'canManageSettings',
+    'canViewGlobalStats',
+    'canViewContentStats',
     'canManageEnhaLakOrders',
-    'canManageEnhaLakSubscriptions',
-    'canManageEnhaLakProducts',
-    'canManagePrices',
-    'canManageShipping',
     'canManageCreativeWritingBookings',
+    'canManageEnhaLakProducts',
     'canManageCreativeWritingSettings',
-    'canManageCreativeWritingInstructors',
+    'canManageUsers',
+    'canManageInstructors',
     'canManageInstructorUpdates',
-    'canManageSupportRequests',
-    'canManageContent',
     'canManageBlog',
+    'canManageSiteContent',
     'canManageSupportTickets',
     'canManageJoinRequests',
-    'canManageSchedules',
-    'canViewGlobalStats',
-    'canViewEnhaLakStats',
-    'canViewCreativeWritingStats',
-    'canViewContentStats',
-    'canViewSupportStats',
+    'canManageSettings',
+    'canManageFinancials',
+    'canViewAuditLog', // New permission
+    'isInstructor',
+    'canManageOwnSchedule',
+    'canManageOwnProfile',
+    'canViewOwnFinancials'
 ];
 
 export const permissionLabels: Record<keyof Permissions, string> = {
-    canViewDashboard: 'عرض لوحة التحكم',
-    canManageUsers: 'إدارة المستخدمين',
-    canManageSettings: 'إدارة الإعدادات العامة',
+    canViewDashboard: 'عرض لوحة التحكم الرئيسية',
+    canViewGlobalStats: 'عرض الإحصائيات العامة',
+    canViewContentStats: 'عرض إحصائيات المحتوى',
     canManageEnhaLakOrders: 'إدارة طلبات "إنها لك"',
-    canManageEnhaLakSubscriptions: 'إدارة اشتراكات "إنها لك"',
-    canManageEnhaLakProducts: 'إدارة منتجات "إنها لك"',
-    canManagePrices: 'إدارة الأسعار',
-    canManageShipping: 'إدارة الشحن',
     canManageCreativeWritingBookings: 'إدارة حجوزات "بداية الرحلة"',
+    canManageEnhaLakProducts: 'إدارة منتجات "إنها لك"',
     canManageCreativeWritingSettings: 'إدارة إعدادات "بداية الرحلة"',
-    canManageCreativeWritingInstructors: 'إدارة مدربي "بداية الرحلة"',
+    canManageUsers: 'إدارة المستخدمين',
+    canManageInstructors: 'إدارة المدربين',
     canManageInstructorUpdates: 'إدارة تحديثات المدربين',
-    canManageSupportRequests: 'إدارة طلبات الدعم',
-    canManageContent: 'إدارة المحتوى',
     canManageBlog: 'إدارة المدونة',
+    canManageSiteContent: 'إدارة محتوى الموقع',
     canManageSupportTickets: 'إدارة رسائل الدعم',
     canManageJoinRequests: 'إدارة طلبات الانضمام',
-    canManageSchedules: 'إدارة الجداول',
-    canViewGlobalStats: 'عرض الإحصائيات العامة',
-    canViewEnhaLakStats: 'عرض إحصائيات "إنها لك"',
-    canViewCreativeWritingStats: 'عرض إحصائيات "بداية الرحلة"',
-    canViewContentStats: 'عرض إحصائيات المحتوى',
-    canViewSupportStats: 'عرض إحصائيات الدعم',
+    canManageSettings: 'إدارة الإعدادات العامة',
+    canManageFinancials: 'إدارة الشؤون المالية',
+    canViewAuditLog: 'عرض سجل النشاطات', // New permission label
+    isInstructor: 'دور مدرب',
+    canManageOwnSchedule: 'إدارة جدوله الخاص',
+    canManageOwnProfile: 'إدارة ملفه الشخصي',
+    canViewOwnFinancials: 'عرض بياناته المالية',
 };
 
 
-const allPermissions: Permissions = {
+const allAdminPermissions: Permissions = {
   canViewDashboard: true,
-  canManageUsers: true,
-  canManageSettings: true,
+  canViewGlobalStats: true,
+  canViewContentStats: true,
   canManageEnhaLakOrders: true,
-  canManageEnhaLakSubscriptions: true,
-  canManageEnhaLakProducts: true,
-  canManagePrices: true,
-  canManageShipping: true,
   canManageCreativeWritingBookings: true,
+  canManageEnhaLakProducts: true,
   canManageCreativeWritingSettings: true,
-  canManageCreativeWritingInstructors: true,
+  canManageUsers: true,
+  canManageInstructors: true,
   canManageInstructorUpdates: true,
-  canManageSupportRequests: true,
-  canManageContent: true,
   canManageBlog: true,
+  canManageSiteContent: true,
   canManageSupportTickets: true,
   canManageJoinRequests: true,
-  canManageSchedules: true,
-  canViewGlobalStats: true,
-  canViewEnhaLakStats: true,
-  canViewCreativeWritingStats: true,
-  canViewContentStats: true,
-  canViewSupportStats: true,
+  canManageSettings: true,
+  canManageFinancials: true,
+  canViewAuditLog: true,
+  isInstructor: false,
+  canManageOwnSchedule: false,
+  canManageOwnProfile: false,
+  canViewOwnFinancials: false,
 };
 
-const noPermissions: Permissions = Object.keys(allPermissions).reduce((acc, key) => {
-  acc[key as keyof Permissions] = false;
-  return acc;
-}, {} as Permissions);
+const basePermissions: Permissions = {
+  canViewDashboard: false,
+  canViewGlobalStats: false,
+  canViewContentStats: false,
+  canManageEnhaLakOrders: false,
+  canManageCreativeWritingBookings: false,
+  canManageEnhaLakProducts: false,
+  canManageCreativeWritingSettings: false,
+  canManageUsers: false,
+  canManageInstructors: false,
+  canManageInstructorUpdates: false,
+  canManageBlog: false,
+  canManageSiteContent: false,
+  canManageSupportTickets: false,
+  canManageJoinRequests: false,
+  canManageSettings: false,
+  canManageFinancials: false,
+  canViewAuditLog: false,
+  isInstructor: false,
+  canManageOwnSchedule: false,
+  canManageOwnProfile: false,
+  canViewOwnFinancials: false,
+};
+
+const permissionsByRole: Record<UserRole, Permissions> = {
+  super_admin: allAdminPermissions,
+  general_supervisor: {
+    ...basePermissions,
+    canViewDashboard: true,
+    canViewGlobalStats: true,
+    canViewContentStats: true,
+    canManageEnhaLakOrders: true,
+    canManageCreativeWritingBookings: true,
+    canManageUsers: true,
+    canManageInstructors: true,
+    canManageInstructorUpdates: true,
+    canManageSupportTickets: true,
+    canManageFinancials: true,
+    canViewAuditLog: true,
+  },
+  enha_lak_supervisor: {
+    ...basePermissions,
+    canViewDashboard: true,
+    canManageEnhaLakOrders: true,
+    canManageEnhaLakProducts: true,
+  },
+  creative_writing_supervisor: {
+    ...basePermissions,
+    canViewDashboard: true,
+    canManageCreativeWritingBookings: true,
+    canManageCreativeWritingSettings: true,
+    canManageInstructors: true,
+    canManageInstructorUpdates: true,
+  },
+  instructor: {
+    ...basePermissions,
+    canViewDashboard: true,
+    isInstructor: true,
+    canManageOwnSchedule: true,
+    canManageOwnProfile: true,
+    canViewOwnFinancials: true,
+  },
+  content_editor: {
+    ...basePermissions,
+    canViewDashboard: true,
+    canManageBlog: true,
+    canManageSiteContent: true,
+  },
+  support_agent: {
+    ...basePermissions,
+    canViewDashboard: true,
+    canManageSupportTickets: true,
+    canManageJoinRequests: true,
+  },
+  user: basePermissions,
+  student: basePermissions,
+};
 
 export const getPermissions = (role: UserRole): Permissions => {
-  switch (role) {
-    case 'super_admin':
-      return { ...allPermissions };
-
-    case 'general_supervisor':
-      return {
-        ...noPermissions,
-        canViewDashboard: true,
-        canViewGlobalStats: true,
-        canViewEnhaLakStats: true,
-        canViewCreativeWritingStats: true,
-        canViewContentStats: true,
-        canViewSupportStats: true,
-        canManageUsers: true,
-        canManageEnhaLakOrders: true,
-        canManageCreativeWritingBookings: true,
-        canManagePrices: true,
-      };
-
-    case 'enha_lak_supervisor':
-      return {
-        ...noPermissions,
-        canViewDashboard: true,
-        canViewEnhaLakStats: true,
-        canManageEnhaLakOrders: true,
-        canManageEnhaLakSubscriptions: true,
-        canManageEnhaLakProducts: true,
-        canManageShipping: true,
-      };
-
-    case 'creative_writing_supervisor':
-      return {
-        ...noPermissions,
-        canViewDashboard: true,
-        canViewCreativeWritingStats: true,
-        canManageCreativeWritingBookings: true,
-        canManageCreativeWritingSettings: true,
-        canManageCreativeWritingInstructors: true,
-        canManageInstructorUpdates: true,
-        canManageSupportRequests: true,
-        canManageSchedules: true,
-        canManagePrices: true,
-      };
-
-    case 'instructor':
-      return {
-        ...noPermissions,
-        canViewDashboard: true,
-      };
-
-    case 'content_editor':
-      return {
-        ...noPermissions,
-        canViewDashboard: true,
-        canViewContentStats: true,
-        canManageContent: true,
-        canManageBlog: true,
-      };
-
-    case 'support_agent':
-      return {
-        ...noPermissions,
-        canViewDashboard: true,
-        canViewSupportStats: true,
-        canManageSupportTickets: true,
-        canManageJoinRequests: true,
-      };
-
-    default:
-      return { ...noPermissions, canViewDashboard: false };
-  }
+  return permissionsByRole[role] || basePermissions;
 };

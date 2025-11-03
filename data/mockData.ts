@@ -10,7 +10,9 @@ import type {
     Badge,
     ChildBadge,
     CommunicationSettings,
-    JitsiSettings
+    JitsiSettings,
+    TeamMember,
+    PublishedWork
 } from '../lib/database.types';
 import { getPermissions, Permissions, UserRole } from '../lib/roles';
 
@@ -182,7 +184,8 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         ],
         text_fields: [
             { id: 'childTraits', label: 'اخبرنا عن بطل القصة*', placeholder: 'مثال: شجاع، يحب الديناصورات...', required: true, type: 'textarea' },
-        ]
+        ],
+        component_keys: ['coloring_book', 'dua_booklet'],
     },
     { 
         id: 5, 
@@ -348,8 +351,8 @@ export const mockInstructors: Instructor[] = [
         id: 1, 
         user_id: 'usr_instructor_1', 
         name: 'أ. أحمد المصري', 
-        specialty: 'متخصص في بناء العوالم (13-18 سنة)', 
-        bio: 'كاتب وروائي...', 
+        specialty: 'متخصص في بناء العوالم والخيال العلمي', 
+        bio: 'كاتب وروائي شغوف باستكشاف العوالم الموازية. مؤلف سلسلة "بوابات الزمن" للناشئة. أؤمن بأن كل قصة هي رحلة استكشاف للذات والعالم.', 
         avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', 
         slug: 'ahmed-masri', 
         weekly_schedule: { monday: ['17:00', '18:00'], wednesday: ['17:00', '18:00'] }, 
@@ -360,14 +363,21 @@ export const mockInstructors: Instructor[] = [
         package_rates: { '2': 1300, '3': 4200 },
         schedule_status: 'approved', 
         profile_update_status: 'approved', 
-        pending_profile_data: null 
+        pending_profile_data: null,
+        teaching_philosophy: 'فلسفتي تقوم على "اللعب بالأفكار". أنا لا أُدرس قواعد، بل أفتح أبواباً للخيال. أساعد الطلاب على بناء الثقة في أصواتهم الفريدة وتحويل أفكارهم الجامحة إلى قصص متماسكة ومؤثرة. كل جلسة هي مغامرة جديدة نخوضها معاً.',
+        expertise_areas: ['بناء العوالم', 'الخيال العلمي والفانتازيا', 'تطوير الشخصيات المعقدة', 'كتابة الرواية للناشئة'],
+        intro_video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Example video
+        published_works: [
+            { title: 'بوابات الزمن: الجزء الأول', cover_url: 'https://i.ibb.co/8XYt2s5/about-us-image.jpg' },
+            { title: 'المدينة الصامتة', cover_url: 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg' },
+        ]
     },
     { 
         id: 2, 
         user_id: null, 
         name: 'أ. نورة القحطاني', 
-        specialty: 'متخصصة في السرد القصصي (8-12 سنة)', 
-        bio: 'ماجستير في أدب الأطفال...', 
+        specialty: 'متخصصة في السرد القصصي للأطفال', 
+        bio: 'ماجستير في أدب الأطفال ورسامة قصص مصورة. أهدف إلى تبسيط مفاهيم الكتابة المعقدة وجعلها تجربة ممتعة ومرحة للأطفال الصغار.', 
         avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', 
         slug: 'noura-qahtani', 
         weekly_schedule: { tuesday: ['16:00', '17:00'], thursday: ['16:00', '17:00'] }, 
@@ -378,7 +388,13 @@ export const mockInstructors: Instructor[] = [
         package_rates: { '2': 1200, '3': 4000, '4': 7200, '5': 9600 },
         schedule_status: 'approved', 
         profile_update_status: 'pending', 
-        pending_profile_data: { updates: { bio: "bio updated", rate_per_session: 275 }, justification: "test justification" } 
+        pending_profile_data: { updates: { bio: "bio updated", rate_per_session: 275 }, justification: "test justification" },
+        teaching_philosophy: 'أؤمن بأن القصة تبدأ بصورة. أستخدم الرسم والتخيل البصري كنقطة انطلاق لإلهام الأطفال، ومساعدتهم على تحويل صورهم الذهنية إلى كلمات حية. منهجي يعتمد على التشجيع وبناء بيئة آمنة للتجربة والخطأ.',
+        expertise_areas: ['الكتابة للأعمار الصغيرة (8-12)', 'الشعر وقصص القافية', 'القصص المصورة', 'السرد المبسط'],
+        intro_video_url: null,
+        published_works: [
+             { title: 'أين اختفى قمري؟', cover_url: 'https://i.ibb.co/n7ZJv9V/child-learning-online.jpg' },
+        ]
     },
 ];
 
@@ -391,6 +407,8 @@ export const mockSiteBranding: SiteBranding = {
     logoUrl: "https://i.ibb.co/C0bSJJT/favicon.png",
     heroImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
     aboutImageUrl: "https://i.ibb.co/8XYt2s5/about-us-image.jpg",
+    // FIX: Added missing property 'joinUsImageUrl'
+    joinUsImageUrl: "https://i.ibb.co/L5B6m9f/join-us-hero.jpg",
     creativeWritingPortalImageUrl: "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg",
     enhaLakPortalImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
 };
@@ -448,7 +466,7 @@ export const mockJitsiSettings: JitsiSettings = {
   id: 1,
   domain: 'meet.jit.si',
   room_prefix: 'AlRehlah-Session-',
-  join_minutes_before: 15,
+  join_minutes_before: 10,
   expire_minutes_after: 120, // 2 hours
   start_with_audio_muted: false,
   start_with_video_muted: false,
@@ -522,6 +540,55 @@ export const mockJoinRequests: JoinRequest[] = [
     { id: 'join_1', created_at: new Date().toISOString(), name: 'مبدع جديد', email: 'creative@test.com', phone: '01012345678', role: 'رسام قصص أطفال', message: 'أنا رسام مهتم.', status: 'جديد', portfolio_url: 'https://example.com' },
 ];
 
+// FIX: Added mockAuditLogs export to fix module resolution error
+export const mockAuditLogs: any[] = [
+    {
+        id: 'log_1',
+        user_id: 'usr_admin',
+        action: 'UPDATE_ORDER_STATUS',
+        target_id: 'ord_123',
+        target_description: 'Order #ord_123',
+        details: 'Status changed to "تم التسليم"',
+        timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+    },
+    {
+        id: 'log_2',
+        user_id: 'usr_supervisor',
+        action: 'UPDATE_USER_ROLE',
+        target_id: 'usr_user',
+        target_description: 'User "سارة خالد"',
+        details: 'Role changed from "user" to "content_editor"',
+        timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+    },
+    {
+        id: 'log_3',
+        user_id: 'usr_editor',
+        action: 'CREATE_BLOG_POST',
+        target_id: 'post_4',
+        target_description: 'Blog Post #4',
+        details: 'Created new blog post: "استعداداً للمدرسة..."',
+        timestamp: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
+    },
+    {
+        id: 'log_4',
+        user_id: 'usr_cws',
+        action: 'APPROVE_INSTRUCTOR_SCHEDULE',
+        target_id: 'inst_1',
+        target_description: 'Instructor "أ. أحمد المصري"',
+        details: 'Approved weekly schedule update.',
+        timestamp: new Date(Date.now() - 86400000 * 3).toISOString(), // 3 days ago
+    },
+    {
+        id: 'log_5',
+        user_id: 'usr_els',
+        action: 'UPDATE_PRODUCT',
+        target_id: 'prod_1',
+        target_description: 'Product "القصة المخصصة"',
+        details: 'Price updated from 400 to 450.',
+        timestamp: new Date(Date.now() - 86400000 * 4).toISOString(), // 4 days ago
+    }
+];
+
 export const mockPublicHolidays: string[] = ['2023-10-06'];
 
 export const mockSiteContent: SiteContent = {
@@ -535,7 +602,7 @@ export const mockSiteContent: SiteContent = {
     creativeWritingTitle: "بداية الرحلة",
     creativeWritingDescription: "بوابة إلى عالم الإبداع، حيث نطلق العنان للكاتب الصغير داخل طفلك من خلال رحلة تدريبية ملهمة.",
     valuePropositionTitle: "لماذا منصة الرحلة هي الأفضل لطفلك؟",
-    socialProofTitle: "أرقام نفخر بها",
+    socialProofTitle: "أرقام نفخر بها", // Not currently used, but good to have
     aboutSectionTitle: "قصتنا: من فكرة إلى رحلة",
     aboutSectionContent: "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة 'منصة الرحلة' - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي.",
     testimonialsTitle: "ماذا تقول عائلاتنا؟",
@@ -550,7 +617,12 @@ export const mockSiteContent: SiteContent = {
     missionStatement: "نؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً، تكون مرآة تعكس شخصية الطفل الفريدة، وتعزز هويته العربية، وتغرس في قلبه أسمى القيم الإنسانية.",
     ourStory: "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة 'منصة الرحلة' - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي.",
     ourVision: "أن نكون المنصة الرائدة والوجهة الأولى لكل أسرة عربية تبحث عن محتوى تربوي إبداعي وأصيل ينمّي شخصية الطفل، يعزز ارتباطه بلغته وهويته، ويطلق العنان لخياله الإبداعي.",
-    valuesTitle: "قيمنا الأساسية"
+    valuesTitle: "قيمنا الأساسية",
+    // FIX: Added missing property 'teamMembers'
+    teamMembers: [
+        { name: 'أ. أحمد المصري', role: 'مؤسس ومدرب', imageUrl: 'https://i.ibb.co/2S4xT8w/male-avatar.png' },
+        { name: 'أ. نورة القحطاني', role: 'مدربة ورسامة', imageUrl: 'https://i.ibb.co/yY3GJk1/female-avatar.png' },
+    ] as TeamMember[]
   },
   enhaLakPage: {
     main: {
@@ -563,7 +635,10 @@ export const mockSiteContent: SiteContent = {
       testimonialsTitle: "تجارب لا تُنسى من عائلاتنا",
       testimonialsSubtitle: "آراء نفخر بها من عائلة 'الرحلة'.",
       finalCtaTitle: "هل أنت جاهز لصناعة السحر؟",
-      finalCtaSubtitle: "اختر المنتج الذي يناسب طفلك اليوم واهدِه قصة ستبقى في ذاكرته إلى الأبد."
+      finalCtaSubtitle: "اهدِه قصة ستبقى في ذاكرته إلى الأبد.",
+      // FIX: Added missing properties 'customStoryImageUrl' and 'subscriptionBoxImageUrl'
+      customStoryImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
+      subscriptionBoxImageUrl: "https://i.ibb.co/L8DDd6V/gift-box-sub.png",
     },
     store: {
       heroTitle: "متجر 'إنها لك'",
@@ -607,7 +682,9 @@ export const mockSiteContent: SiteContent = {
       heroSubtitle: "لأننا نؤمن أن بداخل كل طفل كاتباً عظيماً ينتظر من يكتشفه.",
       mainTitle: "رحلة شخصية، وليست درساً",
       mainContent: "نحن لا نقدم دروسًا، بل نقدم رحلة شخصية بصحبة مرشد متخصص. في جلسات فردية مباشرة، نأخذ بيد طفلك بعيدًا عن سطوة القواعد الصارمة والتقييم، ونمنحه حرية الورقة البيضاء. هنا، لا توجد إجابات صحيحة أو خاطئة؛ يوجد فقط صوت طفلك، خياله، وقصته التي تنتظر أن تُروى.",
-      philosophyTitle: "فلسفتنا في ثلاث كلمات"
+      philosophyTitle: "فلسفتنا في ثلاث كلمات",
+      // FIX: Added missing property 'heroImageUrl'
+      heroImageUrl: "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg",
     },
     curriculum: {
       heroTitle: "خريطة الرحلة الإبداعية",

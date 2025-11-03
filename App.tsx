@@ -5,7 +5,8 @@ import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import WhatsAppButton from './components/WhatsAppButton';
 import ScrollToTopButton from './components/ScrollToTopButton';
-import AppRoutes from './AppRoutes';
+// FIX: Added .tsx extension to fix module resolution error
+import AppRoutes from './AppRoutes.tsx';
 
 function App() {
   const location = useLocation();

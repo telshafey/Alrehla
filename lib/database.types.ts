@@ -187,6 +187,7 @@ export interface PersonalizedProduct {
   story_goals: StoryGoal[];
   image_slots: ImageSlotConfig[];
   text_fields: TextFieldConfig[];
+  component_keys?: string[] | null;
 }
 
 export interface CreativeWritingPackage {
@@ -232,6 +233,11 @@ export type AvailableSlots = {
   [date: string]: string[]; // date is 'YYYY-MM-DD'
 };
 
+export interface PublishedWork {
+    title: string;
+    cover_url: string;
+}
+
 export interface Instructor {
   id: number;
   user_id: string | null;
@@ -249,6 +255,10 @@ export interface Instructor {
   schedule_status: 'approved' | 'pending' | 'rejected';
   profile_update_status: 'approved' | 'pending' | 'rejected';
   pending_profile_data: any | null;
+  teaching_philosophy?: string | null;
+  expertise_areas?: string[] | null;
+  intro_video_url?: string | null;
+  published_works?: PublishedWork[] | null;
 }
 
 export interface InstructorPayout {
@@ -263,6 +273,7 @@ export interface SiteBranding {
   logoUrl: string;
   heroImageUrl: string;
   aboutImageUrl: string;
+  joinUsImageUrl: string;
   creativeWritingPortalImageUrl: string;
   enhaLakPortalImageUrl: string;
 }
@@ -333,6 +344,12 @@ export interface JoinRequest {
   portfolio_url: string | null;
 }
 
+export interface TeamMember {
+    name: string;
+    role: string;
+    imageUrl: string;
+}
+
 export interface SiteContent {
   portalPage: {
     heroTitle: string;
@@ -360,6 +377,7 @@ export interface SiteContent {
     ourStory: string;
     ourVision: string;
     valuesTitle: string;
+    teamMembers: TeamMember[];
   };
   enhaLakPage: {
     main: {
@@ -373,6 +391,8 @@ export interface SiteContent {
       testimonialsSubtitle: string;
       finalCtaTitle: string;
       finalCtaSubtitle: string;
+      customStoryImageUrl: string;
+      subscriptionBoxImageUrl: string;
     };
     store: {
       heroTitle: string;
@@ -413,6 +433,7 @@ export interface SiteContent {
       mainTitle: string;
       mainContent: string;
       philosophyTitle: string;
+      heroImageUrl: string;
     };
     curriculum: {
       heroTitle: string;

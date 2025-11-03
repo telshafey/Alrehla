@@ -37,7 +37,12 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
     const { icon, bgClass } = toastConfig[type];
 
     return (
-        <div className={`flex items-start justify-between w-full p-4 rounded-lg shadow-lg border animate-fadeIn ${bgClass}`}>
+        <div 
+            className={`flex items-start justify-between w-full p-4 rounded-lg shadow-lg border animate-fadeIn ${bgClass}`}
+            role="status"
+            aria-live="assertive"
+            aria-atomic="true"
+        >
             <div className="flex items-start gap-3">
                 <div className="flex-shrink-0">{icon}</div>
                 <p className="text-sm font-semibold text-gray-700">{message}</p>

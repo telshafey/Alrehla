@@ -24,9 +24,9 @@ const Footer: React.FC = () => {
                     <div>
                         <h3 className="text-lg font-bold mb-4">روابط سريعة</h3>
                         <ul className="space-y-2 text-sm">
-                            <li><Link to="/about" className="text-muted-foreground hover:text-primary">عنا</Link></li>
+                            <li><Link to="/about" className="text-muted-foreground hover:text-primary">رحلتنا</Link></li>
                             <li><Link to="/blog" className="text-muted-foreground hover:text-primary">المدونة</Link></li>
-                            <li><Link to="/support" className="text-muted-foreground hover:text-primary">الدعم</Link></li>
+                            <li><Link to="/support" className="text-muted-foreground hover:text-primary">الدعم والمساعدة</Link></li>
                             <li><Link to="/join-us" className="text-muted-foreground hover:text-primary">انضم إلينا</Link></li>
                         </ul>
                     </div>

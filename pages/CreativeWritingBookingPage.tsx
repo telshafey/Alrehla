@@ -14,7 +14,8 @@ import BookingSummary from '../components/creative-writing/booking/BookingSummar
 import { Button } from '../components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
 import type { ChildProfile, CreativeWritingPackage, Instructor } from '../lib/database.types';
-import { Card, CardContent } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import ChildProfileModal from '../components/account/ChildProfileModal';
 
 type BookingStep = 'child' | 'package' | 'instructor' | 'schedule';
 
@@ -26,6 +27,7 @@ const stepsConfig = [
 ];
 
 const CreativeWritingBookingPage: React.FC = () => {
+    // --- ALL HOOKS AT THE TOP ---
     const navigate = useNavigate();
     const location = useLocation();
     const { isLoggedIn, currentUser, childProfiles, loading: authLoading } = useAuth();
@@ -40,30 +42,18 @@ const CreativeWritingBookingPage: React.FC = () => {
     const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
     const [selectedDateTime, setSelectedDateTime] = useState<{ date: Date, time: string } | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isChildModalOpen, setIsChildModalOpen] = useState(false);
 
     useEffect(() => {
-        // Pre-fill from location state if coming from instructor profile
         if (location.state?.instructor) {
             setSelectedInstructor(location.state.instructor);
-            setStep('schedule'); // Assuming they need to pick a time next
+            setStep('schedule');
         }
         if (location.state?.selectedDateTime) {
             setSelectedDateTime(location.state.selectedDateTime);
         }
     }, [location.state]);
-
-    if (!isLoggedIn && !authLoading) {
-        return (
-            <div className="container mx-auto px-4 py-12 text-center">
-                <p className="mb-4">يجب تسجيل الدخول أولاً لحجز جلسة.</p>
-                <Button asChild><Link to="/account" state={{ from: location }}>تسجيل الدخول</Link></Button>
-            </div>
-        );
-    }
     
-    const isLoading = authLoading || bookingDataLoading;
-    if (isLoading) return <PageLoader text="جاري تجهيز صفحة الحجز..." />;
-
     const { instructors = [], cw_packages = [], holidays = [] } = bookingData || {};
     
     const finalPrice = useMemo(() => {
@@ -72,12 +62,12 @@ const CreativeWritingBookingPage: React.FC = () => {
         if (selectedInstructor && selectedPackage) {
             return selectedInstructor.package_rates?.[selectedPackage.id] ?? selectedPackage.price;
         }
-        return null; // When instructor is not yet selected
+        return null;
     }, [selectedPackage, selectedInstructor]);
 
     const priceRange = useMemo(() => {
         if (!selectedPackage || finalPrice !== null) return null;
-        const prices = instructors
+        const prices = (instructors as Instructor[])
             .map((i: Instructor) => i.package_rates?.[selectedPackage.id])
             .filter((price): price is number => price !== undefined && price !== null);
 
@@ -86,13 +76,32 @@ const CreativeWritingBookingPage: React.FC = () => {
     }, [selectedPackage, finalPrice, instructors]);
 
 
+    // --- CONDITIONAL RETURNS CAN GO HERE ---
+    
+    const isLoading = authLoading || bookingDataLoading;
+    if (isLoading) {
+        return <PageLoader text="جاري تجهيز صفحة الحجز..." />;
+    }
+    
+    // This check is technically redundant because of ProtectedRoute, but acts as a safe fallback.
+    // It's safe to have it here because all hooks have been called unconditionally above.
+    if (!isLoggedIn) {
+        return (
+            <div className="container mx-auto px-4 py-12 text-center">
+                <p className="mb-4">يجب تسجيل الدخول أولاً لحجز جلسة.</p>
+                <Button as={Link} to="/account" state={{ from: location }}>تسجيل الدخول</Button>
+            </div>
+        );
+    }
+    
+    // --- REST OF COMPONENT LOGIC ---
+
     const handleNext = () => {
         const currentIndex = stepsConfig.findIndex(s => s.key === step);
         if (currentIndex < stepsConfig.length - 1) {
             let nextStep = stepsConfig[currentIndex + 1].key as BookingStep;
-            // Skip instructor selection if package is free session as it's auto-assigned
             if (step === 'package' && selectedPackage?.price === 0 && instructors.length > 0) {
-                 setSelectedInstructor(instructors[0]); // Auto-assign first instructor for mock
+                 setSelectedInstructor(instructors[0] as Instructor);
                  nextStep = 'schedule';
             }
             setStep(nextStep);
@@ -135,9 +144,10 @@ const CreativeWritingBookingPage: React.FC = () => {
     };
     
     const handleSelectSelf = () => {
+        if(!currentUser) return;
         setSelectedChildId(null);
         setChildData({
-            childName: currentUser!.name,
+            childName: currentUser.name,
             childBirthDate: '',
             childGender: '',
         });
@@ -188,6 +198,8 @@ const CreativeWritingBookingPage: React.FC = () => {
         setIsSubmitting(false);
     };
 
+    const currentStepTitle = stepsConfig.find(s => s.key === step)?.title;
+
     const renderStepContent = () => {
         switch (step) {
             case 'child':
@@ -200,63 +212,72 @@ const CreativeWritingBookingPage: React.FC = () => {
                             errors={{}}
                             currentUser={currentUser}
                             onSelectSelf={handleSelectSelf}
+                            onAddChild={() => setIsChildModalOpen(true)}
                         />;
             case 'package':
-                return <PackageSelection packages={cw_packages} onSelect={setSelectedPackage} />;
+                return <PackageSelection packages={cw_packages as CreativeWritingPackage[]} onSelect={setSelectedPackage} />;
             case 'instructor':
-                return <InstructorSelection instructors={instructors} onSelect={setSelectedInstructor} />;
+                return <InstructorSelection instructors={instructors as Instructor[]} onSelect={setSelectedInstructor} />;
             case 'schedule':
                 if (!selectedInstructor) return <p>الرجاء اختيار مدرب أولاً.</p>;
-                return <CalendarSelection instructor={selectedInstructor} holidays={holidays} onSelect={(date, time) => setSelectedDateTime({ date, time })} />;
+                return <CalendarSelection instructor={selectedInstructor} holidays={holidays as string[]} onSelect={(date, time) => setSelectedDateTime({ date, time })} />;
         }
     };
 
     return (
-        <div className="bg-muted/50 py-12 sm:py-16">
-            <div className="container mx-auto px-4">
-                <div className="max-w-5xl mx-auto">
-                    <div className="mb-12 text-center">
-                        <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">حجز جلسة "بداية الرحلة"</h1>
-                        <p className="mt-2 text-muted-foreground">اتبع الخطوات التالية لحجز باقتك التدريبية.</p>
-                    </div>
-                    <div className="mb-12">
-                        <OrderStepper steps={stepsConfig} currentStep={step} />
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                        <Card className="lg:col-span-2">
-                           <CardContent className="pt-8 space-y-10">
-                              {renderStepContent()}
-                              <div className="flex justify-between items-center pt-6 border-t">
-                                  <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />}>
-                                      السابق
-                                  </Button>
-                                  {step !== 'schedule' ? (
-                                      <Button onClick={handleNext} disabled={isNextDisabled()}>
-                                          التالي <ArrowLeft />
+        <>
+            <ChildProfileModal isOpen={isChildModalOpen} onClose={() => setIsChildModalOpen(false)} childToEdit={null} />
+            <div className="bg-muted/50 py-12 sm:py-16">
+                <div className="container mx-auto px-4">
+                    <div className="max-w-5xl mx-auto">
+                        <div className="mb-12 text-center">
+                            <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">حجز جلسة "بداية الرحلة"</h1>
+                            <p className="mt-2 text-muted-foreground">اتبع الخطوات التالية لحجز باقتك التدريبية.</p>
+                        </div>
+                        <div className="mb-12">
+                            <OrderStepper steps={stepsConfig} currentStep={step} />
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                            <Card className="lg:col-span-2">
+                               {currentStepTitle && (
+                                    <CardHeader>
+                                        <CardTitle className="text-2xl">{currentStepTitle}</CardTitle>
+                                    </CardHeader>
+                                )}
+                               <CardContent className="pt-2 space-y-10">
+                                  {renderStepContent()}
+                                  <div className="flex justify-between items-center pt-6 border-t">
+                                      <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />}>
+                                          السابق
                                       </Button>
-                                  ) : (
-                                       <p className="text-sm text-muted-foreground">أكمل الحجز من الملخص على اليسار.</p>
-                                  )}
-                              </div>
-                           </CardContent>
-                        </Card>
-                        <div className="lg:col-span-1 sticky top-24">
-                           <BookingSummary
-                                childName={childData.childName}
-                                pkg={selectedPackage}
-                                instructor={selectedInstructor}
-                                dateTime={selectedDateTime}
-                                onSubmit={handleSubmit}
-                                isSubmitting={isSubmitting}
-                                isConfirmStep={step === 'schedule'}
-                                finalPrice={finalPrice}
-                                priceRange={priceRange}
-                           />
+                                      {step !== 'schedule' ? (
+                                          <Button onClick={handleNext} disabled={isNextDisabled()}>
+                                              التالي <ArrowLeft />
+                                          </Button>
+                                      ) : (
+                                           <p className="text-sm text-muted-foreground">أكمل الحجز من الملخص على اليسار.</p>
+                                      )}
+                                  </div>
+                               </CardContent>
+                            </Card>
+                            <div className="lg:col-span-1 sticky top-24">
+                               <BookingSummary
+                                    childName={childData.childName}
+                                    pkg={selectedPackage}
+                                    instructor={selectedInstructor}
+                                    dateTime={selectedDateTime}
+                                    onSubmit={handleSubmit}
+                                    isSubmitting={isSubmitting}
+                                    isConfirmStep={step === 'schedule'}
+                                    finalPrice={finalPrice}
+                                    priceRange={priceRange}
+                               />
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

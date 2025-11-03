@@ -5,10 +5,11 @@ import type { ChildProfile, Order, CreativeWritingBooking, Subscription, Badge, 
 import { Button } from '../ui/Button';
 import { formatDate, calculateAge } from '../../utils/helpers';
 import BadgeDisplay from '../shared/BadgeDisplay';
+import Image from '../ui/Image';
 
 interface ChildDashboardCardProps {
     child: ChildProfile;
-    allUserActivity: {
+    childActivity: {
         orders: Order[];
         bookings: CreativeWritingBooking[];
         subscriptions: Subscription[];
@@ -29,26 +30,17 @@ const ActivityIcon: React.FC<{type: string}> = ({type}) => {
     }
 }
 
-const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserActivity, allBadges, childBadges, onEdit, onDelete, onCreateStudentAccount }) => {
+const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childActivity, allBadges, childBadges, onEdit, onDelete, onCreateStudentAccount }) => {
     
-    const childActivity = useMemo(() => {
-        const orders = allUserActivity.orders.filter(o => o.child_id === child.id);
-        const bookings = allUserActivity.bookings.filter(b => b.child_id === child.id);
-        const subscriptions = allUserActivity.subscriptions.filter(s => s.child_id === child.id);
-        
+    const recentActivity = useMemo(() => {
+        const { orders, bookings, subscriptions } = childActivity;
         const allItems = [
             ...orders.map(o => ({ type: 'order' as const, date: o.order_date, summary: o.item_summary, id: o.id, link: `/account`})),
             ...bookings.map(b => ({ type: 'booking' as const, date: b.created_at, summary: b.package_name, id: b.id, link: `/journey/${b.id}` })),
             ...subscriptions.map(s => ({ type: 'subscription' as const, date: s.start_date, summary: 'صندوق الرحلة الشهري', id: s.id, link: '/account' }))
         ];
-
-        return {
-            orders,
-            bookings,
-            subscriptions,
-            recent: allItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3)
-        };
-    }, [child, allUserActivity]);
+        return allItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+    }, [childActivity]);
 
     const earnedBadges = useMemo(() => {
         const earned = childBadges
@@ -64,10 +56,10 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserA
         <div className="bg-gray-50 p-6 rounded-2xl shadow-md border">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-center gap-4 border-b pb-4">
-                <img 
+                <Image 
                     src={child.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
                     alt={child.name} 
-                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                    className="w-24 h-24 rounded-full border-4 border-white shadow-md"
                 />
                 <div className="flex-grow text-center sm:text-right">
                     <h3 className="text-2xl font-bold text-gray-800">{child.name}</h3>
@@ -120,7 +112,7 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserA
                 <div className="md:col-span-2">
                     <h4 className="font-bold text-gray-700 mb-3">أحدث الأنشطة</h4>
                     <div className="space-y-3">
-                         {childActivity.recent.length > 0 ? childActivity.recent.map(item => (
+                         {recentActivity.length > 0 ? recentActivity.map(item => (
                             <Link to={item.link} state={{ defaultTab: 'myLibrary' }} key={item.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border hover:border-blue-400 hover:bg-blue-50/50 transition-colors">
                                 <div className="flex-shrink-0"><ActivityIcon type={item.type}/></div>
                                 <div className="flex-grow">
@@ -147,4 +139,4 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, allUserA
     );
 };
 
-export default ChildDashboardCard;
+export default React.memo(ChildDashboardCard);

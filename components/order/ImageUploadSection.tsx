@@ -9,7 +9,7 @@ interface ImageUploadSectionProps {
     imageSlots: ImageSlotConfig[] | null;
 }
 
-const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ files, onFileChange, errors, imageSlots }) => {
+const ImageUploadSection: React.FC<ImageUploadSectionProps> = React.memo(({ files, onFileChange, errors, imageSlots }) => {
     if (!imageSlots || imageSlots.length === 0) {
         return null;
     }
@@ -35,6 +35,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ files, onFileCh
             </div>
         </div>
     );
-};
+});
+ImageUploadSection.displayName = "ImageUploadSection";
 
 export default ImageUploadSection;

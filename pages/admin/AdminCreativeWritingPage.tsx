@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { BookOpen, Eye, Edit, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import { BookOpen, Eye, Edit, Loader2 } from 'lucide-react';
 import { useAdminRawCwBookings, transformCwBookings } from '../../hooks/queries/admin/useAdminBookingsQuery';
 import { useAdminAllChildProfiles } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
@@ -17,6 +17,7 @@ import { Select } from '../../components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import ErrorState from '../../components/ui/ErrorState';
+import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 
 
 interface Student {
@@ -156,22 +157,6 @@ const AdminCreativeWritingPage: React.FC = () => {
             setBookingsSortConfig({ key, direction });
         }
     };
-
-    const SortableTh: React.FC<{ table: 'students' | 'bookings', sortKey: string; label: string }> = ({ table, sortKey, label }) => {
-        const sortConfig = table === 'students' ? studentsSortConfig : bookingsSortConfig;
-        return (
-            <TableHead>
-                <Button variant="ghost" onClick={() => handleSort(table, sortKey)} className="px-0 h-auto py-0">
-                    <div className="flex items-center">
-                       <span>{label}</span>
-                        {sortConfig?.key === sortKey && (
-                            sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
-                        )}
-                    </div>
-                </Button>
-            </TableHead>
-        );
-    };
     
     const error = bookingsError || childrenError || instructorsError;
     const refetch = () => {
@@ -200,9 +185,9 @@ const AdminCreativeWritingPage: React.FC = () => {
                              <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <SortableTh table="students" sortKey="name" label="الطالب" />
-                                        <SortableTh table="students" sortKey="bookings" label="عدد الجلسات المحجوزة" />
-                                        <SortableTh table="students" sortKey="lastProgressNote" label="آخر ملاحظات" />
+                                        <SortableTableHead<Student> sortKey="name" label="الطالب" sortConfig={studentsSortConfig} onSort={(key) => handleSort('students', key)} />
+                                        <SortableTableHead<Student> sortKey="bookings" label="عدد الجلسات المحجوزة" sortConfig={studentsSortConfig} onSort={(key) => handleSort('students', key)} />
+                                        <SortableTableHead<Student> sortKey="lastProgressNote" label="آخر ملاحظات" sortConfig={studentsSortConfig} onSort={(key) => handleSort('students', key)} />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -257,11 +242,11 @@ const AdminCreativeWritingPage: React.FC = () => {
                                 <Table>
                                    <TableHeader>
                                        <TableRow>
-                                            <SortableTh table="bookings" sortKey="child_profiles.name" label="الطالب" />
-                                            <SortableTh table="bookings" sortKey="package_name" label="الباقة" />
-                                            <SortableTh table="bookings" sortKey="instructors.name" label="المدرب" />
-                                            <SortableTh table="bookings" sortKey="status" label="الحالة" />
-                                            <SortableTh table="bookings" sortKey="booking_date" label="تاريخ الجلسة" />
+                                            <SortableTableHead<BookingWithRelations> sortKey="child_profiles.name" label="الطالب" sortConfig={bookingsSortConfig} onSort={(key) => handleSort('bookings', key)} />
+                                            <SortableTableHead<BookingWithRelations> sortKey="package_name" label="الباقة" sortConfig={bookingsSortConfig} onSort={(key) => handleSort('bookings', key)} />
+                                            <SortableTableHead<BookingWithRelations> sortKey="instructors.name" label="المدرب" sortConfig={bookingsSortConfig} onSort={(key) => handleSort('bookings', key)} />
+                                            <SortableTableHead<BookingWithRelations> sortKey="status" label="الحالة" sortConfig={bookingsSortConfig} onSort={(key) => handleSort('bookings', key)} />
+                                            <SortableTableHead<BookingWithRelations> sortKey="booking_date" label="تاريخ الجلسة" sortConfig={bookingsSortConfig} onSort={(key) => handleSort('bookings', key)} />
                                             <TableHead>إجراءات</TableHead>
                                         </TableRow>
                                     </TableHeader>

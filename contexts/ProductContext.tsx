@@ -1,11 +1,14 @@
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
-import type { Prices, SiteBranding, ShippingCosts } from '../lib/database.types';
+import type { Prices, SiteBranding as SiteBrandingType, ShippingCosts } from '../lib/database.types';
 import { useToast } from './ToastContext';
 import { usePrices, useSiteBranding, useShippingCosts } from '../hooks/queries/public/useProductDataQuery';
 import { useProductSettingsMutations } from '../hooks/mutations/useProductSettingsMutations';
 
+export interface SiteBranding extends SiteBrandingType {
+    joinUsImageUrl: string;
+}
 
-export type { Prices, SiteBranding, ShippingCosts };
+export type { Prices, ShippingCosts };
 
 interface ProductContextType {
     prices: Prices | null | undefined;
@@ -43,7 +46,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     const value = useMemo(() => ({
         prices,
-        siteBranding,
+        siteBranding: siteBranding as SiteBranding | null | undefined,
         shippingCosts,
         setPrices,
         setSiteBranding,

@@ -62,7 +62,7 @@ const NotificationPanel: React.FC = () => {
                         <Link 
                             key={notif.id} 
                             to={notif.link}
-                            state={notif.link === '/account' ? { defaultTab: 'myLibrary' } : undefined}
+                            state={notif.link === '/account' ? { defaultTab: 'familyCenter' } : undefined}
                             onClick={() => handleNotificationClick(notif.id)}
                             className={`block p-4 rounded-lg border-r-4 transition-colors ${notif.read ? 'bg-gray-50 border-gray-200 hover:bg-gray-100' : 'bg-blue-50 border-blue-400 hover:bg-blue-100'}`}
                         >

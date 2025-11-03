@@ -15,7 +15,8 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import ImageUpload from '../components/shared/ImageUpload';
-import { EGYPTIAN_GOVERNORATES } from '../utils/governorates';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import ShippingAddressForm from '../components/shared/ShippingAddressForm';
 
 type SubscriptionStep = 'plan' | 'child' | 'customization' | 'images' | 'delivery';
 
@@ -172,24 +173,23 @@ const SubscriptionPage: React.FC = () => {
         setIsSubmitting(false);
     };
     
+    const currentStepTitle = stepsConfig.find(s => s.key === step)?.title;
+    
     const renderStepContent = () => {
         switch (step) {
             case 'plan':
                 return (
-                    <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-6">1. اختر باقة الاشتراك</h3>
+                    <>
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {(subscriptionPlans as SubscriptionPlan[]).map(plan => (
                                 <PlanCard key={plan.id} plan={plan} isSelected={selectedPlan?.id === plan.id} onSelect={() => setSelectedPlan(plan)} />
                             ))}
                         </div>
                          {errors.plan && <p className="mt-4 text-sm text-red-600">{errors.plan}</p>}
-                    </div>
+                    </>
                 );
             case 'child':
                 return (
-                    <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-6">2. تفاصيل الطفل الأساسية</h3>
                         <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField label="اسم الطفل*" htmlFor="childName" error={errors.childName}>
                                 <Input type="text" id="childName" name="childName" value={formData.childName} onChange={handleChange} required />
@@ -204,12 +204,9 @@ const SubscriptionPage: React.FC = () => {
                                 </Select>
                             </FormField>
                         </div>
-                    </div>
                 );
             case 'customization':
                 return (
-                     <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-6">3. تفاصيل تخصيص القصة (اختياري)</h3>
                         <div className="p-6 space-y-6 bg-gray-50 rounded-lg border">
                             <FormField label="أخبرنا عن طفلك" htmlFor="childTraits">
                                 <Textarea id="childTraits" name="childTraits" value={formData.childTraits} onChange={handleChange} rows={4} placeholder="مثال: شجاع، يحب الديناصورات..."/>
@@ -221,69 +218,26 @@ const SubscriptionPage: React.FC = () => {
                                 <Textarea id="friendNames" name="friendNames" value={formData.friendNames} onChange={handleChange} rows={2} placeholder="مثال: صديقه المقرب: خالد"/>
                             </FormField>
                        </div>
-                    </div>
                 );
             case 'images':
                  return (
-                     <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-6">4. صور التخصيص (للطفل)</h3>
+                     <>
                          {errors['child_photo_1'] && <p className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg">{errors['child_photo_1']}</p>}
                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 rounded-lg border">
                            <ImageUpload id="child_photo_1" label="صورة وجه الطفل (إلزامي)" onFileChange={handleFileChange} file={imageFiles['child_photo_1']} />
                            <ImageUpload id="child_photo_2" label="صورة ثانية للطفل (اختياري)" onFileChange={handleFileChange} file={imageFiles['child_photo_2']} />
                            <ImageUpload id="child_photo_3" label="صورة ثالثة للطفل (اختياري)" onFileChange={handleFileChange} file={imageFiles['child_photo_3']} />
                        </div>
-                    </div>
+                    </>
                  );
             case 'delivery':
                 return (
-                     <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-6">5. تفاصيل التوصيل</h3>
-                         <div className="p-6 space-y-4 bg-gray-50 rounded-lg border">
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">خيار التوصيل</label>
-                                <div className="flex gap-4 rounded-lg border p-1 bg-gray-100">
-                                    <button type="button" onClick={() => handleChange({ target: { name: 'shippingOption', value: 'my_address' } } as any)} className={`flex-1 p-2 rounded-md font-semibold text-sm transition-all ${formData.shippingOption === 'my_address' ? 'bg-blue-600 text-white shadow' : 'hover:bg-gray-200'}`}>
-                                        توصيل لعنواني
-                                    </button>
-                                    <button type="button" onClick={() => handleChange({ target: { name: 'shippingOption', value: 'gift' } } as any)} className={`flex-1 p-2 rounded-md font-semibold text-sm transition-all ${formData.shippingOption === 'gift' ? 'bg-blue-600 text-white shadow' : 'hover:bg-gray-200'}`}>
-                                        إرسال كهدية
-                                    </button>
-                                </div>
-                            </div>
-
-                            {formData.shippingOption === 'gift' && (
-                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4 animate-fadeIn">
-                                    <FormField label="اسم المستلم*" htmlFor="recipientName" error={errors.recipientName} className="md:col-span-2">
-                                        <Input type="text" id="recipientName" name="recipientName" value={formData.recipientName} onChange={handleChange} required={formData.shippingOption === 'gift'} />
-                                    </FormField>
-                                    <FormField label="عنوان المستلم*" htmlFor="recipientAddress" error={errors.recipientAddress} className="md:col-span-2">
-                                        <Input type="text" id="recipientAddress" name="recipientAddress" value={formData.recipientAddress} onChange={handleChange} required={formData.shippingOption === 'gift'} />
-                                    </FormField>
-                                    <FormField label="هاتف المستلم*" htmlFor="recipientPhone" error={errors.recipientPhone}>
-                                        <Input type="tel" id="recipientPhone" name="recipientPhone" value={formData.recipientPhone} onChange={handleChange} required={formData.shippingOption === 'gift'} />
-                                    </FormField>
-                                    <FormField label="البريد الإلكتروني للمستلم (لإرسال بطاقة الهدية)" htmlFor="recipientEmail">
-                                        <Input type="email" id="recipientEmail" name="recipientEmail" value={formData.recipientEmail} onChange={handleChange} />
-                                    </FormField>
-                                    <FormField label="رسالة الهدية" htmlFor="giftMessage">
-                                        <Textarea id="giftMessage" name="giftMessage" value={formData.giftMessage} onChange={handleChange} rows={3} placeholder="اكتب رسالتك هنا..."/>
-                                    </FormField>
-                                    <div>
-                                        <label className="flex items-center gap-2 text-sm">
-                                            <input type="checkbox" name="sendDigitalCard" checked={formData.sendDigitalCard} onChange={handleChange} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
-                                            <span>إرسال بطاقة هدية رقمية للمستلم فور تأكيد الطلب</span>
-                                        </label>
-                                    </div>
-                                </div>
-                            )}
-                            
-                            <FormField label={formData.shippingOption === 'gift' ? 'محافظة المستلم' : 'المحافظة'} htmlFor="governorate">
-                                <Select id="governorate" name="governorate" value={formData.governorate} onChange={handleChange}>
-                                    {EGYPTIAN_GOVERNORATES.map(gov => <option key={gov} value={gov}>{gov}</option>)}
-                                </Select>
-                            </FormField>
-                        </div>
+                    <div className="p-6 space-y-4 bg-gray-50 rounded-lg border">
+                        <ShippingAddressForm
+                            formData={formData}
+                            handleChange={handleChange}
+                            errors={errors}
+                        />
                     </div>
                 );
         }
@@ -316,19 +270,26 @@ const SubscriptionPage: React.FC = () => {
                          <OrderStepper steps={stepsConfig} currentStep={step} />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                        <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-lg border space-y-10">
-                            {renderStepContent()}
-                            <div className="flex justify-between pt-6 border-t">
-                                <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />} disabled={step === 'plan'}>
-                                    السابق
-                                </Button>
-                                {step !== 'delivery' ? (
-                                    <Button onClick={handleNext}>التالي <ArrowLeft className="mr-2 h-4 w-4" /></Button>
-                                ) : (
-                                    <p className="text-sm text-gray-500">أكمل طلبك من الملخص على اليسار.</p>
-                                )}
-                            </div>
-                        </div>
+                        <Card className="lg:col-span-2">
+                           {currentStepTitle && (
+                                <CardHeader>
+                                    <CardTitle className="text-2xl">{currentStepTitle}</CardTitle>
+                                </CardHeader>
+                            )}
+                            <CardContent className="pt-2 space-y-10">
+                                {renderStepContent()}
+                                <div className="flex justify-between pt-6 border-t">
+                                    <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />} disabled={step === 'plan'}>
+                                        السابق
+                                    </Button>
+                                    {step !== 'delivery' ? (
+                                        <Button onClick={handleNext}>التالي <ArrowLeft className="mr-2 h-4 w-4" /></Button>
+                                    ) : (
+                                        <p className="text-sm text-gray-500">أكمل طلبك من الملخص على اليسار.</p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         <div className="lg:col-span-1 sticky top-24">
                             <SubscriptionSummary

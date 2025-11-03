@@ -8,7 +8,7 @@ interface AddonsSectionProps {
     onToggle: (key: string) => void;
 }
 
-const AddonsSection: React.FC<AddonsSectionProps> = ({ addonProducts, selectedAddons, onToggle }) => {
+const AddonsSection: React.FC<AddonsSectionProps> = React.memo(({ addonProducts, selectedAddons, onToggle }) => {
     if (addonProducts.length === 0) return null;
 
     const getPrice = (product: PersonalizedProduct): number | null => {
@@ -46,6 +46,7 @@ const AddonsSection: React.FC<AddonsSectionProps> = ({ addonProducts, selectedAd
             </div>
         </div>
     );
-};
+});
+AddonsSection.displayName = "AddonsSection";
 
 export default AddonsSection;

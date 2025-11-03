@@ -1,75 +1,55 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookHeart, Gift, Star, ArrowLeft, CheckCircle, Palette, Zap, Send, Mic } from 'lucide-react';
+import { BookHeart, Gift, Star, ArrowLeft, CheckCircle, Send, Mic, User, Sparkles } from 'lucide-react';
 import TestimonialCard from '../components/shared/TestimonialCard';
 import ShareButtons from '../components/shared/ShareButtons';
 import HowItWorksStep from '../components/shared/HowItWorksStep';
 import { Button } from '../components/ui/Button';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
+import { Card, CardContent } from '../components/ui/card';
+import Image from '../components/ui/Image';
+
+const BenefitCard: React.FC<{ icon: React.ReactNode; title: string; description: string; }> = ({ icon, title, description }) => (
+    <Card className="text-center h-full shadow-lg">
+        <CardContent className="pt-8">
+            <div className="flex-shrink-0 flex items-center justify-center h-16 w-16 rounded-full bg-pink-100 text-pink-600 mx-auto mb-4">
+                {icon}
+            </div>
+            <h3 className="text-xl font-bold text-foreground">{title}</h3>
+            <p className="mt-2 text-muted-foreground">{description}</p>
+        </CardContent>
+    </Card>
+);
+
+const ProductHighlight: React.FC<{ title: string; description: string; features: string[]; imageUrl: string; ctaLink: string; ctaText: string; isReversed?: boolean }> = ({ title, description, features, imageUrl, ctaLink, ctaText, isReversed = false }) => (
+    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-12 items-center ${isReversed ? 'lg:grid-flow-col-dense' : ''}`}>
+        <div className={isReversed ? 'lg:col-start-2' : ''}>
+            <Image src={imageUrl} alt={title} className="rounded-2xl shadow-2xl aspect-square" />
+        </div>
+        <div className={isReversed ? 'lg:col-start-1' : ''}>
+            <h3 className="text-3xl font-extrabold text-foreground">{title}</h3>
+            <p className="mt-4 text-lg text-muted-foreground leading-relaxed">{description}</p>
+            <ul className="mt-6 space-y-3">
+                {features.map(feature => (
+                    <li key={feature} className="flex items-start gap-3">
+                        <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
+                        <span className="text-muted-foreground">{feature}</span>
+                    </li>
+                ))}
+            </ul>
+            <Button as={Link} to={ctaLink} size="lg" variant="pink" className="mt-8">
+                {ctaText}
+            </Button>
+        </div>
+    </div>
+);
+
 
 const EnhaLakPage: React.FC = () => {
     const pageUrl = window.location.href;
     const { data, isLoading } = usePublicData();
     const content = data?.siteContent?.enhaLakPage.main;
-
-    // Prices are removed from this page. They are available in the store.
-    const products = [
-        {
-            title: "القصة المخصصة",
-            features: [
-                "تخصيص كامل للبطل: اسم الطفل، صورته، عمره، هواياته",
-                "اختيار الهدف التربوي: من 20+ قيمة أساسية",
-                "خيارات النشر: نسخة مطبوعة فاخرة أو إلكترونية تفاعلية",
-                "رسومات احترافية: مصممة خصيصاً لطفلك",
-                "لغة عربية سليمة: تعزز المهارات اللغوية"
-            ],
-            icon: <BookHeart size={32} className="text-pink-500" />
-        },
-        {
-            title: "دفتر التلوين المخصص",
-            features: [
-                "رسومات من قصة طفلك الشخصية",
-                "20+ صفحة للتلوين والإبداع",
-                "جودة طباعة عالية على ورق مقوى",
-                "نشاط ممتع ينمي المهارات الحركية"
-            ],
-            icon: <Palette size={32} className="text-purple-500" />
-        },
-        {
-            title: "كتيّب الأذكار والأدعية",
-            features: [
-                "رفيق يومي مصور بشخصية طفلك",
-                "أدعية وأذكار مختارة ومناسبة للعمر",
-                "تصميم جذاب ومحبب للأطفال",
-                "يعزز الجانب الروحي والأخلاقي"
-            ],
-            icon: <Star size={32} className="text-yellow-500" />
-        },
-        {
-            title: "التعليق الصوتي للقصة",
-            description: "إعطاء حياة وشخصية للكلمات من خلال الأداء الصوتي للقصص المخصصة والمحتوى الصوتي.",
-            features: [
-                "أداء صوتي احترافي ومؤثر",
-                "مؤثرات صوتية مناسبة للأحداث",
-                "ملف صوتي عالي الجودة (MP3)",
-                "يمكن إضافته لأي قصة مخصصة"
-            ],
-            icon: <Mic size={32} className="text-blue-500" />
-        },
-    ];
-    
-    const giftBox = {
-        title: "بوكس الهدية الكامل",
-        features: [
-            "القصة المخصصة (نسخة فاخرة)",
-            "دفتر التلوين الخاص",
-            "كتيب الأذكار والأدعية",
-            "تغليف هدايا مميز وفاخر"
-        ],
-        icon: <Gift size={32} className="text-teal-500" />,
-        specialNote: "وفر 300 جنيه مع الباقة الكاملة!"
-    };
 
     const galleryImages = [
         "https://i.ibb.co/8XYt2s5/about-us-image.jpg",
@@ -106,106 +86,69 @@ const EnhaLakPage: React.FC = () => {
                 </div>
             </section>
             
-            {/* Products Section */}
+            {/* Power of Personal Story Section */}
             <section className="py-16 sm:py-20 lg:py-24">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.productsTitle}</h2>
+                        <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">قوة القصة الشخصية</h2>
+                        <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">لماذا تعتبر القصة المخصصة أداة تربوية فعالة؟</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-                        {products.map(product => (
-                            <div key={product.title} className="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-pink-400">
-                                <div className="flex items-center gap-4 mb-4">
-                                    {product.icon}
-                                    <h3 className="text-2xl font-bold text-gray-800">{product.title}</h3>
-                                </div>
-                                {product.description && <p className="text-gray-600 mb-4">{product.description}</p>}
-                                <ul className="space-y-2 mt-6">
-                                    {product.features.map(feature => (
-                                        <li key={feature} className="flex items-start gap-3 text-gray-600">
-                                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
-                                            <span>{feature}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                         <div className="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-teal-400 md:col-span-2">
-                            <div className="flex items-center gap-4 mb-4">
-                                {giftBox.icon}
-                                <h3 className="text-2xl font-bold text-gray-800">{giftBox.title}</h3>
-                            </div>
-                            <ul className="space-y-2 mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                                {giftBox.features.map(feature => (
-                                    <li key={feature} className="flex items-start gap-3 text-gray-600">
-                                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
-                                        <span>{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                             <div className="mt-4 p-3 bg-green-50 text-green-700 font-bold rounded-lg text-center">
-                                {giftBox.specialNote}
-                            </div>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                        <BenefitCard icon={<User size={32} />} title="تعزيز الهوية" description="عندما يرى الطفل نفسه بطلاً، يزداد تقديره لذاته وثقته بنفسه بشكل كبير." />
+                        <BenefitCard icon={<BookHeart size={32} />} title="شغف القراءة" description="الارتباط الشخصي بالقصة يحول القراءة من واجب إلى متعة ومغامرة ينتظرها بشغف." />
+                        <BenefitCard icon={<Sparkles size={32} />} title="غرس القيم" description="تصبح الرسائل التربوية والأخلاقية أكثر تأثيراً عندما يعيشها الطفل بنفسه كجزء من الأحداث." />
                     </div>
-                    {/* Subscription Box CTA */}
-                    <div className="mt-16 max-w-6xl mx-auto bg-gradient-to-br from-orange-50 to-yellow-50 p-8 rounded-2xl shadow-xl border-2 border-orange-200">
-                        <div className="flex flex-col md:flex-row items-center gap-8 text-center md:text-right">
-                            <div className="flex-shrink-0">
-                                <Gift size={64} className="text-orange-500"/>
-                            </div>
-                            <div className="flex-grow">
-                                <h3 className="text-3xl font-extrabold text-gray-800">جديدنا: صندوق الرحلة الشهري</h3>
-                                <p className="mt-2 text-gray-600">هدية متجددة كل شهر، تفتح لطفلك أبواباً جديدة من الخيال والمعرفة. قصة جديدة وأنشطة إبداعية تصل إلى باب منزلك.</p>
-                            </div>
-                            <div className="flex-shrink-0">
-                                <Button asChild size="lg" variant="special">
-                                    <Link to="/enha-lak/subscription">اعرف المزيد واشترك الآن</Link>
-                                </Button>
-                            </div>
-                        </div>
+                </div>
+            </section>
+            
+            {/* Products Showcase */}
+            <section className="bg-white py-16 sm:py-20 lg:py-24">
+                <div className="container mx-auto px-4 max-w-6xl">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.productsTitle}</h2>
+                    </div>
+                    <div className="space-y-20">
+                        <ProductHighlight
+                            title="القصة المخصصة"
+                            description="جوهر 'إنها لك'، قصة فريدة منسوجة حول شخصية طفلك واهتماماته، تهدف لغرس قيمة تربوية مختارة بعناية."
+                            features={["تخصيص كامل للبطل: اسم، صورة، وصف", "اختيار الهدف التربوي من قائمة متنوعة", "متوفرة بنسخ مطبوعة فاخرة وإلكترونية"]}
+                            imageUrl={content?.customStoryImageUrl || "https://i.ibb.co/RzJzQhL/hero-image-new.jpg"}
+                            ctaLink="/enha-lak/store"
+                            ctaText="اكتشف القصص"
+                        />
+                        <ProductHighlight
+                            title="صندوق الرحلة الشهري"
+                            description="هدية متجددة تفتح لطفلك أبواباً جديدة من الخيال والمعرفة كل شهر، مع محتوى حصري ومفاجآت ممتعة."
+                            features={["قصة مخصصة جديدة كل شهر", "أنشطة تفاعلية وألعاب تعليمية مبتكرة", "هدية إضافية مختارة بعناية لتناسب عمر الطفل"]}
+                            imageUrl={content?.subscriptionBoxImageUrl || "https://i.ibb.co/L8DDd6V/gift-box-sub.png"}
+                            ctaLink="/enha-lak/subscription"
+                            ctaText="اعرف المزيد واشترك"
+                            isReversed
+                        />
                     </div>
                 </div>
             </section>
             
             {/* How It Works Section */}
-            <section className="bg-white py-16 sm:py-20 lg:py-24">
+            <section className="bg-muted/50 py-16 sm:py-20 lg:py-24">
               <div className="container mx-auto px-4">
                   <div className="text-center mb-16">
-                      <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.howItWorksTitle}</h2>
+                      <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.howItWorksTitle}</h2>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 items-start relative max-w-6xl mx-auto">
                       <HowItWorksStep icon={<Send size={48} className="text-blue-600"/>} title="1. املأ البيانات" description="اسم الطفل، عمره، صورته، هواياته."/>
                       <HowItWorksStep icon={<CheckCircle size={48} className="text-pink-500"/>} title="2. اختر القيمة" description="حدد الهدف التربوي المطلوب."/>
-                      <HowItWorksStep icon={<Zap size={48} className="text-yellow-500"/>} title="3. انتظر السحر" description="فريقنا ينسج قصة مخصصة تماماً."/>
+                      <HowItWorksStep icon={<Sparkles size={48} className="text-yellow-500"/>} title="3. انتظر السحر" description="فريقنا ينسج قصة مخصصة تماماً."/>
                       <HowItWorksStep icon={<Gift size={48} className="text-green-500"/>} title="4. استلم واستمتع" description="قصة جاهزة في 7-10 أيام عمل."/>
                   </div>
               </div>
           </section>
 
-            {/* Gallery Section */}
-            <section className="bg-gray-50 py-16 sm:py-20 lg:py-24">
-                <div className="container mx-auto px-4">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.galleryTitle}</h2>
-                        <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">{content?.gallerySubtitle}</p>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {galleryImages.map((src, index) => (
-                            <div key={index} className="overflow-hidden rounded-lg shadow-lg aspect-w-1 aspect-h-1">
-                                <img src={src} alt={`نموذج عمل ${index + 1}`} loading="lazy" className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-300" />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-
             {/* Testimonials Section */}
              <section className="bg-white py-16 sm:py-20 lg:py-24">
                 <div className="container mx-auto px-4 text-center">
-                     <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.testimonialsTitle}</h2>
-                     <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">{content?.testimonialsSubtitle}</p>
+                     <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.testimonialsTitle}</h2>
+                     <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">{content?.testimonialsSubtitle}</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mt-12">
                         <TestimonialCard
                             quote="قصة 'إنها لك' كانت أفضل هدية لابنتي. رؤية فرحتها وهي ترى نفسها بطلة الحكاية لا تقدر بثمن. شكرًا لكم على هذا الإبداع."
@@ -224,8 +167,8 @@ const EnhaLakPage: React.FC = () => {
             {/* Final CTA */}
              <section className="py-20 bg-gradient-to-br from-pink-50 to-red-50">
                 <div className="container mx-auto px-4 text-center">
-                    <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-800">{content?.finalCtaTitle}</h2>
-                    <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">{content?.finalCtaSubtitle}</p>
+                    <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.finalCtaTitle}</h2>
+                    <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">{content?.finalCtaSubtitle}</p>
                     <div className="mt-8">
                         <Button asChild size="lg" variant="pink" icon={<ArrowLeft className="me-3 transform rotate-180" size={22}/>} className="shadow-lg transition-transform transform hover:scale-105">
                             <Link to="/enha-lak/store">

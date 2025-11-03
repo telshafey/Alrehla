@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MessageSquare, Eye, ArrowUp, ArrowDown } from 'lucide-react';
+import { MessageSquare, Eye } from 'lucide-react';
 import { useAdminSupportTickets } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useCommunicationMutations } from '../../hooks/mutations/useCommunicationMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -13,6 +13,7 @@ import { Input } from '../../components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import ErrorState from '../../components/ui/ErrorState';
+import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 
 const ticketStatuses: TicketStatus[] = ["جديدة", "تمت المراجعة", "مغلقة"];
 const statusColors: { [key in TicketStatus]: string } = {
@@ -76,19 +77,6 @@ const AdminSupportPage: React.FC = () => {
         setSortConfig({ key, direction });
     };
 
-    const SortableTh: React.FC<{ sortKey: keyof SupportTicket; label: string }> = ({ sortKey, label }) => (
-        <TableHead>
-            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
-                <div className="flex items-center">
-                   <span>{label}</span>
-                    {sortConfig?.key === sortKey && (
-                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
-                    )}
-                </div>
-            </Button>
-        </TableHead>
-    );
-
     if (isLoading) return <PageLoader text="جاري تحميل رسائل الدعم..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
@@ -129,10 +117,10 @@ const AdminSupportPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <SortableTh sortKey="name" label="الاسم" />
-                                        <SortableTh sortKey="subject" label="الموضوع" />
-                                        <SortableTh sortKey="created_at" label="التاريخ" />
-                                        <SortableTh sortKey="status" label="الحالة" />
+                                        <SortableTableHead<SupportTicket> sortKey="name" label="الاسم" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<SupportTicket> sortKey="subject" label="الموضوع" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<SupportTicket> sortKey="created_at" label="التاريخ" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<SupportTicket> sortKey="status" label="الحالة" sortConfig={sortConfig} onSort={handleSort} />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>

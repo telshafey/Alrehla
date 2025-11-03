@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Instructor } from '../../../lib/database.types';
+import { cn } from '../../../lib/utils';
 
 interface InstructorSelectionProps {
     instructors: Instructor[];
@@ -16,17 +17,20 @@ const InstructorSelection: React.FC<InstructorSelectionProps> = ({ instructors, 
 
     return (
         <div className="animate-fadeIn">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">اختر المدرب المفضل لديك</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 {instructors.map(instructor => (
                     <button
                         key={instructor.id}
+                        type="button"
                         onClick={() => handleSelect(instructor)}
-                        className={`p-4 border-2 rounded-2xl text-center transition-all hover:shadow-lg hover:border-blue-500 ${selectedId === instructor.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'}`}
+                        className={cn(
+                            'p-4 border-2 rounded-2xl text-center transition-all hover:shadow-lg',
+                             selectedId === instructor.id ? 'border-primary ring-2 ring-primary/30' : 'border-border bg-background hover:border-primary/50'
+                        )}
                     >
-                        <img src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={instructor.name} className="w-20 h-20 rounded-full mx-auto object-cover mb-3" />
-                        <h3 className="font-bold">{instructor.name}</h3>
-                        <p className="text-xs text-gray-500">{instructor.specialty}</p>
+                        <img src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={instructor.name} className="w-20 h-20 rounded-full mx-auto object-cover mb-3"/>
+                        <h3 className="font-bold text-foreground">{instructor.name}</h3>
+                        <p className="text-xs text-muted-foreground">{instructor.specialty}</p>
                     </button>
                 ))}
             </div>

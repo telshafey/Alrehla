@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Package, Plus, Edit, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Package, Plus, Edit, Trash2 } from 'lucide-react';
 import { useAdminCWSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useCreativeWritingSettingsMutations } from '../../hooks/mutations/useCreativeWritingSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -9,6 +9,7 @@ import type { CreativeWritingPackage } from '../../lib/database.types';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 
 const AdminCreativeWritingPackagesPage: React.FC = () => {
     const { data, isLoading, error, refetch } = useAdminCWSettings();
@@ -61,19 +62,6 @@ const AdminCreativeWritingPackagesPage: React.FC = () => {
         }
         setSortConfig({ key, direction });
     };
-
-    const SortableTh: React.FC<{ sortKey: keyof CreativeWritingPackage; label: string }> = ({ sortKey, label }) => (
-        <TableHead>
-            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
-                <div className="flex items-center">
-                   <span>{label}</span>
-                    {sortConfig?.key === sortKey && (
-                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
-                    )}
-                </div>
-            </Button>
-        </TableHead>
-    );
     
     if (isLoading) return <PageLoader />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
@@ -104,9 +92,9 @@ const AdminCreativeWritingPackagesPage: React.FC = () => {
                             <Table>
                                <TableHeader>
                                    <TableRow>
-                                        <SortableTh sortKey="name" label="الباقة" />
-                                        <SortableTh sortKey="sessions" label="الجلسات" />
-                                        <SortableTh sortKey="price" label="السعر" />
+                                        <SortableTableHead<CreativeWritingPackage> sortKey="name" label="الباقة" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<CreativeWritingPackage> sortKey="sessions" label="الجلسات" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<CreativeWritingPackage> sortKey="price" label="السعر" sortConfig={sortConfig} onSort={handleSort} />
                                         <TableHead>إجراءات</TableHead>
                                     </TableRow>
                                 </TableHeader>

@@ -4,7 +4,8 @@ import AdminSection from '../AdminSection';
 import { Button } from '../../ui/Button';
 import { PlusCircle, Gift, Edit, UserPlus } from 'lucide-react';
 
-const QuickActionsWidget: React.FC<{ permissions: any }> = ({ permissions }) => {
+const QuickActionsWidget = React.forwardRef<HTMLElement, { permissions: any } & React.HTMLAttributes<HTMLElement>>(
+    ({ permissions, ...props }, ref) => {
 
     const actions = [
         {
@@ -30,19 +31,18 @@ const QuickActionsWidget: React.FC<{ permissions: any }> = ({ permissions }) => 
     if (actions.length === 0) return null;
 
     return (
-        <AdminSection title="إجراءات سريعة" icon={<PlusCircle />}>
+        <AdminSection ref={ref} title="إجراءات سريعة" icon={<PlusCircle />} {...props}>
             <div className="grid grid-cols-1 gap-3">
                 {actions.map(action => (
-                    <Button asChild key={action.to} variant="outline" className="justify-start">
-                        <Link to={action.to}>
-                            {action.icon}
-                            <span className="mr-2">{action.label}</span>
-                        </Link>
+                    <Button as={Link} to={action.to} key={action.to} variant="outline" className="justify-start">
+                        {action.icon}
+                        <span className="mr-2">{action.label}</span>
                     </Button>
                 ))}
             </div>
         </AdminSection>
     );
-};
+});
+QuickActionsWidget.displayName = "QuickActionsWidget";
 
 export default QuickActionsWidget;

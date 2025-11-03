@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plug } from 'lucide-react';
+import { Save, Plug, Camera } from 'lucide-react';
 import { useAdminJitsiSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import { Button } from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '../../components/ui/card';
 import { Checkbox } from '../../components/ui/Checkbox';
 import type { JitsiSettings } from '../../lib/database.types';
 
@@ -32,6 +32,13 @@ const AdminIntegrationsPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         await updateJitsiSettings.mutateAsync(settings);
+    };
+
+    const handleTestRoom = () => {
+        const randomString = `test-${Math.random().toString(36).substring(7)}`;
+        const roomName = `${settings.room_prefix || 'AlRehlah-Session-'}${randomString}`;
+        const url = `https://${settings.domain || 'meet.jit.si'}/${roomName}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     if (isLoading) return <PageLoader text="جاري تحميل إعدادات التكامل..." />;
@@ -74,12 +81,15 @@ const AdminIntegrationsPage: React.FC = () => {
                                 بدء الجلسة مع إيقاف كاميرا المشاركين
                             </label>
                         </div>
-                        <div className="flex justify-end">
-                            <Button type="submit" loading={updateJitsiSettings.isPending} icon={<Save />}>
-                                حفظ الإعدادات
-                            </Button>
-                        </div>
                     </CardContent>
+                    <CardFooter className="justify-end gap-2">
+                         <Button type="button" variant="outline" onClick={handleTestRoom} icon={<Camera />}>
+                            اختبار الغرفة
+                        </Button>
+                        <Button type="submit" loading={updateJitsiSettings.isPending} icon={<Save />}>
+                            حفظ الإعدادات
+                        </Button>
+                    </CardFooter>
                 </Card>
             </form>
         </div>

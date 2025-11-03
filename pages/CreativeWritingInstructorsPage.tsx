@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import type { Instructor } from '../lib/database.types';
+import Image from '../components/ui/Image';
 
 const SkeletonInstructorCard: React.FC = () => (
     <div className="bg-white rounded-2xl p-6 text-center border flex flex-col items-center shadow-lg animate-pulse">
@@ -14,19 +15,13 @@ const SkeletonInstructorCard: React.FC = () => (
 );
 
 const InstructorCard: React.FC<{ instructor: Instructor }> = ({ instructor }) => {
-    const [imageLoaded, setImageLoaded] = useState(false);
     return (
         <div className="bg-white rounded-2xl p-6 text-center border flex flex-col items-center transform hover:-translate-y-2 transition-transform duration-300 shadow-lg">
-            <div className="relative w-24 h-24 mb-4">
-                {!imageLoaded && <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-full"></div>}
-                <img 
-                    src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
-                    alt={instructor.name} 
-                    className={`w-24 h-24 rounded-full object-cover ring-4 ring-blue-100 shadow-md transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                    loading="lazy"
-                    onLoad={() => setImageLoaded(true)}
-                />
-            </div>
+            <Image 
+                src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
+                alt={instructor.name} 
+                className="w-24 h-24 mb-4 rounded-full object-cover ring-4 ring-blue-100 shadow-md"
+            />
             <h3 className="text-xl font-bold text-gray-800">{instructor.name}</h3>
             <p className="text-blue-600 font-semibold mb-4 flex-grow text-sm">{instructor.specialty}</p>
             <Link 

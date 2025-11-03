@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Users, Plus, UserCog, ArrowUp, ArrowDown } from 'lucide-react';
+import { Users, Plus, UserCog } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import PageLoader from '../../components/ui/PageLoader';
 import AvailabilityManager from '../../components/admin/AvailabilityManager';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import Accordion from '../../components/ui/Accordion';
 import type { Instructor } from '../../lib/database.types';
+import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 
 
 // Main Page Component
@@ -38,20 +39,6 @@ const AdminInstructorsPage: React.FC = () => {
         setSortConfig({ key, direction });
     };
 
-    const SortableTh: React.FC<{ sortKey: keyof Instructor; label: string }> = ({ sortKey, label }) => (
-        <TableHead>
-            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
-                <div className="flex items-center">
-                   <span>{label}</span>
-                    {sortConfig?.key === sortKey && (
-                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
-                    )}
-                </div>
-            </Button>
-        </TableHead>
-    );
-
-
     if (isLoading) return <PageLoader text="جاري تحميل بيانات المدربين..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
@@ -73,9 +60,9 @@ const AdminInstructorsPage: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <SortableTh sortKey="name" label="المدرب" />
-                                <SortableTh sortKey="specialty" label="التخصص" />
-                                <SortableTh sortKey="schedule_status" label="حالة الجدول" />
+                                <SortableTableHead<Instructor> sortKey="name" label="المدرب" sortConfig={sortConfig} onSort={handleSort} />
+                                <SortableTableHead<Instructor> sortKey="specialty" label="التخصص" sortConfig={sortConfig} onSort={handleSort} />
+                                <SortableTableHead<Instructor> sortKey="schedule_status" label="حالة الجدول" sortConfig={sortConfig} onSort={handleSort} />
                                 <TableHead>إجراءات</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -99,10 +86,8 @@ const AdminInstructorsPage: React.FC = () => {
                                         </span>
                                     </TableCell>
                                     <TableCell>
-                                        <Button asChild variant="ghost" size="icon" title="إدارة ملف المدرب">
-                                            <Link to={`/admin/instructors/${instructor.id}`}>
-                                                <UserCog size={20} />
-                                            </Link>
+                                        <Button as={Link} to={`/admin/instructors/${instructor.id}`} variant="ghost" size="icon" title="إدارة ملف المدرب">
+                                            <UserCog size={20} />
                                         </Button>
                                     </TableCell>
                                 </TableRow>

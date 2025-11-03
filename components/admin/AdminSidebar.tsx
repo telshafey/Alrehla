@@ -1,149 +1,166 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Permissions } from '../../lib/roles';
 import {
-  LayoutDashboard, Users, Settings, ShoppingBag, BookOpen, MessageSquare, Edit,
-  Truck, Star, Gift, UserCheck, Package, Sparkles, UserPlus,
-  DollarSign, Calendar, User, Plug,
+    LayoutDashboard, Users, ShoppingBag, BookOpen, UserCog, MessageSquare, UserPlus,
+    FileText, Settings, Star, Package, Sparkles, CalendarCheck, Plug, DollarSign, BarChart, History
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import Image from '../ui/Image';
 
-interface NavItem {
-  type: 'link';
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  permission?: keyof Permissions;
-  role?: 'admin' | 'instructor';
+interface NavItemProps {
+    to: string;
+    icon: React.ReactNode;
+    label: string;
+    isCollapsed: boolean;
 }
 
-interface NavSection {
-  type: 'section';
-  label: string;
-  permission?: (keyof Permissions)[];
-  role?: 'admin' | 'instructor';
-}
-
-type NavConfigItem = NavItem | NavSection;
-
-const navConfig: NavConfigItem[] = [
-  // Common / Admin Main
-  { type: 'link', to: '/admin', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: 'canViewDashboard', role: 'admin' },
-  
-  // Enha Lak Section
-  { type: 'section', label: 'إنها لك', permission: ['canManageEnhaLakOrders', 'canManageEnhaLakProducts'], role: 'admin' },
-  { type: 'link', to: '/admin/orders', icon: <ShoppingBag size={20} />, label: 'الطلبات', permission: 'canManageEnhaLakOrders', role: 'admin' },
-  { type: 'link', to: '/admin/subscriptions', icon: <Star size={20} />, label: 'الاشتراكات', permission: 'canManageEnhaLakSubscriptions', role: 'admin' },
-  { type: 'link', to: '/admin/personalized-products', icon: <Gift size={20} />, label: 'المنتجات', permission: 'canManageEnhaLakProducts', role: 'admin' },
-  { type: 'link', to: '/admin/shipping', icon: <Truck size={20} />, label: 'الشحن', permission: 'canManageShipping', role: 'admin' },
-  
-  // Creative Writing Section
-  { type: 'section', label: 'بداية الرحلة', permission: ['canManageCreativeWritingBookings', 'canManageCreativeWritingInstructors'], role: 'admin' },
-  { type: 'link', to: '/admin/creative-writing', icon: <BookOpen size={20} />, label: 'الحجوزات', permission: 'canManageCreativeWritingBookings', role: 'admin' },
-  { type: 'link', to: '/admin/service-orders', icon: <Sparkles size={20} />, label: 'طلبات الخدمات', permission: 'canManageCreativeWritingBookings', role: 'admin' },
-  { type: 'link', to: '/admin/scheduled-sessions', icon: <Calendar size={20} />, label: 'إدارة الجلسات', permission: 'canManageSchedules', role: 'admin' },
-  { type: 'link', to: '/admin/instructors', icon: <UserCheck size={20} />, label: 'المدربون', permission: 'canManageCreativeWritingInstructors', role: 'admin' },
-  { type: 'link', to: '/admin/creative-writing-packages', icon: <Package size={20} />, label: 'إدارة الباقات', permission: 'canManageCreativeWritingSettings', role: 'admin' },
-  { type: 'link', to: '/admin/creative-writing-services', icon: <Sparkles size={20} />, label: 'إدارة الخدمات', permission: 'canManageCreativeWritingSettings', role: 'admin' },
-  { type: 'link', to: '/admin/pricing-review', icon: <DollarSign size={20} />, label: 'مراجعة التسعير', permission: 'canManagePrices', role: 'admin' },
-  
-  // Management Section
-  { type: 'section', label: 'الإدارة', permission: ['canManageUsers', 'canManageSettings'], role: 'admin' },
-  { type: 'link', to: '/admin/users', icon: <Users size={20} />, label: 'المستخدمون', permission: 'canManageUsers', role: 'admin' },
-  { type: 'link', to: '/admin/content-management', icon: <Edit size={20} />, label: 'المحتوى', permission: 'canManageContent', role: 'admin' },
-  { type: 'link', to: '/admin/integrations', icon: <Plug size={20} />, label: 'إدارة التكاملات', permission: 'canManageSettings', role: 'admin' },
-  { type: 'link', to: '/admin/settings', icon: <Settings size={20} />, label: 'الإعدادات العامة', permission: 'canManageSettings', role: 'admin' },
-
-  // Communication Section
-  { type: 'section', label: 'التواصل', permission: ['canManageSupportTickets', 'canManageJoinRequests'], role: 'admin' },
-  { type: 'link', to: '/admin/support', icon: <MessageSquare size={20} />, label: 'رسائل الدعم', permission: 'canManageSupportTickets', role: 'admin' },
-  { type: 'link', to: '/admin/join-requests', icon: <UserPlus size={20} />, label: 'طلبات الانضمام', permission: 'canManageJoinRequests', role: 'admin' },
-
-  // Instructor Menu
-  { type: 'link', to: '/admin', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', role: 'instructor' },
-  { type: 'link', to: '/admin/journeys', icon: <BookOpen size={20} />, label: 'رحلات الطلاب', role: 'instructor' },
-  { type: 'link', to: '/admin/financials', icon: <DollarSign size={20} />, label: 'الماليات', role: 'instructor' },
-  { type: 'link', to: '/admin/schedule', icon: <Calendar size={20} />, label: 'الجدول', role: 'instructor' },
-  { type: 'link', to: '/admin/pricing', icon: <DollarSign size={20} />, label: 'التسعير', role: 'instructor' },
-  { type: 'link', to: '/admin/profile', icon: <User size={20} />, label: 'ملفي الشخصي', role: 'instructor' },
-];
-
-const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string; isCollapsed: boolean; onClick?: () => void; }> = ({ to, icon, label, isCollapsed, onClick }) => (
-  <NavLink
-    to={to}
-    onClick={onClick}
-    end={to === '/admin'}
-    className={({ isActive }) => cn(
-      'flex items-center gap-4 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors',
-      isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-      isCollapsed && 'justify-center'
-    )}
-  >
-    {icon}
-    {!isCollapsed && <span>{label}</span>}
-  </NavLink>
-);
-
-const SectionTitle: React.FC<{ children: React.ReactNode; isCollapsed: boolean }> = ({ children, isCollapsed }) => {
-    if (isCollapsed) return <hr className="my-4 border-border" />;
-    return <h3 className="px-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider mt-6 mb-2">{children}</h3>
+const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed }) => {
+    return (
+        <NavLink
+            to={to}
+            end={to === '/admin'}
+            className={({ isActive }) => cn(
+                "flex items-center p-3 rounded-lg text-sm font-semibold transition-colors",
+                isActive ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted/50",
+                isCollapsed ? "justify-center" : "gap-4"
+            )}
+        >
+            {icon}
+            {!isCollapsed && <span>{label}</span>}
+        </NavLink>
+    );
 };
 
-const AdminSidebar: React.FC<{ isOpen: boolean; setIsOpen: (isOpen: boolean) => void; isCollapsed: boolean; }> = ({ isOpen, setIsOpen, isCollapsed }) => {
-  const { permissions, currentUser } = useAuth();
 
-  const handleClose = () => setIsOpen(false);
-  
-  const currentRole = currentUser?.role === 'instructor' ? 'instructor' : 'admin';
+const AdminSidebar: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
+    const { permissions } = useAuth();
+    
+    // This is the key logic: Is the user ONLY an instructor and not a higher-level admin?
+    const isInstructorOnly = permissions.isInstructor && !permissions.canViewGlobalStats;
 
-  const menuItems = navConfig.filter(item => {
-    if (item.role && item.role !== currentRole) {
-        return false;
+    // Instructor-specific sidebar
+    if (isInstructorOnly) {
+        const instructorNav = [
+            { to: '/admin', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: true },
+            { to: '/admin/profile', icon: <UserCog size={20} />, label: 'ملفي الشخصي', permission: permissions.canManageOwnProfile },
+            { to: '/admin/schedule', icon: <CalendarCheck size={20} />, label: 'جدولي', permission: permissions.canManageOwnSchedule },
+            { to: '/admin/journeys', icon: <BookOpen size={20} />, label: 'رحلات الطلاب', permission: true },
+            { to: '/admin/pricing', icon: <DollarSign size={20} />, label: 'التسعير', permission: true },
+            { to: '/admin/financials', icon: <DollarSign size={20} />, label: 'الماليات', permission: permissions.canViewOwnFinancials },
+        ].filter(item => item.permission);
+
+         return (
+             <aside className={cn(
+                "hidden md:flex flex-col bg-background border-l rtl:border-l-0 rtl:border-r transition-all duration-300",
+                isCollapsed ? "w-20" : "w-64"
+            )}>
+                  <div className="flex items-center justify-center h-16 border-b p-4">
+                     <Image src="https://i.ibb.co/C0bSJJT/favicon.png" alt="شعار" className="h-8 w-8" />
+                     {!isCollapsed && <span className="font-bold text-lg mr-2">لوحة المدرب</span>}
+                 </div>
+                 <nav className="flex-1 p-4 space-y-2">
+                    {instructorNav.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
+                </nav>
+            </aside>
+        );
     }
-    if (item.type === 'link' && item.permission && !permissions[item.permission]) {
-        return false;
-    }
-    if (item.type === 'section' && item.permission && !item.permission.some(p => permissions[p])) {
-        return false;
-    }
-    return true;
-  });
+    
+    // Admin/Supervisor sidebar
+    const adminNavGroups = [
+        {
+            items: [
+                { to: '/admin', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: permissions.canViewDashboard },
+            ]
+        },
+        // Management
+        {
+            title: 'الإدارة',
+            items: [
+                { to: '/admin/users', icon: <Users size={20} />, label: 'المستخدمون', permission: permissions.canManageUsers },
+                { to: '/admin/instructors', icon: <UserCog size={20} />, label: 'المدربون', permission: permissions.canManageInstructors },
+            ]
+        },
+        // Financials & Reports
+        {
+            title: 'الماليات والتقارير',
+            items: [
+                 { to: '/admin/financials', icon: <DollarSign size={20} />, label: 'الماليات', permission: permissions.canManageFinancials },
+                 { to: '/admin/reports', icon: <BarChart size={20} />, label: 'التقارير', permission: permissions.canManageFinancials },
+            ]
+        },
+        // Enha Lak
+        {
+            title: 'إنها لك',
+            items: [
+                { to: '/admin/orders', icon: <ShoppingBag size={20} />, label: 'الطلبات', permission: permissions.canManageEnhaLakOrders },
+                { to: '/admin/personalized-products', icon: <Package size={20} />, label: 'المنتجات', permission: permissions.canManageEnhaLakProducts },
+                { to: '/admin/subscriptions', icon: <Star size={20} />, label: 'الاشتراكات', permission: permissions.canManageEnhaLakOrders },
+            ]
+        },
+         // Creative Writing
+        {
+            title: 'بداية الرحلة',
+            items: [
+                { to: '/admin/creative-writing', icon: <BookOpen size={20} />, label: 'الحجوزات', permission: permissions.canManageCreativeWritingBookings },
+                { to: '/admin/service-orders', icon: <Sparkles size={20} />, label: 'طلبات الخدمات', permission: permissions.canManageCreativeWritingBookings },
+                { to: '/admin/scheduled-sessions', icon: <CalendarCheck size={20} />, label: 'الجلسات المجدولة', permission: permissions.canManageCreativeWritingBookings },
+                { to: '/admin/introductory-sessions', icon: <Star size={20} />, label: 'الجلسات التعريفية', permission: permissions.canManageInstructors },
+                { to: '/admin/price-review', icon: <DollarSign size={20} />, label: 'تسعير المدربين', permission: permissions.canManageInstructors },
+                { to: '/admin/creative-writing-packages', icon: <Package size={20} />, label: 'إعدادات الباقات', permission: permissions.canManageCreativeWritingSettings },
+                { to: '/admin/creative-writing-services', icon: <Sparkles size={20} />, label: 'إعدادات الخدمات', permission: permissions.canManageCreativeWritingSettings },
+            ]
+        },
+         // Content
+        {
+            title: 'المحتوى والتواصل',
+            items: [
+                 { to: '/admin/content-management', icon: <FileText size={20} />, label: 'محتوى الموقع', permission: permissions.canManageSiteContent },
+                 { to: '/admin/blog', icon: <FileText size={20} />, label: 'المدونة', permission: permissions.canManageBlog },
+                 { to: '/admin/support', icon: <MessageSquare size={20} />, label: 'رسائل الدعم', permission: permissions.canManageSupportTickets },
+                 { to: '/admin/join-requests', icon: <UserPlus size={20} />, label: 'طلبات الانضمام', permission: permissions.canManageJoinRequests },
+            ]
+        },
+        // Settings
+        {
+            title: 'الإعدادات',
+            items: [
+                 { to: '/admin/settings', icon: <Settings size={20} />, label: 'الإعدادات العامة', permission: permissions.canManageSettings },
+                 { to: '/admin/shipping', icon: <Settings size={20} />, label: 'إعدادات الشحن', permission: permissions.canManageSettings },
+                 { to: '/admin/integrations', icon: <Plug size={20} />, label: 'التكاملات', permission: permissions.canManageSettings },
+                 { to: '/admin/audit-log', icon: <History size={20} />, label: 'سجل النشاطات', permission: permissions.canViewAuditLog },
+            ]
+        },
+    ];
 
+    return (
+        <aside className={cn(
+            "hidden md:flex flex-col bg-background border-l rtl:border-l-0 rtl:border-r transition-all duration-300",
+            isCollapsed ? "w-20" : "w-64"
+        )}>
+            <Link to="/" className="flex items-center justify-center h-16 border-b p-4 gap-2">
+                <Image src="https://i.ibb.co/C0bSJJT/favicon.png" alt="شعار" className="h-8 w-8" />
+                {!isCollapsed && <span className="font-bold text-lg">منصة الرحلة</span>}
+            </Link>
 
-  const sidebarContent = (
-    <>
-      <div className="flex items-center justify-center h-16 border-b px-4">
-        <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-          <img src="https://i.ibb.co/C0bSJJT/favicon.png" alt="Logo" className="h-8 w-auto" />
-          {!isCollapsed && <span>منصة الرحلة</span>}
-        </Link>
-      </div>
-      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-        {menuItems.map((item, index) => {
-            if (item.type === 'section') {
-                return <SectionTitle key={index} isCollapsed={isCollapsed}>{item.label}</SectionTitle>;
-            }
-            return <NavItem key={item.to} {...item} isCollapsed={isCollapsed} onClick={handleClose} />;
-        })}
-      </nav>
-    </>
-  );
-
-  return (
-    <>
-      {/* Mobile Sidebar */}
-      <div className={cn('fixed inset-0 z-40 bg-black/60 md:hidden', isOpen ? 'block' : 'hidden')} onClick={handleClose} />
-      <aside className={cn('fixed inset-y-0 right-0 z-50 flex w-64 flex-col bg-background transition-transform duration-300 ease-in-out md:hidden', isOpen ? 'translate-x-0' : 'translate-x-full rtl:-translate-x-full')}>
-        {sidebarContent}
-      </aside>
-
-      {/* Desktop Sidebar */}
-      <aside className={cn('hidden md:fixed md:inset-y-0 md:right-0 md:z-30 md:flex md:flex-col bg-background border-l transition-all duration-300 rtl:border-l-0 rtl:border-r', isCollapsed ? 'w-20' : 'w-64')}>
-        {sidebarContent}
-      </aside>
-    </>
-  );
+            <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
+                {adminNavGroups.map((group, index) => {
+                    const filteredItems = group.items.filter(item => item.permission);
+                    if (filteredItems.length === 0) return null;
+                    return (
+                        <div key={index}>
+                            {!isCollapsed && group.title && (
+                                <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{group.title}</h3>
+                            )}
+                            <div className="space-y-1">
+                                {filteredItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
+                            </div>
+                        </div>
+                    );
+                })}
+            </nav>
+        </aside>
+    );
 };
 
 export default AdminSidebar;

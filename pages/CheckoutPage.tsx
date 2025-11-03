@@ -32,11 +32,9 @@ const CheckoutPage: React.FC = () => {
                     <CardContent className="pt-12 pb-12">
                         <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
                         <p className="mt-4 text-foreground font-semibold">سلة التسوق فارغة.</p>
-                        <Button asChild variant="link" className="mt-4">
-                            <Link to="/">
-                                <ArrowLeft size={16} className="transform rotate-180 ml-1" />
-                                <span>العودة للتسوق</span>
-                            </Link>
+                        <Button as={Link} to="/" variant="link" className="mt-4">
+                            <ArrowLeft size={16} className="transform rotate-180 ml-1" />
+                            <span>العودة للتسوق</span>
                         </Button>
                     </CardContent>
                 </Card>
@@ -85,7 +83,7 @@ const CheckoutPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-muted/50 py-12 sm:py-16">
+        <div className="bg-muted/50 py-12 sm:py-16 animate-fadeIn">
             <div className="container mx-auto px-4">
                 <div className="max-w-2xl mx-auto">
                     <Card>
@@ -144,11 +142,9 @@ const CheckoutPage: React.FC = () => {
                             >
                                 {isSubmitting ? 'جاري التأكيد...' : 'تأكيد ورفع الإيصال'}
                             </Button>
-                             <Button asChild variant="link" size="sm" className="text-muted-foreground">
-                                <Link to="/cart">
-                                    <ArrowLeft size={16} className="transform rotate-180 ml-1"/>
-                                    <span>العودة إلى السلة</span>
-                                </Link>
+                             <Button as={Link} to="/cart" variant="link" size="sm" className="text-muted-foreground">
+                                <ArrowLeft size={16} className="transform rotate-180 ml-1"/>
+                                <span>العودة إلى السلة</span>
                             </Button>
                         </CardFooter>
                     </Card>

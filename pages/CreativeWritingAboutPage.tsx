@@ -3,6 +3,7 @@ import { Target, Star, Eye, Shield, Users, CheckCircle, PenTool } from 'lucide-r
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
 import { Card, CardContent } from '../components/ui/card';
+import Image from '../components/ui/Image';
 
 const FeatureCard: React.FC<{ icon: React.ReactNode; title: string; description: string; }> = ({ icon, title, description }) => (
     <Card className="h-full">
@@ -20,7 +21,6 @@ const FeatureCard: React.FC<{ icon: React.ReactNode; title: string; description:
 
 
 const CreativeWritingAboutPage: React.FC = () => {
-    const [imageLoaded, setImageLoaded] = useState(false);
     const { data, isLoading } = usePublicData();
     const content = data?.siteContent?.creativeWritingPage.about;
 
@@ -45,13 +45,10 @@ const CreativeWritingAboutPage: React.FC = () => {
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                         <div className="relative">
-                            {!imageLoaded && <div className="absolute inset-0 bg-muted rounded-2xl animate-pulse"></div>}
-                            <img 
-                                src="https://i.ibb.co/n7ZJv9V/child-learning-online.jpg"
+                           <Image 
+                                src={content?.heroImageUrl || "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg"}
                                 alt="طفل يشارك في جلسة كتابة إبداعية عبر الإنترنت"
-                                className={`rounded-2xl shadow-2xl transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                                loading="lazy"
-                                onLoad={() => setImageLoaded(true)}
+                                className="rounded-2xl shadow-2xl aspect-square"
                             />
                         </div>
                         <div className="space-y-8">

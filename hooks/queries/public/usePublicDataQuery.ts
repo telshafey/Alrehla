@@ -9,30 +9,79 @@ import {
     mockPublicHolidays,
     mockSubscriptionPlans,
     mockStandaloneServices,
-    mockCommunicationSettings,
+    mockCommunicationSettings
 } from '../../../data/mockData';
+import type {
+    Instructor,
+    BlogPost,
+    PersonalizedProduct,
+    CreativeWritingPackage,
+    SiteContent,
+    SocialLinks,
+    SubscriptionPlan,
+    StandaloneService,
+    CommunicationSettings
+} from '../../../lib/database.types';
 
-const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
+// Define the shape of the data returned
+interface PublicData {
+    instructors: Instructor[];
+    blogPosts: BlogPost[];
+    personalizedProducts: PersonalizedProduct[];
+    creativeWritingPackages: CreativeWritingPackage[];
+    siteContent: SiteContent;
+    socialLinks: SocialLinks;
+    publicHolidays: string[];
+    subscriptionPlans: SubscriptionPlan[];
+    standaloneServices: StandaloneService[];
+    communicationSettings: CommunicationSettings;
+}
+
+// A helper to simulate network latency
+const mockFetch = (data: any, delay = 150) => new Promise(resolve => setTimeout(() => resolve(data), delay));
 
 export const usePublicData = () => {
-    return useQuery({
+    return useQuery<PublicData>({
         queryKey: ['publicData'],
         queryFn: async () => {
-            // In a real app, these would be separate API calls.
-            // Here we fetch them all at once for simplicity in mock mode.
-            const data = {
-                instructors: await mockFetch(mockInstructors),
-                blogPosts: await mockFetch(mockBlogPosts),
-                personalizedProducts: await mockFetch(mockPersonalizedProducts),
-                creativeWritingPackages: await mockFetch(mockCreativeWritingPackages),
-                siteContent: await mockFetch(mockSiteContent),
-                socialLinks: await mockFetch(mockSocialLinks),
-                publicHolidays: await mockFetch(mockPublicHolidays),
-                subscriptionPlans: await mockFetch(mockSubscriptionPlans),
-                standaloneServices: await mockFetch(mockStandaloneServices),
-                communicationSettings: await mockFetch(mockCommunicationSettings),
-            };
-            return data;
+            // Simulate fetching all public data in parallel, just like a real API call would.
+            const [
+                instructors,
+                blogPosts,
+                personalizedProducts,
+                creativeWritingPackages,
+                siteContent,
+                socialLinks,
+                publicHolidays,
+                subscriptionPlans,
+                standaloneServices,
+                communicationSettings
+            ] = await Promise.all([
+                mockFetch(mockInstructors),
+                mockFetch(mockBlogPosts),
+                mockFetch(mockPersonalizedProducts),
+                mockFetch(mockCreativeWritingPackages),
+                mockFetch(mockSiteContent),
+                mockFetch(mockSocialLinks),
+                mockFetch(mockPublicHolidays),
+                mockFetch(mockSubscriptionPlans),
+                mockFetch(mockStandaloneServices),
+                mockFetch(mockCommunicationSettings)
+            ]);
+
+            // Assemble the data into the expected structure
+            return {
+                instructors,
+                blogPosts,
+                personalizedProducts,
+                creativeWritingPackages,
+                siteContent,
+                socialLinks,
+                publicHolidays,
+                subscriptionPlans,
+                standaloneServices,
+                communicationSettings,
+            } as PublicData;
         },
         staleTime: 1000 * 60 * 5, // 5 minutes
     });

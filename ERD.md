@@ -1,6 +1,6 @@
 # Entity-Relationship Diagram (ERD) for Al-Rehla Platform
 
-This document provides a visual representation of the database schema for the Al-Rehla platform. It illustrates the primary entities (tables), their key attributes, and the relationships connecting them.
+This document provides a visual representation of the database schema for the Al-Rehla platform. It illustrates the primary entities (tables), their key attributes, and the relationships connecting them. This version has been updated to reflect backend implementation best practices.
 
 **Legend:**
 - `PK`: Primary Key
@@ -13,116 +13,135 @@ This document provides a visual representation of the database schema for the Al
 ```mermaid
 erDiagram
     users {
-        VARCHAR_255_ id PK "UUID"
+        CHAR_36_ id PK "UUID"
         VARCHAR_255_ name
         VARCHAR_255_ email
         ENUM role
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at "Nullable"
     }
 
     child_profiles {
-        INT id PK "Auto-increment"
-        VARCHAR_255_ user_id FK "Parent's User ID"
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ user_id FK "Parent's User ID"
         VARCHAR_255_ name
         DATE birth_date
-        VARCHAR_255_ student_user_id FK "Student's User ID (nullable, unique)"
+        CHAR_36_ student_user_id FK "Student's User ID (nullable, unique)"
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at "Nullable"
     }
 
     instructors {
-        INT id PK "Auto-increment"
-        VARCHAR_255_ user_id FK "Instructor's User ID (nullable, unique)"
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ user_id FK "Instructor's User ID (nullable, unique)"
         VARCHAR_255_ name
         VARCHAR_255_ specialty
         JSON weekly_schedule
+        INT version "For optimistic locking"
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at "Nullable"
     }
 
     orders {
-        VARCHAR_255_ id PK
-        VARCHAR_255_ user_id FK
-        INT child_id FK
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ user_id FK
+        CHAR_36_ child_id FK
         DECIMAL total
         ENUM status
+        INT version "For optimistic locking"
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at "Nullable"
     }
 
     creative_writing_bookings {
-        VARCHAR_255_ id PK
-        VARCHAR_255_ user_id FK
-        INT child_id FK
-        INT instructor_id FK
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ user_id FK
+        CHAR_36_ child_id FK
+        CHAR_36_ instructor_id FK
         DECIMAL total
         ENUM status
+        INT version "For optimistic locking"
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at "Nullable"
     }
     
     subscriptions {
-        VARCHAR_255_ id PK
-        VARCHAR_255_ user_id FK
-        INT child_id FK
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ user_id FK
+        CHAR_36_ child_id FK
         ENUM status
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at "Nullable"
     }
 
     service_orders {
-        VARCHAR_255_ id PK
-        VARCHAR_255_ user_id FK
-        INT child_id FK
-        INT service_id FK
-        INT assigned_instructor_id FK "Nullable"
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ user_id FK
+        CHAR_36_ child_id FK
+        CHAR_36_ service_id FK
+        CHAR_36_ assigned_instructor_id FK "Nullable"
         ENUM status
     }
 
     standalone_services {
-        INT id PK
+        CHAR_36_ id PK "UUID"
         VARCHAR_255_ name
         DECIMAL price
     }
 
     scheduled_sessions {
-        VARCHAR_255_ id PK
-        VARCHAR_255_ booking_id FK "Nullable"
-        VARCHAR_255_ subscription_id FK "Nullable"
-        INT child_id FK
-        INT instructor_id FK
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ booking_id FK "Nullable"
+        CHAR_36_ subscription_id FK "Nullable"
+        CHAR_36_ child_id FK
+        CHAR_36_ instructor_id FK
         ENUM status
+        INT version "For optimistic locking"
+        %% CHECK constraint: (booking_id IS NOT NULL OR subscription_id IS NOT NULL)
     }
 
     badges {
-        INT id PK
+        CHAR_36_ id PK "UUID"
         VARCHAR_255_ name
     }
 
     child_badges {
-        INT id PK
-        INT child_id FK
-        INT badge_id FK
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ child_id FK
+        CHAR_36_ badge_id FK
     }
 
     blog_posts {
-        INT id PK
+        CHAR_36_ id PK "UUID"
         VARCHAR_255_ title
         TEXT content
+        TIMESTAMP updated_at
+        TIMESTAMP deleted_at "Nullable"
     }
 
     support_tickets {
-        VARCHAR_255_ id PK
+        CHAR_36_ id PK "UUID"
         VARCHAR_255_ name
         VARCHAR_255_ email
     }
 
     join_requests {
-        VARCHAR_255_ id PK
+        CHAR_36_ id PK "UUID"
         VARCHAR_255_ name
         VARCHAR_255_ email
     }
     
     session_messages {
-        VARCHAR_255_ id PK
-        VARCHAR_255_ booking_id FK
-        VARCHAR_255_ sender_id FK
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ booking_id FK
+        CHAR_36_ sender_id FK
         TEXT message_text
     }
     
     session_attachments {
-        VARCHAR_255_ id PK
-        VARCHAR_255_ booking_id FK
-        VARCHAR_255_ uploader_id FK
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ booking_id FK
+        CHAR_36_ uploader_id FK
         VARCHAR_255_ file_url
     }
 
@@ -166,3 +185,13 @@ erDiagram
     users ||--o{ session_messages : "sends"
     users ||--o{ session_attachments : "uploads"
 ```
+
+## Backend Implementation Notes
+
+These notes are for the backend development team to ensure best practices when implementing this schema in Laravel & MySQL.
+
+1.  **UUIDs**: For all `CHAR(36)` Primary Keys, use the `ramsey/uuid` package, which is standard in Laravel. In migrations, define these columns using `$table->uuid('id')->primary();`. This is more performant than `VARCHAR`.
+2.  **Column Naming**: Avoid Arabic column names. Stick to English (`snake_case`) names as shown in the schema for seamless integration with Laravel's Eloquent ORM.
+3.  **Timestamps & Soft Deletes**: Use Laravel's built-in functionality for `created_at`, `updated_at`, and `deleted_at`.
+    *   For `updated_at`/`created_at`, simply use `$table->timestamps();` in your migrations.
+    *   For `deleted_at`, use `$table->softDeletes();` and apply the `SoftDeletes` trait to the corresponding Eloquent model.

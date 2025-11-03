@@ -71,7 +71,7 @@ export const pageConfigs: PageConfig[] = [
     },
     {
         key: 'aboutPage',
-        title: 'صفحة "عنا"',
+        title: 'صفحة "رحلتنا"',
         description: 'عدّل رسالة ورؤية وقصة المنصة.',
         icon: <Info />,
         sections: [
@@ -84,6 +84,24 @@ export const pageConfigs: PageConfig[] = [
                     { key: 'aboutPage.ourStory', label: 'قصتنا', type: 'textarea', rows: 4 },
                     { key: 'aboutPage.ourVision', label: 'رؤيتنا', type: 'textarea', rows: 3 },
                     { key: 'aboutPage.valuesTitle', label: 'عنوان قسم القيم', type: 'input' },
+                ]
+            },
+            {
+                key: 'team',
+                title: 'فريق العمل (حتى 4 أعضاء)',
+                fields: [
+                    { key: 'aboutPage.teamMembers[0].name', label: 'اسم العضو 1', type: 'input' },
+                    { key: 'aboutPage.teamMembers[0].role', label: 'دور العضو 1', type: 'input' },
+                    { key: 'aboutPage.teamMembers[0].imageUrl', label: 'رابط صورة العضو 1', type: 'input' },
+                    { key: 'aboutPage.teamMembers[1].name', label: 'اسم العضو 2', type: 'input' },
+                    { key: 'aboutPage.teamMembers[1].role', label: 'دور العضو 2', type: 'input' },
+                    { key: 'aboutPage.teamMembers[1].imageUrl', label: 'رابط صورة العضو 2', type: 'input' },
+                    { key: 'aboutPage.teamMembers[2].name', label: 'اسم العضو 3', type: 'input' },
+                    { key: 'aboutPage.teamMembers[2].role', label: 'دور العضو 3', type: 'input' },
+                    { key: 'aboutPage.teamMembers[2].imageUrl', label: 'رابط صورة العضو 3', type: 'input' },
+                    { key: 'aboutPage.teamMembers[3].name', label: 'اسم العضو 4', type: 'input' },
+                    { key: 'aboutPage.teamMembers[3].role', label: 'دور العضو 4', type: 'input' },
+                    { key: 'aboutPage.teamMembers[3].imageUrl', label: 'رابط صورة العضو 4', type: 'input' },
                 ]
             }
         ]
@@ -103,6 +121,8 @@ export const pageConfigs: PageConfig[] = [
                     { key: 'enhaLakPage.main.productsTitle', label: 'عنوان "ماذا نصنع؟"', type: 'input' },
                     { key: 'enhaLakPage.main.howItWorksTitle', label: 'عنوان "كيف نعمل؟"', type: 'input' },
                     { key: 'enhaLakPage.main.testimonialsTitle', label: 'عنوان "آراء العائلات"', type: 'input' },
+                    { key: 'enhaLakPage.main.customStoryImageUrl', label: 'رابط صورة القصة المخصصة', type: 'input' },
+                    { key: 'enhaLakPage.main.subscriptionBoxImageUrl', label: 'رابط صورة صندوق الاشتراك', type: 'input' },
                 ]
             },
             {
@@ -144,6 +164,7 @@ export const pageConfigs: PageConfig[] = [
                 fields: [
                     { key: 'creativeWritingPage.about.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
                     { key: 'creativeWritingPage.about.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
+                    { key: 'creativeWritingPage.about.heroImageUrl', label: 'رابط صورة الهيرو', type: 'input' },
                 ]
             }
         ]

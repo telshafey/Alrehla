@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useInstructorData } from '../../../hooks/queries/instructor/useInstructorDataQuery';
 import PageLoader from '../../../components/ui/PageLoader';
 import StatCard from '../../../components/admin/StatCard';
-import AgendaWidget from '../../../components/admin/dashboards/AgendaWidget'; // Import the new widget
 import { Calendar, BookOpen, Award } from 'lucide-react';
+import InstructorJourneysPanel from '../../../components/admin/dashboards/InstructorJourneysPanel';
 
 const InstructorDashboardPage: React.FC = () => {
     const navigate = useNavigate();
@@ -18,7 +18,7 @@ const InstructorDashboardPage: React.FC = () => {
         return <div className="text-center text-red-500 p-4">لم يتم العثور على ملف المدرب الخاص بك.</div>;
     }
 
-    const { instructor, bookings, introSessionsThisMonth, attachments } = data;
+    const { instructor, bookings, introSessionsThisMonth } = data;
 
     const upcomingSessionsCount = bookings.reduce((count, booking) => {
         return count + (booking.sessions?.filter((s: any) => s.status === 'upcoming').length || 0);
@@ -54,7 +54,7 @@ const InstructorDashboardPage: React.FC = () => {
                 />
             </div>
 
-            <AgendaWidget bookings={bookings} attachments={attachments} />
+            <InstructorJourneysPanel instructorBookings={bookings as any[]} />
 
             {!introSessionGoalMet && (
                 <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800">

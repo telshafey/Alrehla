@@ -19,11 +19,12 @@ interface InteractivePreviewProps {
     basePrice: number;
     addons: { key: string; title: string; price: number }[];
     totalPrice: number;
+    shippingPrice: number;
     imagePreviewUrl: string | null;
     storyGoals: StoryGoal[];
 }
 
-const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, product, basePrice, addons, totalPrice, imagePreviewUrl, storyGoals }) => {
+const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, product, basePrice, addons, totalPrice, shippingPrice, imagePreviewUrl, storyGoals }) => {
     const { childName } = formData;
     
     if (!product) {
@@ -40,6 +41,7 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, produ
 
     const goalTitle = getGoalTitle();
     const goalIcon = <Sparkles size={18}/>;
+    const finalTotal = totalPrice + shippingPrice;
 
     return (
         <Card>
@@ -104,10 +106,16 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, produ
                         <span className="font-semibold">{addon.price} ج.م</span>
                     </div>
                 ))}
+                 {shippingPrice > 0 && (
+                    <div className="flex justify-between items-center text-muted-foreground text-sm animate-fadeIn">
+                        <span>الشحن</span>
+                        <span className="font-semibold">{shippingPrice} ج.م</span>
+                    </div>
+                )}
                 <div className="border-t my-2"></div>
                 <div className="flex justify-between items-center text-xl font-bold text-foreground">
                     <span>الإجمالي</span>
-                    <span>{totalPrice} ج.م</span>
+                    <span>{finalTotal} ج.م</span>
                 </div>
             </CardFooter>
         </Card>

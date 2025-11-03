@@ -6,7 +6,8 @@ import StatCard from '../StatCard';
 import { Button } from '../../ui/Button';
 import type { BlogPost } from '../../../lib/database.types';
 
-const ContentSummaryWidget: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts }) => {
+const ContentSummaryWidget = React.forwardRef<HTMLElement, { blogPosts: BlogPost[] } & React.HTMLAttributes<HTMLElement>>(
+    ({ blogPosts, ...props }, ref) => {
     
     const { publishedCount, draftCount, recentDrafts } = useMemo(() => {
         const published = blogPosts.filter(p => p.status === 'published').length;
@@ -19,7 +20,7 @@ const ContentSummaryWidget: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts }
     }, [blogPosts]);
 
     return (
-        <AdminSection title="ملخص المحتوى" icon={<Edit />}>
+        <AdminSection ref={ref} title="ملخص المحتوى" icon={<Edit />} {...props}>
             <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <StatCard title="مقالات منشورة" value={publishedCount} icon={<CheckCircle className="text-green-500"/>} />
@@ -46,6 +47,7 @@ const ContentSummaryWidget: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts }
             </div>
         </AdminSection>
     );
-};
+});
+ContentSummaryWidget.displayName = "ContentSummaryWidget";
 
 export default ContentSummaryWidget;

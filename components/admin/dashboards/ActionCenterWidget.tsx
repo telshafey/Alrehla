@@ -11,16 +11,15 @@ const ActionItem: React.FC<{ title: string; subtitle?: string; to: string; state
             <p className="font-semibold text-sm">{title}</p>
             {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
         </div>
-        <Button asChild variant="ghost" size="sm">
-            <Link to={to} state={state}>
-                <span className="hidden sm:inline">عرض</span>
-                <ArrowLeft size={16} className="sm:mr-1" />
-            </Link>
+        <Button as={Link} to={to} state={state} variant="ghost" size="sm">
+            <span className="hidden sm:inline">عرض</span>
+            <ArrowLeft size={16} className="sm:mr-1" />
         </Button>
     </div>
 );
 
-const ActionCenterWidget: React.FC<{ data: any; permissions: any }> = ({ data, permissions }) => {
+const ActionCenterWidget = React.forwardRef<HTMLElement, { data: any; permissions: any } & React.HTMLAttributes<HTMLElement>>(
+    ({ data, permissions, ...props }, ref) => {
     
     const actionGroups = [
         {
@@ -77,7 +76,7 @@ const ActionCenterWidget: React.FC<{ data: any; permissions: any }> = ({ data, p
     const totalActions = actionGroups.reduce((acc, group) => acc + group.items.length, 0);
 
     return (
-        <AdminSection title="مركز المهام" icon={<ShieldQuestion className="text-destructive"/>}>
+        <AdminSection ref={ref} title="مركز المهام" icon={<ShieldQuestion className="text-destructive"/>} {...props}>
             {totalActions > 0 ? (
                 <div className="space-y-6">
                     {actionGroups.map(group => (
@@ -99,10 +98,8 @@ const ActionCenterWidget: React.FC<{ data: any; permissions: any }> = ({ data, p
                                 ))}
                                 {group.items.length > 3 && (
                                     <div className="text-center">
-                                         <Button asChild variant="link" size="sm">
-                                            <Link to={group.to} state={group.state}>
-                                                عرض كل الـ {group.items.length} طلبات
-                                            </Link>
+                                         <Button as={Link} to={group.to} state={group.state} variant="link" size="sm">
+                                            عرض كل الـ {group.items.length} طلبات
                                         </Button>
                                     </div>
                                 )}
@@ -115,6 +112,7 @@ const ActionCenterWidget: React.FC<{ data: any; permissions: any }> = ({ data, p
             )}
         </AdminSection>
     );
-};
+});
+ActionCenterWidget.displayName = "ActionCenterWidget";
 
 export default ActionCenterWidget;

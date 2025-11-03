@@ -9,7 +9,7 @@ interface ShareButtonsProps {
   label?: string;
 }
 
-const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url, theme = 'light', label = "شارك:" }) => {
+const ShareButtons: React.FC<ShareButtonsProps> = React.memo(({ title, url, theme = 'light', label = "شارك:" }) => {
   const { addToast } = useToast();
   const encodedUrl = encodeURIComponent(url);
   const encodedTitle = encodeURIComponent(title);
@@ -58,6 +58,7 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url, theme = 'light'
       </button>
     </div>
   );
-};
+});
+ShareButtons.displayName = 'ShareButtons';
 
 export default ShareButtons;

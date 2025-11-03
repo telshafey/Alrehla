@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Image as ImageIcon } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import { ChildProfile } from '../../lib/database.types';
 import { Button } from '../ui/Button';
 import FormField from '../ui/FormField';
@@ -8,6 +8,7 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
 import Modal from '../ui/Modal';
+import Image from '../ui/Image';
 
 interface ChildProfileModalProps {
     isOpen: boolean;
@@ -16,8 +17,8 @@ interface ChildProfileModalProps {
 }
 
 const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, childToEdit }) => {
-    const { addChildProfile, updateChildProfile } = useAuth();
-    const [isSaving, setIsSaving] = useState(false);
+    const { createChildProfile, updateChildProfile } = useUserMutations();
+    const isSaving = createChildProfile.isPending || updateChildProfile.isPending;
     
     const [name, setName] = useState('');
     const [birthDate, setBirthDate] = useState('');
@@ -62,7 +63,6 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsSaving(true);
         try {
             const interestsArray = interests.split(',').map(s => s.trim()).filter(Boolean);
             const strengthsArray = strengths.split(',').map(s => s.trim()).filter(Boolean);
@@ -83,16 +83,14 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
             };
 
             if (childToEdit) {
-                await updateChildProfile({ ...profileData, id: childToEdit.id });
+                await updateChildProfile.mutateAsync({ ...profileData, id: childToEdit.id });
             } else {
-                await addChildProfile({ ...profileData, student_user_id: null });
+                await createChildProfile.mutateAsync({ ...profileData, student_user_id: null });
             }
             onClose();
         } catch (error) {
             console.error("Failed to save child profile", error);
-            // Toast will be shown from context
-        } finally {
-            setIsSaving(false);
+            // Error toast will be shown from the mutation hook
         }
     };
 
@@ -114,7 +112,7 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
         >
             <form id="child-profile-form" onSubmit={handleSubmit} className="space-y-6">
                 <div className="flex flex-col items-center gap-4">
-                    <img src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-24 h-24 rounded-full object-cover bg-gray-200" loading="lazy" />
+                    <Image src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-24 h-24 rounded-full" />
                     <input type="file" id="avatar-upload" onChange={handleFileChange} accept="image/*" className="hidden"/>
                     <label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full">
                         <ImageIcon size={16} /> <span>{preview ? 'تغيير الصورة الرمزية' : 'رفع صورة رمزية'}</span>

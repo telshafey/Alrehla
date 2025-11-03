@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Save } from 'lucide-react';
-import type { Instructor } from '../../../lib/database.types';
+import { Save, Plus, Trash2 } from 'lucide-react';
+import type { Instructor, PublishedWork } from '../../../lib/database.types';
 import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
 import { Textarea } from '../../ui/Textarea';
 import FormField from '../../ui/FormField';
+import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
+import ImageUploadField from '../ui/ImageUploadField';
 
 interface InstructorProfileEditorProps {
     instructor: Instructor;
@@ -17,62 +19,137 @@ const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instr
     const [name, setName] = useState(instructor.name || '');
     const [specialty, setSpecialty] = useState(instructor.specialty || '');
     const [bio, setBio] = useState(instructor.bio || '');
+    const [avatarUrl, setAvatarUrl] = useState(instructor.avatar_url || '');
+    const [teachingPhilosophy, setTeachingPhilosophy] = useState(instructor.teaching_philosophy || '');
+    const [expertiseAreas, setExpertiseAreas] = useState((instructor.expertise_areas || []).join(', '));
+    const [introVideoUrl, setIntroVideoUrl] = useState(instructor.intro_video_url || '');
+    const [publishedWorks, setPublishedWorks] = useState<PublishedWork[]>(instructor.published_works || []);
     const [justification, setJustification] = useState('');
     const isSaving = requestProfileUpdate.isPending;
 
+    const handlePublishedWorkChange = (index: number, field: keyof PublishedWork, value: string) => {
+        const newWorks = [...publishedWorks];
+        newWorks[index] = { ...newWorks[index], [field]: value };
+        setPublishedWorks(newWorks);
+    };
+    
+    const handlePublishedWorkCoverChange = (index: number, newUrl: string) => {
+        const newWorks = [...publishedWorks];
+        newWorks[index] = { ...newWorks[index], cover_url: newUrl };
+        setPublishedWorks(newWorks);
+    };
+
+    const addPublishedWork = () => {
+        setPublishedWorks([...publishedWorks, { title: '', cover_url: '' }]);
+    };
+    
+    const removePublishedWork = (index: number) => {
+        setPublishedWorks(publishedWorks.filter((_, i) => i !== index));
+    };
+
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const updates = {
+            name,
+            specialty,
+            bio,
+            avatar_url: avatarUrl,
+            teaching_philosophy: teachingPhilosophy,
+            expertise_areas: expertiseAreas.split(',').map(s => s.trim()).filter(Boolean),
+            intro_video_url: introVideoUrl,
+            published_works: publishedWorks,
+        };
+        
         await requestProfileUpdate.mutateAsync({ 
             instructorId: instructor.id,
-            updates: { name, specialty, bio },
+            updates,
             justification
         });
         setJustification('');
     };
     
     return (
-        <form onSubmit={handleSubmit} className={`space-y-6 mt-4 ${disabled ? 'opacity-50' : ''}`}>
-            <fieldset disabled={disabled || isSaving}>
-                <FormField label="الاسم" htmlFor="name">
-                    <Input 
-                        id="name"
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                    />
-                </FormField>
-                 <FormField label="التخصص" htmlFor="specialty">
-                    <Input 
-                        id="specialty"
-                        type="text"
-                        value={specialty}
-                        onChange={(e) => setSpecialty(e.target.value)}
-                    />
-                </FormField>
-                <FormField label="نبذة تعريفية" htmlFor="bio">
-                    <Textarea 
-                        id="bio" 
-                        value={bio} 
-                        onChange={(e) => setBio(e.target.value)} 
-                        rows={5}
-                        placeholder="اكتب نبذة مختصرة عن خبراتك وأسلوبك في التدريب..."
-                    />
-                </FormField>
-                <FormField label="مبررات التعديل (سيتم إرسالها للإدارة)" htmlFor="justification">
-                     <Textarea 
-                        id="justification" 
-                        value={justification} 
-                        onChange={(e) => setJustification(e.target.value)} 
-                        rows={3}
-                        placeholder="مثال: قمت بتحديث النبذة التعريفية لتشمل خبراتي الجديدة."
-                        required
-                    />
-                </FormField>
-                <div className="flex justify-end">
-                    <Button type="submit" loading={isSaving} icon={<Save />}>
-                        إرسال طلب التحديث
-                    </Button>
-                </div>
+        <form onSubmit={handleSubmit} className={`space-y-8 mt-4 ${disabled ? 'opacity-50' : ''}`}>
+            <fieldset disabled={disabled || isSaving} className="space-y-8">
+                <Card>
+                    <CardHeader><CardTitle>المعلومات الأساسية</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        <ImageUploadField
+                            label="الصورة الرمزية"
+                            fieldKey="avatar_url"
+                            currentUrl={avatarUrl}
+                            onUrlChange={(_, url) => setAvatarUrl(url)}
+                        />
+                        <FormField label="الاسم" htmlFor="name">
+                            <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} />
+                        </FormField>
+                         <FormField label="التخصص" htmlFor="specialty">
+                            <Input id="specialty" type="text" value={specialty} onChange={(e) => setSpecialty(e.target.value)} />
+                        </FormField>
+                        <FormField label="نبذة تعريفية" htmlFor="bio">
+                            <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={5}/>
+                        </FormField>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader><CardTitle>المحتوى المتقدم</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        <FormField label="فلسفتي في التدريب" htmlFor="teachingPhilosophy">
+                            <Textarea id="teachingPhilosophy" value={teachingPhilosophy} onChange={(e) => setTeachingPhilosophy(e.target.value)} rows={4}/>
+                        </FormField>
+                         <FormField label="مجالات الخبرة (افصل بينها بفاصلة)" htmlFor="expertiseAreas">
+                            <Input id="expertiseAreas" type="text" value={expertiseAreas} onChange={(e) => setExpertiseAreas(e.target.value)} />
+                        </FormField>
+                         <FormField label="رابط فيديو تعريفي (يوتيوب)" htmlFor="introVideoUrl">
+                            <Input id="introVideoUrl" type="url" value={introVideoUrl} onChange={(e) => setIntroVideoUrl(e.target.value)} dir="ltr" />
+                        </FormField>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                     <CardHeader>
+                        <CardTitle className="flex justify-between items-center">
+                            <span>الأعمال المنشورة</span>
+                            <Button type="button" size="sm" variant="outline" onClick={addPublishedWork} icon={<Plus size={16}/>}>إضافة كتاب</Button>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {publishedWorks.map((work, index) => (
+                             <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg bg-muted/50 items-start">
+                                <div className="space-y-4">
+                                    <FormField label={`عنوان الكتاب ${index+1}`} htmlFor={`work-title-${index}`}>
+                                        <Input id={`work-title-${index}`} value={work.title} onChange={e => handlePublishedWorkChange(index, 'title', e.target.value)} />
+                                    </FormField>
+                                    <Button type="button" variant="destructive" onClick={() => removePublishedWork(index)} icon={<Trash2 size={16}/>}>حذف الكتاب</Button>
+                                </div>
+                                <ImageUploadField
+                                    label={`صورة الغلاف ${index + 1}`}
+                                    fieldKey={`work-cover-${index}`}
+                                    currentUrl={work.cover_url}
+                                    onUrlChange={(_, url) => handlePublishedWorkCoverChange(index, url)}
+                                />
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>تأكيد التغييرات</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                         <FormField label="مبررات طلب التعديل (إلزامي)" htmlFor="justification">
+                             <Textarea id="justification" value={justification} onChange={(e) => setJustification(e.target.value)} rows={3} placeholder="مثال: قمت بتحديث سيرتي الذاتية وإضافة أعمالي الجديدة." required />
+                        </FormField>
+                        <div className="flex justify-end mt-4">
+                            <Button type="submit" loading={isSaving} icon={<Save />}>
+                                إرسال طلب التحديث
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
             </fieldset>
         </form>
     );

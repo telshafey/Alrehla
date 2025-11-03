@@ -13,47 +13,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/ca
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 import PermissionsManager from '../../components/admin/PermissionsManager';
 import { useAuth } from '../../contexts/AuthContext';
-
-
-// Helper component for image upload fields
-const ImageUploadField: React.FC<{
-    label: string;
-    fieldKey: keyof SiteBranding;
-    currentUrl?: string;
-    onUrlChange: (fieldKey: keyof SiteBranding, newUrl: string) => void;
-}> = ({ label, fieldKey, currentUrl, onUrlChange }) => {
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] || null;
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                onUrlChange(fieldKey, reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    return (
-        <FormField label={label} htmlFor={fieldKey}>
-            <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50">
-                <img 
-                    src={currentUrl || "https://placehold.co/100x100/EEE/31343C?text=No+Image"} 
-                    alt={`${label} Preview`} 
-                    className="w-20 h-20 object-contain rounded-md bg-background" 
-                />
-                <div className="flex-grow">
-                     <Input id={fieldKey} type="file" accept="image/*,.svg,.png" onChange={handleFileChange} />
-                     {currentUrl && !currentUrl.startsWith('data:') && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                            الرابط الحالي: <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[200px] inline-block align-middle">{currentUrl?.split('/').pop()}</a>
-                        </p>
-                     )}
-                </div>
-            </div>
-        </FormField>
-    );
-};
+import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 
 
 const AdminSettingsPage: React.FC = () => {
@@ -92,7 +52,7 @@ const AdminSettingsPage: React.FC = () => {
         if (pricingSettingsData) setPricing(pricingSettingsData as any);
     }, [pricingSettingsData]);
 
-    const handleBrandingChange = (fieldKey: keyof SiteBranding, value: string) => {
+    const handleBrandingChange = (fieldKey: string, value: string) => {
         setBranding(prev => ({ ...prev, [fieldKey]: value }));
     };
     
@@ -152,7 +112,8 @@ const AdminSettingsPage: React.FC = () => {
                         <CardContent className="space-y-4">
                            <ImageUploadField label="شعار الموقع الرئيسي" fieldKey="logoUrl" currentUrl={branding.logoUrl} onUrlChange={handleBrandingChange} />
                            <ImageUploadField label="صورة الهيرو الرئيسية" fieldKey="heroImageUrl" currentUrl={branding.heroImageUrl} onUrlChange={handleBrandingChange} />
-                           <ImageUploadField label="صورة صفحة 'عنا'" fieldKey="aboutImageUrl" currentUrl={branding.aboutImageUrl} onUrlChange={handleBrandingChange} />
+                           <ImageUploadField label="صورة صفحة 'رحلتنا'" fieldKey="aboutImageUrl" currentUrl={branding.aboutImageUrl} onUrlChange={handleBrandingChange} />
+                           <ImageUploadField label="صورة صفحة 'انضم إلينا'" fieldKey="joinUsImageUrl" currentUrl={branding.joinUsImageUrl} onUrlChange={handleBrandingChange} />
                            <ImageUploadField label="صورة وشعار 'بداية الرحلة'" fieldKey="creativeWritingPortalImageUrl" currentUrl={branding.creativeWritingPortalImageUrl} onUrlChange={handleBrandingChange} />
                            <ImageUploadField label="صورة وشعار 'إنها لك'" fieldKey="enhaLakPortalImageUrl" currentUrl={branding.enhaLakPortalImageUrl} onUrlChange={handleBrandingChange} />
                            <div className="flex justify-end">

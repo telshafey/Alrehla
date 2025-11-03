@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import type { Instructor } from '../../../lib/database.types';
-import BookingCalendar from '../../../components/BookingCalendar';
+import BookingCalendar from '../../BookingCalendar';
 import { Calendar } from 'lucide-react';
 
 interface CalendarSelectionProps {
@@ -11,19 +11,14 @@ interface CalendarSelectionProps {
 
 const CalendarSelection: React.FC<CalendarSelectionProps> = ({ instructor, onSelect, holidays }) => {
     
-    const hasAvailability = useMemo(() => {
-        if (!instructor?.weekly_schedule) return false;
-        return Object.values(instructor.weekly_schedule).some(daySlots => Array.isArray(daySlots) && daySlots.length > 0);
-    }, [instructor]);
+    const hasAvailability = instructor?.weekly_schedule && Object.values(instructor.weekly_schedule).some(daySlots => Array.isArray(daySlots) && daySlots.length > 0);
 
     return (
         <div className="animate-fadeIn">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">اختر تاريخ ووقت الجلسة الأولى</h2>
-            
             {hasAvailability ? (
                 <>
-                    <p className="text-gray-600 mb-4 -mt-4">
-                        اختر الموعد المناسب لك من المواعيد المتاحة للمدرب <span className="font-bold">{instructor.name}</span>.
+                    <p className="text-muted-foreground mb-4">
+                        اختر الموعد المناسب لك من المواعيد المتاحة للمدرب <span className="font-bold text-foreground">{instructor.name}</span>.
                     </p>
                     <BookingCalendar instructor={instructor} onDateTimeSelect={onSelect} holidays={holidays} />
                 </>
@@ -33,9 +28,6 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({ instructor, onSel
                     <h3 className="mt-2 text-lg font-bold text-yellow-800">لا توجد مواعيد متاحة حالياً</h3>
                     <p className="mt-1 text-sm text-yellow-700">
                         عذراً، لا توجد أوقات متاحة لهذا المدرب في الوقت الحالي. يرجى المحاولة مرة أخرى لاحقاً أو اختيار مدرب آخر.
-                    </p>
-                    <p className="mt-4 text-xs text-yellow-600">
-                        نحن نعمل على إضافة المزيد من المواعيد قريباً.
                     </p>
                 </div>
             )}

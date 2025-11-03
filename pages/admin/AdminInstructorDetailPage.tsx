@@ -12,6 +12,7 @@ import { ArrowLeft, Save, User, AlertCircle, Check, XCircle, FileEdit, Calendar,
 import type { Instructor, WeeklySchedule } from '../../lib/database.types';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import Image from '../../components/ui/Image';
 
 const dayNames: { [key: string]: string } = {
     saturday: 'السبت', sunday: 'الأحد', monday: 'الاثنين', tuesday: 'الثلاثاء', wednesday: 'الأربعاء',
@@ -150,7 +151,7 @@ const AdminInstructorDetailPage: React.FC = () => {
                     <CardContent className="space-y-6">
                         <FormField label="الصورة الرمزية" htmlFor="avatarFile">
                             <div className="flex items-center gap-4">
-                                <img src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-20 h-20 rounded-full object-cover bg-muted" />
+                                <Image src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-20 h-20 rounded-full" />
                                 <Input type="file" id="avatarFile" onChange={handleFileChange} accept="image/*" />
                             </div>
                         </FormField>

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+// FIX: Import `useMemo` from react.
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import SkeletonCard from '../components/ui/SkeletonCard';
@@ -8,29 +9,24 @@ import { Button } from '../components/ui/Button';
 import ErrorState from '../components/ui/ErrorState';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { cn } from '../lib/utils';
+import Accordion from '../components/ui/Accordion';
+import Image from '../components/ui/Image';
 
-const ProductCard: React.FC<{ product: PersonalizedProduct, featured?: boolean }> = React.memo(({ product, featured = false }) => {
-    const [imageLoaded, setImageLoaded] = useState(false);
-
+const ProductCard = React.memo(React.forwardRef<HTMLElement, { product: PersonalizedProduct, featured?: boolean }>(({ product, featured = false }, ref) => {
     const isSubscription = product.key === 'subscription_box';
     const orderLink = isSubscription ? '/enha-lak/subscription' : `/enha-lak/order/${product.key}`;
     const buttonText = isSubscription ? 'اشترك الآن' : 'اطلب الآن';
 
     return (
-        <Card className={cn(
+        <Card ref={ref} className={cn(
             "flex flex-col transform hover:-translate-y-2 transition-transform duration-300",
             featured ? "w-80 flex-shrink-0" : ""
         )}>
-            <div className="relative h-64 bg-muted">
-                 {!imageLoaded && <div className="absolute inset-0 bg-muted animate-pulse"></div>}
-                <img 
-                    src={product.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} 
-                    alt={product.title} 
-                    className={cn('w-full h-full object-cover transition-opacity duration-500', imageLoaded ? 'opacity-100' : 'opacity-0')}
-                    loading="lazy"
-                    onLoad={() => setImageLoaded(true)}
-                />
-            </div>
+            <Image 
+                src={product.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} 
+                alt={product.title} 
+                className="aspect-[4/3] object-cover"
+            />
             <CardHeader>
                 <CardTitle>{product.title}</CardTitle>
                 <CardDescription className="h-16">
@@ -57,14 +53,16 @@ const ProductCard: React.FC<{ product: PersonalizedProduct, featured?: boolean }
             <CardContent className="flex flex-col flex-grow">
                 <p className="text-muted-foreground text-sm flex-grow">{product.description}</p>
                 {product.features && product.features.length > 0 && (
-                     <ul className="mt-4 space-y-2 text-sm">
-                        {product.features.map(feature => (
-                            <li key={feature} className="flex items-center gap-2">
-                                <CheckCircle size={16} className="text-green-500" />
-                                <span className="text-muted-foreground">{feature}</span>
-                            </li>
-                        ))}
-                    </ul>
+                     <Accordion title="عرض الميزات">
+                         <ul className="mt-4 space-y-2 text-sm p-2">
+                            {product.features.map(feature => (
+                                <li key={feature} className="flex items-center gap-2">
+                                    <CheckCircle size={16} className="text-green-500" />
+                                    <span className="text-muted-foreground">{feature}</span>
+                                </li>
+                            ))}
+                        </ul>
+                     </Accordion>
                 )}
             </CardContent>
             <CardFooter>
@@ -78,17 +76,16 @@ const ProductCard: React.FC<{ product: PersonalizedProduct, featured?: boolean }
                         </div>
                     </div>
                 ) : (
-                    <Button asChild variant="pink" className="w-full">
-                        <Link to={orderLink} className="inline-flex items-center justify-center gap-2">
-                            <span>{buttonText}</span>
-                            <ArrowLeft className="transform rotate-180" />
-                        </Link>
+                    <Button as={Link} to={orderLink} variant="pink" className="w-full">
+                        <span>{buttonText}</span>
+                        <ArrowLeft className="transform rotate-180" />
                     </Button>
                 )}
             </CardFooter>
         </Card>
     );
-});
+}));
+ProductCard.displayName = "ProductCard";
 
 
 const PersonalizedStoriesPage: React.FC = () => {
@@ -126,10 +123,8 @@ const PersonalizedStoriesPage: React.FC = () => {
                             <p className="text-yellow-100">هدية متجددة من الخيال تصل باب منزلك كل شهر.</p>
                         </div>
                     </div>
-                    <Button asChild variant="outline" className="bg-white text-orange-600 font-bold border-transparent hover:bg-yellow-50">
-                        <Link to="/enha-lak/subscription">
-                            اشترك الآن
-                        </Link>
+                    <Button as={Link} to="/enha-lak/subscription" variant="outline" className="bg-white text-orange-600 font-bold border-transparent hover:bg-yellow-50">
+                        اشترك الآن
                     </Button>
                 </div>
             </section>

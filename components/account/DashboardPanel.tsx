@@ -7,25 +7,13 @@ import { formatDate } from '../../utils/helpers';
 import type { Order, Subscription, CreativeWritingBooking } from '../../lib/database.types';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/Button';
+import StatCard from '../admin/StatCard';
 
-type AccountTab = 'dashboard' | 'myLibrary' | 'familyCenter' | 'settings' | 'notifications';
+type AccountTab = 'dashboard' | 'portfolio' | 'familyCenter' | 'settings' | 'notifications';
 
 interface DashboardPanelProps {
     onNavigateTab: (tab: AccountTab) => void;
 }
-
-const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; onClick?: () => void; }> = ({ title, value, icon, onClick }) => (
-    <Card as="button" onClick={onClick} className="text-right w-full hover:border-primary/50 hover:bg-accent/50 transition-colors">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-            {icon}
-        </CardHeader>
-        <CardContent>
-            <div className="text-2xl font-bold">{value}</div>
-        </CardContent>
-    </Card>
-);
-
 
 const DashboardPanel: React.FC<DashboardPanelProps> = ({ onNavigateTab }) => {
     const { data } = useUserAccountData();
@@ -57,9 +45,9 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({ onNavigateTab }) => {
         <div className="space-y-8 animate-fadeIn">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatCard title="الطلبات والحجوزات" value={unifiedItems.length} icon={<ShoppingBag className="h-4 w-4 text-muted-foreground"/>} onClick={() => onNavigateTab('myLibrary')} />
-                <StatCard title="الاشتراكات النشطة" value={activeSubscriptions.length} icon={<Star className="h-4 w-4 text-muted-foreground"/>} onClick={() => onNavigateTab('myLibrary')} />
-                <StatCard title="الجلسات القادمة" value={upcomingSessions.length} icon={<Calendar className="h-4 w-4 text-muted-foreground"/>} onClick={() => onNavigateTab('myLibrary')} />
+                <StatCard title="الطلبات والحجوزات" value={unifiedItems.length} icon={<ShoppingBag className="h-4 w-4 text-muted-foreground"/>} onClick={() => onNavigateTab('familyCenter')} />
+                <StatCard title="الاشتراكات النشطة" value={activeSubscriptions.length} icon={<Star className="h-4 w-4 text-muted-foreground"/>} onClick={() => onNavigateTab('familyCenter')} />
+                <StatCard title="الجلسات القادمة" value={upcomingSessions.length} icon={<Calendar className="h-4 w-4 text-muted-foreground"/>} onClick={() => onNavigateTab('familyCenter')} />
             </div>
 
             {!isParent && (
@@ -127,7 +115,7 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({ onNavigateTab }) => {
                         <p className="text-muted-foreground text-center py-4">لا توجد أنشطة مسجلة بعد.</p>
                     )}
                     <div className="mt-4 text-center">
-                        <button onClick={() => onNavigateTab('myLibrary')} className="text-sm font-semibold text-primary hover:underline flex items-center justify-center gap-1 mx-auto">
+                        <button onClick={() => onNavigateTab('familyCenter')} className="text-sm font-semibold text-primary hover:underline flex items-center justify-center gap-1 mx-auto">
                             <span>عرض كل الأنشطة</span>
                             <ArrowLeft size={16}/>
                         </button>
