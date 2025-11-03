@@ -11,12 +11,10 @@ import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
 import DataTable from '../../components/admin/ui/DataTable';
 import StatCard from '../../components/admin/StatCard';
-// FIX: Added missing FormField import.
 import FormField from '../../components/ui/FormField';
 
 type ReportType = 'orders' | 'users';
 
-// FIX: Corrected typo in "بانتظار المراجعة"
 const orderStatuses = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "تم الشحن", "تم التسليم", "مكتمل", "ملغي"];
 
 const userRoles = Object.keys(roleNames);

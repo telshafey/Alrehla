@@ -6,6 +6,7 @@ import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
+import { Checkbox } from '../ui/Checkbox';
 
 interface CWSettingsModalProps {
     isOpen: boolean;
@@ -19,9 +20,9 @@ export const CWSettingsModal: React.FC<CWSettingsModalProps> = ({ isOpen, onClos
     const [name, setName] = useState('');
     const [sessions, setSessions] = useState('');
     const [price, setPrice] = useState('');
-    const [description, setDescription] = useState('');
     const [features, setFeatures] = useState('');
-    const [isPopular, setIsPopular] = useState(false);
+    const [description, setDescription] = useState('');
+    const [popular, setPopular] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -29,16 +30,16 @@ export const CWSettingsModal: React.FC<CWSettingsModalProps> = ({ isOpen, onClos
                 setName(packageToEdit.name);
                 setSessions(packageToEdit.sessions);
                 setPrice(packageToEdit.price.toString());
-                setDescription(packageToEdit.description);
                 setFeatures(packageToEdit.features.join('\n'));
-                setIsPopular(packageToEdit.popular);
+                setDescription(packageToEdit.description);
+                setPopular(packageToEdit.popular);
             } else {
                 setName('');
                 setSessions('');
                 setPrice('');
-                setDescription('');
                 setFeatures('');
-                setIsPopular(false);
+                setDescription('');
+                setPopular(false);
             }
         }
     }, [isOpen, packageToEdit]);
@@ -49,10 +50,10 @@ export const CWSettingsModal: React.FC<CWSettingsModalProps> = ({ isOpen, onClos
             id: packageToEdit?.id,
             name,
             sessions,
-            price: parseFloat(price),
-            description,
+            price: parseFloat(price) || 0,
             features: features.split('\n').filter(f => f.trim() !== ''),
-            popular: isPopular,
+            description,
+            popular,
         };
         onSave(payload);
     };
@@ -71,29 +72,33 @@ export const CWSettingsModal: React.FC<CWSettingsModalProps> = ({ isOpen, onClos
                 </>
             }
         >
-                <form id="package-form" onSubmit={handleSubmit} className="space-y-6">
-                    <FormField label="اسم الباقة*" htmlFor="name">
-                        <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
+            <form id="package-form" onSubmit={handleSubmit} className="space-y-6">
+                <FormField label="اسم الباقة*" htmlFor="name">
+                    <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
+                </FormField>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField label="الجلسات*" htmlFor="sessions">
+                        <Input id="sessions" type="text" value={sessions} onChange={e => setSessions(e.target.value)} required placeholder="مثال: 4 جلسات"/>
                     </FormField>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         <FormField label="وصف عدد الجلسات*" htmlFor="sessions">
-                            <Input id="sessions" type="text" value={sessions} onChange={e => setSessions(e.target.value)} placeholder="مثال: 4 جلسات" required />
-                        </FormField>
-                         <FormField label="السعر (ج.م)*" htmlFor="price">
-                            <Input id="price" type="number" value={price} onChange={e => setPrice(e.target.value)} required />
-                        </FormField>
-                    </div>
-                     <FormField label="الوصف القصير*" htmlFor="description">
-                        <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={3} required />
+                    <FormField label="السعر (ج.م)*" htmlFor="price">
+                        <Input id="price" type="number" value={price} onChange={e => setPrice(e.target.value)} required />
                     </FormField>
-                     <FormField label="الميزات (كل ميزة في سطر)*" htmlFor="features">
-                        <Textarea id="features" value={features} onChange={e => setFeatures(e.target.value)} rows={4} required />
-                    </FormField>
-                    <div className="flex items-center gap-2">
-                        <input type="checkbox" checked={isPopular} onChange={e => setIsPopular(e.target.checked)} id="isPopular-checkbox" className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                        <label htmlFor="isPopular-checkbox" className="text-sm font-medium text-gray-700">علامة "الأكثر شيوعاً"</label>
-                    </div>
-                </form>
+                </div>
+                <FormField label="الوصف*" htmlFor="description">
+                    <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={3} required />
+                </FormField>
+                <FormField label="الميزات (كل ميزة في سطر)" htmlFor="features">
+                    <Textarea id="features" value={features} onChange={e => setFeatures(e.target.value)} rows={4} />
+                </FormField>
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        id="popular-checkbox"
+                        checked={popular}
+                        onCheckedChange={checked => setPopular(!!checked)}
+                    />
+                    <label htmlFor="popular-checkbox" className="text-sm font-medium text-gray-700">علامة "الأكثر شيوعاً"</label>
+                </div>
+            </form>
         </Modal>
     );
 };

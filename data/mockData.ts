@@ -407,7 +407,6 @@ export const mockSiteBranding: SiteBranding = {
     logoUrl: "https://i.ibb.co/C0bSJJT/favicon.png",
     heroImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
     aboutImageUrl: "https://i.ibb.co/8XYt2s5/about-us-image.jpg",
-    // FIX: Added missing property 'joinUsImageUrl'
     joinUsImageUrl: "https://i.ibb.co/L5B6m9f/join-us-hero.jpg",
     creativeWritingPortalImageUrl: "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg",
     enhaLakPortalImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
@@ -540,7 +539,6 @@ export const mockJoinRequests: JoinRequest[] = [
     { id: 'join_1', created_at: new Date().toISOString(), name: 'مبدع جديد', email: 'creative@test.com', phone: '01012345678', role: 'رسام قصص أطفال', message: 'أنا رسام مهتم.', status: 'جديد', portfolio_url: 'https://example.com' },
 ];
 
-// FIX: Added mockAuditLogs export to fix module resolution error
 export const mockAuditLogs: any[] = [
     {
         id: 'log_1',
@@ -618,7 +616,6 @@ export const mockSiteContent: SiteContent = {
     ourStory: "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة 'منصة الرحلة' - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي.",
     ourVision: "أن نكون المنصة الرائدة والوجهة الأولى لكل أسرة عربية تبحث عن محتوى تربوي إبداعي وأصيل ينمّي شخصية الطفل، يعزز ارتباطه بلغته وهويته، ويطلق العنان لخياله الإبداعي.",
     valuesTitle: "قيمنا الأساسية",
-    // FIX: Added missing property 'teamMembers'
     teamMembers: [
         { name: 'أ. أحمد المصري', role: 'مؤسس ومدرب', imageUrl: 'https://i.ibb.co/2S4xT8w/male-avatar.png' },
         { name: 'أ. نورة القحطاني', role: 'مدربة ورسامة', imageUrl: 'https://i.ibb.co/yY3GJk1/female-avatar.png' },
@@ -636,7 +633,6 @@ export const mockSiteContent: SiteContent = {
       testimonialsSubtitle: "آراء نفخر بها من عائلة 'الرحلة'.",
       finalCtaTitle: "هل أنت جاهز لصناعة السحر؟",
       finalCtaSubtitle: "اهدِه قصة ستبقى في ذاكرته إلى الأبد.",
-      // FIX: Added missing properties 'customStoryImageUrl' and 'subscriptionBoxImageUrl'
       customStoryImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
       subscriptionBoxImageUrl: "https://i.ibb.co/L8DDd6V/gift-box-sub.png",
     },
@@ -683,7 +679,6 @@ export const mockSiteContent: SiteContent = {
       mainTitle: "رحلة شخصية، وليست درساً",
       mainContent: "نحن لا نقدم دروسًا، بل نقدم رحلة شخصية بصحبة مرشد متخصص. في جلسات فردية مباشرة، نأخذ بيد طفلك بعيدًا عن سطوة القواعد الصارمة والتقييم، ونمنحه حرية الورقة البيضاء. هنا، لا توجد إجابات صحيحة أو خاطئة؛ يوجد فقط صوت طفلك، خياله، وقصته التي تنتظر أن تُروى.",
       philosophyTitle: "فلسفتنا في ثلاث كلمات",
-      // FIX: Added missing property 'heroImageUrl'
       heroImageUrl: "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg",
     },
     curriculum: {
