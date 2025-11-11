@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
-import PostCard from '../components/shared/PostCard';
+import PostCard, { PostCardSkeleton } from '../components/shared/PostCard';
 import ErrorState from '../components/ui/ErrorState';
 
 const BlogPage: React.FC = () => {
@@ -9,7 +9,21 @@ const BlogPage: React.FC = () => {
     const posts = data?.blogPosts.filter(p => p.status === 'published') || [];
 
     if (isLoading) {
-        return <PageLoader text="جاري تحميل المدونة..." />;
+        return (
+            <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-16">
+                        <div className="h-12 w-1/3 bg-gray-200 rounded animate-pulse mx-auto mb-4"></div>
+                        <div className="h-6 w-1/2 bg-gray-200 rounded animate-pulse mx-auto"></div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                            <PostCardSkeleton key={index} />
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (

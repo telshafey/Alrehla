@@ -1,4 +1,3 @@
-// FIX: Import `useMemo` from react.
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
@@ -132,52 +131,46 @@ const PersonalizedStoriesPage: React.FC = () => {
             {error ? <ErrorState message={(error as Error).message} onRetry={refetch} /> : (
             <>
                 {/* Featured Products Section */}
-                {(isLoading || featuredProducts.length > 0) && (
-                    <section className="mb-20">
-                        <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><Star className="text-yellow-400" /> {content?.featuredProductsTitle}</h2>
-                        <div className="flex gap-8 pb-4 -mx-4 px-4 overflow-x-auto">
-                            {isLoading ? (
-                                Array.from({ length: 2 }).map((_, index) => <div className="w-80 flex-shrink-0" key={index}><SkeletonCard /></div>)
-                            ) : (
-                                featuredProducts.map(product => (
-                                    <ProductCard key={`featured-${product.id}`} product={product} featured />
-                                ))
-                            )}
-                        </div>
-                    </section>
-                )}
+                <section className="mb-20">
+                    <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><Star className="text-yellow-400" /> {content?.featuredProductsTitle}</h2>
+                    <div className="flex gap-8 pb-4 -mx-4 px-4 overflow-x-auto">
+                        {isLoading ? (
+                            Array.from({ length: 2 }).map((_, index) => <div className="w-80 flex-shrink-0" key={index}><SkeletonCard /></div>)
+                        ) : (
+                            featuredProducts.map(product => (
+                                <ProductCard key={`featured-${product.id}`} product={product} featured />
+                            ))
+                        )}
+                    </div>
+                </section>
 
                 {/* Core Products */}
-                {(isLoading || coreProducts.length > 0) && (
-                    <section className="mb-20">
-                        <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><BookHeart className="text-pink-500" /> {content?.coreProductsTitle}</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {isLoading && !featuredProducts.length ? (
-                                Array.from({ length: 2 }).map((_, index) => <SkeletonCard key={`core-skel-${index}`} />)
-                            ) : (
-                                coreProducts.map(product => (
-                                    <ProductCard key={`core-${product.id}`} product={product} />
-                                ))
-                            )}
-                        </div>
-                    </section>
-                )}
+                <section className="mb-20">
+                    <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><BookHeart className="text-pink-500" /> {content?.coreProductsTitle}</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {isLoading ? (
+                            Array.from({ length: 3 }).map((_, index) => <SkeletonCard key={`core-skel-${index}`} />)
+                        ) : (
+                            coreProducts.map(product => (
+                                <ProductCard key={`core-${product.id}`} product={product} />
+                            ))
+                        )}
+                    </div>
+                </section>
 
                 {/* Addon Products */}
-                {(isLoading || addonProducts.length > 0) && (
-                    <section>
-                        <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><Puzzle className="text-green-500" /> {content?.addonProductsTitle}</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {isLoading && !featuredProducts.length && !coreProducts.length ? (
-                                 Array.from({ length: 1 }).map((_, index) => <SkeletonCard key={`addon-skel-${index}`} />)
-                            ) : (
-                                addonProducts.map(product => (
-                                    <ProductCard key={`addon-${product.id}`} product={product} />
-                                ))
-                            )}
-                        </div>
-                    </section>
-                )}
+                <section>
+                    <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><Puzzle className="text-green-500" /> {content?.addonProductsTitle}</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {isLoading ? (
+                             Array.from({ length: 2 }).map((_, index) => <SkeletonCard key={`addon-skel-${index}`} />)
+                        ) : (
+                            addonProducts.map(product => (
+                                <ProductCard key={`addon-${product.id}`} product={product} />
+                            ))
+                        )}
+                    </div>
+                </section>
             </>
             )}
         </div>

@@ -17,7 +17,6 @@ export const useHeaderNavigation = () => {
     ];
     
     const enhaLakNavLinks = [
-        // FIX: Replaced JSX with React.createElement to be valid in a .ts file.
         { key: 'back', to: '/', text: 'الرئيسية', icon: React.createElement(ArrowLeft, { size: 16 }) },
         { key: 'enha-lak-home', to: '/enha-lak', text: 'عن المشروع' },
         { key: 'enha-lak-store', to: '/enha-lak/store', text: 'متجر القصص' },
@@ -25,7 +24,6 @@ export const useHeaderNavigation = () => {
     ];
     
     const creativeWritingNavLinks = [
-        // FIX: Replaced JSX with React.createElement to be valid in a .ts file.
         { key: 'back', to: '/', text: 'الرئيسية', icon: React.createElement(ArrowLeft, { size: 16 }) },
         { key: 'cw-home', to: '/creative-writing', text: 'نظرة عامة' },
         { key: 'cw-packages', to: '/creative-writing/packages', text: 'الباقات' },

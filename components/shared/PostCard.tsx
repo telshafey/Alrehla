@@ -29,3 +29,23 @@ const PostCard = React.forwardRef<HTMLElement, PostCardProps>(({ post }, ref) =>
 PostCard.displayName = 'PostCard';
 
 export default React.memo(PostCard);
+
+export const PostCardSkeleton: React.FC = () => (
+    <Card className="overflow-hidden h-full flex flex-col">
+        <div className="w-full aspect-[16/9] bg-muted animate-pulse" />
+        <CardHeader>
+            <div className="h-6 w-3/4 bg-muted rounded animate-pulse"></div>
+            <div className="h-4 w-1/2 bg-muted rounded animate-pulse mt-2"></div>
+        </CardHeader>
+        <CardContent className="flex-grow">
+            <div className="space-y-2">
+                <div className="h-4 bg-muted rounded animate-pulse"></div>
+                <div className="h-4 bg-muted rounded animate-pulse"></div>
+                <div className="h-4 w-5/6 bg-muted rounded animate-pulse"></div>
+            </div>
+        </CardContent>
+        <CardFooter>
+             <div className="h-5 w-24 bg-muted rounded animate-pulse"></div>
+        </CardFooter>
+    </Card>
+);

@@ -1,8 +1,7 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-// FIX: Added .tsx extension to fix module resolution error
-import AdminSidebar from './AdminSidebar.tsx';
+import AdminSidebar from './AdminSidebar';
 import AdminNavbar from './AdminNavbar';
 import AdminFooter from './AdminFooter';
 import PageLoader from '../ui/PageLoader';
@@ -10,10 +9,8 @@ import PermissionBasedRoute from '../auth/PermissionBasedRoute';
 
 // Lazy load admin pages
 const AdminDashboardPage = lazy(() => import('../../pages/admin/AdminDashboardPage'));
-// FIX: Added .tsx extension to fix module resolution error
-const AdminUsersPage = lazy(() => import('../../pages/admin/AdminUsersPage.tsx'));
-// FIX: Added .tsx extension to fix module resolution error
-const AdminOrdersPage = lazy(() => import('../../pages/admin/AdminOrdersPage.tsx'));
+const AdminUsersPage = lazy(() => import('../../pages/admin/AdminUsersPage'));
+const AdminOrdersPage = lazy(() => import('../../pages/admin/AdminOrdersPage'));
 const AdminCreativeWritingPage = lazy(() => import('../../pages/admin/AdminCreativeWritingPage'));
 const AdminPersonalizedProductsPage = lazy(() => import('../../pages/admin/AdminPersonalizedProductsPage'));
 const AdminProductDetailPage = lazy(() => import('../../pages/admin/AdminProductDetailPage'));
@@ -22,8 +19,7 @@ const AdminInstructorsPage = lazy(() => import('../../pages/admin/AdminInstructo
 const AdminInstructorDetailPage = lazy(() => import('../../pages/admin/AdminInstructorDetailPage'));
 const AdminSupportPage = lazy(() => import('../../pages/admin/AdminSupportPage'));
 const AdminJoinRequestsPage = lazy(() => import('../../pages/admin/AdminJoinRequestsPage'));
-// FIX: Added .tsx extension to fix module resolution error
-const AdminBlogPage = lazy(() => import('../../pages/admin/AdminBlogPage.tsx'));
+const AdminBlogPage = lazy(() => import('../../pages/admin/AdminBlogPage'));
 const AdminContentManagementPage = lazy(() => import('../../pages/admin/AdminContentManagementPage'));
 const AdminShippingPage = lazy(() => import('../../pages/admin/AdminShippingPage'));
 const AdminSubscriptionsPage = lazy(() => import('../../pages/admin/AdminSubscriptionsPage'));
