@@ -1,0 +1,23 @@
+{
+  "short_name": "Alrehla",
+  "name": "منصة الرحلة | Alrehla",
+  "description": "منصة 'الرحلة': منظومة تربوية إبداعية متكاملة. اكتشف رحلة طفلك من بطل يكتشف ذاته في قصص 'إنها لك' المخصصة، إلى مبدع يصنع عوالمه الخاصة في برنامج 'بداية الرحلة' للكتابة.",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/C0bSJJT/favicon.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/C0bSJJT/favicon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#121a2c",
+  "background_color": "#f9fafb",
+  "lang": "ar"
+}
