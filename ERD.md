@@ -1,3 +1,4 @@
+
 # Entity-Relationship Diagram (ERD) for Al-Rehla Platform
 
 This document provides a visual representation of the database schema for the Al-Rehla platform. It illustrates the primary entities (tables), their key attributes, and the relationships connecting them. This version has been updated to reflect backend implementation best practices.

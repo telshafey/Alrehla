@@ -45,9 +45,9 @@ const AdminBlogPostEditorPage: React.FC = () => {
 
     const generateSlug = (text: string) => {
         return text.toLowerCase()
-            .replace(/[^\w\s-]/g, '') // Remove non-word chars (except spaces and hyphens)
-            .replace(/\s+/g, '-')     // Replace spaces with -
-            .replace(/\-\-+/g, '-')   // Replace multiple - with single -
+            .replace(/[^\w\s-]/g, '') 
+            .replace(/\s+/g, '-')     
+            .replace(/\-\-+/g, '-')   
             .trim();
     };
 
@@ -194,7 +194,8 @@ const AdminBlogPostEditorPage: React.FC = () => {
                                 label="صورة الغلاف" 
                                 fieldKey="image_url" 
                                 currentUrl={post.image_url || ''} 
-                                onUrlChange={handleImageChange} 
+                                onUrlChange={handleImageChange}
+                                recommendedSize="1200x630px"
                             />
                         </CardContent>
                     </Card>

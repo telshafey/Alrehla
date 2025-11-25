@@ -33,8 +33,8 @@ export const mockUsers: UserProfile[] = [
 ];
 
 export const mockChildProfiles: ChildProfile[] = [
-    { id: 1, created_at: '2023-01-10T10:00:00Z', user_id: 'usr_parent', name: 'فاطمة أحمد', birth_date: '2016-05-10', gender: 'أنثى', avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', interests: ['الرسم', 'الفضاء'], strengths: ['مبدعة', 'فضولية'], student_user_id: 'usr_student' },
-    { id: 2, created_at: '2023-02-15T10:00:00Z', user_id: 'usr_parent', name: 'عمر أحمد', birth_date: '2018-03-22', gender: 'ذكر', avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', interests: ['الديناصورات', 'السيارات'], strengths: ['شجاع'], student_user_id: null },
+    { id: 1, created_at: '2023-01-10T10:00:00Z', user_id: 'usr_parent', name: 'فاطمة أحمد', birth_date: '2016-05-10', gender: 'أنثى', avatar_url: 'https://placehold.co/400x400?text=Fatima', interests: ['الرسم', 'الفضاء'], strengths: ['مبدعة', 'فضولية'], student_user_id: 'usr_student' },
+    { id: 2, created_at: '2023-02-15T10:00:00Z', user_id: 'usr_parent', name: 'عمر أحمد', birth_date: '2018-03-22', gender: 'ذكر', avatar_url: 'https://placehold.co/400x400?text=Omar', interests: ['الديناصورات', 'السيارات'], strengths: ['شجاع'], student_user_id: null },
 ];
 
 export const mockBadges: Badge[] = [
@@ -82,7 +82,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         key: 'subscription_box', 
         title: 'صندوق الرحلة الشهري', 
         description: 'اشتراك شهري متجدد يحتوي على قصة مخصصة وأنشطة وهدايا.', 
-        image_url: 'https://i.ibb.co/L8DDd6V/gift-box-sub.png', 
+        image_url: 'https://placehold.co/800x800?text=Subscription+Box', 
         features: ['قصة مخصصة جديدة كل شهر', 'أنشطة تفاعلية وألعاب', 'هدية إضافية مختارة بعناية'], 
         sort_order: -1,
         is_featured: false, 
@@ -101,7 +101,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         key: 'emotion_story', 
         title: 'القصة المميزة', 
         description: 'قصة علاجية مخصصة لمساعدة طفلك على فهم مشاعره والتعبير عنها بطريقة صحية، بناءً على مواقف من حياته الواقعية.', 
-        image_url: 'https://i.ibb.co/8XYt2s5/about-us-image.jpg',
+        image_url: 'https://placehold.co/800x800?text=Emotion+Story',
         features: ['تخصيص نفسى وسلوكي عميق', 'معالجة مشاعر محددة', 'بناء على مواقف واقعية', 'حلول تربوية إيجابية'], 
         sort_order: 0, 
         is_featured: true, 
@@ -141,7 +141,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         key: 'custom_story', 
         title: 'القصة المخصصة', 
         description: 'قصة فريدة بطلها طفلك، باسمه وصورته وهواياته.', 
-        image_url: 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg', 
+        image_url: 'https://placehold.co/800x800?text=Custom+Story', 
         features: ['تخصيص كامل', 'اختيار الهدف التربوي', 'رسومات احترافية'], 
         sort_order: 1, 
         is_featured: true, 
@@ -170,7 +170,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         key: 'gift_box', 
         title: 'بوكس الهدية', 
         description: 'المجموعة الكاملة من منتجاتنا في صندوق هدايا فاخر.', 
-        image_url: 'https://i.ibb.co/8XYt2s5/about-us-image.jpg', 
+        image_url: 'https://placehold.co/800x800?text=Gift+Box', 
         features: ['قصة مطبوعة', 'دفتر تلوين', 'كتيب أذكار'], 
         sort_order: 2, 
         is_featured: false, 
@@ -273,13 +273,13 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
 ];
 
 export const mockSiteBranding: SiteBranding = {
-    logoUrl: "https://i.ibb.co/C0bSJJT/favicon.png",
-    heroImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
-    aboutHeroImageUrl: "https://i.ibb.co/8XYt2s5/about-us-image.jpg",
-    aboutPortalImageUrl: "https://placehold.co/600x600",
-    joinUsImageUrl: "https://i.ibb.co/L5B6m9f/join-us-hero.jpg",
-    creativeWritingPortalImageUrl: "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg",
-    enhaLakPortalImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg"
+    logoUrl: "https://placehold.co/500x150?text=Logo",
+    heroImageUrl: "https://placehold.co/1920x800?text=Hero+Image",
+    aboutHeroImageUrl: "https://placehold.co/1920x600?text=About+Hero",
+    aboutPortalImageUrl: "https://placehold.co/600x600?text=About+Card",
+    joinUsImageUrl: "https://placehold.co/1920x600?text=Join+Us",
+    creativeWritingPortalImageUrl: "https://placehold.co/600x400?text=Creative+Writing",
+    enhaLakPortalImageUrl: "https://placehold.co/600x400?text=Enha+Lak"
 };
 
 export const mockInstructors: Instructor[] = [
@@ -289,7 +289,7 @@ export const mockInstructors: Instructor[] = [
         name: 'أ. أحمد المصري',
         specialty: 'قصص خيال علمي',
         bio: 'كاتب ومدرب متخصص في أدب الطفل.',
-        avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png',
+        avatar_url: 'https://placehold.co/400x400?text=Avatar',
         slug: 'ahmed-masri',
         weekly_schedule: { saturday: ['10:00', '11:00'], tuesday: ['16:00', '17:00'] },
         availability: {},
@@ -301,7 +301,7 @@ export const mockInstructors: Instructor[] = [
         teaching_philosophy: 'التعلم بالمرح',
         expertise_areas: ['خيال', 'مغامرات'],
         intro_video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Placeholder
-        published_works: [{ title: 'مغامرات في الفضاء', cover_url: 'https://placehold.co/200x300' }]
+        published_works: [{ title: 'مغامرات في الفضاء', cover_url: 'https://placehold.co/400x600?text=Book+Cover' }]
     }
 ];
 
@@ -373,8 +373,8 @@ export const mockSiteContent: SiteContent = {
             testimonialsSubtitle: 'ماذا قالوا عنا',
             finalCtaTitle: 'جاهز للطلب؟',
             finalCtaSubtitle: 'ابدأ الآن بتخصيص قصة لطفلك.',
-            customStoryImageUrl: 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg',
-            subscriptionBoxImageUrl: 'https://i.ibb.co/L8DDd6V/gift-box-sub.png'
+            customStoryImageUrl: 'https://placehold.co/800x800?text=Custom+Story',
+            subscriptionBoxImageUrl: 'https://placehold.co/800x800?text=Subscription+Box'
         },
         store: {
             heroTitle: 'متجر القصص',
@@ -415,7 +415,7 @@ export const mockSiteContent: SiteContent = {
             mainTitle: 'لماذا بداية الرحلة؟',
             mainContent: 'لأننا نؤمن...',
             philosophyTitle: 'فلسفتنا',
-            heroImageUrl: 'https://i.ibb.co/n7ZJv9V/child-learning-online.jpg'
+            heroImageUrl: 'https://placehold.co/800x800?text=CW+Philosophy'
         },
         curriculum: {
             heroTitle: 'المنهج الدراسي',
@@ -463,7 +463,7 @@ export const mockShippingCosts: ShippingCosts = {
 };
 
 export const mockBlogPosts: BlogPost[] = [
-    { id: 1, created_at: '2023-08-01', published_at: '2023-08-02', title: 'أهمية القراءة للطفل', slug: 'reading-importance', content: 'محتوى المقال...', author_name: 'سارة', status: 'published', image_url: 'https://placehold.co/800x400' }
+    { id: 1, created_at: '2023-08-01', published_at: '2023-08-02', title: 'أهمية القراءة للطفل', slug: 'reading-importance', content: 'محتوى المقال...', author_name: 'سارة', status: 'published', image_url: 'https://placehold.co/1200x630?text=Blog+Post' }
 ];
 
 export const mockSupportTickets: SupportTicket[] = [

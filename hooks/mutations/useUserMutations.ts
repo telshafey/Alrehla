@@ -1,7 +1,7 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { userService } from '../../services/userService';
 
 export const useUserMutations = () => {
     const queryClient = useQueryClient();
@@ -9,26 +9,17 @@ export const useUserMutations = () => {
 
     // Admin mutation to update any user
     const updateUser = useMutation({
-        mutationFn: async (payload: { id: string, name?: string, role?: string, address?: string, governorate?: string, phone?: string }) => {
-            await sleep(500);
-            console.log("Updating user (mock)", payload);
-            return { ...payload };
-        },
+        mutationFn: userService.updateUser,
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
-            queryClient.invalidateQueries({ queryKey: ['userAccountData', data.id] }); // Invalidate specific user data if needed
+            queryClient.invalidateQueries({ queryKey: ['userAccountData', data.id] }); 
             addToast('تم تحديث بيانات المستخدم بنجاح.', 'success');
         },
         onError: (error: Error) => addToast(`فشل تحديث المستخدم: ${error.message}`, 'error')
     });
 
     const updateUserPassword = useMutation({
-         mutationFn: async (payload: { userId: string, currentPassword?: string, newPassword?: string }) => {
-            await sleep(500);
-            console.log("Updating password for user (mock)", payload.userId);
-            // In a real app, this would require currentPassword for non-admins
-            return { success: true };
-        },
+         mutationFn: userService.updateUserPassword,
         onSuccess: () => {
             addToast('تم تحديث كلمة المرور بنجاح.', 'success');
         },
@@ -37,11 +28,7 @@ export const useUserMutations = () => {
     
     // Child Profile Mutations (for parents)
     const createChildProfile = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(500);
-            console.log("Creating child profile (mock)", payload);
-            return { ...payload, id: Math.random() };
-        },
+        mutationFn: userService.createChildProfile,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['userAccountData'] });
              queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
@@ -51,11 +38,7 @@ export const useUserMutations = () => {
     });
 
     const updateChildProfile = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(500);
-            console.log("Updating child profile (mock)", payload);
-            return payload;
-        },
+        mutationFn: userService.updateChildProfile,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['userAccountData'] });
             queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
@@ -65,11 +48,7 @@ export const useUserMutations = () => {
     });
 
     const deleteChildProfile = useMutation({
-        mutationFn: async ({ childId }: { childId: number }) => {
-            await sleep(500);
-            console.log("Deleting child profile (mock)", childId);
-            return { success: true };
-        },
+        mutationFn: (payload: { childId: number }) => userService.deleteChildProfile(payload.childId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['userAccountData'] });
             queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
@@ -80,11 +59,7 @@ export const useUserMutations = () => {
 
     // Student account linking (admin & parent)
     const createAndLinkStudentAccount = useMutation({
-        mutationFn: async (payload: { name: string, email: string, password: string, childProfileId: number }) => {
-            await sleep(800);
-            console.log("Creating and linking student account (mock)", payload);
-            return { success: true };
-        },
+        mutationFn: userService.createAndLinkStudentAccount,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
             queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
@@ -95,11 +70,7 @@ export const useUserMutations = () => {
     });
     
     const linkStudentToChildProfile = useMutation({
-        mutationFn: async ({ studentUserId, childProfileId }: { studentUserId: string, childProfileId: number }) => {
-            await sleep(500);
-            console.log("Linking student to child (mock)", { studentUserId, childProfileId });
-            return { success: true };
-        },
+        mutationFn: userService.linkStudentToChildProfile,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
             queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
@@ -109,11 +80,7 @@ export const useUserMutations = () => {
     });
     
     const unlinkStudentFromChildProfile = useMutation({
-        mutationFn: async ({ childProfileId }: { childProfileId: number }) => {
-            await sleep(500);
-            console.log("Unlinking student from child (mock)", { childProfileId });
-            return { success: true };
-        },
+        mutationFn: (payload: { childProfileId: number }) => userService.unlinkStudentFromChildProfile(payload.childProfileId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
             queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
@@ -124,14 +91,10 @@ export const useUserMutations = () => {
 
     // --- BULK ACTIONS ---
     const bulkDeleteUsers = useMutation({
-        mutationFn: async ({ userIds }: { userIds: string[] }) => {
-            await sleep(500);
-            console.log("Bulk deleting users (mock)", { userIds });
-            return { success: true };
-        },
+        mutationFn: (payload: { userIds: string[] }) => userService.bulkDeleteUsers(payload.userIds),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
-            queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] }); // In case a linked student was deleted
+            queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
             addToast('تم حذف المستخدمين المحددين.', 'info');
         },
         onError: (error: Error) => addToast(`فشل حذف المستخدمين: ${error.message}`, 'error'),

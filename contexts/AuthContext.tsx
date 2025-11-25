@@ -1,11 +1,11 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
 import { getPermissions, Permissions, type UserRole } from '../lib/roles';
 import type { ChildProfile, UserProfile } from '../lib/database.types';
 import { useToast } from './ToastContext';
 import { useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../lib/api';
-import { getToken, setToken, clearToken } from '../lib/tokenManager';
-import { mockUsers, mockChildProfiles } from '../data/mockData'; // Import mock data
+import { authService } from '../services/authService';
+import { setToken, clearToken } from '../lib/tokenManager';
 
 export type { UserProfile, ChildProfile, UserRole };
 
@@ -36,47 +36,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { addToast } = useToast();
     const queryClient = useQueryClient();
 
+    const fetchUserData = async (user: UserProfile) => {
+        if (user.role === 'user') {
+            const children = await authService.getUserChildren(user.id);
+            setChildProfiles(children);
+        } else if (user.role === 'student') {
+            const profile = await authService.getStudentProfile(user.id);
+            setCurrentChildProfile(profile);
+        }
+    };
+
     useEffect(() => {
         const validateSession = async () => {
-            // 1. Check for mock user session first
-            const mockUserEmail = localStorage.getItem('mockUserEmail');
-            if (mockUserEmail) {
-                const user = mockUsers.find(u => u.email === mockUserEmail);
-                if (user) {
-                    setCurrentUser(user);
-                    if (user.role === 'user') {
-                        setChildProfiles(mockChildProfiles.filter(c => c.user_id === user.id));
-                    }
-                    if (user.role === 'student') {
-                        const profile = mockChildProfiles.find(c => c.student_user_id === user.id);
-                        setCurrentChildProfile(profile || null);
-                    }
-                }
-                setLoading(false);
-                return;
-            }
-
-            // 2. If no mock session, check for real token
-            const token = getToken();
-            if (token) {
-                try {
-                    const { user } = await apiClient.get<{ user: UserProfile }>('/auth/me');
-                    setCurrentUser(user);
-                    
-                    if (user.role === 'user' || user.role === 'student') {
-                        const accountData = await apiClient.get<{ childProfiles: ChildProfile[], currentChildProfile?: ChildProfile }>('/user/account-data');
-                        setChildProfiles(accountData.childProfiles || []);
-                        if (user.role === 'student') {
-                            setCurrentChildProfile(accountData.currentChildProfile || null);
-                        }
-                    }
-                } catch (e: any) {
-                    console.error("Session validation failed", e);
-                    clearToken(); // Token is invalid, clear it
+            try {
+                const response = await authService.getCurrentUser();
+                if (response && response.user) {
+                    setCurrentUser(response.user);
+                    await fetchUserData(response.user);
+                } else {
+                    // Session invalid or expired
                     setCurrentUser(null);
                 }
+            } catch (e) {
+                console.error("Session validation failed", e);
+                setCurrentUser(null);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         validateSession();
@@ -86,42 +72,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLoading(true);
         setError(null);
 
-        // --- DEMO LOGIN LOGIC ---
-        if (password === '123456') {
-            const user = mockUsers.find(u => u.email === email);
-            if (user) {
-                setCurrentUser(user);
-                if (user.role === 'user') {
-                    setChildProfiles(mockChildProfiles.filter(c => c.user_id === user.id));
-                }
-                if (user.role === 'student') {
-                    const profile = mockChildProfiles.find(c => c.student_user_id === user.id);
-                    setCurrentChildProfile(profile || null);
-                }
-                clearToken(); // Ensure no real token is present
-                localStorage.setItem('mockUserEmail', user.email);
-                addToast(`مرحباً بعودتك (تجريبي)، ${user.name}!`, 'success');
-                setLoading(false);
-                return true;
-            }
-        }
-        // --- END DEMO LOGIN LOGIC ---
-        
-        // --- REAL API LOGIN LOGIC ---
         try {
-            const { user, accessToken } = await apiClient.post<{ user: UserProfile, accessToken: string }>('/auth/login', { email, password });
+            const { user, accessToken } = await authService.login(email, password);
             setToken(accessToken);
-            localStorage.removeItem('mockUserEmail'); // Clear mock session
             setCurrentUser(user);
-            
-            if (user.role === 'user' || user.role === 'student') {
-                 const accountData = await apiClient.get<{ childProfiles: ChildProfile[], currentChildProfile?: ChildProfile }>('/user/account-data');
-                 setChildProfiles(accountData.childProfiles || []);
-                 if (user.role === 'student') {
-                     setCurrentChildProfile(accountData.currentChildProfile || null);
-                 }
-            }
-            
+            await fetchUserData(user);
             addToast(`مرحباً بعودتك، ${user.name}!`, 'success');
             return true;
         } catch (e: any) {
@@ -137,11 +92,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLoading(true);
         setError(null);
         try {
-            const { user, accessToken } = await apiClient.post<{ user: UserProfile, accessToken: string }>('/auth/register', { email, password, name, role });
+            const { user, accessToken } = await authService.register(email, password, name, role);
             setToken(accessToken);
-            localStorage.removeItem('mockUserEmail'); // Clear mock session
             setCurrentUser(user);
-            setChildProfiles([]); // New user has no child profiles yet
+            setChildProfiles([]); 
             addToast('تم إنشاء حسابك بنجاح!', 'success');
             return true;
         } catch (e: any) {
@@ -154,11 +108,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const signOut = async () => {
+        await authService.logout();
         setCurrentUser(null);
         setChildProfiles([]);
         setCurrentChildProfile(null);
         clearToken();
-        localStorage.removeItem('mockUserEmail');
         queryClient.clear();
         addToast('تم تسجيل الخروج بنجاح.', 'info');
     };
@@ -166,10 +120,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const updateCurrentUser = (updatedData: Partial<UserProfile>) => {
         setCurrentUser(prevUser => {
             if (!prevUser) return null;
-            const newUser = { ...prevUser, ...updatedData };
-            // Note: This is a client-side update for optimistic UI. 
-            // The source of truth is the server, updated via mutations.
-            return newUser;
+            return { ...prevUser, ...updatedData };
         });
     };
     

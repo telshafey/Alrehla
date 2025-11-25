@@ -1,25 +1,24 @@
-import { useQueries } from '@tanstack/react-query';
-import {
-    mockUsers, mockOrders, mockBookings, mockSubscriptions, mockSupportTickets, mockJoinRequests,
-    mockBlogPosts, mockInstructors, mockSupportSessionRequests, mockScheduledSessions, mockServiceOrders,
-    mockSessionAttachments
-} from '../../../data/mockData';
 
-const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
+import { useQueries } from '@tanstack/react-query';
+import { userService } from '../../../services/userService';
+import { orderService } from '../../../services/orderService';
+import { bookingService } from '../../../services/bookingService';
+import { publicService } from '../../../services/publicService';
+import { communicationService } from '../../../services/communicationService';
 
 const queries = [
-    { key: 'users', fn: () => mockFetch(mockUsers) },
-    { key: 'orders', fn: () => mockFetch(mockOrders) },
-    { key: 'bookings', fn: () => mockFetch(mockBookings) },
-    { key: 'subscriptions', fn: () => mockFetch(mockSubscriptions) },
-    { key: 'supportTickets', fn: () => mockFetch(mockSupportTickets) },
-    { key: 'joinRequests', fn: () => mockFetch(mockJoinRequests) },
-    { key: 'blogPosts', fn: () => mockFetch(mockBlogPosts) },
-    { key: 'instructors', fn: () => mockFetch(mockInstructors) },
-    { key: 'supportSessionRequests', fn: () => mockFetch(mockSupportSessionRequests) },
-    { key: 'scheduledSessions', fn: () => mockFetch(mockScheduledSessions) },
-    { key: 'serviceOrders', fn: () => mockFetch(mockServiceOrders) },
-    { key: 'attachments', fn: () => mockFetch(mockSessionAttachments) },
+    { key: 'users', fn: () => userService.getAllUsers() },
+    { key: 'orders', fn: () => orderService.getAllOrders() },
+    { key: 'bookings', fn: () => bookingService.getAllBookings() },
+    { key: 'subscriptions', fn: () => orderService.getAllSubscriptions() },
+    { key: 'supportTickets', fn: () => communicationService.getAllSupportTickets() },
+    { key: 'joinRequests', fn: () => communicationService.getAllJoinRequests() },
+    { key: 'blogPosts', fn: () => publicService.getAllPublicData().then(d => d.blogPosts) },
+    { key: 'instructors', fn: () => bookingService.getAllInstructors() },
+    { key: 'supportSessionRequests', fn: () => communicationService.getAllSupportSessionRequests() },
+    { key: 'scheduledSessions', fn: () => bookingService.getAllScheduledSessions() },
+    { key: 'serviceOrders', fn: () => orderService.getAllServiceOrders() },
+    { key: 'attachments', fn: () => bookingService.getAllAttachments() },
 ];
 
 export const useAdminDashboardData = () => {
@@ -42,7 +41,6 @@ export const useAdminDashboardData = () => {
 
     const refetch = () => {
         results.forEach(result => {
-            // Refetch all queries, or just the ones that failed. Refetching all is simpler.
             result.refetch();
         });
     };

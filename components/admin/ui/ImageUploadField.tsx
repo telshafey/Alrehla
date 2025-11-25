@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Upload, Loader2 } from 'lucide-react';
+import { Upload, Loader2, Info } from 'lucide-react';
 import { Input } from '../../ui/Input';
 import FormField from '../../ui/FormField';
 import Image from '../../ui/Image';
@@ -12,9 +12,10 @@ interface ImageUploadFieldProps {
     fieldKey: string;
     currentUrl?: string;
     onUrlChange: (fieldKey: string, newUrl: string) => void;
+    recommendedSize?: string; // New prop for dimensions
 }
 
-const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ label, fieldKey, currentUrl, onUrlChange }) => {
+const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ label, fieldKey, currentUrl, onUrlChange, recommendedSize }) => {
     const [preview, setPreview] = useState(currentUrl);
     const [isProcessing, setIsProcessing] = useState(false);
     const { addToast } = useToast();
@@ -46,19 +47,38 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ label, fieldKey, cu
     };
 
     return (
-        <FormField label={label} htmlFor={fieldKey}>
+        <FormField 
+            label={
+                <span className="flex items-center gap-2">
+                    {label}
+                    {recommendedSize && (
+                        <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full dir-ltr">
+                            {recommendedSize}
+                        </span>
+                    )}
+                </span>
+            } 
+            htmlFor={fieldKey}
+        >
             <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
-                <div className="w-24 h-24 rounded-md bg-background flex-shrink-0 overflow-hidden border relative">
+                <div className="w-24 h-24 rounded-md bg-background flex-shrink-0 overflow-hidden border relative group">
                     {isProcessing ? (
                         <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20">
                             <Loader2 className="animate-spin text-primary" />
                         </div>
                     ) : (
-                        <Image 
-                            src={preview || ""} 
-                            alt={`${label} Preview`} 
-                            className="w-full h-full" 
-                        />
+                        <>
+                            <Image 
+                                src={preview || ""} 
+                                alt={`${label} Preview`} 
+                                className="w-full h-full" 
+                            />
+                            {!preview && (
+                                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-xs text-center p-1">
+                                    {recommendedSize || "لا توجد صورة"}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
                 <div className="flex-grow">
@@ -67,7 +87,9 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ label, fieldKey, cu
                         <span>{preview ? 'تغيير الصورة' : 'اختر صورة'}</span>
                     </label>
                     <Input id={fieldKey} type="file" accept="image/*" onChange={handleFileChange} className="sr-only" disabled={isProcessing} />
-                    <p className="text-[10px] text-muted-foreground mt-2">سيتم ضغط الصورة تلقائياً لضمان سرعة الموقع.</p>
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                        {recommendedSize ? `يفضل الالتزام بالأبعاد ${recommendedSize} لضمان أفضل عرض.` : 'سيتم ضغط الصورة تلقائياً لضمان سرعة الموقع.'}
+                    </p>
                 </div>
             </div>
         </FormField>

@@ -1,7 +1,7 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { bookingService } from '../../services/bookingService';
 
 export const useCreativeWritingSettingsMutations = () => {
     const queryClient = useQueryClient();
@@ -9,11 +9,7 @@ export const useCreativeWritingSettingsMutations = () => {
 
     // Mutations for Packages
     const createPackage = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(500);
-            console.log("Creating package (mock)", payload);
-            return { ...payload, id: Math.random() };
-        },
+        mutationFn: bookingService.createPackage,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
             addToast('تم إنشاء الباقة بنجاح.', 'success');
@@ -22,11 +18,7 @@ export const useCreativeWritingSettingsMutations = () => {
     });
 
     const updatePackage = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(500);
-            console.log("Updating package (mock)", payload);
-            return payload;
-        },
+        mutationFn: bookingService.updatePackage,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
             addToast('تم تحديث الباقة بنجاح.', 'success');
@@ -35,11 +27,7 @@ export const useCreativeWritingSettingsMutations = () => {
     });
 
     const deletePackage = useMutation({
-        mutationFn: async ({ packageId }: { packageId: number }) => {
-            await sleep(500);
-            console.log("Deleting package (mock)", packageId);
-            return { success: true };
-        },
+        mutationFn: ({ packageId }: { packageId: number }) => bookingService.deletePackage(packageId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
             addToast('تم حذف الباقة بنجاح.', 'info');
@@ -49,11 +37,7 @@ export const useCreativeWritingSettingsMutations = () => {
 
     // Mutations for Standalone Services
     const createStandaloneService = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(500);
-            console.log("Creating standalone service (mock)", payload);
-            return { ...payload, id: Math.random() };
-        },
+        mutationFn: bookingService.createStandaloneService,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
             addToast('تم إنشاء الخدمة بنجاح.', 'success');
@@ -62,11 +46,7 @@ export const useCreativeWritingSettingsMutations = () => {
     });
 
     const updateStandaloneService = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(500);
-            console.log("Updating standalone service (mock)", payload);
-            return payload;
-        },
+        mutationFn: bookingService.updateStandaloneService,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
             addToast('تم تحديث الخدمة بنجاح.', 'success');
@@ -75,11 +55,7 @@ export const useCreativeWritingSettingsMutations = () => {
     });
 
     const deleteStandaloneService = useMutation({
-        mutationFn: async ({ serviceId }: { serviceId: number }) => {
-            await sleep(500);
-            console.log("Deleting standalone service (mock)", serviceId);
-            return { success: true };
-        },
+        mutationFn: ({ serviceId }: { serviceId: number }) => bookingService.deleteStandaloneService(serviceId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
             addToast('تم حذف الخدمة بنجاح.', 'info');

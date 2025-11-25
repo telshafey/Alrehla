@@ -1,7 +1,19 @@
-// lib/api.ts
-import { getToken } from './tokenManager';
 
-const API_BASE_URL = 'http://localhost:8000/api'; // This would come from import.meta.env.VITE_API_BASE_URL in a real setup
+import { getToken, clearToken } from './tokenManager';
+
+const API_BASE_URL = 'http://localhost:8000/api';
+
+export class ApiError extends Error {
+    status: number;
+    data: any;
+
+    constructor(message: string, status: number, data?: any) {
+        super(message);
+        this.name = 'ApiError';
+        this.status = status;
+        this.data = data;
+    }
+}
 
 const makeRequest = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
     const token = getToken();
@@ -16,26 +28,48 @@ const makeRequest = async <T>(endpoint: string, options: RequestInit = {}): Prom
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
 
-    if (!response.ok) {
-        let errorMessage = `API call failed: ${response.statusText}`;
-        try {
-            const errorBody = await response.json();
-            errorMessage = errorBody.message || errorMessage;
-        } catch (e) {
-            // Ignore if the body is not JSON
+        if (!response.ok) {
+            // Handle 401 Unauthorized globally
+            if (response.status === 401) {
+                clearToken();
+                // Optional: Redirect to login if not already there
+                if (!window.location.hash.includes('/account')) {
+                    window.location.hash = '#/account';
+                }
+                throw new ApiError('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً.', 401);
+            }
+
+            let errorMessage = `فشل الطلب: ${response.statusText}`;
+            let errorData = null;
+
+            try {
+                const errorBody = await response.json();
+                errorMessage = errorBody.message || errorMessage;
+                errorData = errorBody;
+            } catch (e) {
+                // Ignore if body is not JSON
+            }
+
+            throw new ApiError(errorMessage, response.status, errorData);
         }
-      throw new Error(errorMessage);
-    }
-    
-    // Handle empty response body for 204 No Content etc.
-    if (response.status === 204 || response.headers.get('Content-Length') === '0') {
-        return null as T;
-    }
+        
+        // Handle empty response body for 204 No Content
+        if (response.status === 204 || response.headers.get('Content-Length') === '0') {
+            return null as T;
+        }
 
-    const data = await response.json();
-    return data; 
+        const data = await response.json();
+        return data; 
+    } catch (error) {
+        if (error instanceof ApiError) {
+            throw error;
+        }
+        // Handle network errors (fetch throws TypeError on network failure)
+        throw new ApiError('حدث خطأ في الاتصال بالشبكة. يرجى التحقق من الإنترنت.', 0);
+    }
 };
 
 export const apiClient = {

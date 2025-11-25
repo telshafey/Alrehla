@@ -1,4 +1,3 @@
-
 import React, { useState, Suspense, lazy } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -62,19 +61,34 @@ const AdminLayout: React.FC = () => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const { permissions } = useAuth();
 
-    // This is the key logic: Is the user ONLY an instructor and not a higher-level admin?
     const isInstructorOnly = permissions.isInstructor && !permissions.canViewGlobalStats;
 
     return (
-        <div className="flex h-screen bg-muted/50" dir="rtl">
-            <AdminSidebar isCollapsed={isSidebarCollapsed} />
-            <main className="flex-1 flex flex-col">
+        <div className="flex h-screen bg-muted/50 overflow-hidden" dir="rtl">
+            {/* Mobile Backdrop */}
+            {isMobileMenuOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden animate-fadeIn"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
+            <AdminSidebar 
+                isCollapsed={isSidebarCollapsed} 
+                isMobileOpen={isMobileMenuOpen}
+                onMobileClose={() => setIsMobileMenuOpen(false)}
+            />
+            
+            {/* Main Content Wrapper - Added min-w-0 to fix flex child overflow issues */}
+            <main className="flex-1 flex flex-col w-full md:w-auto min-w-0 overflow-hidden relative transition-all duration-300">
                 <AdminNavbar 
-                    onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+                    onMobileMenuToggle={() => setIsMobileMenuOpen(prev => !prev)} 
                     isSidebarCollapsed={isSidebarCollapsed} 
                     onSidebarToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                 />
-                <div className="flex-1 p-6 sm:p-8 overflow-y-auto">
+                
+                {/* Scrollable Page Content - Added overflow-x-hidden */}
+                <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden">
                      <Suspense fallback={<PageLoader />}>
                         <Routes>
                             {isInstructorOnly ? (

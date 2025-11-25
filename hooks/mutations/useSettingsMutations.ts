@@ -1,18 +1,14 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { settingsService } from '../../services/settingsService';
 
 export const useSettingsMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
 
     const updateSocialLinks = useMutation({
-        mutationFn: async (links: any) => {
-            await sleep(500);
-            console.log("Updating social links (mock)", links);
-            return links;
-        },
+        mutationFn: settingsService.updateSocialLinks,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminSocialLinks'] });
             queryClient.invalidateQueries({ queryKey: ['publicData'] });
@@ -24,11 +20,7 @@ export const useSettingsMutations = () => {
     });
     
     const updateCommunicationSettings = useMutation({
-        mutationFn: async (settings: any) => {
-            await sleep(500);
-            console.log("Updating communication settings (mock)", settings);
-            return settings;
-        },
+        mutationFn: settingsService.updateCommunicationSettings,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminCommunicationSettings'] });
             queryClient.invalidateQueries({ queryKey: ['publicData'] });
@@ -40,11 +32,7 @@ export const useSettingsMutations = () => {
     });
 
     const updatePricingSettings = useMutation({
-        mutationFn: async (settings: any) => {
-            await sleep(500);
-            console.log("Updating Pricing settings (mock)", settings);
-            return settings;
-        },
+        mutationFn: settingsService.updatePricingSettings,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminPricingSettings'] });
             addToast('تم تحديث إعدادات التسعير بنجاح.', 'success');
@@ -55,13 +43,7 @@ export const useSettingsMutations = () => {
     });
 
     const updateRolePermissions = useMutation({
-        mutationFn: async (permissions: any) => {
-            await sleep(800);
-            console.log("Updating Role Permissions (mock)", permissions);
-            // In a real app, this would update the database.
-            // Here, we'll just invalidate to simulate a refetch, though mock data won't change unless we manipulate it.
-            return { success: true };
-        },
+        mutationFn: settingsService.updateRolePermissions,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminRolePermissions'] });
             addToast('تم تحديث صلاحيات الأدوار بنجاح.', 'success');
@@ -72,11 +54,7 @@ export const useSettingsMutations = () => {
     });
     
     const updateJitsiSettings = useMutation({
-        mutationFn: async (settings: any) => {
-            await sleep(500);
-            console.log("Updating Jitsi settings (mock)", settings);
-            return settings;
-        },
+        mutationFn: settingsService.updateJitsiSettings,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminJitsiSettings'] });
             addToast('تم تحديث إعدادات Jitsi بنجاح.', 'success');
@@ -85,7 +63,6 @@ export const useSettingsMutations = () => {
             addToast(`فشل تحديث الإعدادات: ${error.message}`, 'error');
         }
     });
-
 
     return { updateSocialLinks, updateCommunicationSettings, updatePricingSettings, updateRolePermissions, updateJitsiSettings };
 }

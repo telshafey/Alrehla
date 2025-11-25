@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAdminDashboardData } from '../../hooks/queries/admin/useAdminDashboardDataQuery';
-import PageLoader from '../../components/ui/PageLoader';
+import { DashboardSkeleton } from '../../components/ui/Skeletons';
 import ErrorState from '../../components/ui/ErrorState';
 
 // Import all the widgets
@@ -34,7 +34,7 @@ const AdminDashboardPage: React.FC = () => {
     }, [data]);
 
     if (isLoading) {
-        return <PageLoader text="جاري تحميل لوحة التحكم..." />;
+        return <DashboardSkeleton />;
     }
 
     if (error || !data) {

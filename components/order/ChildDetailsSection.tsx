@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import FormField from '../ui/FormField';
 import { Input } from '../ui/Input';
@@ -5,19 +6,9 @@ import { Select } from '../ui/Select';
 import type { ChildProfile, UserProfile } from '../../lib/database.types';
 import { UserPlus, User as UserIcon } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { useFormContext } from 'react-hook-form';
 
 interface ChildDetailsSectionProps {
-    formData: {
-        childName: string;
-        childBirthDate: string;
-        childGender: 'ذكر' | 'أنثى' | '';
-    };
-    handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
-    errors: {
-        childName?: string;
-        childBirthDate?: string;
-        childGender?: string;
-    };
     childProfiles: ChildProfile[];
     onSelectChild: (child: ChildProfile | null) => void;
     selectedChildId: number | null;
@@ -26,20 +17,16 @@ interface ChildDetailsSectionProps {
     onAddChild: () => void;
 }
 
-const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = React.memo(({ 
-    formData, 
-    handleChange, 
-    errors, 
+const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({ 
     childProfiles, 
     onSelectChild, 
     selectedChildId, 
     onSelectSelf,
-    currentUser,
     onAddChild
 }) => {
+    const { register, formState: { errors } } = useFormContext();
     
     type SelectionMode = 'profile' | 'self' | 'manual';
-    
     const [mode, setMode] = useState<SelectionMode>(() => {
         if (childProfiles.length > 0) return 'profile';
         return 'manual';
@@ -104,14 +91,14 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = React.memo(({
 
             {(mode === 'manual' || mode === 'self' || childProfiles.length === 0) && (
                 <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
-                    <FormField label="الاسم*" htmlFor="childName" error={errors.childName}>
-                        <Input type="text" id="childName" name="childName" value={formData.childName} onChange={handleChange} required aria-invalid={!!errors.childName} disabled={mode === 'self'} />
+                    <FormField label="الاسم*" htmlFor="childName" error={errors.childName?.message as string}>
+                        <Input type="text" id="childName" {...register('childName')} aria-invalid={!!errors.childName} disabled={mode === 'self'} />
                     </FormField>
-                    <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={errors.childBirthDate}>
-                        <Input type="date" id="childBirthDate" name="childBirthDate" value={formData.childBirthDate} onChange={handleChange} required aria-invalid={!!errors.childBirthDate} />
+                    <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={errors.childBirthDate?.message as string}>
+                        <Input type="date" id="childBirthDate" {...register('childBirthDate')} aria-invalid={!!errors.childBirthDate} />
                     </FormField>
-                    <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={errors.childGender}>
-                        <Select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange} required aria-invalid={!!errors.childGender}>
+                    <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={errors.childGender?.message as string}>
+                        <Select id="childGender" {...register('childGender')} aria-invalid={!!errors.childGender}>
                             <option value="" disabled>-- اختر الجنس --</option>
                             <option value="ذكر">ذكر</option>
                             <option value="أنثى">أنثى</option>
@@ -121,13 +108,12 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = React.memo(({
             )}
 
              <div className="mt-6 text-center">
-                <Button variant="link" onClick={onAddChild} icon={<UserPlus size={16}/>}>
+                <Button type="button" variant="link" onClick={onAddChild} icon={<UserPlus size={16}/>}>
                     إضافة طفل جديد للملف العائلي
                 </Button>
             </div>
         </div>
     );
-});
-ChildDetailsSection.displayName = "ChildDetailsSection";
+};
 
 export default ChildDetailsSection;

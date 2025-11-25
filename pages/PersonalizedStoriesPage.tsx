@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
-import SkeletonCard from '../components/ui/SkeletonCard';
+import { ProductCardSkeleton } from '../components/ui/Skeletons';
 import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle, Gift } from 'lucide-react';
 import type { PersonalizedProduct } from '../lib/database.types';
 import { Button } from '../components/ui/Button';
@@ -138,7 +138,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                     <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><Star className="text-yellow-400" /> {content?.featuredProductsTitle}</h2>
                     <div className="flex gap-8 pb-4 -mx-4 px-4 overflow-x-auto">
                         {isLoading ? (
-                            Array.from({ length: 2 }).map((_, index) => <div className="w-80 flex-shrink-0" key={index}><SkeletonCard /></div>)
+                            Array.from({ length: 2 }).map((_, index) => <div className="w-80 flex-shrink-0" key={index}><ProductCardSkeleton /></div>)
                         ) : (
                             featuredProducts.map(product => (
                                 <ProductCard key={`featured-${product.id}`} product={product} featured />
@@ -152,7 +152,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                     <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><BookHeart className="text-pink-500" /> {content?.coreProductsTitle}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
                         {isLoading ? (
-                            Array.from({ length: 3 }).map((_, index) => <SkeletonCard key={`core-skel-${index}`} />)
+                            Array.from({ length: 3 }).map((_, index) => <ProductCardSkeleton key={`core-skel-${index}`} />)
                         ) : (
                             coreProducts.map(product => (
                                 <ProductCard key={`core-${product.id}`} product={product} />
@@ -166,7 +166,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                     <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><Puzzle className="text-green-500" /> {content?.addonProductsTitle}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
                         {isLoading ? (
-                             Array.from({ length: 2 }).map((_, index) => <SkeletonCard key={`addon-skel-${index}`} />)
+                             Array.from({ length: 2 }).map((_, index) => <ProductCardSkeleton key={`addon-skel-${index}`} />)
                         ) : (
                             addonProducts.map(product => (
                                 <ProductCard key={`addon-${product.id}`} product={product} />

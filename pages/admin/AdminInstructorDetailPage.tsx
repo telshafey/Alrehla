@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
@@ -151,8 +152,14 @@ const AdminInstructorDetailPage: React.FC = () => {
                     <CardContent className="space-y-6">
                         <FormField label="الصورة الرمزية" htmlFor="avatarFile">
                             <div className="flex items-center gap-4">
-                                <Image src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-20 h-20 rounded-full" />
-                                <Input type="file" id="avatarFile" onChange={handleFileChange} accept="image/*" />
+                                <div className="relative">
+                                    <Image src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-20 h-20 rounded-full" />
+                                    <span className="absolute bottom-0 right-0 text-[10px] bg-black/50 text-white px-1 rounded">400x400</span>
+                                </div>
+                                <div className="flex-grow">
+                                    <Input type="file" id="avatarFile" onChange={handleFileChange} accept="image/*" />
+                                    <p className="text-[10px] text-muted-foreground mt-1">يفضل صورة مربعة (400x400 بكسل).</p>
+                                </div>
                             </div>
                         </FormField>
                         <FormField label="اسم المدرب" htmlFor="name">

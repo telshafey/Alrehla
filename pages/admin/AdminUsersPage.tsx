@@ -1,9 +1,8 @@
-
 import React, { useState, useMemo } from 'react';
 import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import PageLoader from '../../components/ui/PageLoader';
-import { Users, Plus, Edit, Trash2, Link as LinkIcon, Search, Filter } from 'lucide-react';
+import { TableRowSkeleton } from '../../components/ui/Skeletons';
+import { Users, Plus, Edit, Trash2, Link as LinkIcon, Search } from 'lucide-react';
 import { roleNames } from '../../lib/roles';
 import type { UserProfileWithRelations } from '../../lib/database.types';
 import { Button } from '../../components/ui/Button';
@@ -39,9 +38,9 @@ const AdminUsersPage: React.FC = () => {
     };
 
     const enrichedUsers = useMemo(() => {
-        if (isLoading || error) return [];
+        if (usersLoading || childrenLoading || error) return [];
         return transformUsersWithRelations(users, children);
-    }, [users, children, isLoading, error]);
+    }, [users, children, usersLoading, childrenLoading, error]);
 
     const filteredAndSortedUsers = useMemo(() => {
         let data = [...enrichedUsers];
@@ -113,7 +112,6 @@ const AdminUsersPage: React.FC = () => {
         setSortConfig({ key: key as keyof UserProfileWithRelations, direction });
     };
 
-    if (isLoading) return <PageLoader text="جاري تحميل المستخدمين..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
@@ -166,7 +164,9 @@ const AdminUsersPage: React.FC = () => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredAndSortedUsers.length > 0 ? (
+                                    {isLoading ? (
+                                        Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={5} />)
+                                    ) : filteredAndSortedUsers.length > 0 ? (
                                         filteredAndSortedUsers.map((user) => (
                                             <TableRow key={user.id}>
                                                 <TableCell className="font-medium">{user.name}</TableCell>

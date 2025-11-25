@@ -1,8 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { mockUsers, mockChildProfiles } from '../../../data/mockData';
-import type { UserProfile, ChildProfile, UserProfileWithRelations } from '../../../lib/database.types';
 
-const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
+import { useQuery } from '@tanstack/react-query';
+import { userService } from '../../../services/userService';
+import type { UserProfile, ChildProfile, UserProfileWithRelations } from '../../../lib/database.types';
 
 export const transformUsersWithRelations = (users: UserProfile[], children: ChildProfile[]): UserProfileWithRelations[] => {
     const childrenByParentId = new Map<string, ChildProfile[]>();
@@ -24,10 +23,10 @@ export const transformUsersWithRelations = (users: UserProfile[], children: Chil
 
 export const useAdminUsers = () => useQuery({
     queryKey: ['adminUsers'],
-    queryFn: () => mockFetch(mockUsers) as Promise<UserProfile[]>,
+    queryFn: () => userService.getAllUsers(),
 });
 
 export const useAdminAllChildProfiles = () => useQuery({
     queryKey: ['adminAllChildProfiles'],
-    queryFn: () => mockFetch(mockChildProfiles) as Promise<ChildProfile[]>,
+    queryFn: () => userService.getAllChildProfiles(),
 });

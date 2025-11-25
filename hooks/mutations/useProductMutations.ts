@@ -1,18 +1,14 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { orderService } from '../../services/orderService';
 
 export const useProductMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
 
     const createPersonalizedProduct = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(800);
-            console.log("Creating product (mock)", payload);
-            return { ...payload, id: Math.random() };
-        },
+        mutationFn: orderService.createPersonalizedProduct,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
             addToast('تم إنشاء المنتج بنجاح.', 'success');
@@ -21,11 +17,7 @@ export const useProductMutations = () => {
     });
     
     const updatePersonalizedProduct = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(800);
-            console.log("Updating product (mock)", payload);
-            return payload;
-        },
+        mutationFn: orderService.updatePersonalizedProduct,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
             addToast('تم تحديث المنتج بنجاح.', 'success');
@@ -34,11 +26,7 @@ export const useProductMutations = () => {
     });
 
     const deletePersonalizedProduct = useMutation({
-        mutationFn: async ({ productId }: { productId: number }) => {
-            await sleep(500);
-            console.log("Deleting product (mock)", productId);
-            return { success: true };
-        },
+        mutationFn: (payload: { productId: number }) => orderService.deletePersonalizedProduct(payload.productId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
             addToast('تم حذف المنتج بنجاح.', 'info');

@@ -161,7 +161,7 @@ const AdminSettingsPage: React.FC = () => {
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
-        <div className="animate-fadeIn space-y-8">
+        <div className="animate-fadeIn space-y-8 w-full max-w-full overflow-x-hidden">
             <h1 className="text-3xl font-extrabold text-foreground">الإعدادات العامة</h1>
             
             <Tabs defaultValue="branding">
@@ -180,18 +180,20 @@ const AdminSettingsPage: React.FC = () => {
                                 <CardDescription>الصور التي تظهر في الهيدر، الفوتر، والصفحات الرئيسية.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <ImageUploadField 
                                         label="شعار الموقع (Logo)" 
                                         fieldKey="logoUrl"
                                         currentUrl={branding.logoUrl} 
-                                        onUrlChange={handleBrandingChange} 
+                                        onUrlChange={handleBrandingChange}
+                                        recommendedSize="500x150px"
                                     />
                                     <ImageUploadField 
                                         label="صورة الهيرو (الرئيسية)" 
                                         fieldKey="heroImageUrl"
                                         currentUrl={branding.heroImageUrl} 
-                                        onUrlChange={handleBrandingChange} 
+                                        onUrlChange={handleBrandingChange}
+                                        recommendedSize="1920x800px"
                                     />
                                 </div>
                             </CardContent>
@@ -203,18 +205,20 @@ const AdminSettingsPage: React.FC = () => {
                                 <CardDescription>الصور التي تظهر في البطاقات التعريفية للمشاريع في الصفحة الرئيسية.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <ImageUploadField 
                                         label="صورة بطاقة 'إنها لك'" 
                                         fieldKey="enhaLakPortalImageUrl"
                                         currentUrl={branding.enhaLakPortalImageUrl} 
-                                        onUrlChange={handleBrandingChange} 
+                                        onUrlChange={handleBrandingChange}
+                                        recommendedSize="600x400px"
                                     />
                                     <ImageUploadField 
                                         label="صورة بطاقة 'بداية الرحلة'" 
                                         fieldKey="creativeWritingPortalImageUrl"
                                         currentUrl={branding.creativeWritingPortalImageUrl} 
                                         onUrlChange={handleBrandingChange} 
+                                        recommendedSize="600x400px"
                                     />
                                 </div>
                             </CardContent>
@@ -225,18 +229,20 @@ const AdminSettingsPage: React.FC = () => {
                                 <CardTitle>صور صفحة "رحلتنا" (من نحن)</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <ImageUploadField 
                                         label="صورة الهيرو في صفحة 'رحلتنا'" 
                                         fieldKey="aboutHeroImageUrl"
                                         currentUrl={branding.aboutHeroImageUrl} 
-                                        onUrlChange={handleBrandingChange} 
+                                        onUrlChange={handleBrandingChange}
+                                        recommendedSize="1920x600px"
                                     />
                                     <ImageUploadField 
                                         label="صورة بطاقة 'رحلتنا' (في الرئيسية)" 
                                         fieldKey="aboutPortalImageUrl"
                                         currentUrl={branding.aboutPortalImageUrl} 
-                                        onUrlChange={handleBrandingChange} 
+                                        onUrlChange={handleBrandingChange}
+                                        recommendedSize="600x600px"
                                     />
                                 </div>
                             </CardContent>
@@ -247,30 +253,34 @@ const AdminSettingsPage: React.FC = () => {
                                 <CardTitle>صور صفحات المشاريع الداخلية</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <ImageUploadField 
                                         label="صورة 'القصة المخصصة' (إنها لك)" 
                                         fieldKey="customStory"
                                         currentUrl={contentImages.customStory} 
                                         onUrlChange={(k, v) => handleContentImageChange('customStory', v)}
+                                        recommendedSize="800x800px"
                                     />
                                     <ImageUploadField 
                                         label="صورة 'صندوق الرحلة' (إنها لك)" 
                                         fieldKey="subscriptionBox"
                                         currentUrl={contentImages.subscriptionBox} 
                                         onUrlChange={(k, v) => handleContentImageChange('subscriptionBox', v)}
+                                        recommendedSize="800x800px"
                                     />
                                     <ImageUploadField 
                                         label="صورة 'فلسفة البرنامج' (بداية الرحلة)" 
                                         fieldKey="cwPhilosophy"
                                         currentUrl={contentImages.cwPhilosophy} 
                                         onUrlChange={(k, v) => handleContentImageChange('cwPhilosophy', v)}
+                                        recommendedSize="800x800px"
                                     />
                                      <ImageUploadField 
                                         label="صورة صفحة 'انضم إلينا'" 
                                         fieldKey="joinUsImageUrl"
                                         currentUrl={branding.joinUsImageUrl} 
-                                        onUrlChange={handleBrandingChange} 
+                                        onUrlChange={handleBrandingChange}
+                                        recommendedSize="1920x600px"
                                     />
                                 </div>
                             </CardContent>
@@ -287,7 +297,7 @@ const AdminSettingsPage: React.FC = () => {
                         <Card>
                             <CardHeader><CardTitle>معلومات التواصل</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <FormField label="بريد الدعم الفني" htmlFor="support_email">
                                         <Input id="support_email" name="support_email" value={commSettings.support_email} onChange={handleCommsChange} />
                                     </FormField>
@@ -295,7 +305,7 @@ const AdminSettingsPage: React.FC = () => {
                                         <Input id="join_us_email" name="join_us_email" value={commSettings.join_us_email} onChange={handleCommsChange} />
                                     </FormField>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <FormField label="رقم الواتساب (مع رمز الدولة)" htmlFor="whatsapp_number">
                                         <Input id="whatsapp_number" name="whatsapp_number" value={commSettings.whatsapp_number} onChange={handleCommsChange} placeholder="+201xxxxxxxxx" dir="ltr" />
                                     </FormField>
@@ -317,6 +327,7 @@ const AdminSettingsPage: React.FC = () => {
                                             fieldKey="instapay_qr_url"
                                             currentUrl={commSettings.instapay_qr_url}
                                             onUrlChange={handleQrUrlChange}
+                                            recommendedSize="400x400px"
                                         />
                                     </div>
                                 </div>
@@ -351,7 +362,7 @@ const AdminSettingsPage: React.FC = () => {
                             <CardDescription>التحكم في نسب العمولة والرسوم الثابتة للمنصة.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <FormField label="نسبة هامش ربح المنصة (مثال: 1.2 يعني 20%)" htmlFor="company_percentage">
                                     <Input id="company_percentage" name="company_percentage" type="number" step="0.01" value={pricing.company_percentage} onChange={handlePricingChange} />
                                 </FormField>

@@ -1,16 +1,17 @@
+
 import { useQuery } from '@tanstack/react-query';
-import { mockOrders, mockSubscriptions, mockPersonalizedProducts, mockUsers, mockChildProfiles, mockSubscriptionPlans } from '../../../data/mockData';
-import type { Order, OrderWithRelations, UserProfile, ChildProfile, PersonalizedProduct, Subscription, SubscriptionPlan } from '../../../lib/database.types';
-
-const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
-
+import { orderService } from '../../../services/orderService';
+import { userService } from '../../../services/userService';
+import type { OrderWithRelations } from '../../../lib/database.types';
 
 export const useAdminOrders = () => useQuery({
     queryKey: ['adminOrders'],
     queryFn: async () => {
-        const orders: Order[] = await mockFetch(mockOrders) as Order[];
-        const users: UserProfile[] = await mockFetch(mockUsers) as UserProfile[];
-        const children: ChildProfile[] = await mockFetch(mockChildProfiles) as ChildProfile[];
+        const [orders, users, children] = await Promise.all([
+            orderService.getAllOrders(),
+            userService.getAllUsers(),
+            userService.getAllChildProfiles()
+        ]);
 
         return orders.map(order => {
             const user = users.find(u => u.id === order.user_id);
@@ -26,15 +27,15 @@ export const useAdminOrders = () => useQuery({
 
 export const useAdminSubscriptions = () => useQuery({
     queryKey: ['adminSubscriptions'],
-    queryFn: () => mockFetch(mockSubscriptions) as Promise<Subscription[]>,
+    queryFn: () => orderService.getAllSubscriptions(),
 });
 
 export const useAdminSubscriptionPlans = () => useQuery({
     queryKey: ['adminSubscriptionPlans'],
-    queryFn: () => mockFetch(mockSubscriptionPlans) as Promise<SubscriptionPlan[]>,
+    queryFn: () => orderService.getSubscriptionPlans(),
 });
 
 export const useAdminPersonalizedProducts = () => useQuery({
     queryKey: ['adminPersonalizedProducts'],
-    queryFn: () => mockFetch(mockPersonalizedProducts) as Promise<PersonalizedProduct[]>,
+    queryFn: () => orderService.getPersonalizedProducts(),
 });

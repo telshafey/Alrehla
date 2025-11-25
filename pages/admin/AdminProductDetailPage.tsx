@@ -14,13 +14,14 @@ import type { PersonalizedProduct } from '../../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Checkbox } from '../../components/ui/Checkbox';
+import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 
 const AdminProductDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const isNew = !id || id === 'new';
-    const productType = searchParams.get('type'); // 'subscription_box' | 'emotion_story' | null
+    const productType = searchParams.get('type'); 
     
     const { data: allProducts = [], isLoading: productsLoading } = useAdminPersonalizedProducts();
     const { createPersonalizedProduct, updatePersonalizedProduct } = useProductMutations();
@@ -53,7 +54,6 @@ const AdminProductDetailPage: React.FC = () => {
                 navigate('/admin/personalized-products');
             }
         } else if (isNew) {
-            // Handle templates based on query params
             if (productType === 'subscription_box') {
                 setProduct(prev => ({
                     ...prev,
@@ -120,6 +120,10 @@ const AdminProductDetailPage: React.FC = () => {
         setProduct(prev => ({ ...prev, features: e.target.value.split('\n') }));
     };
 
+    const handleImageChange = (key: string, url: string) => {
+        setProduct(prev => ({ ...prev, image_url: url }));
+    };
+
     const handleDynamicListChange = (listName: 'image_slots' | 'text_fields' | 'story_goals', index: number, field: string, value: any) => {
         setProduct(prev => {
             const list = [...(prev[listName as keyof PersonalizedProduct] as any[] || [])];
@@ -182,6 +186,13 @@ const AdminProductDetailPage: React.FC = () => {
                                 <FormField label="الوصف" htmlFor="description">
                                     <Textarea id="description" name="description" value={product.description || ''} onChange={handleSimpleChange} rows={3} />
                                 </FormField>
+                                <ImageUploadField 
+                                    label="صورة المنتج" 
+                                    fieldKey="image_url" 
+                                    currentUrl={product.image_url || ''} 
+                                    onUrlChange={handleImageChange}
+                                    recommendedSize="800x800px" 
+                                />
                                 <FormField label="الميزات (كل ميزة في سطر)" htmlFor="features">
                                     <Textarea id="features" name="features" value={(product.features || []).join('\n')} onChange={handleFeaturesChange} rows={4} />
                                 </FormField>

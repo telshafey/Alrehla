@@ -1,3 +1,4 @@
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, HashRouter } from 'react-router-dom';
@@ -6,6 +7,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProductProvider } from './contexts/ProductContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { CartProvider } from './contexts/CartContext';
+import GlobalErrorBoundary from './components/shared/GlobalErrorBoundary';
 import App from './App';
 
 const queryClient = new QueryClient({
@@ -29,18 +31,20 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement as HTMLElement).render(
   <React.StrictMode>
-    <Router>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <AuthProvider>
-            <ProductProvider>
-              <CartProvider>
-                <App />
-              </CartProvider>
-            </ProductProvider>
-          </AuthProvider>
-        </ToastProvider>
-      </QueryClientProvider>
-    </Router>
+    <GlobalErrorBoundary>
+      <Router>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <AuthProvider>
+              <ProductProvider>
+                <CartProvider>
+                  <App />
+                </CartProvider>
+              </ProductProvider>
+            </AuthProvider>
+          </ToastProvider>
+        </QueryClientProvider>
+      </Router>
+    </GlobalErrorBoundary>
   </React.StrictMode>
 );

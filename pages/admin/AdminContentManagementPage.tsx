@@ -249,8 +249,8 @@ const AdminContentManagementPage: React.FC = () => {
     if (contentLoading || brandingLoading || !combinedState) return <PageLoader text="جاري تحميل المحتوى..." />;
 
     return (
-        <div className="animate-fadeIn space-y-8 h-[calc(100vh-100px)] flex flex-col">
-            <div className="flex justify-between items-center flex-shrink-0">
+        <div className="animate-fadeIn flex flex-col h-full max-w-full overflow-hidden">
+            <div className="flex justify-between items-center flex-shrink-0 mb-6 px-1">
                 <div>
                     <h1 className="text-3xl font-extrabold text-foreground">مركز إدارة المحتوى</h1>
                     <p className="text-muted-foreground mt-1">تحكم كامل في جميع نصوص وصور الموقع.</p>
@@ -260,9 +260,9 @@ const AdminContentManagementPage: React.FC = () => {
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start flex-grow overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start flex-grow overflow-hidden">
                 {/* Sidebar Navigation */}
-                <div className="md:col-span-3 lg:col-span-2 h-full overflow-y-auto pb-4">
+                <div className="lg:col-span-3 lg:h-full lg:overflow-y-auto pb-4">
                     <Card className="h-full">
                         <CardHeader><CardTitle className="text-lg">الصفحات</CardTitle></CardHeader>
                         <CardContent className="p-2">
@@ -291,7 +291,7 @@ const AdminContentManagementPage: React.FC = () => {
                 </div>
                 
                 {/* Main Content Editor */}
-                <div className="md:col-span-9 lg:col-span-10 h-full overflow-y-auto pb-20 px-1">
+                <div className="lg:col-span-9 h-full overflow-y-auto pb-20 px-1">
                     {pageConfig ? (
                         <div className="space-y-6">
                             <div className="mb-6">

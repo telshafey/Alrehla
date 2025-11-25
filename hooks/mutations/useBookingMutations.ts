@@ -1,30 +1,22 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
+import { bookingService } from '../../services/bookingService';
 import type { BookingStatus } from '../../lib/database.types';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const useBookingMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
 
     const createBooking = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(1000);
-            console.log("Creating booking (mock)", payload);
-            return { ...payload, id: `bk_${Math.random()}` };
-        },
+        mutationFn: bookingService.createBooking,
          onError: (error: Error) => {
             addToast(`فشل إنشاء الحجز: ${error.message}`, 'error');
         }
     });
     
     const updateBookingStatus = useMutation({
-        mutationFn: async ({ bookingId, newStatus }: { bookingId: string, newStatus: BookingStatus }) => {
-            await sleep(300);
-            console.log("Updating booking status (mock)", { bookingId, newStatus });
-            return { success: true };
-        },
+        mutationFn: (payload: { bookingId: string, newStatus: BookingStatus }) => bookingService.updateBookingStatus(payload.bookingId, payload.newStatus),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminRawCwBookings'] });
             addToast('تم تحديث حالة الحجز.', 'success');
@@ -35,11 +27,7 @@ export const useBookingMutations = () => {
     });
 
     const updateBookingProgressNotes = useMutation({
-        mutationFn: async ({ bookingId, notes }: { bookingId: string, notes: string }) => {
-            await sleep(500);
-            console.log("Updating progress notes (mock)", { bookingId, notes });
-            return { success: true };
-        },
+        mutationFn: (payload: { bookingId: string, notes: string }) => bookingService.updateBookingProgressNotes(payload.bookingId, payload.notes),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminRawCwBookings'] });
             queryClient.invalidateQueries({ queryKey: ['trainingJourney'] });
@@ -50,14 +38,9 @@ export const useBookingMutations = () => {
     });
     
     const updateBookingDraft = useMutation({
-        mutationFn: async ({ bookingId, draft }: { bookingId: string, draft: string }) => {
-            await sleep(500);
-            console.log("Saving draft (mock)", { bookingId, draft });
-            return { success: true };
-        },
+        mutationFn: (payload: { bookingId: string, draft: string }) => bookingService.saveBookingDraft(payload.bookingId, payload.draft),
         onSuccess: () => {
             addToast('تم حفظ المسودة بنجاح.', 'success');
-            // We don't need to invalidate queries here as the state is local to the component
         },
         onError: (error: Error) => {
             addToast(`فشل حفظ المسودة: ${error.message}`, 'error');

@@ -1,8 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { mockBookings, mockChildProfiles, mockInstructors } from '../../../data/mockData';
-import type { CreativeWritingBooking, ChildProfile, Instructor } from '../../../lib/database.types';
 
-const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
+import { useQuery } from '@tanstack/react-query';
+import { bookingService } from '../../../services/bookingService';
+import type { CreativeWritingBooking, ChildProfile, Instructor } from '../../../lib/database.types';
 
 export const transformCwBookings = (bookings: CreativeWritingBooking[], children: ChildProfile[], instructors: Instructor[]): (CreativeWritingBooking & { child_profiles: { name: string } | null, instructors: { name: string } | null })[] => {
     return bookings.map(booking => {
@@ -18,5 +17,5 @@ export const transformCwBookings = (bookings: CreativeWritingBooking[], children
 
 export const useAdminRawCwBookings = () => useQuery({
     queryKey: ['adminRawCwBookings'],
-    queryFn: () => mockFetch(mockBookings) as Promise<CreativeWritingBooking[]>,
+    queryFn: () => bookingService.getAllBookings(),
 });
