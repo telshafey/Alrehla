@@ -66,7 +66,15 @@ const Header: React.FC = () => {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <Link to="/" className="flex items-center gap-3" onClick={closeAllMenus}>
-                        <Image src={siteBranding?.logoUrl || "https://i.ibb.co/C0bSJJT/favicon.png"} alt="شعار منصة الرحلة" className="h-10 w-auto" loading="eager" />
+                        <div className="h-10 w-auto min-w-[40px]">
+                            <Image 
+                                src={siteBranding?.logoUrl || "https://i.ibb.co/C0bSJJT/favicon.png"} 
+                                alt="شعار منصة الرحلة" 
+                                className="h-full w-full bg-transparent" 
+                                objectFit="contain"
+                                loading="eager" 
+                            />
+                        </div>
                          <div className="hidden sm:flex items-baseline gap-2">
                              <span className="text-lg font-bold text-foreground">منصة الرحلة</span>
                              {sectionTitle && <span className="text-xs font-semibold text-muted-foreground">| {sectionTitle}</span>}

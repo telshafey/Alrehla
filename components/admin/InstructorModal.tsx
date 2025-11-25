@@ -1,11 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
-import { Save } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
 import type { Instructor } from '../../lib/database.types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
+import { compressImage } from '../../utils/imageCompression';
+import { useToast } from '../../contexts/ToastContext';
 
 // InstructorModal Component
 const InstructorModal: React.FC<{
@@ -21,6 +24,8 @@ const InstructorModal: React.FC<{
     const [bio, setBio] = useState('');
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const { addToast } = useToast();
 
     useEffect(() => {
         if (isOpen) {
@@ -43,12 +48,25 @@ const InstructorModal: React.FC<{
     
     if (!isOpen) return null;
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
-        setAvatarFile(file);
         if (file) {
-            setPreview(URL.createObjectURL(file));
+            setIsProcessing(true);
+            try {
+                const compressedDataUrl = await compressImage(file);
+                const res = await fetch(compressedDataUrl);
+                const blob = await res.blob();
+                const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+                
+                setAvatarFile(compressedFile);
+                setPreview(compressedDataUrl);
+            } catch (e) {
+                addToast('فشل ضغط الصورة', 'error');
+            } finally {
+                setIsProcessing(false);
+            }
         } else {
+            setAvatarFile(null);
             setPreview(instructor?.avatar_url || null);
         }
     };
@@ -65,10 +83,10 @@ const InstructorModal: React.FC<{
             title={instructor ? 'تعديل المدرب' : 'إضافة مدرب جديد'}
             footer={
                 <>
-                    <Button type="button" onClick={onClose} disabled={isSaving} variant="ghost">
+                    <Button type="button" onClick={onClose} disabled={isSaving || isProcessing} variant="ghost">
                         إلغاء
                     </Button>
-                    <Button type="submit" form="instructor-form" loading={isSaving}>
+                    <Button type="submit" form="instructor-form" loading={isSaving || isProcessing}>
                         {isSaving ? 'جاري الحفظ...' : 'حفظ'}
                     </Button>
                 </>
@@ -76,8 +94,18 @@ const InstructorModal: React.FC<{
         >
             <form id="instructor-form" onSubmit={handleSubmit} className="space-y-6">
                 <div className="flex items-center gap-4">
-                    <img src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-20 h-20 rounded-full object-cover bg-muted" loading="lazy" />
-                    <input type="file" onChange={handleFileChange} accept="image/*" className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
+                    <div className="w-20 h-20 rounded-full bg-muted overflow-hidden relative">
+                        {isProcessing ? (
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+                                <Loader2 className="animate-spin text-primary" />
+                            </div>
+                        ) : (
+                            <img src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-full h-full object-cover" loading="lazy" />
+                        )}
+                    </div>
+                    <div className="flex-grow">
+                        <input type="file" onChange={handleFileChange} accept="image/*" disabled={isProcessing} className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 disabled:opacity-50"/>
+                    </div>
                 </div>
                 <FormField label="اسم المدرب" htmlFor="name">
                     <Input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required />

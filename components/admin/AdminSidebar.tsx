@@ -56,7 +56,14 @@ const AdminSidebar: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
                 isCollapsed ? "w-20" : "w-64"
             )}>
                   <div className="flex items-center justify-center h-16 border-b p-4">
-                     <Image src="https://i.ibb.co/C0bSJJT/favicon.png" alt="شعار" className="h-8 w-8" />
+                     <div className="h-8 w-8">
+                        <Image 
+                            src="https://i.ibb.co/C0bSJJT/favicon.png" 
+                            alt="شعار" 
+                            className="h-full w-full bg-transparent" 
+                            objectFit="contain"
+                        />
+                     </div>
                      {!isCollapsed && <span className="font-bold text-lg mr-2">لوحة المدرب</span>}
                  </div>
                  <nav className="flex-1 p-4 space-y-2">
@@ -139,7 +146,14 @@ const AdminSidebar: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
             isCollapsed ? "w-20" : "w-64"
         )}>
             <Link to="/" className="flex items-center justify-center h-16 border-b p-4 gap-2">
-                <Image src="https://i.ibb.co/C0bSJJT/favicon.png" alt="شعار" className="h-8 w-8" />
+                <div className="h-8 w-8">
+                    <Image 
+                        src="https://i.ibb.co/C0bSJJT/favicon.png" 
+                        alt="شعار" 
+                        className="h-full w-full bg-transparent" 
+                        objectFit="contain"
+                    />
+                </div>
                 {!isCollapsed && <span className="font-bold text-lg">منصة الرحلة</span>}
             </Link>
 

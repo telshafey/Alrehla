@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { BlogPost } from '../../lib/database.types';
 import Modal from '../ui/Modal';
@@ -6,6 +7,9 @@ import FormField from '../ui/FormField';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
+import { compressImage } from '../../utils/imageCompression';
+import { useToast } from '../../contexts/ToastContext';
+import { Loader2 } from 'lucide-react';
 
 interface BlogPostModalProps {
     isOpen: boolean;
@@ -31,6 +35,8 @@ export const BlogPostModal: React.FC<BlogPostModalProps> = ({ isOpen, onClose, o
     const [status, setStatus] = useState<'draft' | 'published'>('draft');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const { addToast } = useToast();
 
     useEffect(() => {
         if (isOpen) {
@@ -53,12 +59,25 @@ export const BlogPostModal: React.FC<BlogPostModalProps> = ({ isOpen, onClose, o
         }
     }, [post, isOpen]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
-        setImageFile(file);
         if (file) {
-            setPreview(URL.createObjectURL(file));
+            setIsProcessing(true);
+            try {
+                const compressedDataUrl = await compressImage(file, 1200); // Larger width for blog
+                const res = await fetch(compressedDataUrl);
+                const blob = await res.blob();
+                const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+                
+                setImageFile(compressedFile);
+                setPreview(compressedDataUrl);
+            } catch(e) {
+                addToast('فشل ضغط الصورة', 'error');
+            } finally {
+                setIsProcessing(false);
+            }
         } else {
+            setImageFile(null);
             setPreview(post?.image_url || null);
         }
     };
@@ -93,8 +112,8 @@ export const BlogPostModal: React.FC<BlogPostModalProps> = ({ isOpen, onClose, o
             size="3xl"
             footer={
                 <>
-                    <Button type="button" onClick={onClose} disabled={isSaving} variant="ghost">إلغاء</Button>
-                    <Button type="submit" form="blog-post-form" loading={isSaving}>
+                    <Button type="button" onClick={onClose} disabled={isSaving || isProcessing} variant="ghost">إلغاء</Button>
+                    <Button type="submit" form="blog-post-form" loading={isSaving || isProcessing}>
                         {isSaving ? 'جاري الحفظ...' : 'حفظ'}
                     </Button>
                 </>
@@ -112,8 +131,16 @@ export const BlogPostModal: React.FC<BlogPostModalProps> = ({ isOpen, onClose, o
                     </FormField>
                     <FormField label="الصورة الرئيسية" htmlFor="imageFile">
                          <div className="flex items-center gap-4">
-                            {preview && <img src={preview} alt="Preview" className="w-24 h-24 object-cover rounded-md bg-muted" loading="lazy" />}
-                            <Input type="file" id="imageFile" onChange={handleFileChange} accept="image/*" />
+                            <div className="w-24 h-24 rounded-md bg-muted overflow-hidden relative">
+                                {isProcessing ? (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+                                        <Loader2 className="animate-spin text-primary" />
+                                    </div>
+                                ) : preview && (
+                                    <img src={preview} alt="Preview" className="w-full h-full object-cover" loading="lazy" />
+                                )}
+                            </div>
+                            <Input type="file" id="imageFile" onChange={handleFileChange} accept="image/*" disabled={isProcessing} />
                         </div>
                     </FormField>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

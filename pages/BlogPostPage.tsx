@@ -36,7 +36,7 @@ const BlogPostPage: React.FC = () => {
                     </Link>
                     <article>
                         <header className="mb-8">
-                             <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-800 leading-tight">{post.title}</h1>
+                             <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-800 leading-tight">{post.title}</h1>
                             <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
                                <span>{post.author_name}</span>
                                <span>{formatDate(post.published_at)}</span>
@@ -44,7 +44,14 @@ const BlogPostPage: React.FC = () => {
                         </header>
                         
                         {post.image_url && (
-                             <Image src={post.image_url} alt={post.title} className="w-full rounded-2xl shadow-lg mb-8 aspect-video" />
+                             <div className="mb-10 w-full rounded-2xl overflow-hidden shadow-lg">
+                                 <Image 
+                                    src={post.image_url} 
+                                    alt={post.title} 
+                                    className="w-full h-64 md:h-96" 
+                                    objectFit="cover"
+                                />
+                             </div>
                         )}
 
                         <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed text-right">

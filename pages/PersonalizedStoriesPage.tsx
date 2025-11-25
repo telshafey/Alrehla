@@ -18,17 +18,19 @@ const ProductCard = React.memo(React.forwardRef<HTMLElement, { product: Personal
 
     return (
         <Card ref={ref} className={cn(
-            "flex flex-col transform hover:-translate-y-2 transition-transform duration-300",
+            "flex flex-col transform hover:-translate-y-2 transition-transform duration-300 h-full",
             featured ? "w-80 flex-shrink-0" : ""
         )}>
-            <Image 
-                src={product.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} 
-                alt={product.title} 
-                className="aspect-[4/3] object-cover"
-            />
+            <div className="h-64 w-full overflow-hidden">
+                <Image 
+                    src={product.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} 
+                    alt={product.title} 
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                />
+            </div>
             <CardHeader>
                 <CardTitle>{product.title}</CardTitle>
-                <CardDescription className="h-16">
+                <CardDescription className="min-h-[4rem] flex flex-col justify-end">
                     {isSubscription ? (
                         <>
                             <span className="text-xl font-bold text-foreground">باقات متنوعة</span>
@@ -50,13 +52,13 @@ const ProductCard = React.memo(React.forwardRef<HTMLElement, { product: Personal
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col flex-grow">
-                <p className="text-muted-foreground text-sm flex-grow">{product.description}</p>
+                <p className="text-muted-foreground text-sm flex-grow line-clamp-3 mb-4">{product.description}</p>
                 {product.features && product.features.length > 0 && (
-                     <Accordion title="عرض الميزات">
-                         <ul className="mt-4 space-y-2 text-sm p-2">
+                     <Accordion title="عرض الميزات" className="mt-auto">
+                         <ul className="mt-2 space-y-2 text-sm p-2">
                             {product.features.map(feature => (
                                 <li key={feature} className="flex items-center gap-2">
-                                    <CheckCircle size={16} className="text-green-500" />
+                                    <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
                                     <span className="text-muted-foreground">{feature}</span>
                                 </li>
                             ))}
@@ -64,7 +66,7 @@ const ProductCard = React.memo(React.forwardRef<HTMLElement, { product: Personal
                      </Accordion>
                 )}
             </CardContent>
-            <CardFooter>
+            <CardFooter className="mt-auto">
                 {product.is_addon ? (
                      <div className="relative group w-full">
                         <Button variant="secondary" className="w-full cursor-not-allowed">
@@ -147,7 +149,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                 {/* Core Products */}
                 <section className="mb-20">
                     <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><BookHeart className="text-pink-500" /> {content?.coreProductsTitle}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
                         {isLoading ? (
                             Array.from({ length: 3 }).map((_, index) => <SkeletonCard key={`core-skel-${index}`} />)
                         ) : (
@@ -161,7 +163,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                 {/* Addon Products */}
                 <section>
                     <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><Puzzle className="text-green-500" /> {content?.addonProductsTitle}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
                         {isLoading ? (
                              Array.from({ length: 2 }).map((_, index) => <SkeletonCard key={`addon-skel-${index}`} />)
                         ) : (

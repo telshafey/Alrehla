@@ -11,17 +11,24 @@ interface PostCardProps {
 
 const PostCard = React.forwardRef<HTMLElement, PostCardProps>(({ post }, ref) => {
     return (
-        <Card ref={ref} as={Link} to={`/blog/${post.slug}`} className="overflow-hidden transition-transform transform hover:-translate-y-2 duration-300 h-full flex flex-col no-underline">
-            <Image src={post.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} alt={post.title} className="w-full aspect-[16/9]" />
+        <Card ref={ref} as={Link} to={`/blog/${post.slug}`} className="overflow-hidden transition-transform transform hover:-translate-y-2 duration-300 h-full flex flex-col no-underline group">
+            <div className="h-48 w-full overflow-hidden">
+                <Image 
+                    src={post.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} 
+                    alt={post.title} 
+                    className="w-full h-full transition-transform duration-500 group-hover:scale-110" 
+                    objectFit="cover"
+                />
+            </div>
             <CardHeader>
-                <CardTitle>{post.title}</CardTitle>
+                <CardTitle className="line-clamp-2">{post.title}</CardTitle>
                 <CardDescription>{formatDate(post.published_at)}</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow">
                 <p className="text-sm text-muted-foreground line-clamp-3">{post.content}</p>
             </CardContent>
             <CardFooter>
-                <span className="text-sm font-semibold text-primary">اقرأ المزيد</span>
+                <span className="text-sm font-semibold text-primary group-hover:underline">اقرأ المزيد</span>
             </CardFooter>
         </Card>
     );
@@ -32,7 +39,7 @@ export default React.memo(PostCard);
 
 export const PostCardSkeleton: React.FC = () => (
     <Card className="overflow-hidden h-full flex flex-col">
-        <div className="w-full aspect-[16/9] bg-muted animate-pulse" />
+        <div className="w-full h-48 bg-muted animate-pulse" />
         <CardHeader>
             <div className="h-6 w-3/4 bg-muted rounded animate-pulse"></div>
             <div className="h-4 w-1/2 bg-muted rounded animate-pulse mt-2"></div>
