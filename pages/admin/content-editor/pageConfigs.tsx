@@ -1,18 +1,24 @@
-import React from 'react';
-import { Home, Info, ShoppingBag, BookOpen } from 'lucide-react';
 
-export type FieldType = 'input' | 'textarea';
+import React from 'react';
+import { Home, Info, ShoppingBag, BookOpen, Settings, Globe, Phone } from 'lucide-react';
+
+export type FieldType = 'input' | 'textarea' | 'image' | 'array' | 'object_array';
 
 export interface FieldConfig {
     key: string;
     label: string;
     type: FieldType;
     rows?: number;
+    placeholder?: string;
+    itemLabel?: string; 
+    objectSchema?: FieldConfig[]; 
 }
 
 export interface SectionConfig {
     key: string;
     title: string;
+    description?: string;
+    visibilityKey?: string;
     fields: FieldConfig[];
 }
 
@@ -26,45 +32,121 @@ export interface PageConfig {
 
 export const pageConfigs: PageConfig[] = [
     {
+        key: 'global',
+        title: 'إعدادات عامة & تذييل الصفحة',
+        description: 'الروابط الاجتماعية، معلومات الفوتر، وإعدادات السيو العامة.',
+        icon: <Settings />,
+        sections: [
+            {
+                key: 'branding',
+                title: 'العلامة التجارية (صور الموقع)',
+                fields: [
+                    { key: 'siteBranding.logoUrl', label: 'شعار الموقع (Logo)', type: 'image' },
+                    { key: 'siteBranding.heroImageUrl', label: 'صورة الهيرو الرئيسية', type: 'image' },
+                ]
+            },
+            {
+                key: 'footer',
+                title: 'تذييل الصفحة (Footer)',
+                fields: [
+                    // Note: These keys would need to exist in SiteContent to be editable here
+                    // For now, assuming they might be added or mapped differently
+                ]
+            }
+        ]
+    },
+    {
         key: 'portalPage',
-        title: 'الصفحة الرئيسية',
-        description: 'تحكم في المحتوى الرئيسي للمنصة.',
+        title: 'الصفحة الرئيسية (البوابة)',
+        description: 'الواجهة الأولى للزوار، تحتوي على الهيرو والأقسام الرئيسية.',
         icon: <Home />,
         sections: [
             {
                 key: 'hero',
-                title: 'قسم الهيرو (الافتتاحي)',
+                title: 'القسم الافتتاحي (Hero)',
                 fields: [
-                    { key: 'portalPage.heroTitle', label: 'العنوان الرئيسي', type: 'textarea', rows: 2 },
+                    { key: 'portalPage.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
                     { key: 'portalPage.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 3 },
+                    { key: 'portalPage.heroButtonText1', label: 'نص زر "إنها لك"', type: 'input' },
+                    { key: 'portalPage.heroButtonText2', label: 'نص زر "بداية الرحلة"', type: 'input' },
+                    { key: 'siteBranding.heroImageUrl', label: 'صورة الخلفية', type: 'image' }
                 ]
             },
             {
                 key: 'projects',
-                title: 'قسم المشاريع',
+                title: 'قسم المشاريع (إنها لك & بداية الرحلة)',
+                visibilityKey: 'portalPage.showProjectsSection',
                 fields: [
                     { key: 'portalPage.projectsTitle', label: 'عنوان القسم', type: 'input' },
-                    { key: 'portalPage.projectsSubtitle', label: 'النص التعريفي للقسم', type: 'textarea', rows: 2 },
-                    { key: 'portalPage.enhaLakTitle', label: 'عنوان "إنها لك"', type: 'input' },
-                    { key: 'portalPage.enhaLakDescription', label: 'وصف "إنها لك"', type: 'textarea', rows: 2 },
-                    { key: 'portalPage.creativeWritingTitle', label: 'عنوان "بداية الرحلة"', type: 'input' },
-                    { key: 'portalPage.creativeWritingDescription', label: 'وصف "بداية الرحلة"', type: 'textarea', rows: 2 },
+                    { key: 'portalPage.projectsSubtitle', label: 'وصف القسم', type: 'textarea', rows: 2 },
+                    // Enha Lak Card
+                    { key: 'portalPage.enhaLakTitle', label: 'عنوان بطاقة "إنها لك"', type: 'input' },
+                    { key: 'portalPage.enhaLakDescription', label: 'وصف بطاقة "إنها لك"', type: 'textarea', rows: 2 },
+                    { key: 'portalPage.enhaLakBtnText', label: 'نص زر "إنها لك"', type: 'input' },
+                    { key: 'siteBranding.enhaLakPortalImageUrl', label: 'صورة بطاقة "إنها لك"', type: 'image' },
+                    // Creative Writing Card
+                    { key: 'portalPage.creativeWritingTitle', label: 'عنوان بطاقة "بداية الرحلة"', type: 'input' },
+                    { key: 'portalPage.creativeWritingDescription', label: 'وصف بطاقة "بداية الرحلة"', type: 'textarea', rows: 2 },
+                    { key: 'portalPage.creativeWritingBtnText', label: 'نص زر "بداية الرحلة"', type: 'input' },
+                    { key: 'siteBranding.creativeWritingPortalImageUrl', label: 'صورة بطاقة "بداية الرحلة"', type: 'image' }
                 ]
             },
             {
-                key: 'about',
-                title: "قسم 'عنا'",
+                key: 'steps',
+                title: 'قسم "كيف نعمل؟" (3 خطوات)',
+                visibilityKey: 'portalPage.showStepsSection',
+                fields: [
+                    { key: 'portalPage.stepsTitle', label: 'عنوان القسم', type: 'input' },
+                    { 
+                        key: 'portalPage.steps', 
+                        label: 'الخطوات', 
+                        type: 'object_array',
+                        itemLabel: 'خطوة',
+                        objectSchema: [
+                            { key: 'title', label: 'عنوان الخطوة', type: 'input' },
+                            { key: 'description', label: 'الوصف', type: 'textarea' }
+                        ]
+                    }
+                ]
+            },
+            {
+                key: 'about_preview',
+                title: "قسم 'عنا' (المختصر)",
+                visibilityKey: 'portalPage.showAboutSection',
                 fields: [
                     { key: 'portalPage.aboutSectionTitle', label: 'عنوان القسم', type: 'input' },
-                    { key: 'portalPage.aboutSectionContent', label: 'محتوى القسم', type: 'textarea', rows: 3 },
+                    { key: 'portalPage.aboutSectionContent', label: 'محتوى القسم', type: 'textarea', rows: 4 },
+                    { key: 'portalPage.aboutBtnText', label: 'نص الزر', type: 'input' },
+                    { key: 'siteBranding.aboutImageUrl', label: 'الصورة الجانبية', type: 'image' }
+                ]
+            },
+            {
+                key: 'testimonials',
+                title: 'قسم الآراء',
+                visibilityKey: 'portalPage.showTestimonialsSection',
+                fields: [
+                    { key: 'portalPage.testimonialsTitle', label: 'العنوان', type: 'input' },
+                    { key: 'portalPage.testimonialsSubtitle', label: 'الوصف', type: 'textarea', rows: 2 }
+                ]
+            },
+            {
+                key: 'blog_preview',
+                title: 'قسم أحدث المقالات',
+                visibilityKey: 'portalPage.showBlogSection',
+                fields: [
+                    { key: 'portalPage.blogTitle', label: 'العنوان', type: 'input' },
+                    { key: 'portalPage.blogSubtitle', label: 'الوصف', type: 'textarea', rows: 2 }
                 ]
             },
              {
                 key: 'finalCta',
-                title: "قسم الدعوة النهائية (CTA)",
+                title: "الدعوة النهائية (CTA)",
+                visibilityKey: 'portalPage.showFinalCtaSection',
                 fields: [
-                    { key: 'portalPage.finalCtaTitle', label: 'عنوان القسم', type: 'input' },
-                    { key: 'portalPage.finalCtaSubtitle', label: 'النص التعريفي للقسم', type: 'textarea', rows: 2 },
+                    { key: 'portalPage.finalCtaTitle', label: 'العنوان', type: 'input' },
+                    { key: 'portalPage.finalCtaSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
+                    { key: 'portalPage.finalCtaBtn1', label: 'نص زر 1', type: 'input' },
+                    { key: 'portalPage.finalCtaBtn2', label: 'نص زر 2', type: 'input' }
                 ]
             }
         ]
@@ -72,99 +154,171 @@ export const pageConfigs: PageConfig[] = [
     {
         key: 'aboutPage',
         title: 'صفحة "رحلتنا"',
-        description: 'عدّل رسالة ورؤية وقصة المنصة.',
+        description: 'صفحة من نحن، الرؤية، الرسالة، وفريق العمل.',
         icon: <Info />,
         sections: [
             {
-                key: 'main',
-                title: 'المحتوى الرئيسي',
+                key: 'main_info',
+                title: 'المعلومات الأساسية',
                 fields: [
-                    { key: 'aboutPage.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
+                    { key: 'aboutPage.heroTitle', label: 'عنوان الهيرو', type: 'input' },
                     { key: 'aboutPage.missionStatement', label: 'رسالتنا', type: 'textarea', rows: 3 },
-                    { key: 'aboutPage.ourStory', label: 'قصتنا', type: 'textarea', rows: 4 },
+                    { key: 'aboutPage.ourStory', label: 'قصتنا', type: 'textarea', rows: 5 },
                     { key: 'aboutPage.ourVision', label: 'رؤيتنا', type: 'textarea', rows: 3 },
                     { key: 'aboutPage.valuesTitle', label: 'عنوان قسم القيم', type: 'input' },
+                    { key: 'siteBranding.aboutImageUrl', label: 'صورة الخلفية (Hero)', type: 'image' }
                 ]
             },
             {
                 key: 'team',
-                title: 'فريق العمل (حتى 4 أعضاء)',
+                title: 'فريق العمل',
+                visibilityKey: 'aboutPage.showTeamSection',
                 fields: [
-                    { key: 'aboutPage.teamMembers[0].name', label: 'اسم العضو 1', type: 'input' },
-                    { key: 'aboutPage.teamMembers[0].role', label: 'دور العضو 1', type: 'input' },
-                    { key: 'aboutPage.teamMembers[0].imageUrl', label: 'رابط صورة العضو 1', type: 'input' },
-                    { key: 'aboutPage.teamMembers[1].name', label: 'اسم العضو 2', type: 'input' },
-                    { key: 'aboutPage.teamMembers[1].role', label: 'دور العضو 2', type: 'input' },
-                    { key: 'aboutPage.teamMembers[1].imageUrl', label: 'رابط صورة العضو 2', type: 'input' },
-                    { key: 'aboutPage.teamMembers[2].name', label: 'اسم العضو 3', type: 'input' },
-                    { key: 'aboutPage.teamMembers[2].role', label: 'دور العضو 3', type: 'input' },
-                    { key: 'aboutPage.teamMembers[2].imageUrl', label: 'رابط صورة العضو 3', type: 'input' },
-                    { key: 'aboutPage.teamMembers[3].name', label: 'اسم العضو 4', type: 'input' },
-                    { key: 'aboutPage.teamMembers[3].role', label: 'دور العضو 4', type: 'input' },
-                    { key: 'aboutPage.teamMembers[3].imageUrl', label: 'رابط صورة العضو 4', type: 'input' },
+                    { key: 'aboutPage.teamTitle', label: 'عنوان القسم', type: 'input' },
+                    { 
+                        key: 'aboutPage.teamMembers', 
+                        label: 'أعضاء الفريق', 
+                        type: 'object_array',
+                        itemLabel: 'عضو فريق',
+                        objectSchema: [
+                            { key: 'name', label: 'الاسم', type: 'input' },
+                            { key: 'role', label: 'الدور الوظيفي', type: 'input' },
+                            { key: 'imageUrl', label: 'الصورة الشخصية', type: 'image' }
+                        ]
+                    }
                 ]
             }
         ]
     },
     {
         key: 'enhaLakPage',
-        title: 'صفحات "إنها لك"',
-        description: 'محتوى الصفحة الرئيسية للمشروع وصفحاته الفرعية.',
+        title: 'قسم "إنها لك"',
+        description: 'صفحات مشروع القصص المخصصة وصندوق الرحلة.',
         icon: <ShoppingBag />,
         sections: [
             {
-                key: 'main',
-                title: 'الصفحة التعريفية للقسم',
+                key: 'main_landing',
+                title: 'الصفحة التعريفية',
                 fields: [
                     { key: 'enhaLakPage.main.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
                     { key: 'enhaLakPage.main.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
-                    { key: 'enhaLakPage.main.productsTitle', label: 'عنوان "ماذا نصنع؟"', type: 'input' },
+                    { key: 'enhaLakPage.main.heroBtnText', label: 'نص الزر الرئيسي', type: 'input' },
+                    { key: 'enhaLakPage.main.productsTitle', label: 'عنوان قسم المنتجات', type: 'input' },
                     { key: 'enhaLakPage.main.howItWorksTitle', label: 'عنوان "كيف نعمل؟"', type: 'input' },
-                    { key: 'enhaLakPage.main.testimonialsTitle', label: 'عنوان "آراء العائلات"', type: 'input' },
-                    { key: 'enhaLakPage.main.customStoryImageUrl', label: 'رابط صورة القصة المخصصة', type: 'input' },
-                    { key: 'enhaLakPage.main.subscriptionBoxImageUrl', label: 'رابط صورة صندوق الاشتراك', type: 'input' },
+                    { key: 'enhaLakPage.main.testimonialsTitle', label: 'عنوان الآراء', type: 'input' },
+                    { key: 'enhaLakPage.main.customStoryImageUrl', label: 'صورة القصة المخصصة', type: 'image' },
+                    { key: 'enhaLakPage.main.subscriptionBoxImageUrl', label: 'صورة صندوق الاشتراك', type: 'image' }
                 ]
             },
             {
                 key: 'store',
-                title: 'صفحة متجر القصص',
+                title: 'صفحة المتجر',
                 fields: [
-                     { key: 'enhaLakPage.store.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
-                     { key: 'enhaLakPage.store.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
-                     { key: 'enhaLakPage.store.subscriptionBannerTitle', label: 'عنوان بانر الاشتراك', type: 'input' },
+                     { key: 'enhaLakPage.store.heroTitle', label: 'عنوان المتجر', type: 'input' },
+                     { key: 'enhaLakPage.store.heroSubtitle', label: 'وصف المتجر', type: 'textarea', rows: 2 },
+                     { key: 'enhaLakPage.store.subscriptionBannerTitle', label: 'عنوان بانر الاشتراك', type: 'input' }
                 ]
             },
             {
-                key: 'subscription',
+                key: 'subscription_page',
                 title: 'صفحة الاشتراك',
                 fields: [
                      { key: 'enhaLakPage.subscription.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
                      { key: 'enhaLakPage.subscription.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
+                     { key: 'enhaLakPage.subscription.features', label: 'مميزات الاشتراك', type: 'array' }
                 ]
             }
         ]
     },
     {
         key: 'creativeWritingPage',
-        title: 'صفحات "بداية الرحلة"',
-        description: 'محتوى الصفحة الرئيسية للبرنامج وصفحاته الفرعية.',
+        title: 'قسم "بداية الرحلة"',
+        description: 'صفحات برنامج الكتابة الإبداعية.',
         icon: <BookOpen />,
         sections: [
              {
-                key: 'main',
+                key: 'cw_landing',
                 title: 'الصفحة الرئيسية للبرنامج',
                 fields: [
                     { key: 'creativeWritingPage.main.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
                     { key: 'creativeWritingPage.main.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
+                    { key: 'creativeWritingPage.main.methodologyTitle', label: 'عنوان المنهجية', type: 'input' },
+                    { key: 'creativeWritingPage.main.methodologySubtitle', label: 'وصف المنهجية', type: 'textarea', rows: 2 },
+                    { key: 'creativeWritingPage.main.transformationTitle', label: 'عنوان التحول', type: 'input' },
+                    { key: 'creativeWritingPage.main.packagesTitle', label: 'عنوان الباقات', type: 'input' },
+                    { key: 'creativeWritingPage.main.servicesTitle', label: 'عنوان الخدمات', type: 'input' },
+                    { key: 'creativeWritingPage.main.instructorsTitle', label: 'عنوان المدربين', type: 'input' }
                 ]
             },
             {
-                key: 'about',
+                key: 'cw_about',
                 title: "صفحة 'فلسفة البرنامج'",
                 fields: [
                     { key: 'creativeWritingPage.about.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
                     { key: 'creativeWritingPage.about.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
-                    { key: 'creativeWritingPage.about.heroImageUrl', label: 'رابط صورة الهيرو', type: 'input' },
+                    { key: 'creativeWritingPage.about.mainTitle', label: 'العنوان الداخلي', type: 'input' },
+                    { key: 'creativeWritingPage.about.mainContent', label: 'المحتوى التفصيلي', type: 'textarea', rows: 6 },
+                    { key: 'creativeWritingPage.about.heroImageUrl', label: 'صورة الهيرو', type: 'image' }
+                ]
+            },
+            {
+                key: 'cw_curriculum',
+                title: "صفحة 'المنهج'",
+                fields: [
+                    { key: 'creativeWritingPage.curriculum.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
+                    { key: 'creativeWritingPage.curriculum.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
+                    { key: 'creativeWritingPage.curriculum.treasuresTitle', label: 'عنوان الكنوز', type: 'input' },
+                    { key: 'creativeWritingPage.curriculum.treasuresSubtitle', label: 'وصف الكنوز', type: 'textarea', rows: 2 }
+                ]
+            }
+        ]
+    },
+    {
+        key: 'supportPage',
+        title: 'صفحة الدعم والمساعدة',
+        description: 'نصوص صفحة اتصل بنا والأسئلة الشائعة.',
+        icon: <Phone />,
+        sections: [
+            {
+                key: 'contact_info',
+                title: 'المعلومات الأساسية',
+                fields: [
+                    { key: 'supportPage.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
+                    { key: 'supportPage.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
+                    { key: 'communicationSettings.whatsapp_number', label: 'رقم الواتساب', type: 'input' },
+                    { key: 'communicationSettings.support_email', label: 'بريد الدعم', type: 'input' }
+                ]
+            },
+            {
+                key: 'faqs',
+                title: 'الأسئلة الشائعة',
+                fields: [
+                    {
+                        key: 'supportPage.faqs',
+                        label: 'قائمة الأسئلة',
+                        type: 'object_array',
+                        itemLabel: 'سؤال',
+                        objectSchema: [
+                            { key: 'category', label: 'القسم (مثال: عام، الشحن...)', type: 'input' },
+                            { key: 'question', label: 'السؤال', type: 'input' },
+                            { key: 'answer', label: 'الإجابة', type: 'textarea', rows: 3 }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        key: 'joinUsPage',
+        title: 'صفحة انضم إلينا',
+        description: 'إعدادات صفحة التوظيف.',
+        icon: <Globe />,
+        sections: [
+            {
+                key: 'join_main',
+                title: 'المحتوى الرئيسي',
+                fields: [
+                    { key: 'siteBranding.joinUsImageUrl', label: 'صورة الهيرو', type: 'image' }
                 ]
             }
         ]

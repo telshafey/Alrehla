@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Save, Image as ImageIcon } from 'lucide-react';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
@@ -22,7 +23,7 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
     
     const [name, setName] = useState('');
     const [birthDate, setBirthDate] = useState('');
-    const [gender, setGender] = useState<'ذكر' | 'أنثى'>('ذكر');
+    const [gender, setGender] = useState<'ذكر' | 'أنثى' | ''>('');
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [interests, setInterests] = useState('');
@@ -40,7 +41,7 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
             } else {
                 setName('');
                 setBirthDate('');
-                setGender('ذكر');
+                setGender('');
                 setPreview(null);
                 setInterests('');
                 setStrengths('');
@@ -76,7 +77,7 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
             const profileData = {
                 name,
                 birth_date: birthDate,
-                gender,
+                gender: gender as 'ذكر' | 'أنثى',
                 avatar_url: newAvatarUrl,
                 interests: interestsArray.length > 0 ? interestsArray : null,
                 strengths: strengthsArray.length > 0 ? strengthsArray : null,
@@ -126,7 +127,8 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
                         <Input type="date" id="birthDate" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} required />
                     </FormField>
                     <FormField label="الجنس*" htmlFor="gender">
-                        <Select id="gender" value={gender} onChange={(e) => setGender(e.target.value as 'ذكر' | 'أنثى')}>
+                        <Select id="gender" value={gender} onChange={(e) => setGender(e.target.value as 'ذكر' | 'أنثى' | '')} required>
+                            <option value="" disabled>-- اختر الجنس --</option>
                             <option value="ذكر">ذكر</option>
                             <option value="أنثى">أنثى</option>
                         </Select>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
@@ -60,7 +61,7 @@ const SubscriptionPage: React.FC = () => {
     const [formData, setFormData] = useState({
         childName: '',
         childBirthDate: '',
-        childGender: 'ذكر' as 'ذكر' | 'أنثى',
+        childGender: '' as 'ذكر' | 'أنثى' | '',
         childTraits: '',
         familyNames: '',
         friendNames: '',
@@ -115,6 +116,7 @@ const SubscriptionPage: React.FC = () => {
             case 'child':
                 if (!formData.childName.trim()) newErrors.childName = 'اسم الطفل مطلوب.';
                 if (!formData.childBirthDate) newErrors.childBirthDate = 'تاريخ ميلاد الطفل مطلوب.';
+                if (!formData.childGender) newErrors.childGender = 'الجنس مطلوب.';
                 break;
             case 'images':
                  if (!imageFiles['child_photo_1']) newErrors['child_photo_1'] = 'صورة وجه الطفل إلزامية.';
@@ -197,8 +199,9 @@ const SubscriptionPage: React.FC = () => {
                             <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={errors.childBirthDate}>
                                 <Input type="date" id="childBirthDate" name="childBirthDate" value={formData.childBirthDate} onChange={handleChange} required />
                             </FormField>
-                            <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2">
-                                <Select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange}>
+                            <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={errors.childGender}>
+                                <Select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange} required>
+                                    <option value="" disabled>-- اختر الجنس --</option>
                                     <option value="ذكر">ذكر</option>
                                     <option value="أنثى">أنثى</option>
                                 </Select>

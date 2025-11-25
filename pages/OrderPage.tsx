@@ -1,3 +1,4 @@
+
 import React, { useReducer, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft, ShoppingCart } from 'lucide-react';
@@ -177,6 +178,9 @@ const OrderPage: React.FC = () => {
         step: stepsConfig[0].key,
         selectedChildId: null,
         formData: {
+            childName: '',
+            childBirthDate: '',
+            childGender: '',
             deliveryType: 'printed',
             shippingOption: 'my_address',
             governorate: 'القاهرة',

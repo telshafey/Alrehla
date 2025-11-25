@@ -1,4 +1,5 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useModalAccessibility } from '../../hooks/useModalAccessibility';
 import { Button } from './Button';
@@ -24,12 +25,23 @@ const sizeClasses = {
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer, size = 'lg' }) => {
     const modalRef = useRef<HTMLElement>(null);
     const closeButtonRef = useRef<HTMLElement>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
 
     useModalAccessibility({ modalRef, isOpen, onClose, initialFocusRef: closeButtonRef });
 
-    if (!isOpen) return null;
+    if (!isOpen || !mounted) return null;
 
-    return (
+    // Safety check: Ensure document.body exists before creating portal
+    // This prevents "Minified React error #306"
+    const container = typeof document !== 'undefined' ? document.body : null;
+    if (!container) return null;
+
+    return createPortal(
         <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4"
             onClick={onClose}
@@ -57,7 +69,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer,
                     </CardFooter>
                 )}
             </Card>
-        </div>
+        </div>,
+        container
     );
 };
 

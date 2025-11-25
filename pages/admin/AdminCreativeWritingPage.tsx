@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { BookOpen, Eye, Edit, Loader2 } from 'lucide-react';
+import { BookOpen, Eye, Edit, Loader2, Search } from 'lucide-react';
 import { useAdminRawCwBookings, transformCwBookings } from '../../hooks/queries/admin/useAdminBookingsQuery';
 import { useAdminAllChildProfiles } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
@@ -49,7 +50,9 @@ const AdminCreativeWritingPage: React.FC = () => {
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     
     const [statusFilter, setStatusFilter] = useState<BookingStatus | 'all'>((location.state as any)?.statusFilter || 'all');
+    const [packageFilter, setPackageFilter] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
+    
     const [bookingsSortConfig, setBookingsSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
     const [studentsSortConfig, setStudentsSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
 
@@ -65,6 +68,10 @@ const AdminCreativeWritingPage: React.FC = () => {
         () => transformCwBookings(rawBookings, allChildren, instructors),
         [rawBookings, allChildren, instructors]
     );
+    
+    const uniquePackages = useMemo(() => {
+        return Array.from(new Set(bookings.map(b => b.package_name))).filter(Boolean);
+    }, [bookings]);
 
     const students = useMemo(() => {
         const studentMap = new Map<number, Student>();
@@ -90,6 +97,13 @@ const AdminCreativeWritingPage: React.FC = () => {
 
      const sortedStudents = useMemo(() => {
         let sortableItems = [...students];
+        
+        // Filter students by search term if needed (optional for this table)
+        if (searchTerm.trim() !== '') {
+             const lowerTerm = searchTerm.toLowerCase();
+             sortableItems = sortableItems.filter(s => s.name.toLowerCase().includes(lowerTerm));
+        }
+
         if (studentsSortConfig !== null) {
             sortableItems.sort((a, b) => {
                 const aVal = studentsSortConfig.key === 'bookings' ? a.bookings.length : a[studentsSortConfig.key as keyof Student];
@@ -100,7 +114,7 @@ const AdminCreativeWritingPage: React.FC = () => {
             });
         }
         return sortableItems;
-    }, [students, studentsSortConfig]);
+    }, [students, studentsSortConfig, searchTerm]); // Added searchTerm to deps
     
     const statusCounts = useMemo(() => {
         const counts: { [key in BookingStatus]?: number } = {};
@@ -112,29 +126,44 @@ const AdminCreativeWritingPage: React.FC = () => {
 
     const sortedAndFilteredBookings = useMemo(() => {
         let filtered = [...bookings];
+        
+        // 1. Filter by Status
         if (statusFilter !== 'all') {
             filtered = filtered.filter(b => b.status === statusFilter);
         }
+        
+        // 2. Filter by Package
+        if (packageFilter !== 'all') {
+            filtered = filtered.filter(b => b.package_name === packageFilter);
+        }
+
+        // 3. Search
         if (searchTerm.trim() !== '') {
             const lowercasedTerm = searchTerm.toLowerCase();
             filtered = filtered.filter(b =>
                 b.child_profiles?.name?.toLowerCase().includes(lowercasedTerm) ||
-                b.id.toLowerCase().includes(lowercasedTerm)
+                b.id.toLowerCase().includes(lowercasedTerm) ||
+                b.instructors?.name?.toLowerCase().includes(lowercasedTerm)
             );
         }
 
+        // 4. Sort
         if (bookingsSortConfig !== null) {
             filtered.sort((a, b) => {
                 const getNestedValue = (obj: any, path: string) => path.split('.').reduce((o, i) => (o ? o[i] : null), obj);
                 const aVal = getNestedValue(a, bookingsSortConfig.key);
                 const bVal = getNestedValue(b, bookingsSortConfig.key);
+                
+                if (aVal === null) return 1;
+                if (bVal === null) return -1;
+
                 if (aVal < bVal) return bookingsSortConfig.direction === 'asc' ? -1 : 1;
                 if (aVal > bVal) return bookingsSortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
             });
         }
         return filtered;
-    }, [bookings, statusFilter, searchTerm, bookingsSortConfig]);
+    }, [bookings, statusFilter, packageFilter, searchTerm, bookingsSortConfig]);
 
     const handleViewDetails = (booking: BookingWithRelations) => {
         setSelectedBooking(booking);
@@ -192,7 +221,7 @@ const AdminCreativeWritingPage: React.FC = () => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {sortedStudents.map(student => (
+                                    {sortedStudents.length > 0 ? sortedStudents.map(student => (
                                         <TableRow key={student.id}>
                                             <TableCell className="font-semibold">{student.name}</TableCell>
                                             <TableCell>{student.bookings.length}</TableCell>
@@ -203,7 +232,9 @@ const AdminCreativeWritingPage: React.FC = () => {
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                    )) : (
+                                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">لا توجد بيانات.</TableCell></TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
@@ -230,14 +261,27 @@ const AdminCreativeWritingPage: React.FC = () => {
                             <CardTitle className="flex items-center gap-2"><BookOpen /> قائمة كل الحجوزات</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="mb-6 max-w-lg">
-                                <Input 
-                                    type="search"
-                                    placeholder="ابحث برقم الحجز أو اسم الطالب..."
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                />
+                            <div className="flex flex-col md:flex-row gap-4 mb-6">
+                                <div className="flex-1 relative">
+                                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                                    <Input 
+                                        type="search"
+                                        placeholder="ابحث برقم الحجز، اسم الطالب، أو المدرب..."
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        className="pr-10"
+                                    />
+                                </div>
+                                <div className="w-full md:w-64">
+                                    <Select value={packageFilter} onChange={(e) => setPackageFilter(e.target.value)}>
+                                        <option value="all">كل الباقات</option>
+                                        {uniquePackages.map(pkg => (
+                                            <option key={pkg} value={pkg}>{pkg}</option>
+                                        ))}
+                                    </Select>
+                                </div>
                             </div>
+
                             <div className="overflow-x-auto">
                                 <Table>
                                    <TableHeader>
@@ -251,7 +295,7 @@ const AdminCreativeWritingPage: React.FC = () => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {sortedAndFilteredBookings.map(booking => (
+                                        {sortedAndFilteredBookings.length > 0 ? sortedAndFilteredBookings.map(booking => (
                                             <TableRow key={booking.id}>
                                                 <TableCell className="font-semibold">{booking.child_profiles?.name}</TableCell>
                                                 <TableCell>{booking.package_name}</TableCell>
@@ -274,10 +318,15 @@ const AdminCreativeWritingPage: React.FC = () => {
                                                     <Button variant="ghost" size="icon" onClick={() => handleViewDetails(booking)}><Eye size={20} /></Button>
                                                 </TableCell>
                                             </TableRow>
-                                        ))}
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                    لا توجد حجوزات تطابق بحثك أو الفلتر المحدد.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
                                     </TableBody>
                                 </Table>
-                                {sortedAndFilteredBookings.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد حجوزات تطابق بحثك أو الفلتر المحدد.</p>}
                             </div>
                         </CardContent>
                     </Card>

@@ -2,25 +2,25 @@ import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface AccordionProps {
-    title: string;
+    title: React.ReactNode;
     children: React.ReactNode;
+    className?: string;
 }
 
-const Accordion: React.FC<AccordionProps> = ({ title, children }) => {
+const Accordion: React.FC<AccordionProps> = ({ title, children, className = '' }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="border-t first:border-t-0">
-            <button
-                type="button"
+        <div className={`border-t first:border-t-0 ${className}`}>
+            <div
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex justify-between items-center w-full p-4 text-right"
+                className="flex justify-between items-center w-full p-4 text-right cursor-pointer select-none"
             >
-                <span className="font-bold text-lg text-foreground">{title}</span>
+                <div className="font-bold text-lg text-foreground flex-grow">{title}</div>
                 <ChevronDown 
-                    className={`w-6 h-6 text-muted-foreground transition-transform duration-300 ${isOpen ? 'transform rotate-180 text-primary' : ''}`} 
+                    className={`w-6 h-6 text-muted-foreground transition-transform duration-300 flex-shrink-0 ${isOpen ? 'transform rotate-180 text-primary' : ''}`} 
                 />
-            </button>
+            </div>
             <div 
                 className={`grid overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
             >

@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import {
     mockOrders,
@@ -68,10 +69,14 @@ export const useInstructorFinancials = () => {
                 return {
                     id: instructor.id,
                     name: instructor.name,
+                    rate_per_session: instructor.rate_per_session,
+                    package_rates: instructor.package_rates,
                     totalEarnings,
                     totalPaid,
                     outstandingBalance,
                     payouts: instructorPayouts,
+                    rawCompletedBookings: completedBookings,
+                    rawCompletedServices: completedServices
                 };
             });
         },

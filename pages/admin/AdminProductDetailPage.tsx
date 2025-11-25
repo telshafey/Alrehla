@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useProductMutations } from '../../hooks/mutations/useProductMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -16,8 +17,10 @@ import { Checkbox } from '../../components/ui/Checkbox';
 
 const AdminProductDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const isNew = !id || id === 'new';
+    const productType = searchParams.get('type'); // 'subscription_box' | 'emotion_story' | null
     
     const { data: allProducts = [], isLoading: productsLoading } = useAdminPersonalizedProducts();
     const { createPersonalizedProduct, updatePersonalizedProduct } = useProductMutations();
@@ -49,8 +52,56 @@ const AdminProductDetailPage: React.FC = () => {
             } else {
                 navigate('/admin/personalized-products');
             }
+        } else if (isNew) {
+            // Handle templates based on query params
+            if (productType === 'subscription_box') {
+                setProduct(prev => ({
+                    ...prev,
+                    title: 'صندوق الرحلة الشهري',
+                    key: 'subscription_box',
+                    description: 'اشتراك شهري متجدد يحتوي على قصة مخصصة وأنشطة وهدايا.',
+                    features: ['قصة مخصصة جديدة كل شهر', 'أنشطة تفاعلية وألعاب', 'هدية إضافية مختارة بعناية'],
+                    goal_config: 'none',
+                    image_slots: [{ id: 'child_photo_1', label: 'صورة وجه الطفل (إلزامي)', required: true }],
+                    text_fields: [{ id: 'childTraits', label: 'اخبرنا عن بطل القصة*', placeholder: 'مثال: شجاع، يحب الديناصورات...', required: true, type: 'textarea' }],
+                    has_printed_version: true,
+                    sort_order: -1,
+                }));
+            } else if (productType === 'emotion_story') {
+                setProduct(prev => ({
+                    ...prev,
+                    title: 'القصة المميزة',
+                    key: 'emotion_story',
+                    description: 'قصة علاجية مخصصة لمساعدة طفلك على فهم مشاعره والتعبير عنها.',
+                    features: ['تخصيص نفسى وسلوكي عميق', 'معالجة مشاعر محددة', 'بناء على مواقف واقعية'],
+                    goal_config: 'predefined_and_custom',
+                    is_featured: true,
+                    story_goals: [
+                        { key: 'anger', title: 'الغضب' },
+                        { key: 'fear', title: 'الخوف' },
+                        { key: 'jealousy', title: 'الغيرة' },
+                        { key: 'frustration', title: 'الإحباط' },
+                        { key: 'anxiety', title: 'القلق' },
+                        { key: 'sadness', title: 'الحزن' },
+                    ],
+                    image_slots: [{ id: 'child_photo_1', label: 'صورة وجه الطفل (إلزامي)', required: true }],
+                    text_fields: [
+                        { id: 'homeEnvironment', label: 'البيئة المنزلية (الأشخاص)', placeholder: 'أسماء الوالدين، الإخوة...', required: true, type: 'textarea' },
+                        { id: 'friendsAndSchool', label: 'بيئة الأصدقاء والمدرسة', placeholder: 'اسم أفضل صديق، اسم المدرسة...', required: false, type: 'textarea' },
+                        { id: 'physicalDescription', label: 'الوصف الجسدي (البصري)', placeholder: 'لون الشعر، لون العينين...', required: true, type: 'textarea' },
+                        { id: 'petInfo', label: 'الحيوان الأليف (إن وجد)', placeholder: 'الاسم ونوع الحيوان...', required: false, type: 'textarea' },
+                        { id: 'triggerSituation', label: 'الموقف المُحفز للمشاعر', placeholder: 'موقف واقعي يثير المشاعر...', required: true, type: 'textarea' },
+                        { id: 'childReaction', label: 'رد فعل الطفل النموذجي', placeholder: 'كيف يتصرف الطفل؟...', required: true, type: 'textarea' },
+                        { id: 'calmingMethod', label: 'أسلوب التهدئة المتبع', placeholder: 'كيف تهدئون الطفل؟...', required: true, type: 'textarea' },
+                        { id: 'positiveBehavior', label: 'التحول الإيجابي المطلوب', placeholder: 'السلوك المأمول...', required: true, type: 'textarea' },
+                        { id: 'favoriteHobby', label: 'هواية/اهتمام مفضل', placeholder: 'كرة القدم، الرسم...', required: true, type: 'input' },
+                        { id: 'favoritePhrase', label: 'كلمة/جملة مفضلة', placeholder: 'كلمة يكررها...', required: false, type: 'input' },
+                        { id: 'interactiveElementChoice', label: 'هل ترغب في عنصر بحث بصري؟*', placeholder: 'نعم/لا...', required: true, type: 'input' },
+                    ]
+                }));
+            }
         }
-    }, [id, isNew, allProducts, navigate]);
+    }, [id, isNew, allProducts, navigate, productType]);
 
     if (productsLoading && !isNew) return <PageLoader />;
     
@@ -117,7 +168,7 @@ const AdminProductDetailPage: React.FC = () => {
                 العودة إلى قائمة المنتجات
             </Link>
             <h1 className="text-3xl font-extrabold text-foreground">
-                {isNew ? 'إضافة منتج جديد' : `تعديل: ${product.title}`}
+                {isNew ? (productType === 'subscription_box' ? 'إعداد صندوق الرحلة' : productType === 'emotion_story' ? 'إعداد القصة المميزة' : 'إضافة منتج جديد') : `تعديل: ${product.title}`}
             </h1>
             <form onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -142,7 +193,7 @@ const AdminProductDetailPage: React.FC = () => {
                             <CardContent className="space-y-4">
                                 {(product.text_fields || []).map((field, index) => (
                                     <div key={field.id || index} className="p-4 border rounded-lg bg-muted grid grid-cols-2 gap-4 items-end">
-                                        <Input placeholder="المعرّف (ID)" value={field.id} onChange={(e) => handleDynamicListChange('text_fields', index, 'id', e.target.value)} disabled />
+                                        <Input placeholder="المعرّف (ID)" value={field.id} onChange={(e) => handleDynamicListChange('text_fields', index, 'id', e.target.value)} disabled={productType === 'emotion_story'} />
                                         <Input placeholder="العنوان الظاهر للعميل" value={field.label} onChange={(e) => handleDynamicListChange('text_fields', index, 'label', e.target.value)} />
                                         <div className="col-span-2">
                                            <Input placeholder="النص المؤقت (Placeholder)" value={field.placeholder} onChange={(e) => handleDynamicListChange('text_fields', index, 'placeholder', e.target.value)} />
@@ -166,7 +217,7 @@ const AdminProductDetailPage: React.FC = () => {
                             <CardContent className="space-y-4">
                                  {(product.image_slots || []).map((slot, index) => (
                                     <div key={slot.id || index} className="p-4 border rounded-lg bg-muted grid grid-cols-2 gap-4 items-center">
-                                         <Input placeholder="المعرّف (ID)" value={slot.id} onChange={(e) => handleDynamicListChange('image_slots', index, 'id', e.target.value)} disabled/>
+                                         <Input placeholder="المعرّف (ID)" value={slot.id} onChange={(e) => handleDynamicListChange('image_slots', index, 'id', e.target.value)} disabled={productType === 'emotion_story' || productType === 'subscription_box'}/>
                                          <Input placeholder="العنوان الظاهر للعميل" value={slot.label} onChange={(e) => handleDynamicListChange('image_slots', index, 'label', e.target.value)} />
                                          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={slot.required} onChange={(e) => handleDynamicListChange('image_slots', index, 'required', e.target.checked)} /> إلزامي</label>
                                          <Button type="button" variant="destructive" size="icon" onClick={() => removeDynamicListItem('image_slots', index)} className="justify-self-end"><Trash2 size={16}/></Button>

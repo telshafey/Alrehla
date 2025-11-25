@@ -22,7 +22,12 @@ const queryClient = new QueryClient({
 const isPreviewEnvironment = window.location.href.includes('usercontent.goog');
 const Router = isPreviewEnvironment ? HashRouter : BrowserRouter;
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error('Failed to find the root element');
+}
+
+ReactDOM.createRoot(rootElement as HTMLElement).render(
   <React.StrictMode>
     <Router>
       <QueryClientProvider client={queryClient}>

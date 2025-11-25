@@ -1,6 +1,8 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
 import type { SiteContent } from '../../lib/database.types';
+import { mockSiteContent } from '../../data/mockData';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -11,9 +13,13 @@ export const useContentMutations = () => {
     const updateSiteContent = useMutation({
         mutationFn: async (newContent: SiteContent) => {
             await sleep(800);
-            console.log('Updating site content (mock):', newContent);
-            // In a real app, you'd send this to your backend to save to the database.
-            return newContent;
+            // Get existing or default to ensure we don't lose structure
+            const stored = localStorage.getItem('alrehla_site_content');
+            const current = stored ? JSON.parse(stored) : mockSiteContent;
+            
+            const updated = { ...current, ...newContent };
+            localStorage.setItem('alrehla_site_content', JSON.stringify(updated));
+            return updated;
         },
         onSuccess: () => {
             // Invalidate queries that depend on site content to refetch new data
@@ -29,11 +35,15 @@ export const useContentMutations = () => {
     const uploadFile = useMutation({
         mutationFn: async (file: File): Promise<{ url: string }> => {
             await sleep(1000);
-            console.log('Uploading file (mock):', file.name);
-            // In a real app, upload the file to storage (e.g., S3, Supabase Storage)
-            // and return the public URL.
-            // For mock, we'll return a placeholder.
-            return { url: 'https://i.ibb.co/L5B6m9f/join-us-hero.jpg' };
+            // In a real app, upload to server. Here we create a fake local URL for preview
+            // Note: This URL is temporary and only works in the current session for the user who uploaded it.
+            // For a real persistence in mock mode, we'd need to base64 encode it, which is heavy for localStorage.
+            // We will simulate a success but warn the user.
+            const objectUrl = URL.createObjectURL(file);
+            
+            // FOR DEMO PURPOSES: If it's an image, we return the object URL.
+            // In production, this URL must come from the server.
+            return { url: objectUrl };
         },
         onError: (error: Error) => {
              addToast(`فشل رفع الملف: ${error.message}`, 'error');

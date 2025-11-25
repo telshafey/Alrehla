@@ -1,3 +1,4 @@
+
 export type Database = {};
 
 export type UserRole =
@@ -23,6 +24,11 @@ export interface UserProfile {
   phone?: string | null;
 }
 
+export interface UserProfileWithRelations extends UserProfile {
+    children?: ChildProfile[];
+    childrenCount?: number;
+}
+
 export interface ChildProfile {
   id: number;
   created_at: string;
@@ -34,13 +40,14 @@ export interface ChildProfile {
   interests: string[] | null;
   strengths: string[] | null;
   student_user_id: string | null;
+  age?: number;
 }
 
 export interface Badge {
   id: number;
   name: string;
   description: string;
-  icon_name: string; // From lucide-react icons
+  icon_name: string; 
 }
 
 export interface ChildBadge {
@@ -84,6 +91,11 @@ export interface Order {
   receipt_url: string | null;
 }
 
+export interface OrderWithRelations extends Order {
+    users: { name: string; email: string } | null;
+    child_profiles: { name: string } | null;
+}
+
 export interface ServiceOrder {
   id: string;
   created_at: string;
@@ -91,16 +103,19 @@ export interface ServiceOrder {
   child_id: number;
   service_id: number;
   status: OrderStatus;
-  details: any; // e.g., { fileUrl: '...', userNotes: '...' }
+  details: any;
   total: number;
   assigned_instructor_id: number | null;
 }
 
-export type SubscriptionStatus =
-  | 'active'
-  | 'paused'
-  | 'cancelled'
-  | 'pending_payment';
+export interface ServiceOrderWithRelations extends ServiceOrder {
+    users: { name: string; email: string } | null;
+    child_profiles: { name: string } | null;
+    standalone_services: { name: string } | null;
+    instructors: { name: string } | null;
+}
+
+export type SubscriptionStatus = 'active' | 'paused' | 'cancelled' | 'pending_payment';
 
 export interface Subscription {
   id: string;
@@ -144,6 +159,11 @@ export interface CreativeWritingBooking {
   session_id: string;
 }
 
+export interface BookingWithRelations extends CreativeWritingBooking {
+    child_profiles: { name: string } | null;
+    instructors: { name: string } | null;
+}
+
 export interface ImageSlotConfig {
   id: string;
   label: string;
@@ -163,75 +183,52 @@ export interface StoryGoal {
   title: string;
 }
 
-export type GoalConfig =
-  | 'none'
-  | 'predefined'
-  | 'custom'
-  | 'predefined_and_custom';
+export type GoalConfig = 'none' | 'predefined' | 'custom' | 'predefined_and_custom';
 
 export interface PersonalizedProduct {
-  id: number;
-  created_at: string;
-  key: string;
-  title: string;
-  description: string;
-  image_url: string | null;
-  features: string[];
-  sort_order: number;
-  is_featured: boolean;
-  is_addon: boolean;
-  has_printed_version: boolean;
-  price_printed: number | null;
-  price_electronic: number | null;
-  goal_config: GoalConfig;
-  story_goals: StoryGoal[];
-  image_slots: ImageSlotConfig[];
-  text_fields: TextFieldConfig[];
-  component_keys?: string[] | null;
+    id: number;
+    created_at: string;
+    key: string;
+    title: string;
+    description: string;
+    image_url: string | null;
+    features: string[];
+    sort_order: number;
+    is_featured: boolean;
+    is_addon: boolean;
+    has_printed_version: boolean;
+    price_printed: number | null;
+    price_electronic: number | null;
+    goal_config: GoalConfig;
+    story_goals: StoryGoal[];
+    image_slots: ImageSlotConfig[];
+    text_fields: TextFieldConfig[];
+    component_keys?: string[];
 }
 
 export interface CreativeWritingPackage {
-  id: number;
-  name: string;
-  sessions: string;
-  price: number;
-  features: string[];
-  popular: boolean;
-  description: string;
-}
-
-export interface AdditionalService {
-  id: number;
-  name: string;
-  price: number;
-  description: string | null;
+    id: number;
+    name: string;
+    sessions: string;
+    price: number;
+    features: string[];
+    popular: boolean;
+    description: string;
 }
 
 export interface StandaloneService {
-  id: number;
-  name: string;
-  price: number;
-  description: string;
-  category: 'استشارات' | 'مراجعات' | 'نشر' | 'قصص فيديو' | 'قصص مسموعة';
-  icon_name: string; // e.g., 'MessageSquare', 'FileCheck2'
-  requires_file_upload: boolean;
-  provider_type: 'company' | 'instructor';
+    id: number;
+    name: string;
+    price: number;
+    description: string;
+    category: string;
+    icon_name: string;
+    requires_file_upload: boolean;
+    provider_type: 'company' | 'instructor';
 }
 
-export type WeeklySchedule = {
-  [day in
-    | 'sunday'
-    | 'monday'
-    | 'tuesday'
-    | 'wednesday'
-    | 'thursday'
-    | 'friday'
-    | 'saturday']?: string[];
-};
-
-export type AvailableSlots = {
-  [date: string]: string[]; // date is 'YYYY-MM-DD'
-};
+export type WeeklySchedule = { [day: string]: string[] };
+export type AvailableSlots = { [date: string]: string[] };
 
 export interface PublishedWork {
     title: string;
@@ -239,109 +236,91 @@ export interface PublishedWork {
 }
 
 export interface Instructor {
-  id: number;
-  user_id: string | null;
-  name: string;
-  specialty: string;
-  bio: string;
-  avatar_url: string | null;
-  slug: string;
-  weekly_schedule: WeeklySchedule | {};
-  availability: AvailableSlots | {};
-  intro_availability: AvailableSlots | {};
-  rate_per_session: number;
-  service_rates?: { [key: string]: number } | null;
-  package_rates?: { [key: string]: number } | null;
-  schedule_status: 'approved' | 'pending' | 'rejected';
-  profile_update_status: 'approved' | 'pending' | 'rejected';
-  pending_profile_data: any | null;
-  teaching_philosophy?: string | null;
-  expertise_areas?: string[] | null;
-  intro_video_url?: string | null;
-  published_works?: PublishedWork[] | null;
-}
-
-export interface InstructorPayout {
-  id: string;
-  instructor_id: number;
-  payout_date: string;
-  amount: number;
-  details: string; // e.g., "Payout for August 2024"
+    id: number;
+    user_id: string | null;
+    name: string;
+    specialty: string;
+    bio: string;
+    avatar_url: string | null;
+    slug: string;
+    weekly_schedule: WeeklySchedule;
+    availability: AvailableSlots;
+    intro_availability: AvailableSlots;
+    rate_per_session: number;
+    service_rates?: { [serviceId: number]: number };
+    package_rates?: { [packageId: number]: number };
+    schedule_status: 'approved' | 'pending' | 'rejected';
+    profile_update_status: 'approved' | 'pending' | 'rejected';
+    pending_profile_data: any;
+    teaching_philosophy: string;
+    expertise_areas: string[];
+    intro_video_url: string | null;
+    published_works: PublishedWork[];
 }
 
 export interface SiteBranding {
-  logoUrl: string;
-  heroImageUrl: string;
-  aboutImageUrl: string;
-  joinUsImageUrl: string;
-  creativeWritingPortalImageUrl: string;
-  enhaLakPortalImageUrl: string;
+    logoUrl: string;
+    heroImageUrl: string;
+    aboutHeroImageUrl: string; // For About Page Hero
+    aboutPortalImageUrl: string; // For Home Page Card
+    joinUsImageUrl: string;
+    creativeWritingPortalImageUrl: string;
+    enhaLakPortalImageUrl: string;
 }
 
 export type Prices = { [key: string]: number };
-
 export type ShippingCosts = { [country: string]: { [region: string]: number } };
 
 export interface SocialLinks {
-  id: number;
-  facebook_url: string | null;
-  twitter_url: string | null;
-  instagram_url: string | null;
-}
-
-export interface CommunicationSettings {
-  support_email: string;
-  join_us_email: string;
-  whatsapp_number: string;
-  whatsapp_default_message: string;
-}
-
-export interface JitsiSettings {
-  id: number;
-  domain: string;
-  room_prefix: string;
-  join_minutes_before: number;
-  expire_minutes_after: number;
-  start_with_audio_muted: boolean;
-  start_with_video_muted: boolean;
+    id: number;
+    facebook_url: string;
+    twitter_url: string;
+    instagram_url: string;
 }
 
 export interface BlogPost {
-  id: number;
-  created_at: string;
-  published_at: string | null;
-  title: string;
-  slug: string;
-  content: string;
-  image_url: string | null;
-  author_name: string;
-  status: 'published' | 'draft';
+    id: number;
+    created_at: string;
+    published_at: string | null;
+    title: string;
+    slug: string;
+    content: string;
+    image_url: string | null;
+    author_name: string;
+    status: 'draft' | 'published';
 }
 
 export type TicketStatus = 'جديدة' | 'تمت المراجعة' | 'مغلقة';
 
 export interface SupportTicket {
-  id: string;
-  created_at: string;
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  status: TicketStatus;
+    id: string;
+    created_at: string;
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+    status: TicketStatus;
 }
 
 export type RequestStatus = 'جديد' | 'تمت المراجعة' | 'مقبول' | 'مرفوض';
 
 export interface JoinRequest {
-  id: string;
-  created_at: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-  message: string;
-  status: RequestStatus;
-  portfolio_url: string | null;
+    id: string;
+    created_at: string;
+    name: string;
+    email: string;
+    phone: string;
+    role: string;
+    message: string;
+    portfolio_url?: string;
+    status: RequestStatus;
+}
+
+export interface AdditionalService {
+    id: number;
+    name: string;
+    price: number;
+    description: string;
 }
 
 export interface TeamMember {
@@ -350,171 +329,199 @@ export interface TeamMember {
     imageUrl: string;
 }
 
-export interface SiteContent {
-  portalPage: {
-    heroTitle: string;
-    heroSubtitle: string;
-    projectsTitle: string;
-    projectsSubtitle: string;
-    enhaLakTitle: string;
-    enhaLakDescription: string;
-    creativeWritingTitle: string;
-    creativeWritingDescription: string;
-    valuePropositionTitle: string;
-    socialProofTitle: string; // Not currently used, but good to have
-    aboutSectionTitle: string;
-    aboutSectionContent: string;
-    testimonialsTitle: string;
-    testimonialsSubtitle: string;
-    blogTitle: string;
-    blogSubtitle: string;
-    finalCtaTitle: string;
-    finalCtaSubtitle: string;
-  };
-  aboutPage: {
-    heroTitle: string;
-    missionStatement: string;
-    ourStory: string;
-    ourVision: string;
-    valuesTitle: string;
-    teamMembers: TeamMember[];
-  };
-  enhaLakPage: {
-    main: {
-      heroTitle: string;
-      heroSubtitle: string;
-      productsTitle: string;
-      howItWorksTitle: string;
-      galleryTitle: string;
-      gallerySubtitle: string;
-      testimonialsTitle: string;
-      testimonialsSubtitle: string;
-      finalCtaTitle: string;
-      finalCtaSubtitle: string;
-      customStoryImageUrl: string;
-      subscriptionBoxImageUrl: string;
-    };
-    store: {
-      heroTitle: string;
-      heroSubtitle: string;
-      subscriptionBannerTitle: string;
-      featuredProductsTitle: string;
-      coreProductsTitle: string;
-      addonProductsTitle: string;
-    };
-    subscription: {
-      heroTitle: string;
-      heroSubtitle: string;
-      features: string[];
-    };
-  };
-  creativeWritingPage: {
-    main: {
-      heroTitle: string;
-      heroSubtitle: string;
-      methodologyTitle: string;
-      methodologySubtitle: string;
-      transformationTitle: string;
-      transformationSubtitle: string;
-      packagesTitle: string;
-      packagesSubtitle: string;
-      servicesTitle: string;
-      servicesSubtitle: string;
-      instructorsTitle: string;
-      instructorsSubtitle: string;
-      testimonialsTitle: string;
-      testimonialsSubtitle: string;
-      finalCtaTitle: string;
-      finalCtaSubtitle: string;
-    };
-    about: {
-      heroTitle: string;
-      heroSubtitle: string;
-      mainTitle: string;
-      mainContent: string;
-      philosophyTitle: string;
-      heroImageUrl: string;
-    };
-    curriculum: {
-      heroTitle: string;
-      heroSubtitle: string;
-      treasuresTitle: string;
-      treasuresSubtitle: string;
-    };
-    instructors: {
-      heroTitle: string;
-      heroSubtitle: string;
-    };
-  };
+export interface FAQItem {
+    category: string;
+    question: string;
+    answer: string;
 }
 
+export interface SiteContent {
+    portalPage: {
+        heroTitle: string;
+        heroSubtitle: string;
+        heroButtonText1?: string;
+        heroButtonText2?: string;
+        projectsTitle: string;
+        projectsSubtitle: string;
+        enhaLakTitle: string;
+        enhaLakDescription: string;
+        enhaLakBtnText?: string;
+        creativeWritingTitle: string;
+        creativeWritingDescription: string;
+        creativeWritingBtnText?: string;
+        valuePropositionTitle: string;
+        socialProofTitle?: string;
+        aboutSectionTitle?: string;
+        aboutSectionContent?: string;
+        aboutBtnText?: string;
+        testimonialsTitle: string;
+        testimonialsSubtitle: string;
+        blogTitle: string;
+        blogSubtitle: string;
+        finalCtaTitle: string;
+        finalCtaSubtitle: string;
+        finalCtaBtn1?: string;
+        finalCtaBtn2?: string;
+        showProjectsSection?: boolean;
+        showStepsSection?: boolean;
+        showAboutSection?: boolean;
+        showTestimonialsSection?: boolean;
+        showBlogSection?: boolean;
+        showFinalCtaSection?: boolean;
+        steps?: { title: string; description: string }[];
+    };
+    aboutPage: {
+        heroTitle: string;
+        missionStatement: string;
+        ourStory: string;
+        ourVision: string;
+        valuesTitle: string;
+        teamMembers: TeamMember[];
+        teamTitle?: string;
+        showTeamSection?: boolean;
+    };
+    enhaLakPage: {
+        main: {
+            heroTitle: string;
+            heroSubtitle: string;
+            heroBtnText?: string;
+            productsTitle: string;
+            howItWorksTitle: string;
+            galleryTitle?: string;
+            gallerySubtitle?: string;
+            testimonialsTitle: string;
+            testimonialsSubtitle: string;
+            finalCtaTitle: string;
+            finalCtaSubtitle: string;
+            customStoryImageUrl: string;
+            subscriptionBoxImageUrl: string;
+        };
+        store: {
+            heroTitle: string;
+            heroSubtitle: string;
+            subscriptionBannerTitle: string;
+            featuredProductsTitle: string;
+            coreProductsTitle: string;
+            addonProductsTitle: string;
+        };
+        subscription: {
+            heroTitle: string;
+            heroSubtitle: string;
+            features: string[];
+        };
+    };
+    creativeWritingPage: {
+        main: {
+            heroTitle: string;
+            heroSubtitle: string;
+            methodologyTitle: string;
+            methodologySubtitle: string;
+            transformationTitle: string;
+            transformationSubtitle?: string;
+            packagesTitle: string;
+            packagesSubtitle: string;
+            servicesTitle: string;
+            servicesSubtitle: string;
+            instructorsTitle: string;
+            instructorsSubtitle: string;
+            testimonialsTitle: string;
+            testimonialsSubtitle: string;
+            finalCtaTitle: string;
+            finalCtaSubtitle: string;
+        };
+        about: {
+            heroTitle: string;
+            heroSubtitle: string;
+            mainTitle: string;
+            mainContent: string;
+            philosophyTitle: string;
+            heroImageUrl: string;
+        };
+        curriculum: {
+            heroTitle: string;
+            heroSubtitle: string;
+            treasuresTitle: string;
+            treasuresSubtitle: string;
+        };
+        instructors: {
+            heroTitle: string;
+            heroSubtitle: string;
+        };
+    };
+    supportPage: {
+        heroTitle: string;
+        heroSubtitle: string;
+        faqs: FAQItem[];
+    };
+}
 
 export type SessionStatus = 'upcoming' | 'completed' | 'missed';
 
 export interface ScheduledSession {
-  id: string;
-  booking_id: string | null;
-  subscription_id: string | null;
-  child_id: number;
-  instructor_id: number;
-  session_date: string;
-  status: SessionStatus;
+    id: string;
+    booking_id: string;
+    subscription_id: string | null;
+    child_id: number;
+    instructor_id: number;
+    session_date: string;
+    status: SessionStatus;
 }
 
 export interface SessionMessage {
-  id: string;
-  booking_id: string;
-  sender_id: string;
-  sender_role: 'instructor' | 'student' | 'user';
-  message_text: string;
-  created_at: string;
+    id: string;
+    booking_id: string;
+    sender_id: string;
+    sender_role: 'instructor' | 'student' | 'user';
+    message_text: string;
+    created_at: string;
 }
 
 export interface SessionAttachment {
-  id: string;
-  booking_id: string;
-  uploader_id: string;
-  uploader_role: 'instructor' | 'student' | 'user';
-  file_name: string;
-  file_url: string;
-  created_at: string;
+    id: string;
+    booking_id: string;
+    uploader_id: string;
+    uploader_role: 'instructor' | 'student' | 'user';
+    file_name: string;
+    file_url: string;
+    created_at: string;
 }
 
 export interface SupportSessionRequest {
-  id: string;
-  instructor_id: number;
-  child_id: number;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  requested_at: string;
+    id: string;
+    instructor_id: number;
+    child_id: number;
+    reason: string;
+    status: 'pending' | 'approved' | 'rejected';
+    requested_at: string;
+}
+
+export interface InstructorPayout {
+    id: string;
+    instructor_id: number;
+    payout_date: string;
+    amount: number;
+    details: string;
 }
 
 export interface PricingSettings {
-  id: number;
-  company_percentage: number; // Markup multiplier, e.g., 1.2 for 20%
-  fixed_fee: number; // A fixed fee added to the price
+    id: number;
+    company_percentage: number;
+    fixed_fee: number;
 }
 
-// Helper types for enriched data
-export type UserProfileWithRelations = UserProfile & {
-  children: ChildProfile[];
-  childrenCount: number;
-};
+export interface CommunicationSettings {
+    support_email: string;
+    join_us_email: string;
+    whatsapp_number: string;
+    whatsapp_default_message: string;
+}
 
-export type OrderWithRelations = Order & {
-  users: { name: string; email: string } | null;
-  child_profiles: { name: string } | null;
-};
-
-export type BookingWithRelations = CreativeWritingBooking & {
-  users: { name: string; email: string } | null;
-  child_profiles: { name: string } | null;
-  instructors: { name: string } | null;
-};
-
-export type ServiceOrderWithRelations = ServiceOrder & {
-  users: { name: string; email: string } | null;
-  child_profiles: { name: string } | null;
-  instructors: { name: string } | null;
-  standalone_services: { name: string } | null;
-};
+export interface JitsiSettings {
+    id: number;
+    domain: string;
+    room_prefix: string;
+    join_minutes_before: number;
+    expire_minutes_after: number;
+    start_with_audio_muted: boolean;
+    start_with_video_muted: boolean;
+}

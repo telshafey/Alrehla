@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Eye, Target, Sparkles, Gem, Handshake, Globe } from 'lucide-react';
 import { useProduct } from '../contexts/ProductContext';
@@ -61,11 +62,11 @@ const AboutPage: React.FC = () => {
             {/* Hero Section */}
             <section 
                 className="relative py-24 sm:py-32 text-center text-white bg-cover bg-center" 
-                style={{ backgroundImage: `url(${siteBranding?.aboutImageUrl || "https://i.ibb.co/8XYt2s5/about-us-image.jpg"})`}}
+                style={{ backgroundImage: `url(${siteBranding?.aboutHeroImageUrl || "https://i.ibb.co/8XYt2s5/about-us-image.jpg"})`}}
             >
                 <div className="absolute inset-0 bg-primary/80 backdrop-blur-sm"></div>
                 <div className="container mx-auto px-4 relative z-10">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold">رحلتنا: من فكرة إلى رؤية</h1>
+                    <h1 className="text-4xl sm:text-5xl font-extrabold">{content?.heroTitle || "رحلتنا: من فكرة إلى رؤية"}</h1>
                     <p className="mt-4 max-w-3xl mx-auto text-lg text-primary-foreground/90">
                         {content?.missionStatement}
                     </p>
@@ -105,10 +106,10 @@ const AboutPage: React.FC = () => {
             </section>
             
             {/* Meet The Team Section */}
-            {teamMembers.length > 0 && (
+            {(content?.showTeamSection !== false && teamMembers.length > 0) && (
                 <section className="py-16 sm:py-20">
                      <div className="container mx-auto px-4 text-center">
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-12">تعرف على بعض أفراد الفريق</h2>
+                        <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-12">{content?.teamTitle || "تعرف على بعض أفراد الفريق"}</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-12 max-w-4xl mx-auto">
                             {teamMembers.map(member => (
                                 <TeamMemberCard key={member.name} {...member} />
@@ -121,7 +122,7 @@ const AboutPage: React.FC = () => {
              {/* Our Core Values */}
              <section className="bg-muted/50 py-16 sm:py-20">
                 <div className="container mx-auto px-4 max-w-7xl">
-                    <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-foreground mb-12">{content?.valuesTitle}</h2>
+                    <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-foreground mb-12">{content?.valuesTitle || "قيمنا الأساسية"}</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
                        <ValueCard 
                             icon={<Globe size={32} />}

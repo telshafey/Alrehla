@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookHeart, Gift, Star, ArrowLeft, CheckCircle, Send, Mic, User, Sparkles } from 'lucide-react';
@@ -50,13 +51,6 @@ const EnhaLakPage: React.FC = () => {
     const pageUrl = window.location.href;
     const { data, isLoading } = usePublicData();
     const content = data?.siteContent?.enhaLakPage.main;
-
-    const galleryImages = [
-        "https://i.ibb.co/8XYt2s5/about-us-image.jpg",
-        "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
-        "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg",
-        "https://i.ibb.co/C0bSJJT/favicon.png"
-    ];
 
     if (isLoading) return <PageLoader />;
 

@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import {
     mockInstructors,
@@ -9,7 +10,8 @@ import {
     mockPublicHolidays,
     mockSubscriptionPlans,
     mockStandaloneServices,
-    mockCommunicationSettings
+    mockCommunicationSettings,
+    mockSiteBranding // Import mock branding
 } from '../../../data/mockData';
 import type {
     Instructor,
@@ -44,13 +46,34 @@ export const usePublicData = () => {
     return useQuery<PublicData>({
         queryKey: ['publicData'],
         queryFn: async () => {
-            // Simulate fetching all public data in parallel, just like a real API call would.
+            // Check LocalStorage for overrides with safety checks
+            let content = mockSiteContent;
+            try {
+                const storedContent = localStorage.getItem('alrehla_site_content');
+                if (storedContent) {
+                    content = { ...mockSiteContent, ...JSON.parse(storedContent) };
+                }
+            } catch (e) {
+                console.error("Failed to parse site content from storage", e);
+            }
+
+            let branding = mockSiteBranding;
+            try {
+                const storedBranding = localStorage.getItem('alrehla_branding');
+                if (storedBranding) {
+                    branding = { ...mockSiteBranding, ...JSON.parse(storedBranding) };
+                }
+            } catch (e) {
+                console.error("Failed to parse branding from storage", e);
+            }
+
+            // Simulate fetching all public data in parallel
             const [
                 instructors,
                 blogPosts,
                 personalizedProducts,
                 creativeWritingPackages,
-                siteContent,
+                siteContentResult,
                 socialLinks,
                 publicHolidays,
                 subscriptionPlans,
@@ -61,7 +84,7 @@ export const usePublicData = () => {
                 mockFetch(mockBlogPosts),
                 mockFetch(mockPersonalizedProducts),
                 mockFetch(mockCreativeWritingPackages),
-                mockFetch(mockSiteContent),
+                mockFetch(content), // Return the localStorage content or mock
                 mockFetch(mockSocialLinks),
                 mockFetch(mockPublicHolidays),
                 mockFetch(mockSubscriptionPlans),
@@ -75,7 +98,7 @@ export const usePublicData = () => {
                 blogPosts,
                 personalizedProducts,
                 creativeWritingPackages,
-                siteContent,
+                siteContent: siteContentResult,
                 socialLinks,
                 publicHolidays,
                 subscriptionPlans,
@@ -83,6 +106,6 @@ export const usePublicData = () => {
                 communicationSettings,
             } as PublicData;
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 0, // Ensure we get fresh data if localStorage changes
     });
 };

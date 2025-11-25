@@ -1,3 +1,4 @@
+
 import type { 
     UserProfile, ChildProfile, Notification, Order, Subscription, CreativeWritingBooking, 
     PersonalizedProduct, CreativeWritingPackage, Instructor, SiteBranding, Prices, ShippingCosts, 
@@ -12,7 +13,8 @@ import type {
     CommunicationSettings,
     JitsiSettings,
     TeamMember,
-    PublishedWork
+    PublishedWork,
+    FAQItem
 } from '../lib/database.types';
 import { getPermissions, Permissions, UserRole } from '../lib/roles';
 
@@ -20,6 +22,7 @@ export const mockUsers: UserProfile[] = [
     { id: 'usr_parent', created_at: '2023-08-01T10:00:00Z', last_sign_in_at: '2024-08-10T12:00:00Z', name: 'أحمد عبدالله', email: 'parent@alrehlah.com', role: 'user', address: '123 شارع المثال، مدينة نصر', governorate: 'القاهرة', phone: '01234567890' },
     { id: 'usr_user', created_at: '2024-01-02T10:00:00Z', last_sign_in_at: '2024-08-09T11:00:00Z', name: 'سارة خالد', email: 'user@alrehlah.com', role: 'user' },
     { id: 'usr_student', created_at: '2024-02-03T10:00:00Z', last_sign_in_at: '2024-08-10T09:30:00Z', name: 'علي أحمد', email: 'student@alrehlah.com', role: 'student' },
+    { id: 'usr_new_demo', created_at: new Date().toISOString(), last_sign_in_at: null, name: 'ماجد وليد', email: 'majed@test.com', role: 'user', phone: '01011122233', governorate: 'الجيزة', address: '6 أكتوبر, الحي الثاني' },
     { id: 'usr_admin', created_at: '2023-01-04T10:00:00Z', last_sign_in_at: '2024-08-10T15:00:00Z', name: 'مدير النظام', email: 'admin@alrehlah.com', role: 'super_admin' },
     { id: 'usr_supervisor', created_at: '2023-01-05T10:00:00Z', last_sign_in_at: '2024-08-08T14:00:00Z', name: 'مشرف عام', email: 'supervisor@alrehlah.com', role: 'general_supervisor' },
     { id: 'usr_cws', created_at: '2023-05-06T10:00:00Z', last_sign_in_at: null, name: 'مشرف بداية الرحلة', email: 'cws@alrehlah.com', role: 'creative_writing_supervisor' },
@@ -98,7 +101,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         title: 'القصة المميزة', 
         description: 'قصة علاجية مخصصة لمساعدة طفلك على فهم مشاعره والتعبير عنها بطريقة صحية، بناءً على مواقف من حياته الواقعية.', 
         image_url: 'https://i.ibb.co/8XYt2s5/about-us-image.jpg',
-        features: ['تخصيص نفسي وسلوكي عميق', 'معالجة مشاعر محددة', 'بناء على مواقف واقعية', 'حلول تربوية إيجابية'], 
+        features: ['تخصيص نفسى وسلوكي عميق', 'معالجة مشاعر محددة', 'بناء على مواقف واقعية', 'حلول تربوية إيجابية'], 
         sort_order: 0, 
         is_featured: true, 
         is_addon: false, 
@@ -406,7 +409,8 @@ export const mockInstructorPayouts: InstructorPayout[] = [
 export const mockSiteBranding: SiteBranding = {
     logoUrl: "https://i.ibb.co/C0bSJJT/favicon.png",
     heroImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
-    aboutImageUrl: "https://i.ibb.co/8XYt2s5/about-us-image.jpg",
+    aboutHeroImageUrl: "https://i.ibb.co/8XYt2s5/about-us-image.jpg", // Renamed from aboutImageUrl
+    aboutPortalImageUrl: "https://placehold.co/600x600", // Added new field
     joinUsImageUrl: "https://i.ibb.co/L5B6m9f/join-us-hero.jpg",
     creativeWritingPortalImageUrl: "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg",
     enhaLakPortalImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
@@ -691,6 +695,31 @@ export const mockSiteContent: SiteContent = {
       heroTitle: "رفقاء الرحلة الملهمون",
       heroSubtitle: "نؤمن أن الإبداع لا يُلقّن، بل يُلهم. لذلك، اخترنا بعناية نخبة من الكتّاب والتربويين."
     }
+  },
+  supportPage: {
+      heroTitle: "الدعم والمساعدة",
+      heroSubtitle: "نحن هنا لمساعدتك في كل خطوة من رحلتك. تصفح الأسئلة الشائعة للعثور على إجابات سريعة، أو تواصل معنا مباشرة.",
+      faqs: [
+        { category: 'منتجات "إنها لك"', question: 'كيف تتم عملية تخصيص القصة؟', answer: 'ببساطة! عند طلب المنتج، ستقوم بملء نموذج ببيانات طفلك مثل اسمه وعمره واهتماماته، بالإضافة إلى رفع صورته. يقوم فريقنا من الكتّاب المتخصصين باستخدام هذه المعلومات لصياغة قصة فريدة يكون فيها طفلك هو البطل.' },
+        { category: 'منتجات "إنها لك"', question: 'كم من الوقت يستغرق تجهيز الطلب؟', answer: 'عادةً ما يستغرق تجهيز الطلبات المخصصة من 5 إلى 7 أيام عمل قبل الشحن. نحن نولي كل قصة اهتماماً خاصاً لضمان أعلى جودة.' },
+        { category: 'منتجات "إنها لك"', question: 'ما هي الأعمار المناسبة للقصص؟', answer: 'قصصنا مصممة لتناسب الأطفال من عمر 3 إلى 12 سنة. نقوم بتكييف لغة القصة وموضوعاتها لتناسب الفئة العمرية للطفل بناءً على تاريخ ميلاده المدخل.' },
+        { category: 'منتجات "إنها لك"', question: 'هل يمكنني معاينة القصة قبل الطباعة؟', answer: 'لضمان سرعة الإنتاج، لا نوفر معاينة كاملة للنص قبل الطباعة، ولكن يمكنك التأكد من أن القصة ستلتزم بالبيانات والأهداف التربوية التي حددتها. في حال وجود خطأ مطبعي من جانبنا، نتحمل مسؤولية إعادة الطباعة.' },
+        { category: 'منتجات "إنها لك"', question: 'هل الصور في القصة هي صور حقيقية لطفلي؟', answer: 'نحن نستخدم أحدث تقنيات الرسم الرقمي لتحويل صورة طفلك إلى شخصية كرتونية تشبهه، لتندمج بسلاسة مع رسومات القصة وتمنحه شعوراً سحرياً بالبطولة.' },
+        { category: 'برنامج "بداية الرحلة"', question: 'كيف أختار الباقة المناسبة لطفلي؟', answer: 'لقد صممنا صفحة مخصصة لمقارنة الباقات لمساعدتك على اتخاذ القرار. بشكل عام، "باقة الانطلاق" مثالية للمبتدئين، بينما "الباقة الأساسية" تناسب من يريدون تطوير مهاراتهم بجدية.' },
+        { category: 'برنامج "بداية الرحلة"', question: 'كيف تتم الجلسات التعليمية؟', answer: 'تتم الجلسات بشكل فردي (واحد لواحد) بين المدرب والطالب عبر الإنترنت من خلال منصة فيديو آمنة مدمجة في موقعنا. لا تحتاج لتحميل أي برامج خارجية.' },
+        { category: 'برنامج "بداية الرحلة"', question: 'ماذا لو حدث ظرف طارئ ولم يستطع طفلي حضور الجلسة؟', answer: 'يمكنك إعادة جدولة الجلسة قبل موعدها بـ 24 ساعة مجاناً من خلال لوحة التحكم. في حالات الطوارئ القصوى، يرجى التواصل مع الدعم الفني.' },
+        { category: 'برنامج "بداية الرحلة"', question: 'هل يحصل الطالب على شهادة؟', answer: 'بالتأكيد. عند إتمام باقة الجلسات، يحصل الطالب على شهادة إتمام للبرنامج، بالإضافة إلى محفظة أعمال رقمية تضم إبداعاته التي أنجزها خلال الرحلة.' },
+        { category: 'برنامج "بداية الرحلة"', question: 'هل يمكنني تغيير المدرب بعد بدء الباقة؟', answer: 'نعم، إذا لم يشعر الطفل بالانسجام مع المدرب الحالي، يمكنك طلب تغيير المدرب للجلسات المتبقية بالتواصل مع فريق الدعم.' },
+        { category: 'صندوق الرحلة الشهري', question: 'كيف يعمل الاشتراك في صندوق الرحلة الشهري؟', answer: 'بمجرد اشتراكك، سيصلك صندوق مميز إلى باب منزلك كل شهر. يحتوي كل صندوق على قصة مخصصة جديدة وأنشطة وهدايا إضافية مصممة بعناية لتناسب عمر طفلك واهتماماته.' },
+        { category: 'صندوق الرحلة الشهري', question: 'هل يمكنني إيقاف اشتراكي مؤقتًا؟', answer: 'نعم، يمكنك إيقاف الاشتراك مؤقتاً لمدة شهر أو أكثر من خلال إعدادات حسابك، وإعادة تفعيله في أي وقت دون رسوم إضافية.' },
+        { category: 'صندوق الرحلة الشهري', question: 'متى يتم خصم مبلغ الاشتراك؟', answer: 'يتم خصم المبلغ شهرياً في نفس يوم اشتراكك الأول. يتم شحن الصندوق خلال 3-5 أيام عمل من نجاح عملية الدفع.' },
+        { category: 'صندوق الرحلة الشهري', question: 'هل محتوى الصندوق يتكرر؟', answer: 'إطلاقاً! كل شهر له طابع وموضوع مختلف (الفضاء، البحار، الأخلاق، المهن..)، والقصة تُكتب خصيصاً لتناسب هذا الموضوع وتطور عمر طفلك.' },
+        { category: 'أسئلة عامة والشحن', question: 'ما هي طرق الدفع المتاحة؟ وهل هي آمنة؟', answer: 'نحن نقبل الدفع عبر المحافظ الإلكترونية وInstapay. تتم جميع عمليات الدفع عبر بوابات آمنة وموثوقة لضمان حماية بياناتك المالية.' },
+        { category: 'أسئلة عامة والشحن', question: 'هل تقومون بالشحن خارج مصر؟', answer: 'حاليًا، خدمات الشحن لدينا تغطي جميع محافظات جمهورية مصر العربية. نعمل على التوسع لتغطية دول الخليج العربي قريباً.' },
+        { category: 'أسئلة عامة والشحن', question: 'كم تبلغ تكلفة الشحن؟', answer: 'تختلف تكلفة الشحن حسب المحافظة. يمكنك رؤية التكلفة الدقيقة عند إدخال عنوانك في صفحة إتمام الطلب، وتتراوح عادة بين 40 إلى 80 جنيماً.' },
+        { category: 'أسئلة عامة والشحن', question: 'كيف يمكنني تتبع طلبي؟', answer: 'بمجرد شحن طلبك، ستتلقى إشعاراً وتحديثاً في صفحة "الطلبات" بحسابك. يمكنك متابعة حالة الطلب خطوة بخطوة حتى وصوله إليك.' },
+        { category: 'أسئلة عامة والشحن', question: 'ما هي سياسة الاسترجاع؟', answer: 'نظراً لأن منتجاتنا مخصصة (مطبوعة خصيصاً بالاسم والصورة)، لا يمكن استرجاعها إلا في حال وجود عيب في الصناعة أو خطأ من جانبنا. في هذه الحالة، نلتزم بإعادة الطباعة والشحن مجاناً.' },
+      ]
   }
 };
 

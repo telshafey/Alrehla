@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings } from 'lucide-react';
+import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings, ChevronDown, Box, Sparkles } from 'lucide-react';
 import { useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useProductMutations } from '../../hooks/mutations/useProductMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -10,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import ErrorState from '../../components/ui/ErrorState';
 import SortableTableHead from '../../components/admin/ui/SortableTableHead';
+import Dropdown from '../../components/ui/Dropdown';
 
 const AdminPersonalizedProductsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -47,6 +49,24 @@ const AdminPersonalizedProductsPage: React.FC = () => {
         }
     };
 
+    const addProductOptions = [
+        { 
+            label: 'منتج قياسي جديد', 
+            action: () => navigate('/admin/personalized-products/new'),
+            icon: <Plus size={16} />
+        },
+        { 
+            label: 'إضافة صندوق رحلة', 
+            action: () => navigate('/admin/personalized-products/new?type=subscription_box'),
+            icon: <Box size={16} />
+        },
+        { 
+            label: 'إضافة القصة المميزة', 
+            action: () => navigate('/admin/personalized-products/new?type=emotion_story'),
+            icon: <Sparkles size={16} />
+        }
+    ];
+
     if (isLoading) return <PageLoader text="جاري تحميل المنتجات..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
@@ -54,9 +74,14 @@ const AdminPersonalizedProductsPage: React.FC = () => {
         <div className="animate-fadeIn space-y-8">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-extrabold text-foreground">إدارة المنتجات المخصصة</h1>
-                <Button onClick={() => navigate('/admin/personalized-products/new')} icon={<Plus size={18} />}>
-                    إضافة منتج
-                </Button>
+                <Dropdown 
+                    trigger={
+                        <span className="flex items-center gap-2">
+                            <Plus size={18} /> إضافة منتج جديد
+                        </span>
+                    }
+                    items={addProductOptions}
+                />
             </div>
 
             <Card>

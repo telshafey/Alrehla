@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Target, Star, Eye, Shield, Users, CheckCircle, PenTool } from 'lucide-react';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';

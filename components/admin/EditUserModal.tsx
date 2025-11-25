@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Save, AlertCircle } from 'lucide-react';
+import { Save, AlertCircle, Lock } from 'lucide-react';
 import type { UserProfile as User, UserRole } from '../../contexts/AuthContext.tsx';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -32,6 +33,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, onSave, 
             setName(user.name);
             setEmail(user.email);
             setRole(user.role);
+            setPassword(''); // Reset password field on open
         } else {
             setName('');
             setEmail('');
@@ -45,7 +47,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, onSave, 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const payload = isEditMode
-            ? { id: user.id, name, role }
+            ? { id: user.id, name, role, password: password || undefined } // Pass password only if set
             : { name, email, password, role };
         onSave(payload);
     };
@@ -81,15 +83,30 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, onSave, 
                          {user?.id === currentUser?.id && <p className="text-xs text-muted-foreground mt-1">لا يمكنك تغيير دور حسابك.</p>}
                     </FormField>
                 )}
-                {!isEditMode && (
-                    <FormField label="كلمة المرور*" htmlFor="password">
-                        <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                            <div className="mt-2 flex items-start gap-2 text-xs text-yellow-700 bg-yellow-50 p-2 rounded-md">
+                
+                <FormField label={isEditMode ? "تغيير كلمة المرور (اختياري)" : "كلمة المرور*"} htmlFor="password">
+                    <Input 
+                        id="password" 
+                        type="password" 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        required={!isEditMode} 
+                        placeholder={isEditMode ? "اتركه فارغاً للإبقاء على الكلمة الحالية" : ""}
+                    />
+                    {!isEditMode && (
+                        <div className="mt-2 flex items-start gap-2 text-xs text-yellow-700 bg-yellow-50 p-2 rounded-md">
                             <AlertCircle size={20} className="flex-shrink-0" />
                             <span>سيتم إرسال بريد إلكتروني للمستخدم الجديد لتأكيد حسابه.</span>
                         </div>
-                    </FormField>
-                )}
+                    )}
+                    {isEditMode && (
+                         <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                            <Lock size={14} />
+                            <span>يمكنك تعيين كلمة مرور جديدة للمستخدم مباشرة من هنا.</span>
+                        </div>
+                    )}
+                </FormField>
+                
             </form>
         </Modal>
     );

@@ -1,20 +1,20 @@
+
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useInstructorFinancials } from '../../../hooks/queries/admin/useFinancialsQueries';
 import PageLoader from '../../../components/ui/PageLoader';
 import ErrorState from '../../../components/ui/ErrorState';
-import { DollarSign, History } from 'lucide-react';
+import { DollarSign, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/Table';
 import { Button } from '../../../components/ui/Button';
 import PayoutModal from '../../../components/admin/PayoutModal';
-import PayoutDetailsModal from '../../../components/admin/PayoutDetailsModal';
 import SortableTableHead from '../../../components/admin/ui/SortableTableHead';
 
 const InstructorPayoutsPage: React.FC = () => {
     const { data: instructorFinancials = [], isLoading, error, refetch } = useInstructorFinancials();
     const [payoutModalOpen, setPayoutModalOpen] = useState(false);
-    const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-    const [selectedInstructor, setSelectedInstructor] = useState<{ id: number; name: string; amount: number; payouts: any[] } | null>(null);
+    const [selectedInstructor, setSelectedInstructor] = useState<any | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'outstandingBalance', direction: 'desc' });
     
     const sortedInstructorFinancials = useMemo(() => {
@@ -40,23 +40,17 @@ const InstructorPayoutsPage: React.FC = () => {
     };
 
     const handleOpenPayoutModal = (instructor: any) => {
-        setSelectedInstructor({ id: instructor.id, name: instructor.name, amount: instructor.outstandingBalance, payouts: instructor.payouts });
+        setSelectedInstructor(instructor);
         setPayoutModalOpen(true);
     };
-    
-     const handleOpenDetailsModal = (instructor: any) => {
-        setSelectedInstructor({ id: instructor.id, name: instructor.name, amount: instructor.outstandingBalance, payouts: instructor.payouts });
-        setDetailsModalOpen(true);
-    };
-
 
     if (isLoading) return <PageLoader />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
         <>
-            {selectedInstructor && <PayoutModal isOpen={payoutModalOpen} onClose={() => setPayoutModalOpen(false)} instructor={selectedInstructor} amount={selectedInstructor.amount} />}
-            {selectedInstructor && <PayoutDetailsModal isOpen={detailsModalOpen} onClose={() => setDetailsModalOpen(false)} instructorName={selectedInstructor.name} payouts={selectedInstructor.payouts} />}
+            {selectedInstructor && <PayoutModal isOpen={payoutModalOpen} onClose={() => setPayoutModalOpen(false)} instructor={selectedInstructor} amount={selectedInstructor.outstandingBalance} />}
+            
             <Card>
                 <CardHeader>
                     <CardTitle>مستحقات المدربين</CardTitle>
@@ -84,8 +78,8 @@ const InstructorPayoutsPage: React.FC = () => {
                                             <Button size="sm" onClick={() => handleOpenPayoutModal(inst)} icon={<DollarSign size={16} />} disabled={inst.outstandingBalance <= 0}>
                                                 تسجيل دفعة
                                             </Button>
-                                            <Button size="sm" variant="outline" onClick={() => handleOpenDetailsModal(inst)} icon={<History size={16} />}>
-                                                السجل
+                                            <Button as={Link} to={`/admin/financials/instructor-payouts/${inst.id}`} size="sm" variant="outline" icon={<FileText size={16} />}>
+                                                تفاصيل الأداء
                                             </Button>
                                         </TableCell>
                                     </TableRow>

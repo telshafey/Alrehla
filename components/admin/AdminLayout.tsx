@@ -1,3 +1,4 @@
+
 import React, { useState, Suspense, lazy } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -20,12 +21,15 @@ const AdminInstructorDetailPage = lazy(() => import('../../pages/admin/AdminInst
 const AdminSupportPage = lazy(() => import('../../pages/admin/AdminSupportPage'));
 const AdminJoinRequestsPage = lazy(() => import('../../pages/admin/AdminJoinRequestsPage'));
 const AdminBlogPage = lazy(() => import('../../pages/admin/AdminBlogPage'));
+const AdminBlogPostEditorPage = lazy(() => import('../../pages/admin/AdminBlogPostEditorPage'));
 const AdminContentManagementPage = lazy(() => import('../../pages/admin/AdminContentManagementPage'));
 const AdminShippingPage = lazy(() => import('../../pages/admin/AdminShippingPage'));
 const AdminSubscriptionsPage = lazy(() => import('../../pages/admin/AdminSubscriptionsPage'));
 const AdminSubscriptionBoxPage = lazy(() => import('../../pages/admin/AdminSubscriptionBoxPage'));
 const AdminCreativeWritingPackagesPage = lazy(() => import('../../pages/admin/AdminCreativeWritingPackagesPage'));
+const AdminPackageDetailPage = lazy(() => import('../../pages/admin/AdminPackageDetailPage'));
 const AdminCreativeWritingServicesPage = lazy(() => import('../../pages/admin/AdminCreativeWritingServicesPage'));
+const AdminServiceDetailPage = lazy(() => import('../../pages/admin/AdminServiceDetailPage'));
 const AdminServiceOrdersPage = lazy(() => import('../../pages/admin/AdminServiceOrdersPage'));
 const AdminScheduledSessionsPage = lazy(() => import('../../pages/admin/AdminScheduledSessionsPage'));
 const AdminIntegrationsPage = lazy(() => import('../../pages/admin/AdminIntegrationsPage'));
@@ -39,6 +43,7 @@ const AdminAuditLogPage = lazy(() => import('../../pages/admin/AdminAuditLogPage
 const AdminFinancialsLayout = lazy(() => import('../../pages/admin/financials/AdminFinancialsLayout'));
 const FinancialOverviewPage = lazy(() => import('../../pages/admin/financials/FinancialOverviewPage'));
 const InstructorPayoutsPage = lazy(() => import('../../pages/admin/financials/InstructorPayoutsPage'));
+const InstructorFinancialDetailsPage = lazy(() => import('../../pages/admin/financials/InstructorFinancialDetailsPage'));
 const RevenueStreamsPage = lazy(() => import('../../pages/admin/financials/RevenueStreamsPage'));
 const TransactionsLogPage = lazy(() => import('../../pages/admin/financials/TransactionsLogPage'));
 
@@ -96,12 +101,15 @@ const AdminLayout: React.FC = () => {
                                      <Route path="support" element={<PermissionBasedRoute permission="canManageSupportTickets"><AdminSupportPage /></PermissionBasedRoute>} />
                                      <Route path="join-requests" element={<PermissionBasedRoute permission="canManageJoinRequests"><AdminJoinRequestsPage /></PermissionBasedRoute>} />
                                      <Route path="blog" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPage /></PermissionBasedRoute>} />
+                                     <Route path="blog/:id" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPostEditorPage /></PermissionBasedRoute>} />
                                      <Route path="content-management" element={<PermissionBasedRoute permission="canManageSiteContent"><AdminContentManagementPage /></PermissionBasedRoute>} />
                                      <Route path="shipping" element={<PermissionBasedRoute permission="canManageSettings"><AdminShippingPage /></PermissionBasedRoute>} />
                                      <Route path="subscriptions" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminSubscriptionsPage /></PermissionBasedRoute>} />
                                      <Route path="subscription-box" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminSubscriptionBoxPage /></PermissionBasedRoute>} />
                                      <Route path="creative-writing-packages" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminCreativeWritingPackagesPage /></PermissionBasedRoute>} />
+                                     <Route path="creative-writing-packages/:id" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminPackageDetailPage /></PermissionBasedRoute>} />
                                      <Route path="creative-writing-services" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminCreativeWritingServicesPage /></PermissionBasedRoute>} />
+                                     <Route path="creative-writing-services/:id" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminServiceDetailPage /></PermissionBasedRoute>} />
                                      <Route path="service-orders" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminServiceOrdersPage /></PermissionBasedRoute>} />
                                      <Route path="scheduled-sessions" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminScheduledSessionsPage /></PermissionBasedRoute>} />
                                      <Route path="introductory-sessions" element={<PermissionBasedRoute permission="canManageInstructors"><AdminIntroductorySessionsPage/></PermissionBasedRoute>} />
@@ -113,6 +121,7 @@ const AdminLayout: React.FC = () => {
                                      <Route path="financials" element={<PermissionBasedRoute permission="canManageFinancials"><AdminFinancialsLayout /></PermissionBasedRoute>}>
                                         <Route index element={<FinancialOverviewPage />} />
                                         <Route path="instructor-payouts" element={<InstructorPayoutsPage />} />
+                                        <Route path="instructor-payouts/:id" element={<InstructorFinancialDetailsPage />} />
                                         <Route path="revenue-streams" element={<RevenueStreamsPage />} />
                                         <Route path="transactions-log" element={<TransactionsLogPage />} />
                                      </Route>

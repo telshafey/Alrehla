@@ -1,6 +1,8 @@
+
 import React, { useState, useMemo } from 'react';
-import { BarChart, Users, Printer, FileDown, ShoppingBag, DollarSign } from 'lucide-react';
+import { BarChart, Users, Printer, FileDown, ShoppingBag, DollarSign, GraduationCap, CalendarCheck } from 'lucide-react';
 import { useAdminReportDataQuery } from '../../hooks/queries/admin/useAdminReportDataQuery';
+import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { roleNames } from '../../lib/roles';
 import PageLoader from '../../components/ui/PageLoader';
 import ErrorState from '../../components/ui/ErrorState';
@@ -13,7 +15,7 @@ import DataTable from '../../components/admin/ui/DataTable';
 import StatCard from '../../components/admin/StatCard';
 import FormField from '../../components/ui/FormField';
 
-type ReportType = 'orders' | 'users';
+type ReportType = 'orders' | 'users' | 'instructors';
 
 const orderStatuses = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "تم الشحن", "تم التسليم", "مكتمل", "ملغي"];
 
@@ -21,10 +23,11 @@ const userRoles = Object.keys(roleNames);
 
 const ReportsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<ReportType>('orders');
-    const [filters, setFilters] = useState({ startDate: '', endDate: '', status: 'all' });
+    const [filters, setFilters] = useState({ startDate: '', endDate: '', status: 'all', instructorId: 'all' });
     const [reportGenerated, setReportGenerated] = useState(false);
 
     const { data, isLoading, error, refetch } = useAdminReportDataQuery(activeTab, filters, reportGenerated);
+    const { data: instructorsList = [] } = useAdminInstructors();
 
     const handleGenerateReport = () => {
         setReportGenerated(true);
@@ -38,7 +41,7 @@ const ReportsPage: React.FC = () => {
     
      const handleTabChange = (tab: ReportType) => {
         setActiveTab(tab);
-        setFilters({ startDate: '', endDate: '', status: 'all' });
+        setFilters({ startDate: '', endDate: '', status: 'all', instructorId: 'all' });
         setReportGenerated(false);
     };
 
@@ -51,18 +54,29 @@ const ReportsPage: React.FC = () => {
                 revenue: totalRevenue,
             };
         }
+        if (activeTab === 'instructors') {
+            const totalSessions = data.reduce((sum, inst) => sum + inst.completedSessions, 0);
+            const totalStudents = data.reduce((sum, inst) => sum + inst.totalStudents, 0);
+            return { count: data.length, totalSessions, totalStudents };
+        }
         return { count: data.length };
     }, [data, activeTab]);
 
     const exportToCSV = () => {
         if (!data || data.length === 0) return;
-        const headers = activeTab === 'orders' ? ['ID', 'العميل', 'الطفل', 'الملخص', 'الإجمالي', 'الحالة', 'التاريخ'] : ['ID', 'الاسم', 'البريد الإلكتروني', 'الدور', 'تاريخ التسجيل'];
-        const rows = data.map(item => {
-            if (activeTab === 'orders') {
-                return [item.id, item.users?.name, item.child_profiles?.name, item.item_summary, item.total, item.status, item.order_date];
-            }
-            return [item.id, item.name, item.email, roleNames[item.role as keyof typeof roleNames], item.created_at];
-        });
+        let headers: string[] = [];
+        let rows: (string | number)[][] = [];
+
+        if (activeTab === 'orders') {
+            headers = ['ID', 'العميل', 'الطفل', 'الملخص', 'الإجمالي', 'الحالة', 'التاريخ'];
+            rows = data.map(item => [item.id, item.users?.name, item.child_profiles?.name, item.item_summary, item.total, item.status, item.order_date]);
+        } else if (activeTab === 'users') {
+            headers = ['ID', 'الاسم', 'البريد الإلكتروني', 'الدور', 'تاريخ التسجيل'];
+            rows = data.map(item => [item.id, item.name, item.email, roleNames[item.role as keyof typeof roleNames], item.created_at]);
+        } else if (activeTab === 'instructors') {
+            headers = ['المعرف', 'الاسم', 'التخصص', 'الطلاب', 'الحجوزات', 'جلسات مكتملة', 'جلسات تعريفية'];
+            rows = data.map(item => [item.id, item.name, item.specialty, item.totalStudents, item.totalBookings, item.completedSessions, item.introSessions]);
+        }
 
         let csvContent = "data:text/csv;charset=utf-8," 
             + headers.join(",") + "\n" 
@@ -84,16 +98,16 @@ const ReportsPage: React.FC = () => {
             printWindow.document.write(`
                 <html>
                 <head>
-                    <title>تقرير ${activeTab === 'orders' ? 'الطلبات' : 'المستخدمين'}</title>
+                    <title>تقرير ${activeTab === 'orders' ? 'الطلبات' : activeTab === 'instructors' ? 'المدربين' : 'المستخدمين'}</title>
                     <style>
                         body { font-family: sans-serif; direction: rtl; }
                         table { width: 100%; border-collapse: collapse; }
-                        th, td { border: 1px solid #ddd; padding: 8px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
                         th { background-color: #f2f2f2; }
                     </style>
                 </head>
                 <body>
-                    <h1>تقرير ${activeTab === 'orders' ? 'الطلبات' : 'المستخدمين'}</h1>
+                    <h1>تقرير ${activeTab === 'orders' ? 'الطلبات' : activeTab === 'instructors' ? 'المدربين' : 'المستخدمين'}</h1>
                     <p>الفترة من: ${filters.startDate || 'البداية'} إلى: ${filters.endDate || 'النهاية'}</p>
                     ${tableHtml}
                 </body>
@@ -117,14 +131,25 @@ const ReportsPage: React.FC = () => {
                     onStartDateChange={(date) => handleFilterChange('startDate', date)}
                     onEndDateChange={(date) => handleFilterChange('endDate', date)}
                 />
-                <FormField label="الحالة" htmlFor="status-filter">
-                     <Select id="status-filter" value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)}>
-                        <option value="all">الكل</option>
-                        {statusOptions.map((status, index) => (
-                            <option key={status} value={status}>{statusLabels[index]}</option>
-                        ))}
-                    </Select>
-                </FormField>
+                {activeTab !== 'instructors' ? (
+                    <FormField label="الحالة" htmlFor="status-filter">
+                         <Select id="status-filter" value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)}>
+                            <option value="all">الكل</option>
+                            {statusOptions.map((status, index) => (
+                                <option key={status} value={status}>{statusLabels[index]}</option>
+                            ))}
+                        </Select>
+                    </FormField>
+                ) : (
+                    <FormField label="المدرب" htmlFor="instructor-filter">
+                        <Select id="instructor-filter" value={filters.instructorId} onChange={(e) => handleFilterChange('instructorId', e.target.value)}>
+                            <option value="all">كل المدربين</option>
+                            {instructorsList.map(inst => (
+                                <option key={inst.id} value={inst.id.toString()}>{inst.name}</option>
+                            ))}
+                        </Select>
+                    </FormField>
+                )}
                 <Button onClick={handleGenerateReport} loading={isLoading}>
                     إنشاء التقرير
                 </Button>
@@ -140,6 +165,7 @@ const ReportsPage: React.FC = () => {
                 <TabsList>
                     <TabsTrigger value="orders"><ShoppingBag className="ml-2" /> تقرير الطلبات</TabsTrigger>
                     <TabsTrigger value="users"><Users className="ml-2" /> تقرير المستخدمين</TabsTrigger>
+                    <TabsTrigger value="instructors"><GraduationCap className="ml-2" /> تقرير المدربين</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="orders">
@@ -151,6 +177,12 @@ const ReportsPage: React.FC = () => {
                 <TabsContent value="users">
                      <Card>
                         <CardHeader><CardTitle>فلترة تقرير المستخدمين</CardTitle></CardHeader>
+                        <CardContent>{renderFilters()}</CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="instructors">
+                     <Card>
+                        <CardHeader><CardTitle>فلترة تقرير المدربين</CardTitle></CardHeader>
                         <CardContent>{renderFilters()}</CardContent>
                     </Card>
                 </TabsContent>
@@ -172,31 +204,55 @@ const ReportsPage: React.FC = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                               <StatCard title={`إجمالي ${activeTab === 'orders' ? 'الطلبات' : 'المستخدمين'}`} value={reportSummary?.count ?? 0} icon={activeTab === 'orders' ? <ShoppingBag /> : <Users />} />
-                               {activeTab === 'orders' && reportSummary?.revenue !== undefined && (
-                                   <StatCard title="إجمالي الإيرادات" value={`${reportSummary.revenue.toLocaleString()} ج.م`} icon={<DollarSign />} />
+                               {activeTab === 'instructors' ? (
+                                   <>
+                                       <StatCard title="إجمالي المدربين" value={reportSummary?.count ?? 0} icon={<Users />} />
+                                       <StatCard title="جلسات مكتملة" value={reportSummary?.totalSessions ?? 0} icon={<CalendarCheck className="text-green-500"/>} />
+                                       <StatCard title="إجمالي الطلاب المسجلين" value={reportSummary?.totalStudents ?? 0} icon={<GraduationCap className="text-blue-500"/>} />
+                                   </>
+                               ) : (
+                                   <>
+                                       <StatCard title={`إجمالي ${activeTab === 'orders' ? 'الطلبات' : 'المستخدمين'}`} value={reportSummary?.count ?? 0} icon={activeTab === 'orders' ? <ShoppingBag /> : <Users />} />
+                                       {activeTab === 'orders' && reportSummary?.revenue !== undefined && (
+                                           <StatCard title="إجمالي الإيرادات" value={`${reportSummary.revenue.toLocaleString()} ج.م`} icon={<DollarSign />} />
+                                       )}
+                                   </>
                                )}
                             </div>
                             <div id="report-table">
-                                <DataTable 
-                                    data={data}
-                                    columns={
-                                        activeTab === 'orders'
-                                        ? [
-                                            { accessorKey: 'users.name', header: 'العميل' },
-                                            { accessorKey: 'child_profiles.name', header: 'الطفل' },
-                                            { accessorKey: 'item_summary', header: 'الملخص' },
-                                            { accessorKey: 'total', header: 'الإجمالي' },
-                                            { accessorKey: 'status', header: 'الحالة' },
-                                          ]
-                                        : [
-                                            { accessorKey: 'name', header: 'الاسم' },
-                                            { accessorKey: 'email', header: 'البريد الإلكتروني' },
-                                            { accessorKey: 'role', header: 'الدور', cell: ({ value }) => roleNames[value as keyof typeof roleNames] || value },
-                                            { accessorKey: 'created_at', header: 'تاريخ التسجيل', cell: ({value}) => new Date(value).toLocaleDateString('ar-EG') },
-                                          ]
-                                    }
-                                />
+                                {activeTab === 'instructors' ? (
+                                    <DataTable 
+                                        data={data}
+                                        columns={[
+                                            { accessorKey: 'name', header: 'المدرب' },
+                                            { accessorKey: 'totalStudents', header: 'الطلاب المسجلين' },
+                                            { accessorKey: 'totalBookings', header: 'إجمالي الحجوزات' },
+                                            { accessorKey: 'completedSessions', header: 'جلسات مكتملة' },
+                                            { accessorKey: 'introSessions', header: 'جلسات مجانية (تعريفية)' },
+                                            { accessorKey: 'upcomingSessions', header: 'جلسات محجوزة (قادمة)' },
+                                        ]}
+                                    />
+                                ) : (
+                                    <DataTable 
+                                        data={data}
+                                        columns={
+                                            activeTab === 'orders'
+                                            ? [
+                                                { accessorKey: 'users.name', header: 'العميل' },
+                                                { accessorKey: 'child_profiles.name', header: 'الطفل' },
+                                                { accessorKey: 'item_summary', header: 'الملخص' },
+                                                { accessorKey: 'total', header: 'الإجمالي' },
+                                                { accessorKey: 'status', header: 'الحالة' },
+                                              ]
+                                            : [
+                                                { accessorKey: 'name', header: 'الاسم' },
+                                                { accessorKey: 'email', header: 'البريد الإلكتروني' },
+                                                { accessorKey: 'role', header: 'الدور', cell: ({ value }) => roleNames[value as keyof typeof roleNames] || value },
+                                                { accessorKey: 'created_at', header: 'تاريخ التسجيل', cell: ({value}) => new Date(value).toLocaleDateString('ar-EG') },
+                                              ]
+                                        }
+                                    />
+                                )}
                             </div>
                         </CardContent>
                     </Card>

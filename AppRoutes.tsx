@@ -1,3 +1,4 @@
+
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
@@ -33,6 +34,8 @@ const InstructorProfilePage = lazy(() => import('./pages/InstructorProfilePage')
 const CreativeWritingBookingPage = lazy(() => import('./pages/CreativeWritingBookingPage'));
 const CreativeWritingPackagesPage = lazy(() => import('./pages/CreativeWritingPackagesPage'));
 const CreativeWritingServicesPage = lazy(() => import('./pages/CreativeWritingServicesPage'));
+const ServiceProvidersPage = lazy(() => import('./pages/creative-writing/ServiceProvidersPage'));
+const ServiceOrderPage = lazy(() => import('./pages/creative-writing/ServiceOrderPage'));
 const TrainingJourneyPage = lazy(() => import('./pages/TrainingJourneyPage'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
 
@@ -85,7 +88,12 @@ const AppRoutes: React.FC = () => {
                 <Route path="/creative-writing/curriculum" element={<CreativeWritingCurriculumPage />} />
                 <Route path="/creative-writing/instructors" element={<CreativeWritingInstructorsPage />} />
                 <Route path="/creative-writing/packages" element={<CreativeWritingPackagesPage />} />
+                
+                {/* Services Flow */}
                 <Route path="/creative-writing/services" element={<CreativeWritingServicesPage />} />
+                <Route path="/creative-writing/services/:serviceId/providers" element={<ServiceProvidersPage />} />
+                <Route path="/creative-writing/services/:serviceId/order" element={<ServiceOrderPage />} />
+                
                 <Route path="/instructor/:slug" element={<InstructorProfilePage />} />
                 <Route path="/creative-writing/booking" element={<ProtectedRoute><CreativeWritingBookingPage /></ProtectedRoute>} />
 

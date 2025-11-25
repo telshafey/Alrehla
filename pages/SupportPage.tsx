@@ -1,51 +1,60 @@
-import React, { useState } from 'react';
-import { Mail, HelpCircle, MessageCircle } from 'lucide-react';
+
+import React, { useState, useMemo } from 'react';
+import { Mail, HelpCircle, MessageCircle, Search, Package, BookOpen, Truck, RefreshCw } from 'lucide-react';
 import SupportForm from '../components/shared/SupportForm';
 import FAQSection from '../components/shared/FAQSection';
 import { useCommunicationMutations } from '../hooks/mutations/useCommunicationMutations';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
-import { useToast } from '../contexts/ToastContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/Button';
-
-const faqs = {
-  enhaLak: [
-    { q: 'كيف تتم عملية تخصيص القصة؟', a: 'ببساطة! عند طلب المنتج، ستقوم بملء نموذج ببيانات طفلك مثل اسمه وعمره واهتماماته، بالإضافة إلى رفع صورته. يقوم فريقنا من الكتّاب المتخصصين باستخدام هذه المعلومات لصياغة قصة فريدة يكون فيها طفلك هو البطل.' },
-    { q: 'كم من الوقت يستغرق تجهيز الطلب؟', a: 'عادةً ما يستغرق تجهيز الطلبات المخصصة من 5 إلى 7 أيام عمل قبل الشحن. نحن نولي كل قصة اهتماماً خاصاً لضمان أعلى جودة.' },
-    { q: 'ما هي الأعمار المناسبة للقصص؟', a: 'نستطيع تكييف القصص لتناسب اي اعمار' },
-    { q: 'هل يمكنني معاينة القصة قبل الطباعة؟', a: 'حاليًا، لا نوفر خيار المعاينة المسبقة لضمان سرعة عملية الإنتاج. لكن كن مطمئنًا، فريقنا مبدع ومحترف في صياغة قصص تلامس قلوب الأطفال بناءً على التفاصيل التي تقدمها.' },
-  ],
-  creativeWriting: [
-    { q: 'كيف أختار الباقة المناسبة لطفلي؟', a: 'لقد صممنا صفحة مخصصة لمقارنة الباقات لمساعدتك على اتخاذ القرار. يمكنك زيارة صفحة "الباقات" في قسم "بداية الرحلة" لرؤية جدول مقارنة تفصيلي يوضح مميزات وسعر كل باقة، مما يسهل عليك اختيار الأنسب لمستوى طفلك وأهدافك.' },
-    { q: 'كيف تتم الجلسات التعليمية؟', a: 'تتم الجلسات بشكل فردي (واحد لواحد) بين المدرب والطالب عبر الإنترنت من خلال منصة فيديو آمنة. تكون الجلسة تفاعلية وتركز بالكامل على احتياجات طفلك الإبداعية.' },
-    { q: 'هل يمكنني اختيار مدرب معين؟', a: 'نعم! عند حجز الباقة، يمكنك استعراض ملفات المدربين المتاحين واختيار المدرب الذي تشعر أنه الأنسب لطفلك، بناءً على مواعيده المتاحة.' },
-    { q: 'ما هي المنصة المستخدمة للجلسات؟', a: 'نستخدم منصة Jitsi Meet الآمنة والمشفرة، والتي تعمل مباشرة من المتصفح دون الحاجة لتثبيت أي برامج إضافية، مما يضمن تجربة سهلة وآمنة.' },
-    { q: 'هل يحصل الطالب على شهادة؟', a: 'بالتأكيد. عند إتمام باقة الجلسات، يحصل الطالب على شهادة إتمام للبرنامج، بالإضافة إلى محفظة أعمال رقمية تضم إبداعاته التي أنجزها خلال الرحلة.' },
-  ],
-  subscriptionBox: [
-      { q: 'كيف يعمل الاشتراك في صندوق الرحلة الشهري؟', a: 'بمجرد اشتراكك، سيصلك صندوق مميز إلى باب منزلك كل شهر. يحتوي كل صندوق على قصة مخصصة جديدة وأنشطة وهدايا إضافية مصممة بعناية لتناسب عمر طفلك واهتماماته.' },
-      { q: 'هل يمكنني إيقاف اشتراكي مؤقتًا؟', a: 'يمكن الايقاف مؤقتا لكن لا يمكن الالغاء' },
-      { q: 'كيف يمكنني تحديث عنوان الشحن الخاص بالاشتراك؟', a: 'يمكنك تحديث عنوان الشحن بسهولة من خلال إعدادات حسابك في قسم "الاشتراكات".' },
-  ],
-  general: [
-    { q: 'ما هي طرق الدفع المتاحة؟ وهل هي آمنة؟', a: 'نحن نقبل الدفع عبر المحافظ الإلكترونية وInstapay. تتم جميع عمليات الدفع عبر بوابات آمنة وموثوقة لضمان حماية بياناتك المالية.' },
-    { q: 'هل تقومون بالشحن خارج مصر؟', a: 'حاليًا، خدمات الشحن لدينا تغطي جميع محافظات جمهورية مصر العربية. نعمل على التوسع لتغطية المزيد من الدول قريبًا.' },
-    { q: 'كم تبلغ تكلفة الشحن؟', a: 'تختلف تكلفة الشحن حسب المحافظة. يمكنك رؤية التكلفة الدقيقة عند إدخال عنوانك في صفحة إتمام الطلب.' },
-    { q: 'كيف يمكنني تتبع طلبي؟', a: 'بمجرد شحن طلبك، ستتلقى تحديثًا بحالة الطلب. يمكنك أيضًا متابعة حالة جميع طلباتك من خلال صفحة "الطلبات" في حسابك.' },
-  ],
-};
+import { Input } from '../components/ui/Input';
 
 const SupportPage: React.FC = () => {
     const { createSupportTicket } = useCommunicationMutations();
     const { data: publicData } = usePublicData();
-    const { addToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
     
     const comms = publicData?.communicationSettings;
+    const content = publicData?.siteContent?.supportPage;
+    const faqs = content?.faqs || [];
+
     const whatsappUrl = comms?.whatsapp_number 
         ? `https://wa.me/${comms.whatsapp_number}?text=${encodeURIComponent(comms.whatsapp_default_message || "مرحباً")}`
         : '#';
 
+    // Filter FAQs based on search
+    const filteredFaqs = useMemo(() => {
+        if (!searchTerm) return faqs;
+        const lowerTerm = searchTerm.toLowerCase();
+        return faqs.filter(item => 
+            item.question.toLowerCase().includes(lowerTerm) || 
+            item.answer.toLowerCase().includes(lowerTerm)
+        );
+    }, [faqs, searchTerm]);
+
+    // Group FAQs by category
+    const groupedFaqs = useMemo(() => {
+        return filteredFaqs.reduce((acc, item) => {
+            const category = item.category || 'عام';
+            if (!acc[category]) {
+                acc[category] = [];
+            }
+            acc[category].push({ q: item.question, a: item.answer });
+            return acc;
+        }, {} as Record<string, { q: string; a: string }[]>);
+    }, [filteredFaqs]);
+
+    // Preferred order for categories
+    const preferredOrder = ['منتجات "إنها لك"', 'برنامج "بداية الرحلة"', 'صندوق الرحلة الشهري', 'أسئلة عامة والشحن'];
+    const sortedCategories = Object.keys(groupedFaqs).sort((a, b) => {
+        const indexA = preferredOrder.indexOf(a);
+        const indexB = preferredOrder.indexOf(b);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+    });
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -69,56 +78,89 @@ const SupportPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-muted/50 py-16 sm:py-20 animate-fadeIn">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-16">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">الدعم والمساعدة</h1>
-                    <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-                        نحن هنا لمساعدتك. تصفح الأسئلة الشائعة أو تواصل معنا مباشرة.
+        <div className="bg-muted/30 animate-fadeIn">
+            {/* Hero Section */}
+            <div className="bg-primary py-16 text-primary-foreground text-center">
+                <div className="container mx-auto px-4">
+                    <h1 className="text-4xl font-extrabold mb-4">{content?.heroTitle || 'كيف يمكننا مساعدتك؟'}</h1>
+                    <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
+                        {content?.heroSubtitle || 'تصفح الأسئلة الشائعة أو تواصل مع فريق الدعم مباشرة للحصول على المساعدة.'}
                     </p>
+                    <div className="max-w-xl mx-auto relative">
+                        <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <Input 
+                            type="text" 
+                            placeholder="ابحث في الأسئلة الشائعة..." 
+                            className="pr-12 h-12 rounded-full shadow-lg text-foreground"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
+            </div>
 
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                    {/* FAQs */}
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
-                          <CardTitle className="text-2xl flex items-center gap-3"><HelpCircle /> الأسئلة الشائعة</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <FAQSection category='منتجات "إنها لك"' items={faqs.enhaLak} />
-                          <FAQSection category='برنامج "بداية الرحلة"' items={faqs.creativeWriting} />
-                          <FAQSection category='صندوق الرحلة الشهري' items={faqs.subscriptionBox} />
-                          <FAQSection category="أسئلة عامة" items={faqs.general} />
-                        </CardContent>
-                    </Card>
+                    {/* FAQs Column */}
+                    <div className="lg:col-span-2 space-y-8">
+                        <h2 className="text-2xl font-bold flex items-center gap-2 text-foreground">
+                            <HelpCircle className="text-primary" /> الأسئلة الشائعة
+                        </h2>
+                        
+                        {sortedCategories.length > 0 ? (
+                            sortedCategories.map(category => (
+                                <Card key={category} className="overflow-hidden border-t-4 border-t-primary/10">
+                                    <CardHeader className="bg-muted/50 pb-4">
+                                        <CardTitle className="text-xl flex items-center gap-2">
+                                            {category.includes('إنها لك') && <Package size={20} className="text-pink-500"/>}
+                                            {category.includes('بداية الرحلة') && <BookOpen size={20} className="text-blue-500"/>}
+                                            {category.includes('الشحن') && <Truck size={20} className="text-green-500"/>}
+                                            {category}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="pt-4">
+                                        <FAQSection category="" items={groupedFaqs[category]} />
+                                    </CardContent>
+                                </Card>
+                            ))
+                        ) : (
+                            <div className="text-center py-12 bg-white rounded-xl border border-dashed">
+                                <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-semibold">لا توجد نتائج</h3>
+                                <p className="text-muted-foreground">لم نتمكن من العثور على أسئلة تطابق بحثك. حاول استخدام كلمات أخرى.</p>
+                                <Button variant="link" onClick={() => setSearchTerm('')} className="mt-2">عرض كل الأسئلة</Button>
+                            </div>
+                        )}
+                    </div>
                     
-                    {/* Contact Forms */}
-                    <div className="lg:col-span-1 space-y-8">
-                         <Card className="sticky top-24">
+                    {/* Contact Forms Column */}
+                    <div className="lg:col-span-1 space-y-8 sticky top-24 h-fit">
+                         <Card className="border-green-100 bg-green-50/50">
                             <CardHeader>
-                              <CardTitle className="text-xl flex items-center gap-3"><MessageCircle className="text-green-500"/> للاستفسارات العاجلة</CardTitle>
-                              <CardDescription>تواصل معنا عبر واتساب لرد أسرع.</CardDescription>
+                              <CardTitle className="text-lg flex items-center gap-2 text-green-800"><MessageCircle /> محادثة فورية</CardTitle>
+                              <CardDescription>فريق الدعم متاح عبر واتساب يومياً من 9 ص إلى 9 م.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <Button as="a" href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-full bg-green-500 hover:bg-green-600">
-                                    التواصل عبر واتساب
+                                <Button as="a" href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-full bg-green-600 hover:bg-green-700 text-white shadow-md transition-transform hover:-translate-y-1">
+                                    تواصل عبر واتساب
                                 </Button>
                             </CardContent>
                         </Card>
+
                         <Card>
                             <CardHeader>
-                              <CardTitle className="text-xl flex items-center gap-3"><Mail /> أو أرسل لنا رسالة</CardTitle>
+                              <CardTitle className="text-lg flex items-center gap-2"><Mail /> أرسل تذكرة دعم</CardTitle>
+                              <CardDescription>سنقوم بالرد عليك عبر البريد الإلكتروني خلال 24 ساعة.</CardDescription>
                             </CardHeader>
                             <CardContent>
                               <SupportForm 
                                   onSubmit={handleSubmit} 
                                   isSubmitting={isSubmitting} 
-                                  subjectOptions={["استفسار عام", "مشكلة في الطلب", "اقتراح", "مشكلة تقنية"]}
+                                  subjectOptions={["استفسار عام", "مشكلة في الطلب", "اقتراح", "مشكلة تقنية", "شكوى"]}
                               />
                             </CardContent>
                         </Card>
                     </div>
-
                 </div>
             </div>
         </div>
