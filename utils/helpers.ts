@@ -16,6 +16,11 @@ export const calculateAge = (birthDateString: string | null | undefined): number
     }
 };
 
+export const formatCurrency = (amount: number | null | undefined): string => {
+    if (amount === null || amount === undefined) return '-';
+    return `${amount.toLocaleString('en-US')} ج.م`;
+};
+
 export const getStatusColor = (status: string | null): string => {
     if (!status) return 'bg-gray-100 text-gray-800';
     switch (status) {

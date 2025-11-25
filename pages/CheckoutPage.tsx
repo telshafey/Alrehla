@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useOrderMutations } from '../hooks/mutations/useOrderMutations';
@@ -6,10 +7,12 @@ import { useSubscriptionMutations } from '../hooks/mutations/useSubscriptionMuta
 import { useToast } from '../contexts/ToastContext';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Upload, ShoppingCart, CreditCard, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
+import { ArrowLeft, Upload, ShoppingCart, CreditCard, Link as LinkIcon, AlertCircle, Copy, Check } from 'lucide-react';
 import ReceiptUpload from '../components/shared/ReceiptUpload';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import Image from '../components/ui/Image';
 
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
@@ -19,11 +22,16 @@ const CheckoutPage: React.FC = () => {
     const { createBooking } = useBookingMutations();
     const { createSubscription } = useSubscriptionMutations();
     const { cart, clearCart, getCartTotal } = useCart();
+    const { data: publicData } = usePublicData();
     
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     const cartTotal = useMemo(() => getCartTotal(), [cart, getCartTotal]);
+    const instapayUrl = publicData?.communicationSettings?.instapay_url || '#';
+    const instapayQrUrl = publicData?.communicationSettings?.instapay_qr_url;
+    const instapayNumber = publicData?.communicationSettings?.instapay_number;
 
     if (cart.length === 0) {
         return (
@@ -82,6 +90,15 @@ const CheckoutPage: React.FC = () => {
         }
     };
 
+    const handleCopyNumber = () => {
+      if (instapayNumber) {
+          navigator.clipboard.writeText(instapayNumber);
+          setCopied(true);
+          addToast('تم نسخ الرقم بنجاح', 'success');
+          setTimeout(() => setCopied(false), 2000);
+      }
+    };
+
     return (
         <div className="bg-muted/50 py-12 sm:py-16 animate-fadeIn">
             <div className="container mx-auto px-4">
@@ -113,10 +130,31 @@ const CheckoutPage: React.FC = () => {
                             
                             <div className="space-y-6">
                                 <div className="p-6 rounded-lg border bg-background space-y-4">
-                                    <h2 className="text-xl font-bold text-foreground">1. الدفع عبر Instapay / المحافظ الإلكترونية</h2>
-                                    <a href={'https://ipn.eg/S/gm2000/instapay/0dqErO'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-full hover:bg-primary/90 transition-colors">
+                                    <h2 className="text-xl font-bold text-foreground mb-4">1. الدفع عبر Instapay</h2>
+                                    
+                                     {instapayQrUrl && (
+                                        <div className="mb-4 flex justify-center">
+                                            <div className="w-40 h-40 bg-white p-2 rounded-lg shadow-sm border">
+                                                <Image src={instapayQrUrl} alt="Instapay QR Code" className="w-full h-full object-contain" />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {instapayNumber && (
+                                        <div className="flex items-center justify-between bg-muted p-3 rounded-md border">
+                                            <span className="text-sm text-gray-500">رقم التحويل:</span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-mono font-bold text-lg dir-ltr">{instapayNumber}</span>
+                                                <Button size="sm" variant="ghost" onClick={handleCopyNumber} className="h-8 w-8 p-0">
+                                                    {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <a href={instapayUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-full hover:bg-primary/90 transition-colors">
                                         <LinkIcon size={18} />
-                                        <span>افتح رابط الدفع</span>
+                                        <span>فتح التطبيق / رابط الدفع</span>
                                     </a>
                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                         <AlertCircle size={24} />

@@ -21,11 +21,12 @@ const ProductCard = React.memo(React.forwardRef<HTMLElement, { product: Personal
             "flex flex-col transform hover:-translate-y-2 transition-transform duration-300 h-full",
             featured ? "w-80 flex-shrink-0" : ""
         )}>
-            <div className="h-64 w-full overflow-hidden">
+            <div className="h-64 w-full overflow-hidden relative bg-white">
                 <Image 
                     src={product.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} 
                     alt={product.title} 
-                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                    className="w-full h-full transition-transform duration-500 hover:scale-110"
+                    objectFit="cover"
                 />
             </div>
             <CardHeader>

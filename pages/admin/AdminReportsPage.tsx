@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { BarChart, Users, Printer, FileDown, ShoppingBag, DollarSign, GraduationCap, CalendarCheck } from 'lucide-react';
-import { useAdminReportDataQuery } from '../../hooks/queries/admin/useAdminReportDataQuery';
+import { useAdminReportDataQuery, OrderReportItem, UserReportItem, InstructorReportItem } from '../../hooks/queries/admin/useAdminReportDataQuery';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { roleNames } from '../../lib/roles';
 import PageLoader from '../../components/ui/PageLoader';
@@ -14,6 +14,7 @@ import { Button } from '../../components/ui/Button';
 import DataTable from '../../components/admin/ui/DataTable';
 import StatCard from '../../components/admin/StatCard';
 import FormField from '../../components/ui/FormField';
+import { formatCurrency } from '../../utils/helpers';
 
 type ReportType = 'orders' | 'users' | 'instructors';
 
@@ -48,16 +49,18 @@ const ReportsPage: React.FC = () => {
     const reportSummary = useMemo(() => {
         if (!data) return null;
         if (activeTab === 'orders') {
-            const totalRevenue = data.reduce((sum, order) => sum + order.total, 0);
+            const orders = data as OrderReportItem[];
+            const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
             return {
-                count: data.length,
+                count: orders.length,
                 revenue: totalRevenue,
             };
         }
         if (activeTab === 'instructors') {
-            const totalSessions = data.reduce((sum, inst) => sum + inst.completedSessions, 0);
-            const totalStudents = data.reduce((sum, inst) => sum + inst.totalStudents, 0);
-            return { count: data.length, totalSessions, totalStudents };
+            const instructors = data as InstructorReportItem[];
+            const totalSessions = instructors.reduce((sum, inst) => sum + inst.completedSessions, 0);
+            const totalStudents = instructors.reduce((sum, inst) => sum + inst.totalStudents, 0);
+            return { count: instructors.length, totalSessions, totalStudents };
         }
         return { count: data.length };
     }, [data, activeTab]);
@@ -68,14 +71,17 @@ const ReportsPage: React.FC = () => {
         let rows: (string | number)[][] = [];
 
         if (activeTab === 'orders') {
+            const orders = data as OrderReportItem[];
             headers = ['ID', 'العميل', 'الطفل', 'الملخص', 'الإجمالي', 'الحالة', 'التاريخ'];
-            rows = data.map(item => [item.id, item.users?.name, item.child_profiles?.name, item.item_summary, item.total, item.status, item.order_date]);
+            rows = orders.map(item => [item.id, item.users?.name || '', item.child_profiles?.name || '', item.item_summary, item.total, item.status, item.order_date]);
         } else if (activeTab === 'users') {
+             const users = data as UserReportItem[];
             headers = ['ID', 'الاسم', 'البريد الإلكتروني', 'الدور', 'تاريخ التسجيل'];
-            rows = data.map(item => [item.id, item.name, item.email, roleNames[item.role as keyof typeof roleNames], item.created_at]);
+            rows = users.map(item => [item.id, item.name, item.email, roleNames[item.role as keyof typeof roleNames], item.created_at]);
         } else if (activeTab === 'instructors') {
+            const instructors = data as InstructorReportItem[];
             headers = ['المعرف', 'الاسم', 'التخصص', 'الطلاب', 'الحجوزات', 'جلسات مكتملة', 'جلسات تعريفية'];
-            rows = data.map(item => [item.id, item.name, item.specialty, item.totalStudents, item.totalBookings, item.completedSessions, item.introSessions]);
+            rows = instructors.map(item => [item.id, item.name, item.specialty, item.totalStudents, item.totalBookings, item.completedSessions, item.introSessions]);
         }
 
         let csvContent = "data:text/csv;charset=utf-8," 
@@ -214,7 +220,7 @@ const ReportsPage: React.FC = () => {
                                    <>
                                        <StatCard title={`إجمالي ${activeTab === 'orders' ? 'الطلبات' : 'المستخدمين'}`} value={reportSummary?.count ?? 0} icon={activeTab === 'orders' ? <ShoppingBag /> : <Users />} />
                                        {activeTab === 'orders' && reportSummary?.revenue !== undefined && (
-                                           <StatCard title="إجمالي الإيرادات" value={`${reportSummary.revenue.toLocaleString()} ج.م`} icon={<DollarSign />} />
+                                           <StatCard title="إجمالي الإيرادات" value={formatCurrency(reportSummary.revenue)} icon={<DollarSign />} />
                                        )}
                                    </>
                                )}
@@ -222,7 +228,7 @@ const ReportsPage: React.FC = () => {
                             <div id="report-table">
                                 {activeTab === 'instructors' ? (
                                     <DataTable 
-                                        data={data}
+                                        data={data as InstructorReportItem[]}
                                         columns={[
                                             { accessorKey: 'name', header: 'المدرب' },
                                             { accessorKey: 'totalStudents', header: 'الطلاب المسجلين' },
@@ -232,25 +238,26 @@ const ReportsPage: React.FC = () => {
                                             { accessorKey: 'upcomingSessions', header: 'جلسات محجوزة (قادمة)' },
                                         ]}
                                     />
-                                ) : (
+                                ) : activeTab === 'orders' ? (
                                     <DataTable 
-                                        data={data}
-                                        columns={
-                                            activeTab === 'orders'
-                                            ? [
-                                                { accessorKey: 'users.name', header: 'العميل' },
-                                                { accessorKey: 'child_profiles.name', header: 'الطفل' },
-                                                { accessorKey: 'item_summary', header: 'الملخص' },
-                                                { accessorKey: 'total', header: 'الإجمالي' },
-                                                { accessorKey: 'status', header: 'الحالة' },
-                                              ]
-                                            : [
-                                                { accessorKey: 'name', header: 'الاسم' },
-                                                { accessorKey: 'email', header: 'البريد الإلكتروني' },
-                                                { accessorKey: 'role', header: 'الدور', cell: ({ value }) => roleNames[value as keyof typeof roleNames] || value },
-                                                { accessorKey: 'created_at', header: 'تاريخ التسجيل', cell: ({value}) => new Date(value).toLocaleDateString('ar-EG') },
-                                              ]
-                                        }
+                                        data={data as OrderReportItem[]}
+                                        columns={[
+                                            { accessorKey: 'users.name', header: 'العميل', cell: ({ value }) => value || 'غير معروف' },
+                                            { accessorKey: 'child_profiles.name', header: 'الطفل', cell: ({ value }) => value || 'غير معروف' },
+                                            { accessorKey: 'item_summary', header: 'الملخص' },
+                                            { accessorKey: 'total', header: 'الإجمالي', cell: ({value}) => formatCurrency(value) },
+                                            { accessorKey: 'status', header: 'الحالة' },
+                                        ]}
+                                    />
+                                ) : (
+                                     <DataTable 
+                                        data={data as UserReportItem[]}
+                                        columns={[
+                                            { accessorKey: 'name', header: 'الاسم' },
+                                            { accessorKey: 'email', header: 'البريد الإلكتروني' },
+                                            { accessorKey: 'role', header: 'الدور', cell: ({ value }) => roleNames[value as keyof typeof roleNames] || value },
+                                            { accessorKey: 'created_at', header: 'تاريخ التسجيل', cell: ({value}) => new Date(value).toLocaleDateString('ar-EG') },
+                                        ]}
                                     />
                                 )}
                             </div>

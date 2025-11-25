@@ -56,11 +56,11 @@ const AdminSidebar: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
                 isCollapsed ? "w-20" : "w-64"
             )}>
                   <div className="flex items-center justify-center h-16 border-b p-4">
-                     <div className="h-8 w-8">
+                     <div className="h-8 w-8 relative">
                         <Image 
                             src="https://i.ibb.co/C0bSJJT/favicon.png" 
                             alt="شعار" 
-                            className="h-full w-full bg-transparent" 
+                            className="h-full w-full !bg-transparent" 
                             objectFit="contain"
                         />
                      </div>
@@ -146,11 +146,11 @@ const AdminSidebar: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
             isCollapsed ? "w-20" : "w-64"
         )}>
             <Link to="/" className="flex items-center justify-center h-16 border-b p-4 gap-2">
-                <div className="h-8 w-8">
+                <div className="h-8 w-8 relative">
                     <Image 
                         src="https://i.ibb.co/C0bSJJT/favicon.png" 
                         alt="شعار" 
-                        className="h-full w-full bg-transparent" 
+                        className="h-full w-full !bg-transparent" 
                         objectFit="contain"
                     />
                 </div>

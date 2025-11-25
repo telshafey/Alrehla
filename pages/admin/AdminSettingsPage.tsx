@@ -34,7 +34,7 @@ const AdminSettingsPage: React.FC = () => {
 
     // 3. Communication Settings
     const { data: commsData, isLoading: commsLoading, error: commsError, refetch: refetchComms } = useAdminCommunicationSettings();
-    const [commSettings, setCommSettings] = useState({ support_email: '', join_us_email: '', whatsapp_number: '', whatsapp_default_message: '' });
+    const [commSettings, setCommSettings] = useState({ support_email: '', join_us_email: '', whatsapp_number: '', whatsapp_default_message: '', instapay_url: '', instapay_qr_url: '', instapay_number: '' });
     
     // 4. Social Links
     const { data: socialLinksData, isLoading: socialsLoading, error: socialsError, refetch: refetchSocials } = useAdminSocialLinks();
@@ -86,6 +86,10 @@ const AdminSettingsPage: React.FC = () => {
     
     const handleCommsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setCommSettings({ ...commSettings, [e.target.name]: e.target.value });
+    };
+    
+    const handleQrUrlChange = (key: string, url: string) => {
+        setCommSettings(prev => ({ ...prev, [key]: url }));
     };
 
     const handleSocialsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -298,6 +302,23 @@ const AdminSettingsPage: React.FC = () => {
                                     <FormField label="رسالة الواتساب الافتراضية" htmlFor="whatsapp_default_message">
                                         <Input id="whatsapp_default_message" name="whatsapp_default_message" value={commSettings.whatsapp_default_message} onChange={handleCommsChange} />
                                     </FormField>
+                                </div>
+                                <div className="border-t pt-4 mt-4">
+                                    <h4 className="font-bold mb-4">بيانات الدفع (Instapay)</h4>
+                                    <div className="space-y-4">
+                                        <FormField label="رابط الدفع" htmlFor="instapay_url">
+                                            <Input id="instapay_url" name="instapay_url" value={commSettings.instapay_url} onChange={handleCommsChange} placeholder="https://ipn.eg/..." dir="ltr" />
+                                        </FormField>
+                                        <FormField label="رقم التحويل" htmlFor="instapay_number">
+                                            <Input id="instapay_number" name="instapay_number" value={commSettings.instapay_number} onChange={handleCommsChange} placeholder="01xxxxxxxxx" dir="ltr" />
+                                        </FormField>
+                                        <ImageUploadField 
+                                            label="صورة الباركود (QR Code)"
+                                            fieldKey="instapay_qr_url"
+                                            currentUrl={commSettings.instapay_qr_url}
+                                            onUrlChange={handleQrUrlChange}
+                                        />
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>

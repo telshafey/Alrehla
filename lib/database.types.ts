@@ -514,6 +514,9 @@ export interface CommunicationSettings {
     join_us_email: string;
     whatsapp_number: string;
     whatsapp_default_message: string;
+    instapay_url?: string;
+    instapay_qr_url?: string;
+    instapay_number?: string;
 }
 
 export interface JitsiSettings {

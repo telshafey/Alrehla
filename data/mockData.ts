@@ -61,6 +61,7 @@ export const mockOrders: Order[] = [
 
 export const mockSubscriptions: Subscription[] = [
     { id: 'sub_xyz', user_id: 'usr_parent', child_id: 1, start_date: '2023-08-01T10:00:00Z', next_renewal_date: '2024-08-01T10:00:00Z', status: 'active', user_name: 'أحمد عبدالله', child_name: 'فاطمة أحمد', plan_name: 'اشتراك سنوي', total: 3000 },
+    { id: 'sub_demo_1', user_id: 'usr_new_demo', child_id: 99, start_date: '2024-02-01T10:00:00Z', next_renewal_date: '2024-03-01T10:00:00Z', status: 'active', user_name: 'ماجد وليد', child_name: 'ياسين ماجد', plan_name: 'اشتراك ربع سنوي', total: 850 },
 ];
 
 export const mockSubscriptionPlans: SubscriptionPlan[] = [
@@ -253,501 +254,253 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
     { 
         id: 7, 
         created_at: '2023-01-01', 
-        key: 'voice_over', 
-        title: 'التعليق الصوتي', 
-        description: 'أضف الحياة لقصة طفلك مع تعليق صوتي احترافي.', 
-        image_url: null, 
-        features: [], 
-        sort_order: 7, 
-        is_featured: false, 
-        is_addon: true, 
+        key: 'voice_over',
+        title: 'تسجيل صوتي',
+        description: 'تسجيل صوتي احترافي للقصة.',
+        image_url: null,
+        features: [],
+        sort_order: 7,
+        is_featured: false,
+        is_addon: true,
         has_printed_version: false,
         price_printed: null,
-        price_electronic: 100,
+        price_electronic: 80,
         goal_config: 'none',
         story_goals: [],
         image_slots: [],
         text_fields: []
-    },
-];
-
-export const mockStandaloneServices: StandaloneService[] = [
-    // --- خدمات لتنمية الكاتب ---
-    { id: 1, name: 'جلسة العصف الذهني المكثفة', price: 250, description: 'جلسة فردية مركزة (30 دقيقة) لمساعدة الطالب على تخطي "عقبة الكاتب"، تطوير فكرة، أو بناء شخصية معقدة.', category: 'استشارات', icon_name: 'MessageSquare', requires_file_upload: false, provider_type: 'instructor' },
-    { id: 2, name: 'المراجعة المتقدمة والتحرير', price: 350, description: 'تحرير كامل لنص (حتى 1000 كلمة) مع تصويبات لغوية وإعادة صياغة مقترحة لتحسين التدفق السردي.', category: 'مراجعات', icon_name: 'FileCheck2', requires_file_upload: true, provider_type: 'instructor' },
-    
-    // --- خدمات لتحويل الإبداع إلى واقع ---
-    { id: 4, name: 'باقة كتابي الأول', price: 1500, description: 'نحوّل أفضل قصة كتبها طفلك إلى كتاب حقيقي! تشمل الخدمة تحرير، تصميم غلاف، تنسيق، وطباعة 5 نسخ فاخرة.', category: 'نشر', icon_name: 'BookUp', requires_file_upload: true, provider_type: 'company' },
-    { id: 3, name: 'النشر في مجلة الرحلة', price: 500, description: 'فرصة لنشر أفضل قصة كتبها طفلك في العدد القادم من مجلتنا الإلكترونية الفصلية.', category: 'نشر', icon_name: 'Award', requires_file_upload: true, provider_type: 'company' },
-    { id: 5, name: 'تصميم الغلاف الاحترافي', price: 400, description: 'تصميم غلاف احترافي وجذاب لقصة طفلك، جاهز للمشاركة الرقمية أو الطباعة الشخصية.', category: 'نشر', icon_name: 'Palette', requires_file_upload: true, provider_type: 'company' },
-    { id: 8, name: 'قصة فيديو', price: 800, description: 'نحول قصة طفلك المكتوبة إلى فيديو رسوم متحركة بسيط وجذاب مع تعليق صوتي احترافي.', category: 'قصص فيديو', icon_name: 'Video', requires_file_upload: true, provider_type: 'company' },
-    { id: 9, name: 'قصة مسموعة', price: 500, description: 'تسجيل صوتي احترافي لقصة طفلك مع مؤثرات صوتية لإضفاء الحيوية عليها.', category: 'قصص مسموعة', icon_name: 'Mic', requires_file_upload: true, provider_type: 'company' },
-    
-    // --- خدمات داعمة لأولياء الأمور ---
-    { id: 7, name: 'جلسة إرشاد تربوي', price: 450, description: 'جلسة خاصة لولي الأمر (45 دقيقة) مع خبير تربوي لمناقشة أفضل السبل لدعم الموهبة الإبداعية لطفلك في المنزل.', category: 'استشارات', icon_name: 'Users', requires_file_upload: false, provider_type: 'instructor' },
-];
-
-
-export const mockServiceOrders: ServiceOrder[] = [
-  { id: 'ser_001', created_at: new Date(Date.now() - 86400000 * 5).toISOString(), user_id: 'usr_parent', child_id: 1, service_id: 2, status: 'مكتمل', details: { fileUrl: '#', userNotes: 'الرجاء التركيز على بنية القصة.' }, total: 350, assigned_instructor_id: 1 },
-  { id: 'ser_002', created_at: new Date(Date.now() - 86400000).toISOString(), user_id: 'usr_user', child_id: 1, service_id: 3, status: 'بانتظار المراجعة', details: { fileUrl: '#', userNotes: 'نريد نشر هذه القصة في المجلة.' }, total: 500, assigned_instructor_id: null },
-  { id: 'ser_003', created_at: new Date(Date.now() - 86400000 * 10).toISOString(), user_id: 'usr_parent', child_id: 2, service_id: 1, status: 'مكتمل', details: { userNotes: 'جلسة عصف ذهني لشخصية جديدة' }, total: 250, assigned_instructor_id: 1 },
-];
-
-export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
-    { 
-        id: 1, 
-        name: 'الجلسة التعريفية', 
-        sessions: 'جلسة واحدة (30 دقيقة)', 
-        price: 0, 
-        features: ['تقييم مستوى الطالب', 'وضع خطة شخصية', 'متاحة لعدد محدود شهرياً'], 
-        popular: false, 
-        description: 'ابدأ رحلة طفلك بجلسة تعريفية مجانية لاستكشاف البرنامج ووضع خطة مناسبة لموهبته.' 
-    },
-    { 
-        id: 2, 
-        name: 'باقة الانطلاق', 
-        sessions: '4 جلسات', 
-        price: 1200, 
-        features: ['متابعة أسبوعية', 'أساسيات بناء القصة', 'محفظة رقمية للأعمال'], 
-        popular: true, 
-        description: 'باقة مكثفة لإطلاق شرارة الإبداع وتعلم أساسيات الكتابة القصصية.' 
-    },
-    { 
-        id: 3, 
-        name: 'الباقة الأساسية', 
-        sessions: '16 جلسة', 
-        price: 4000, 
-        features: ['بناء متكامل للشخصيات والعوالم', 'تقنيات سرد متقدمة', 'جلسات مراجعة وتحرير', 'شهادة إتمام'], 
-        popular: false, 
-        description: 'رحلة متكاملة تأسس مهارات الكتابة الإبداعية لدى طفلك. يمكن الترقية من باقة الانطلاق (باستكمال 12 جلسة).' 
-    },
-    { 
-        id: 4, 
-        name: 'باقة التخصص', 
-        sessions: '32 جلسة', 
-        price: 7200, 
-        features: ['تخصص في نوع أدبي (خيال, مغامرة..)', 'مشاريع كتابة متعمقة', 'بناء أسلوب الكاتب الشخصي', 'نشر عمل في المجلة الإلكترونية'], 
-        popular: false, 
-        description: 'للكتاب الواعدين الذين أتموا الباقة الأساسية ويرغبون في التخصص وصقل أسلوبهم بشكل احترافي.' 
-    },
-    { 
-        id: 5, 
-        name: 'باقة التميز', 
-        sessions: '48 جلسة (الأساسية + التخصص)', 
-        price: 9600, 
-        features: ['تشمل مزايا الباقتين الأساسية والتخصص', 'خصم خاص على السعر الإجمالي', 'جلسات إرشاد إضافية', 'فرصة نشر قصة كاملة'], 
-        popular: false, 
-        description: 'المسار الكامل للمبدعين الصغار, يجمع بين التأسيس والتخصص للوصول إلى مستوى متقدم من التميز.' 
-    },
-];
-
-export const mockAdditionalServices: AdditionalService[] = [
-    { id: 1, name: 'استشارة خاصة', price: 200, description: 'جلسة استشارية إضافية لمدة 30 دقيقة.' },
-    { id: 2, name: 'مراجعة نص', price: 150, description: 'مراجعة وتحرير نص إبداعي من خارج البرنامج.' },
-    { id: 3, name: 'الاشتراك بعمل في الاصدار القادم', price: 500, description: 'انشر قصتك في كتابنا المجمع القادم' },
-    { id: 4, name: 'طلب اصدار خاص', price: 800, description: 'حوّل قصتك إلى كتاب مطبوع خاص بك' },
-];
-
-export const mockInstructors: Instructor[] = [
-    { 
-        id: 1, 
-        user_id: 'usr_instructor_1', 
-        name: 'أ. أحمد المصري', 
-        specialty: 'متخصص في بناء العوالم والخيال العلمي', 
-        bio: 'كاتب وروائي شغوف باستكشاف العوالم الموازية. مؤلف سلسلة "بوابات الزمن" للناشئة. أؤمن بأن كل قصة هي رحلة استكشاف للذات والعالم.', 
-        avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png', 
-        slug: 'ahmed-masri', 
-        weekly_schedule: { monday: ['17:00', '18:00'], wednesday: ['17:00', '18:00'] }, 
-        availability: {}, 
-        intro_availability: {}, 
-        rate_per_session: 300, 
-        service_rates: { '1': 280, '2': 400, '7': 500 },
-        package_rates: { '2': 1300, '3': 4200 },
-        schedule_status: 'approved', 
-        profile_update_status: 'approved', 
-        pending_profile_data: null,
-        teaching_philosophy: 'فلسفتي تقوم على "اللعب بالأفكار". أنا لا أُدرس قواعد، بل أفتح أبواباً للخيال. أساعد الطلاب على بناء الثقة في أصواتهم الفريدة وتحويل أفكارهم الجامحة إلى قصص متماسكة ومؤثرة. كل جلسة هي مغامرة جديدة نخوضها معاً.',
-        expertise_areas: ['بناء العوالم', 'الخيال العلمي والفانتازيا', 'تطوير الشخصيات المعقدة', 'كتابة الرواية للناشئة'],
-        intro_video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Example video
-        published_works: [
-            { title: 'بوابات الزمن: الجزء الأول', cover_url: 'https://i.ibb.co/8XYt2s5/about-us-image.jpg' },
-            { title: 'المدينة الصامتة', cover_url: 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg' },
-        ]
-    },
-    { 
-        id: 2, 
-        user_id: null, 
-        name: 'أ. نورة القحطاني', 
-        specialty: 'متخصصة في السرد القصصي للأطفال', 
-        bio: 'ماجستير في أدب الأطفال ورسامة قصص مصورة. أهدف إلى تبسيط مفاهيم الكتابة المعقدة وجعلها تجربة ممتعة ومرحة للأطفال الصغار.', 
-        avatar_url: 'https://i.ibb.co/yY3GJk1/female-avatar.png', 
-        slug: 'noura-qahtani', 
-        weekly_schedule: { tuesday: ['16:00', '17:00'], thursday: ['16:00', '17:00'] }, 
-        availability: {}, 
-        intro_availability: {}, 
-        rate_per_session: 250, 
-        service_rates: { '1': 250, '2': 350 },
-        package_rates: { '2': 1200, '3': 4000, '4': 7200, '5': 9600 },
-        schedule_status: 'approved', 
-        profile_update_status: 'pending', 
-        pending_profile_data: { updates: { bio: "bio updated", rate_per_session: 275 }, justification: "test justification" },
-        teaching_philosophy: 'أؤمن بأن القصة تبدأ بصورة. أستخدم الرسم والتخيل البصري كنقطة انطلاق لإلهام الأطفال، ومساعدتهم على تحويل صورهم الذهنية إلى كلمات حية. منهجي يعتمد على التشجيع وبناء بيئة آمنة للتجربة والخطأ.',
-        expertise_areas: ['الكتابة للأعمار الصغيرة (8-12)', 'الشعر وقصص القافية', 'القصص المصورة', 'السرد المبسط'],
-        intro_video_url: null,
-        published_works: [
-             { title: 'أين اختفى قمري؟', cover_url: 'https://i.ibb.co/n7ZJv9V/child-learning-online.jpg' },
-        ]
-    },
-];
-
-export const mockInstructorPayouts: InstructorPayout[] = [
-    { id: 'p_1', instructor_id: 1, payout_date: '2024-08-01T10:00:00Z', amount: 1800, details: 'مستحقات شهر يوليو 2024' },
-    { id: 'p_2', instructor_id: 1, payout_date: '2024-07-01T10:00:00Z', amount: 2100, details: 'مستحقات شهر يونيو 2024' },
+    }
 ];
 
 export const mockSiteBranding: SiteBranding = {
     logoUrl: "https://i.ibb.co/C0bSJJT/favicon.png",
     heroImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
-    aboutHeroImageUrl: "https://i.ibb.co/8XYt2s5/about-us-image.jpg", // Renamed from aboutImageUrl
-    aboutPortalImageUrl: "https://placehold.co/600x600", // Added new field
+    aboutHeroImageUrl: "https://i.ibb.co/8XYt2s5/about-us-image.jpg",
+    aboutPortalImageUrl: "https://placehold.co/600x600",
     joinUsImageUrl: "https://i.ibb.co/L5B6m9f/join-us-hero.jpg",
     creativeWritingPortalImageUrl: "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg",
-    enhaLakPortalImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
+    enhaLakPortalImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg"
 };
 
-export const mockPrices: Prices = {};
+export const mockInstructors: Instructor[] = [
+    {
+        id: 1,
+        user_id: 'usr_instructor_1',
+        name: 'أ. أحمد المصري',
+        specialty: 'قصص خيال علمي',
+        bio: 'كاتب ومدرب متخصص في أدب الطفل.',
+        avatar_url: 'https://i.ibb.co/2S4xT8w/male-avatar.png',
+        slug: 'ahmed-masri',
+        weekly_schedule: { saturday: ['10:00', '11:00'], tuesday: ['16:00', '17:00'] },
+        availability: {},
+        intro_availability: {},
+        rate_per_session: 150,
+        schedule_status: 'approved',
+        profile_update_status: 'approved',
+        pending_profile_data: null,
+        teaching_philosophy: 'التعلم بالمرح',
+        expertise_areas: ['خيال', 'مغامرات'],
+        intro_video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Placeholder
+        published_works: [{ title: 'مغامرات في الفضاء', cover_url: 'https://placehold.co/200x300' }]
+    }
+];
 
-export const mockPricingSettings: PricingSettings = {
-  id: 1,
-  company_percentage: 1.2,
-  fixed_fee: 50,
+export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
+    { id: 1, name: 'الجلسة التعريفية', sessions: 'جلسة واحدة (30 دقيقة)', price: 0, features: ['تقييم المستوى', 'خطة مقترحة'], popular: false, description: 'جلسة مجانية للتعرف على المدرب.' },
+    { id: 2, name: 'باقة الانطلاق', sessions: '4 جلسات', price: 1200, features: ['أساسيات الكتابة', 'قصة قصيرة واحدة'], popular: true, description: 'بداية مثالية للمبتدئين.' },
+    { id: 3, name: 'الباقة الأساسية', sessions: '8 جلسات', price: 2200, features: ['بناء الشخصيات', 'قصتين'], popular: false, description: 'تعمق أكثر في فنون الكتابة.' },
+];
+
+export const mockSiteContent: SiteContent = {
+    portalPage: {
+        heroTitle: 'رحلة كل طفل تبدأ بقصة... وقصته تبدأ هنا',
+        heroSubtitle: 'منصة تربوية عربية متكاملة تصنع قصصاً مخصصة تجعل طفلك بطلاً، وتطلق مواهبه في الكتابة الإبداعية',
+        heroButtonText1: 'اطلب قصتك المخصصة الآن',
+        heroButtonText2: 'اكتشف برنامج الكتابة الإبداعية',
+        projectsTitle: 'أقسامنا الرئيسية',
+        projectsSubtitle: 'بوابتان لعالم من الإبداع والنمو',
+        enhaLakTitle: 'إنها لك',
+        enhaLakDescription: 'قصص مخصصة ومنتجات تربوية فريدة تجعل طفلك بطلاً.',
+        enhaLakBtnText: 'اكتشف القصص',
+        creativeWritingTitle: 'بداية الرحلة',
+        creativeWritingDescription: 'برنامج متكامل لتنمية مهارات الكتابة الإبداعية.',
+        creativeWritingBtnText: 'ابدأ الرحلة',
+        valuePropositionTitle: 'لماذا تختار منصة الرحلة؟',
+        socialProofTitle: 'قصص نجاح ملهمة',
+        aboutSectionTitle: 'قصتنا: من فكرة إلى رحلة',
+        aboutSectionContent: 'نحن منصة تسعى لتمكين الأطفال من خلال القصص والكتابة...',
+        aboutBtnText: 'تعرف علينا أكثر',
+        testimonialsTitle: 'ماذا تقول عائلاتنا؟',
+        testimonialsSubtitle: 'آراء نفخر بها',
+        blogTitle: 'من مدونتنا',
+        blogSubtitle: 'مقالات ونصائح تربوية',
+        finalCtaTitle: 'هل أنت جاهز لبدء الرحلة؟',
+        finalCtaSubtitle: 'اختر المسار الذي يناسب طفلك اليوم',
+        finalCtaBtn1: 'تصفح منتجات "إنها لك"',
+        finalCtaBtn2: 'احجز جلسة "بداية الرحلة"',
+        showProjectsSection: true,
+        showStepsSection: true,
+        showAboutSection: true,
+        showTestimonialsSection: true,
+        showBlogSection: true,
+        showFinalCtaSection: true,
+        steps: [
+            { title: '1. اكتشف', description: 'تصفح قصصنا المخصصة وبرامجنا الإبداعية المصممة بعناية لتناسب كل طفل.' },
+            { title: '2. خصص', description: 'أضف لمستك الخاصة. املأ تفاصيل طفلك واختر الأهداف والقيم التي ترغب في غرسها.' },
+            { title: '3. استمتع', description: 'استلم منتجاً فريداً ومبهراً ينمي شغف طفلك ويطلق العنان لخياله الواسع.' }
+        ]
+    },
+    aboutPage: {
+        heroTitle: 'رحلتنا: من فكرة إلى رؤية',
+        missionStatement: 'نؤمن أن كل طفل هو بطل حكايته الخاصة.',
+        ourStory: 'في عالم يتسارع نحو الرقمنة...',
+        ourVision: 'أن نكون المنصة الرائدة والوجهة الأولى لكل أسرة عربية.',
+        valuesTitle: 'قيمنا الأساسية',
+        teamMembers: [],
+        teamTitle: 'تعرف على بعض أفراد الفريق',
+        showTeamSection: true
+    },
+    enhaLakPage: {
+        main: {
+            heroTitle: 'قصة فريدة... بطلها طفلك',
+            heroSubtitle: 'منتجات تربوية مخصصة تعزز الهوية وتنمي القيم.',
+            heroBtnText: 'تصفح المنتجات واطلب الآن',
+            productsTitle: 'منتجاتنا المميزة',
+            howItWorksTitle: 'كيف تعمل؟',
+            galleryTitle: 'معرض الصور',
+            gallerySubtitle: 'لقطات من قصصنا',
+            testimonialsTitle: 'آراء العملاء',
+            testimonialsSubtitle: 'ماذا قالوا عنا',
+            finalCtaTitle: 'جاهز للطلب؟',
+            finalCtaSubtitle: 'ابدأ الآن بتخصيص قصة لطفلك.',
+            customStoryImageUrl: 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg',
+            subscriptionBoxImageUrl: 'https://i.ibb.co/L8DDd6V/gift-box-sub.png'
+        },
+        store: {
+            heroTitle: 'متجر القصص',
+            heroSubtitle: 'اختر القصة التي تناسب طفلك.',
+            subscriptionBannerTitle: 'اشترك في صندوق الرحلة',
+            featuredProductsTitle: 'منتجات مميزة',
+            coreProductsTitle: 'قصص أساسية',
+            addonProductsTitle: 'إضافات'
+        },
+        subscription: {
+            heroTitle: 'صندوق الرحلة الشهري',
+            heroSubtitle: 'هدية متجددة كل شهر.',
+            features: ['قصة جديدة', 'أنشطة', 'هدية']
+        }
+    },
+    creativeWritingPage: {
+        main: {
+            heroTitle: 'بداية الرحلة: أطلق العنان لخيال طفلك',
+            heroSubtitle: 'برنامج تدريبي لتنمية مهارات الكتابة.',
+            methodologyTitle: 'منهجيتنا',
+            methodologySubtitle: 'كيف نعلم الكتابة',
+            transformationTitle: 'رحلة التحول',
+            transformationSubtitle: 'من قارئ إلى كاتب',
+            packagesTitle: 'باقات الاشتراك',
+            packagesSubtitle: 'اختر الباقة المناسبة',
+            servicesTitle: 'خدمات إضافية',
+            servicesSubtitle: 'دعم إضافي للكاتب الصغير',
+            instructorsTitle: 'مدربونا',
+            instructorsSubtitle: 'نخبة من الخبراء',
+            testimonialsTitle: 'قصص نجاح',
+            testimonialsSubtitle: 'طلابنا المبدعون',
+            finalCtaTitle: 'احجز الآن',
+            finalCtaSubtitle: 'ابدأ الرحلة اليوم'
+        },
+        about: {
+            heroTitle: 'عن البرنامج',
+            heroSubtitle: 'فلسفتنا في التعليم',
+            mainTitle: 'لماذا بداية الرحلة؟',
+            mainContent: 'لأننا نؤمن...',
+            philosophyTitle: 'فلسفتنا',
+            heroImageUrl: 'https://i.ibb.co/n7ZJv9V/child-learning-online.jpg'
+        },
+        curriculum: {
+            heroTitle: 'المنهج الدراسي',
+            heroSubtitle: 'ماذا سيتعلم طفلك',
+            treasuresTitle: 'كنوز الرحلة',
+            treasuresSubtitle: 'ما يحصل عليه الطالب'
+        },
+        instructors: {
+            heroTitle: 'فريق التدريب',
+            heroSubtitle: 'تعرف على المدربين'
+        }
+    },
+    supportPage: {
+        heroTitle: 'كيف يمكننا مساعدتك؟',
+        heroSubtitle: 'نحن هنا للإجابة على استفساراتك',
+        faqs: []
+    }
 };
 
-export const mockShippingCosts: ShippingCosts = {
-  "مصر": {
-    "القاهرة": 40,
-    "الجيزة": 50,
-    "الإسكندرية": 60,
-    "الدقهلية": 65,
-    "البحر الأحمر": 80,
-    "البحيرة": 60,
-    "الفيوم": 55,
-    "الغربية": 55,
-    "الإسماعيلية": 60,
-    "المنوفية": 55,
-    "المنيا": 70,
-    "القليوبية": 45,
-    "الوادي الجديد": 90,
-    "السويس": 60,
-    "اسوان": 90,
-    "اسيوط": 75,
-    "بني سويف": 60,
-    "بورسعيد": 65,
-    "دمياط": 60,
-    "الشرقية": 55,
-    "جنوب سيناء": 85,
-    "كفر الشيخ": 60,
-    "مطروح": 80,
-    "الأقصر": 85,
-    "قنا": 80,
-    "شمال سيناء": 75,
-    "سوهاج": 75
-  }
+export const mockSocialLinks: SocialLinks = {
+    id: 1, facebook_url: 'https://facebook.com', twitter_url: 'https://twitter.com', instagram_url: 'https://instagram.com'
 };
 
-export const mockSocialLinks: SocialLinks = { id: 1, facebook_url: 'https://facebook.com', twitter_url: 'https://twitter.com', instagram_url: 'https://instagram.com' };
+export const mockPublicHolidays: string[] = ['2024-01-01', '2024-04-10'];
+
+export const mockStandaloneServices: StandaloneService[] = [
+    { id: 1, name: 'مراجعة نص', price: 200, description: 'مراجعة لغوية وفنية لقصة الطفل.', category: 'مراجعات', icon_name: 'FileCheck2', requires_file_upload: true, provider_type: 'instructor' },
+    { id: 2, name: 'استشارة تربوية', price: 300, description: 'جلسة استشارة لولي الأمر.', category: 'استشارات', icon_name: 'MessageSquare', requires_file_upload: false, provider_type: 'company' }
+];
 
 export const mockCommunicationSettings: CommunicationSettings = {
-  support_email: 'support@alrehlah.com',
-  join_us_email: 'hr@alrehlah.com',
-  whatsapp_number: '+201234567890',
-  whatsapp_default_message: "مرحباً، لدي استفسار بخصوص منصة الرحلة",
+    support_email: 'support@alrehlah.com',
+    join_us_email: 'join@alrehlah.com',
+    whatsapp_number: '201000000000',
+    whatsapp_default_message: 'السلام عليكم، استفسار بخصوص...',
+    instapay_url: 'https://ipn.eg/S/123456',
+    instapay_qr_url: '',
+    instapay_number: ''
 };
 
-export const mockJitsiSettings: JitsiSettings = {
-  id: 1,
-  domain: 'meet.jit.si',
-  room_prefix: 'AlRehlah-Session-',
-  join_minutes_before: 10,
-  expire_minutes_after: 120, // 2 hours
-  start_with_audio_muted: false,
-  start_with_video_muted: false,
-};
+export const mockPrices: Prices = { base_session: 150 };
 
-export const mockRolePermissions: Record<UserRole, Permissions> = {
-    'super_admin': getPermissions('super_admin'),
-    'general_supervisor': getPermissions('general_supervisor'),
-    'enha_lak_supervisor': getPermissions('enha_lak_supervisor'),
-    'creative_writing_supervisor': getPermissions('creative_writing_supervisor'),
-    'instructor': getPermissions('instructor'),
-    'content_editor': getPermissions('content_editor'),
-    'support_agent': getPermissions('support_agent'),
-    'user': getPermissions('user'),
-    'student': getPermissions('student'),
+export const mockShippingCosts: ShippingCosts = {
+    'مصر': { 'القاهرة': 50, 'الجيزة': 50, 'الإسكندرية': 70 }
 };
-
 
 export const mockBlogPosts: BlogPost[] = [
-    { 
-        id: 1, 
-        created_at: '2024-08-01', 
-        published_at: '2024-08-01', 
-        title: '5 أسرار لتحويل وقت القراءة إلى مغامرة ممتعة', 
-        slug: 'reading-time-adventure', 
-        content: 'القراءة ليست مجرد نشاط هادئ قبل النوم، بل يمكن أن تكون بوابة لعوالم سحرية ومغامرات لا تُنسى. لكن كيف نحول تقليب الصفحات إلى تجربة مثيرة ينتظرها أطفالنا بشغف؟ إليك 5 أسرار بسيطة.\n\nأولاً، اصنعوا الأجواء. خففوا الإضاءة، استخدموا مصباحاً يدوياً كأنه كشاف في كهف غامض، أو ابنوا حصناً من الوسائد. الأجواء الخاصة تجعل القصة أكثر من مجرد كلمات على ورق.\n\nثانياً، استخدموا أصواتكم. غيروا نبرة صوتكم لتمثيل الشخصيات المختلفة. همسة للساحرة الشريرة، صوت جهوري للعملاق، وضحكة مرحة للأميرة. هذا الأداء الصوتي يضفي حياة على الحوار ويجذب انتباه الطفل.\n\nثالثاً، اجعلوها تفاعلية. توقفوا عند المشاهد المهمة واسألوا طفلكم: "ماذا تعتقد أنه سيحدث الآن؟" أو "لو كنت مكان البطل، ماذا كنت ستفعل؟". هذه الأسئلة تحفز الخيال وتجعل الطفل شريكاً في بناء الأحداث.\n\nرابعاً، اربطوا القصة بالواقع. بعد الانتهاء من قصة عن الفضاء، اخرجوا ليلاً لمشاهدة النجوم. إذا كانت القصة عن حيوانات الغابة، خططوا لزيارة حديقة الحيوان. هذا الربط يجعل عالم القصة يمتد إلى حياة الطفل الواقعية.\n\nأخيراً، لا تفرضوا القراءة. اجعلوها وقتاً مميزاً للمشاركة والدفء. الهدف هو بناء علاقة حب بين الطفل والكتاب، وهذه العلاقة تنمو بالمتعة وليس بالإجبار. بالقليل من الإبداع، ستصبح كل قصة مغامرة جديدة تنتظركم.', 
-        image_url: 'https://i.ibb.co/h7gJj47/blog-reading-adventure.jpg', 
-        author_name: 'فريق المنصة', 
-        status: 'published' 
-    },
-    { 
-        id: 2, 
-        created_at: '2024-07-25', 
-        published_at: '2024-07-25', 
-        title: 'لماذا يرى طفلك نفسه بطلاً؟ سيكولوجية القصة المخصصة', 
-        slug: 'psychology-of-personalized-stories', 
-        content: 'عندما يفتح طفل قصة ويرى اسمه وصورته وشخصيته تنعكس في البطل، يحدث شيء أشبه بالسحر. هذا ليس مجرد ترفيه، بل هو أداة تربوية قوية تستند إلى مبادئ نفسية عميقة. القصة المخصصة تجعل الطفل محور الكون السردي، مما يعزز بشكل كبير تقديره لذاته.\n\nعلى المستوى النفسي، تعمل القصة المخصصة على تلبية حاجة أساسية لدى الطفل: الشعور بالأهمية والتفرد. عندما يرى الطفل نفسه يقوم بأفعال بطولية ويتغلب على التحديات في القصة، فإنه يستوعب رسالة قوية: "أنا مهم، أنا قادر، أنا أستطيع إحداث فرق". هذا التأثير لا يتوقف عند انتهاء القصة، بل يمتد ليؤثر على ثقته بنفسه في مواجهة تحديات الحياة الواقعية.\n\nعلاوة على ذلك، فإن رؤية الطفل لصفاته واهتماماته الخاصة منسوجة في نسيج القصة تجعل المحتوى أكثر ارتباطاً به. هذا يزيد من انتباهه وتركيزه، ويجعل استيعابه للقيم والأهداف التربوية المضمنة في القصة أعمق وأكثر فعالية. إنه يتعلم من خلال تجربة يعيشها بنفسه، وليس من خلال مراقبة شخصية غريبة عنه.\n\nفي "منصة الرحلة"، نحن نؤمن بهذه القوة. كل قصة نصنعها هي مرآة تعكس أفضل ما في طفلك، وتمنحه الأدوات اللازمة ليرى البطل الكامن في داخله، ليس فقط على صفحات الكتب، بل في كل يوم من أيام حياته.', 
-        image_url: 'https://i.ibb.co/ZJ8pT5N/blog-hero-child.jpg', 
-        author_name: 'فريق المنصة', 
-        status: 'published' 
-    },
-    { 
-        id: 3, 
-        created_at: '2024-07-15', 
-        published_at: '2024-07-15', 
-        title: 'من الخيال إلى الورق: كيف نطلق العنان للكاتب الصغير داخل طفلك؟', 
-        slug: 'unleash-the-little-writer', 
-        content: 'كل طفل هو راوي قصص بالفطرة. عوالمهم الخيالية مليئة بالشخصيات المدهشة والمغامرات الجريئة. لكن كيف نساعدهم على نقل هذه العوالم من رؤوسهم إلى الورق؟ برنامج "بداية الرحلة" مصمم خصصياً لهذا الغرض، وهو يعتمد على بضعة مبادئ أساسية يمكن لكل ولي أمر تطبيقها.\n\nابدأوا بالاستماع. عندما يروي طفلك قصة عن ديناصور طائر أو قطة تتكلم، استمعوا باهتمام واطرحوا أسئلة مفتوحة مثل "وماذا حدث بعد ذلك؟" أو "كيف كان شعور القطة؟". هذا يشجعهم على تطوير أفكارهم ويُشعرهم بأن قصصهم مهمة.\n\nثانياً، وفروا الأدوات دون ضغط. دفتر جميل، أقلام ملونة، أو حتى تطبيق للكتابة على جهاز لوحي يمكن أن يكون محفزاً. الفكرة هي جعل الكتابة نشاطاً ممتعاً ومتاحاً، وليس واجباً مدرسياً. لا تركزوا على الأخطاء الإملائية أو النحوية في البداية؛ ركزوا على تدفق الأفكار.\n\nثالثاً، استخدموا "صناديق الأفكار". املأوا صندوقاً بصور عشوائية من المجلات، أو كلمات مكتوبة على قصاصات ورق، أو أشياء صغيرة. يمكن للطفل أن يسحب عنصراً أو عنصرين ليبدأ قصته. هذا يكسر حاجز "الورقة البيضاء" المخيف.\n\nأخيراً، احتفوا بإبداعاتهم. سواء كانت قصة من سطرين أو فصلاً كاملاً، اقرأوها بصوت عالٍ، علقوها على الثلاجة، أو شاركوها مع أفراد العائلة. هذا الاحتفاء هو الوقود الذي يغذي ثقة الكاتب الصغير ويجعله يرغب في كتابة المزيد. تذكروا، الهدف ليس خلق روائي عالمي، بل تنشئة طفل واثق من صوته وقادر على التعبير عن نفسه بإبداع.', 
-        image_url: 'https://i.ibb.co/C0Wp1kK/blog-child-writing.jpg', 
-        author_name: 'فريق المنصة', 
-        status: 'published' 
-    },
-    { 
-        id: 4, 
-        created_at: '2024-08-05', 
-        published_at: null, 
-        title: 'استعداداً للمدرسة: كيف تنمي الكتابة الإبداعية المهارات الأكاديمية؟', 
-        slug: 'creative-writing-for-school', 
-        content: '(مسودة) قد تبدو الكتابة الإبداعية مجرد نشاط ترفيهي، لكن تأثيرها يمتد عميقاً داخل الفصول الدراسية. عندما يمارس الطفل الكتابة الإبداعية، فإنه لا يطور خياله فحسب، بل يصقل مجموعة من المهارات الأساسية التي تعزز أداءه الأكاديميكي بشكل مباشر.\n\nأولاً، تنظم الكتابة الإبداعية التفكير. لإنشاء قصة متماسكة، يجب على الطفل أن يتعلم كيفية ترتيب الأفكار بشكل منطقي، وبناء تسلسل للأحداث، والوصول إلى خاتمة مرضية. هذه المهارة في "التفكير السردي" لا تقدر بثمن عند كتابة المقالات أو حل المسائل متعددة الخطوات في المستقبل.\n\nثانياً، توسع المفردات. تشجع الكتابة الإبداعية الأطفال على البحث عن كلمات جديدة وأكثر دقة لوصف الشخصيات والمشاهد. بدلاً من "الرجل السعيد"، قد يبحثون عن كلمات مثل "مبتهج" أو "مسرور". هذا البحث النشط عن المفردات يثري لغتهم بشكل أسرع من الحفظ السلبي.\n\n(سيتم استكمال المقال لاحقاً بمناقشة مهارات التعاطف وحل المشكلات)', 
-        image_url: 'https://i.ibb.co/xL3Fp6s/blog-school-prep.jpg', 
-        author_name: 'فريق المنصة', 
-        status: 'draft' 
-    },
+    { id: 1, created_at: '2023-08-01', published_at: '2023-08-02', title: 'أهمية القراءة للطفل', slug: 'reading-importance', content: 'محتوى المقال...', author_name: 'سارة', status: 'published', image_url: 'https://placehold.co/800x400' }
 ];
 
 export const mockSupportTickets: SupportTicket[] = [
-    { id: 'tkt_1', created_at: new Date().toISOString(), name: 'علي حسن', email: 'ali@test.com', subject: 'استفسار عن الطلب', message: 'متى سيصل طلبي؟', status: 'جديدة' },
+    { id: 't1', created_at: '2023-08-20', name: 'محمد', email: 'm@test.com', subject: 'استفسار', message: 'كيف اشترك؟', status: 'جديدة' }
 ];
 
 export const mockJoinRequests: JoinRequest[] = [
-    { id: 'join_1', created_at: new Date().toISOString(), name: 'مبدع جديد', email: 'creative@test.com', phone: '01012345678', role: 'رسام قصص أطفال', message: 'أنا رسام مهتم.', status: 'جديد', portfolio_url: 'https://example.com' },
+    { id: 'r1', created_at: '2023-08-21', name: 'سعاد', email: 's@test.com', phone: '010...', role: 'مدرب', message: 'أرغب بالانضمام', status: 'جديد' }
 ];
 
-export const mockAuditLogs: any[] = [
-    {
-        id: 'log_1',
-        user_id: 'usr_admin',
-        action: 'UPDATE_ORDER_STATUS',
-        target_id: 'ord_123',
-        target_description: 'Order #ord_123',
-        details: 'Status changed to "تم التسليم"',
-        timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-    },
-    {
-        id: 'log_2',
-        user_id: 'usr_supervisor',
-        action: 'UPDATE_USER_ROLE',
-        target_id: 'usr_user',
-        target_description: 'User "سارة خالد"',
-        details: 'Role changed from "user" to "content_editor"',
-        timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    },
-    {
-        id: 'log_3',
-        user_id: 'usr_editor',
-        action: 'CREATE_BLOG_POST',
-        target_id: 'post_4',
-        target_description: 'Blog Post #4',
-        details: 'Created new blog post: "استعداداً للمدرسة..."',
-        timestamp: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
-    },
-    {
-        id: 'log_4',
-        user_id: 'usr_cws',
-        action: 'APPROVE_INSTRUCTOR_SCHEDULE',
-        target_id: 'inst_1',
-        target_description: 'Instructor "أ. أحمد المصري"',
-        details: 'Approved weekly schedule update.',
-        timestamp: new Date(Date.now() - 86400000 * 3).toISOString(), // 3 days ago
-    },
-    {
-        id: 'log_5',
-        user_id: 'usr_els',
-        action: 'UPDATE_PRODUCT',
-        target_id: 'prod_1',
-        target_description: 'Product "القصة المخصصة"',
-        details: 'Price updated from 400 to 450.',
-        timestamp: new Date(Date.now() - 86400000 * 4).toISOString(), // 4 days ago
-    }
-];
-
-export const mockPublicHolidays: string[] = ['2023-10-06'];
-
-export const mockSiteContent: SiteContent = {
-  portalPage: {
-    heroTitle: "رحلة كل طفل تبدأ بقصة... وقصته تبدأ هنا",
-    heroSubtitle: "منصة تربوية عربية متكاملة تصنع قصصاً مخصصة تجعل طفلك بطلاً، وتطلق مواهبه في الكتابة الإبداعية",
-    projectsTitle: "أقسامنا الرئيسية",
-    projectsSubtitle: "بوابتان لعالم من الإبداع والنمو، مصممتان لتلبية احتياجات طفلك الفريدة.",
-    enhaLakTitle: "إنها لك",
-    enhaLakDescription: "ادخل إلى عالم الحكايات الشخصية، حيث يصبح طفلك هو البطل في قصص ومنتجات صُنعت خصيصاً له.",
-    creativeWritingTitle: "بداية الرحلة",
-    creativeWritingDescription: "بوابة إلى عالم الإبداع، حيث نطلق العنان للكاتب الصغير داخل طفلك من خلال رحلة تدريبية ملهمة.",
-    valuePropositionTitle: "لماذا منصة الرحلة هي الأفضل لطفلك؟",
-    socialProofTitle: "أرقام نفخر بها", // Not currently used, but good to have
-    aboutSectionTitle: "قصتنا: من فكرة إلى رحلة",
-    aboutSectionContent: "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة 'منصة الرحلة' - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي.",
-    testimonialsTitle: "ماذا تقول عائلاتنا؟",
-    testimonialsSubtitle: "آراء نفخر بها من عائلة 'الرحلة'.",
-    blogTitle: "من مدونتنا",
-    blogSubtitle: "مقالات ونصائح تربوية وإبداعية لمساعدتكم في رحلة تنمية أطفالكم.",
-    finalCtaTitle: "هل أنت جاهز لبدء الرحلة؟",
-    finalCtaSubtitle: "اختر المسار الذي يناسب طفلك اليوم وافتح له بابًا جديدًا من الخيال والمعرفة."
-  },
-  aboutPage: {
-    heroTitle: "رسالتنا",
-    missionStatement: "نؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً، تكون مرآة تعكس شخصية الطفل الفريدة، وتعزز هويته العربية، وتغرس في قلبه أسمى القيم الإنسانية.",
-    ourStory: "في عالم يتسارع نحو الرقمنة، لاحظنا أن أطفالنا العرب يفتقرون لمحتوى تربوي يعكس هويتهم ويلامس قلوبهم. من هنا وُلدت فكرة 'منصة الرحلة' - حلم بأن نصنع لكل طفل عربي قصة خاصة به، يكون فيها البطل الحقيقي.",
-    ourVision: "أن نكون المنصة الرائدة والوجهة الأولى لكل أسرة عربية تبحث عن محتوى تربوي إبداعي وأصيل ينمّي شخصية الطفل، يعزز ارتباطه بلغته وهويته، ويطلق العنان لخياله الإبداعي.",
-    valuesTitle: "قيمنا الأساسية",
-    teamMembers: [
-        { name: 'أ. أحمد المصري', role: 'مؤسس ومدرب', imageUrl: 'https://i.ibb.co/2S4xT8w/male-avatar.png' },
-        { name: 'أ. نورة القحطاني', role: 'مدربة ورسامة', imageUrl: 'https://i.ibb.co/yY3GJk1/female-avatar.png' },
-    ] as TeamMember[]
-  },
-  enhaLakPage: {
-    main: {
-      heroTitle: "أكثر من مجرد قصة... إنها مغامرة شخصية لطفلك",
-      heroSubtitle: "مشروع 'إنها لك' هو حجر الأساس في منصتنا، حيث نحول الطفل من مجرد قارئ إلى بطل حقيقي يعيش المغامرة بكل تفاصيلها.",
-      productsTitle: "ماذا نصنع في 'إنها لك'؟",
-      howItWorksTitle: "خطوات بسيطة لقصة فريدة",
-      galleryTitle: "من أعمالنا",
-      gallerySubtitle: "نماذج من قصص أطفالنا (بعد أخذ إذن أولياء الأمور).",
-      testimonialsTitle: "تجارب لا تُنسى من عائلاتنا",
-      testimonialsSubtitle: "آراء نفخر بها من عائلة 'الرحلة'.",
-      finalCtaTitle: "هل أنت جاهز لصناعة السحر؟",
-      finalCtaSubtitle: "اهدِه قصة ستبقى في ذاكرته إلى الأبد.",
-      customStoryImageUrl: "https://i.ibb.co/RzJzQhL/hero-image-new.jpg",
-      subscriptionBoxImageUrl: "https://i.ibb.co/L8DDd6V/gift-box-sub.png",
-    },
-    store: {
-      heroTitle: "متجر 'إنها لك'",
-      heroSubtitle: "اختر الكنز الذي سيجعل طفلك بطلاً. كل منتج مصمم بحب ليقدم تجربة فريدة لا تُنسى.",
-      subscriptionBannerTitle: "اكتشف صندوق الرحلة الشهري!",
-      featuredProductsTitle: "المنتجات المميزة",
-      coreProductsTitle: "المنتجات الأساسية",
-      addonProductsTitle: "إضافات إبداعية"
-    },
-    subscription: {
-      heroTitle: "صندوق الرحلة الشهري",
-      heroSubtitle: "هدية متجددة كل شهر، تفتح لطفلك أبواباً جديدة من الخيال والمعرفة.",
-      features: [
-        "قصة مخصصة جديدة كل شهر.",
-        "أنشطة تفاعلية وألعاب تعليمية.",
-        "هدية إضافية مختارة بعناية."
-      ]
-    }
-  },
-  creativeWritingPage: {
-    main: {
-      heroTitle: "'بداية الرحلة': حيث لا تُكتب الكلمات، بل تولد العوالم",
-      heroSubtitle: "'بداية الرحلة' ليس برنامجاً لتعليم الكتابة، بل هو احتفال بالصوت الفريد لكل طفل.",
-      methodologyTitle: "منهجيتنا المتميزة: 'الإلهام قبل القواعد'",
-      methodologySubtitle: "كيف نطلق الإبداع؟",
-      transformationTitle: "التحول الذي نصنعه",
-      transformationSubtitle: "مع نهاية الرحلة، لا يحصل طفلك على مجرد نصوص مكتوبة، بل يحصل على ما هو أثمن:",
-      packagesTitle: "باقات مصممة لكل مبدع",
-      packagesSubtitle: "سواء كان طفلك يستكشف الكتابة لأول مرة أو يمتلك موهبة واعدة، لدينا الباقة المثالية التي تناسب مرحلته وتطلق العنان لإمكاناته الكاملة.",
-      servicesTitle: "خدمات إبداعية إضافية",
-      servicesSubtitle: "هل تحتاج إلى استشارة خاصة، أو مراجعة لنص كتبه طفلك؟ اكتشف خدماتنا الإضافية المصممة لدعم المبدعين الصغار في كل خطوة.",
-      instructorsTitle: "مدربونا المتخصصون",
-      instructorsSubtitle: "نخبة من الخبراء الشغوفين بإلهام العقول المبدعة.",
-      testimonialsTitle: "آراء أولياء الأمور",
-      testimonialsSubtitle: "تجارب حقيقية من عائلات انضمت لبرنامج 'بداية الرحلة'.",
-      finalCtaTitle: "هل أنت جاهز لبدء الرحلة؟",
-      finalCtaSubtitle: "اختر الباقة التي تناسب طفلك اليوم وافتح له بابًا جديدًا من الإبداع والتعبير."
-    },
-    about: {
-      heroTitle: "لماذا 'بداية الرحلة'؟",
-      heroSubtitle: "لأننا نؤمن أن بداخل كل طفل كاتباً عظيماً ينتظر من يكتشفه.",
-      mainTitle: "رحلة شخصية، وليست درساً",
-      mainContent: "نحن لا نقدم دروسًا، بل نقدم رحلة شخصية بصحبة مرشد متخصص. في جلسات فردية مباشرة، نأخذ بيد طفلك بعيدًا عن سطوة القواعد الصارمة والتقييم، ونمنحه حرية الورقة البيضاء. هنا، لا توجد إجابات صحيحة أو خاطئة؛ يوجد فقط صوت طفلك، خياله، وقصته التي تنتظر أن تُروى.",
-      philosophyTitle: "فلسفتنا في ثلاث كلمات",
-      heroImageUrl: "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg",
-    },
-    curriculum: {
-      heroTitle: "خريطة الرحلة الإبداعية",
-      heroSubtitle: "مسار تعليمي مصمم بعناية لينقل طفلك من مجرد فكرة إلى قصة متكاملة، خطوة بخطوة.",
-      treasuresTitle: "كنوز رحلتك",
-      treasuresSubtitle: "في نهاية البرنامج، لا يخرج طفلك بيدين فارغتين، بل يحمل معه ما يثبت إنجازه ونموه."
-    },
-    instructors: {
-      heroTitle: "رفقاء الرحلة الملهمون",
-      heroSubtitle: "نؤمن أن الإبداع لا يُلقّن، بل يُلهم. لذلك، اخترنا بعناية نخبة من الكتّاب والتربويين."
-    }
-  },
-  supportPage: {
-      heroTitle: "الدعم والمساعدة",
-      heroSubtitle: "نحن هنا لمساعدتك في كل خطوة من رحلتك. تصفح الأسئلة الشائعة للعثور على إجابات سريعة، أو تواصل معنا مباشرة.",
-      faqs: [
-        { category: 'منتجات "إنها لك"', question: 'كيف تتم عملية تخصيص القصة؟', answer: 'ببساطة! عند طلب المنتج، ستقوم بملء نموذج ببيانات طفلك مثل اسمه وعمره واهتماماته، بالإضافة إلى رفع صورته. يقوم فريقنا من الكتّاب المتخصصين باستخدام هذه المعلومات لصياغة قصة فريدة يكون فيها طفلك هو البطل.' },
-        { category: 'منتجات "إنها لك"', question: 'كم من الوقت يستغرق تجهيز الطلب؟', answer: 'عادةً ما يستغرق تجهيز الطلبات المخصصة من 5 إلى 7 أيام عمل قبل الشحن. نحن نولي كل قصة اهتماماً خاصاً لضمان أعلى جودة.' },
-        { category: 'منتجات "إنها لك"', question: 'ما هي الأعمار المناسبة للقصص؟', answer: 'قصصنا مصممة لتناسب الأطفال من عمر 3 إلى 12 سنة. نقوم بتكييف لغة القصة وموضوعاتها لتناسب الفئة العمرية للطفل بناءً على تاريخ ميلاده المدخل.' },
-        { category: 'منتجات "إنها لك"', question: 'هل يمكنني معاينة القصة قبل الطباعة؟', answer: 'لضمان سرعة الإنتاج، لا نوفر معاينة كاملة للنص قبل الطباعة، ولكن يمكنك التأكد من أن القصة ستلتزم بالبيانات والأهداف التربوية التي حددتها. في حال وجود خطأ مطبعي من جانبنا، نتحمل مسؤولية إعادة الطباعة.' },
-        { category: 'منتجات "إنها لك"', question: 'هل الصور في القصة هي صور حقيقية لطفلي؟', answer: 'نحن نستخدم أحدث تقنيات الرسم الرقمي لتحويل صورة طفلك إلى شخصية كرتونية تشبهه، لتندمج بسلاسة مع رسومات القصة وتمنحه شعوراً سحرياً بالبطولة.' },
-        { category: 'برنامج "بداية الرحلة"', question: 'كيف أختار الباقة المناسبة لطفلي؟', answer: 'لقد صممنا صفحة مخصصة لمقارنة الباقات لمساعدتك على اتخاذ القرار. بشكل عام، "باقة الانطلاق" مثالية للمبتدئين، بينما "الباقة الأساسية" تناسب من يريدون تطوير مهاراتهم بجدية.' },
-        { category: 'برنامج "بداية الرحلة"', question: 'كيف تتم الجلسات التعليمية؟', answer: 'تتم الجلسات بشكل فردي (واحد لواحد) بين المدرب والطالب عبر الإنترنت من خلال منصة فيديو آمنة مدمجة في موقعنا. لا تحتاج لتحميل أي برامج خارجية.' },
-        { category: 'برنامج "بداية الرحلة"', question: 'ماذا لو حدث ظرف طارئ ولم يستطع طفلي حضور الجلسة؟', answer: 'يمكنك إعادة جدولة الجلسة قبل موعدها بـ 24 ساعة مجاناً من خلال لوحة التحكم. في حالات الطوارئ القصوى، يرجى التواصل مع الدعم الفني.' },
-        { category: 'برنامج "بداية الرحلة"', question: 'هل يحصل الطالب على شهادة؟', answer: 'بالتأكيد. عند إتمام باقة الجلسات، يحصل الطالب على شهادة إتمام للبرنامج، بالإضافة إلى محفظة أعمال رقمية تضم إبداعاته التي أنجزها خلال الرحلة.' },
-        { category: 'برنامج "بداية الرحلة"', question: 'هل يمكنني تغيير المدرب بعد بدء الباقة؟', answer: 'نعم، إذا لم يشعر الطفل بالانسجام مع المدرب الحالي، يمكنك طلب تغيير المدرب للجلسات المتبقية بالتواصل مع فريق الدعم.' },
-        { category: 'صندوق الرحلة الشهري', question: 'كيف يعمل الاشتراك في صندوق الرحلة الشهري؟', answer: 'بمجرد اشتراكك، سيصلك صندوق مميز إلى باب منزلك كل شهر. يحتوي كل صندوق على قصة مخصصة جديدة وأنشطة وهدايا إضافية مصممة بعناية لتناسب عمر طفلك واهتماماته.' },
-        { category: 'صندوق الرحلة الشهري', question: 'هل يمكنني إيقاف اشتراكي مؤقتًا؟', answer: 'نعم، يمكنك إيقاف الاشتراك مؤقتاً لمدة شهر أو أكثر من خلال إعدادات حسابك، وإعادة تفعيله في أي وقت دون رسوم إضافية.' },
-        { category: 'صندوق الرحلة الشهري', question: 'متى يتم خصم مبلغ الاشتراك؟', answer: 'يتم خصم المبلغ شهرياً في نفس يوم اشتراكك الأول. يتم شحن الصندوق خلال 3-5 أيام عمل من نجاح عملية الدفع.' },
-        { category: 'صندوق الرحلة الشهري', question: 'هل محتوى الصندوق يتكرر؟', answer: 'إطلاقاً! كل شهر له طابع وموضوع مختلف (الفضاء، البحار، الأخلاق، المهن..)، والقصة تُكتب خصيصاً لتناسب هذا الموضوع وتطور عمر طفلك.' },
-        { category: 'أسئلة عامة والشحن', question: 'ما هي طرق الدفع المتاحة؟ وهل هي آمنة؟', answer: 'نحن نقبل الدفع عبر المحافظ الإلكترونية وInstapay. تتم جميع عمليات الدفع عبر بوابات آمنة وموثوقة لضمان حماية بياناتك المالية.' },
-        { category: 'أسئلة عامة والشحن', question: 'هل تقومون بالشحن خارج مصر؟', answer: 'حاليًا، خدمات الشحن لدينا تغطي جميع محافظات جمهورية مصر العربية. نعمل على التوسع لتغطية دول الخليج العربي قريباً.' },
-        { category: 'أسئلة عامة والشحن', question: 'كم تبلغ تكلفة الشحن؟', answer: 'تختلف تكلفة الشحن حسب المحافظة. يمكنك رؤية التكلفة الدقيقة عند إدخال عنوانك في صفحة إتمام الطلب، وتتراوح عادة بين 40 إلى 80 جنيماً.' },
-        { category: 'أسئلة عامة والشحن', question: 'كيف يمكنني تتبع طلبي؟', answer: 'بمجرد شحن طلبك، ستتلقى إشعاراً وتحديثاً في صفحة "الطلبات" بحسابك. يمكنك متابعة حالة الطلب خطوة بخطوة حتى وصوله إليك.' },
-        { category: 'أسئلة عامة والشحن', question: 'ما هي سياسة الاسترجاع؟', answer: 'نظراً لأن منتجاتنا مخصصة (مطبوعة خصيصاً بالاسم والصورة)، لا يمكن استرجاعها إلا في حال وجود عيب في الصناعة أو خطأ من جانبنا. في هذه الحالة، نلتزم بإعادة الطباعة والشحن مجاناً.' },
-      ]
-  }
-};
-
-
-const now = new Date();
-const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+export const mockSupportSessionRequests: SupportSessionRequest[] = [];
 
 export const mockScheduledSessions: ScheduledSession[] = [
-    // Journey 1 (bk_abc) for Fatima (child_id: 1)
-    { id: 'ses_1', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(Date.now() - 86400000 * 14).toISOString(), status: 'completed' },
-    { id: 'ses_3', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(firstDayOfMonth.setDate(2)).toISOString(), status: 'completed' },
-    { id: 'ses_2', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(Date.now() + 86400000 * 7).toISOString(), status: 'upcoming' },
-    { id: 'ses_4', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(Date.now() + 86400000 * 14).toISOString(), status: 'upcoming' },
-    // Journey 2 (bk_def) for Omar (child_id: 2)
-    { id: 'ses_5', booking_id: 'bk_def', subscription_id: null, child_id: 2, instructor_id: 1, session_date: new Date(firstDayOfMonth.setDate(3)).toISOString(), status: 'completed' },
-    { id: 'ses_6', booking_id: 'bk_def', subscription_id: null, child_id: 2, instructor_id: 1, session_date: new Date(Date.now() + 86400000 * 10).toISOString(), status: 'upcoming' },
+    { id: 'ses_2', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: '2023-08-10T17:00:00Z', status: 'completed' },
+    { id: 'ses_6', booking_id: 'bk_def', subscription_id: null, child_id: 2, instructor_id: 1, session_date: '2023-08-15T14:00:00Z', status: 'upcoming' }
 ];
 
-export const mockSessionMessages: SessionMessage[] = [
-    { id: 'msg_1', booking_id: 'bk_abc', sender_id: 'usr_instructor_1', sender_role: 'instructor', message_text: 'مرحباً فاطمة، هل أنتِ مستعدة لجلستنا القادمة؟', created_at: new Date().toISOString() },
-];
+export const mockSessionMessages: SessionMessage[] = [];
 
-export const mockSessionAttachments: SessionAttachment[] = [
-    { id: 'att_1', booking_id: 'bk_abc', uploader_id: 'usr_student', uploader_role: 'student', file_name: 'قصتي-الأولى-مسودة.pdf', file_url: '#', created_at: '2023-07-28T10:00:00Z' },
-    { id: 'att_2', booking_id: 'bk_abc', uploader_id: 'usr_student', uploader_role: 'student', file_name: 'القصة-النهائية-مغامرة-الفضاء.pdf', file_url: '#', created_at: '2023-08-05T10:00:00Z' },
-    { id: 'att_3', booking_id: 'bk_def', uploader_id: 'usr_student', uploader_role: 'student', file_name: 'فكرة-قصة-الديناصور.txt', file_url: '#', created_at: '2023-08-02T10:00:00Z' },
-];
+export const mockSessionAttachments: SessionAttachment[] = [];
 
-export const mockSupportSessionRequests: SupportSessionRequest[] = [
-    { id: 'sup_req_1', instructor_id: 1, child_id: 1, reason: 'يحتاج الطالب جلسة دعم إضافية لمناقشة فكرة القصة.', status: 'pending', requested_at: new Date().toISOString() },
+export const mockServiceOrders: ServiceOrder[] = [];
+
+export const mockInstructorPayouts: InstructorPayout[] = [];
+
+export const mockAdditionalServices: AdditionalService[] = [];
+
+export const mockPricingSettings: PricingSettings = {
+    id: 1, company_percentage: 1.2, fixed_fee: 50
+};
+
+export const mockRolePermissions: Record<UserRole, Permissions> = {} as any;
+
+export const mockJitsiSettings: JitsiSettings = {
+    id: 1, domain: 'meet.jit.si', room_prefix: 'AlRehlah-', join_minutes_before: 10, expire_minutes_after: 120, start_with_audio_muted: true, start_with_video_muted: false
+};
+
+export const mockAuditLogs = [
+    { id: 1, action: 'UPDATE_ORDER_STATUS', user_id: 'usr_admin', target_description: 'Order #123', details: 'Changed to Completed', timestamp: '2023-08-25T10:00:00Z' }
 ];

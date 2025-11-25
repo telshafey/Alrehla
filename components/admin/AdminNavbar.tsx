@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Menu, LogOut, PanelRightOpen, PanelRightClose, User } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '../ui/card';
 import { Button } from '../ui/Button';
+import Image from '../ui/Image';
 
 interface AdminNavbarProps {
     onMobileMenuToggle: () => void;
@@ -34,6 +35,16 @@ const AdminNavbar: React.FC<AdminNavbarProps> = ({ onMobileMenuToggle, isSidebar
                     <Button onClick={onMobileMenuToggle} variant="ghost" size="icon" className="md:hidden">
                         <Menu size={24} />
                     </Button>
+                    
+                    {/* Logo for Mobile - Visible only on small screens */}
+                     <div className="h-8 w-8 relative md:hidden">
+                        <Image 
+                            src="https://i.ibb.co/C0bSJJT/favicon.png" 
+                            alt="شعار" 
+                            className="h-full w-full !bg-transparent" 
+                            objectFit="contain"
+                        />
+                    </div>
 
                     {/* Desktop Sidebar Toggle */}
                      <Button onClick={onSidebarToggle} variant="ghost" size="icon" className="hidden md:block">

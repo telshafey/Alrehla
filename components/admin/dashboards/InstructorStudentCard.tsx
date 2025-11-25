@@ -1,8 +1,23 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, ArrowLeft, Clock, CheckCircle } from 'lucide-react';
 import { formatDate } from '../../../utils/helpers';
 import { Button } from '../../ui/Button';
+import type { CreativeWritingBooking, ScheduledSession, CreativeWritingPackage } from '../../../lib/database.types';
+
+interface StudentProfile {
+    name: string;
+    avatar_url: string | null;
+}
+
+interface Journey {
+    id: string;
+    package_name: string;
+    status: string;
+    sessions: ScheduledSession[];
+    packageDetails?: CreativeWritingPackage;
+}
 
 const parseTotalSessions = (sessionString: string | undefined): number => {
     if (!sessionString) return 0;
@@ -10,7 +25,7 @@ const parseTotalSessions = (sessionString: string | undefined): number => {
     return match ? parseInt(match[0], 10) : 0;
 };
 
-const InstructorStudentCard: React.FC<{ student: any; journeys: any[] }> = ({ student, journeys }) => {
+const InstructorStudentCard: React.FC<{ student: StudentProfile; journeys: Journey[] }> = ({ student, journeys }) => {
     return (
         <div className="bg-white p-6 rounded-2xl shadow-md border">
             {/* Header */}
@@ -29,7 +44,7 @@ const InstructorStudentCard: React.FC<{ student: any; journeys: any[] }> = ({ st
             <div className="space-y-4">
                  {journeys.map(journey => {
                     const totalSessions = parseTotalSessions(journey.packageDetails?.sessions);
-                    const completedSessionsCount = journey.sessions.filter((s:any) => s.status === 'completed').length;
+                    const completedSessionsCount = journey.sessions.filter(s => s.status === 'completed').length;
                     const sortedSessions = [...(journey.sessions || [])].sort((a,b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
 
                     return (
@@ -47,7 +62,7 @@ const InstructorStudentCard: React.FC<{ student: any; journeys: any[] }> = ({ st
                             <div className="mt-3 border-t pt-3">
                                 <h5 className="text-sm font-semibold mb-2">الجلسات المجدولة:</h5>
                                 <div className="space-y-2 text-xs">
-                                    {sortedSessions.length > 0 ? sortedSessions.map((s: any) => (
+                                    {sortedSessions.length > 0 ? sortedSessions.map(s => (
                                         <div key={s.id} className="flex items-center gap-2">
                                             {s.status === 'completed' ? <CheckCircle size={14} className="text-green-500" /> : <Clock size={14} className="text-blue-500" />}
                                             <span className={s.status === 'completed' ? 'line-through text-gray-500' : ''}>

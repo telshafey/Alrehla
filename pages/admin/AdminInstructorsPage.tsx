@@ -14,6 +14,7 @@ import type { Instructor } from '../../lib/database.types';
 import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import Image from '../../components/ui/Image';
 
 
 // Main Page Component
@@ -121,7 +122,9 @@ const AdminInstructorsPage: React.FC = () => {
                                 filteredAndSortedInstructors.map(instructor => (
                                     <TableRow key={instructor.id}>
                                         <TableCell className="flex items-center gap-3">
-                                            <img src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={instructor.name} className="w-10 h-10 rounded-full object-cover" loading="lazy" />
+                                            <div className="w-10 h-10 rounded-full overflow-hidden">
+                                                <Image src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={instructor.name} className="w-full h-full" objectFit="cover" />
+                                            </div>
                                             <span className="font-medium text-foreground">{instructor.name}</span>
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">{instructor.specialty}</TableCell>

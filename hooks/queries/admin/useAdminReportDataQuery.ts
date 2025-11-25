@@ -1,10 +1,44 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { mockOrders, mockUsers, mockInstructors, mockBookings, mockScheduledSessions, mockCreativeWritingPackages } from '../../../data/mockData';
+import { UserRole } from '../../../lib/roles';
 
 const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
 
 type ReportType = 'orders' | 'users' | 'instructors';
+
+export interface OrderReportItem {
+    id: string;
+    users: { name: string } | null;
+    child_profiles: { name: string } | null;
+    item_summary: string;
+    total: number;
+    status: string;
+    order_date: string;
+}
+
+export interface UserReportItem {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    created_at: string;
+}
+
+export interface InstructorReportItem {
+    id: number;
+    name: string;
+    specialty: string;
+    totalStudents: number;
+    totalBookings: number;
+    completedSessions: number;
+    upcomingSessions: number;
+    introSessions: number;
+    availableSlots: number;
+}
+
+export type ReportData = OrderReportItem | UserReportItem | InstructorReportItem;
+
 interface ReportFilters {
     startDate?: string;
     endDate?: string;
@@ -12,7 +46,7 @@ interface ReportFilters {
     instructorId?: string;
 }
 
-const fetchAndFilterData = async (reportType: ReportType, filters: ReportFilters): Promise<any[]> => {
+const fetchAndFilterData = async (reportType: ReportType, filters: ReportFilters): Promise<ReportData[]> => {
     switch (reportType) {
         case 'orders': {
             const allOrders = await mockFetch(mockOrders) as any[];
@@ -23,7 +57,15 @@ const fetchAndFilterData = async (reportType: ReportType, filters: ReportFilters
                     (!filters.endDate || orderDate <= new Date(filters.endDate));
                 const matchesStatus = !filters.status || filters.status === 'all' || order.status === filters.status;
                 return matchesDate && matchesStatus;
-            });
+            }).map(order => ({
+                id: order.id,
+                users: order.users || { name: 'Unknown' }, // Mock data might miss relations in this direct fetch context if not enriched, but keeping simple for report
+                child_profiles: order.child_profiles || { name: 'Unknown' },
+                item_summary: order.item_summary,
+                total: order.total,
+                status: order.status,
+                order_date: order.order_date
+            })) as OrderReportItem[];
         }
         case 'users': {
             const allUsers = await mockFetch(mockUsers) as any[];
@@ -34,7 +76,7 @@ const fetchAndFilterData = async (reportType: ReportType, filters: ReportFilters
                     (!filters.endDate || userDate <= new Date(filters.endDate));
                 const matchesRole = !filters.status || filters.status === 'all' || user.role === filters.status;
                 return matchesDate && matchesRole;
-            });
+            }) as UserReportItem[];
         }
         case 'instructors': {
             // Parallel fetch for aggregation
@@ -88,7 +130,7 @@ const fetchAndFilterData = async (reportType: ReportType, filters: ReportFilters
                     // Mock calculation for total available slots (assume fixed for now or derived from schedule)
                     availableSlots: Object.keys(instructor.availability || {}).length * 8, // approximate
                 };
-            });
+            }) as InstructorReportItem[];
         }
         default:
             return [];

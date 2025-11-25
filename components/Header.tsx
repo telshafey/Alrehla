@@ -66,11 +66,12 @@ const Header: React.FC = () => {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <Link to="/" className="flex items-center gap-3" onClick={closeAllMenus}>
-                        <div className="h-10 w-auto min-w-[40px]">
+                        {/* Fixed width container for logo to prevent layout shifts and ensure visibility */}
+                        <div className="h-10 w-28 relative flex items-center justify-start">
                             <Image 
                                 src={siteBranding?.logoUrl || "https://i.ibb.co/C0bSJJT/favicon.png"} 
                                 alt="شعار منصة الرحلة" 
-                                className="h-full w-full bg-transparent" 
+                                className="h-full w-full !bg-transparent" 
                                 objectFit="contain"
                                 loading="eager" 
                             />

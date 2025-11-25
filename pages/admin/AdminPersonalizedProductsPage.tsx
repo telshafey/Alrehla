@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import ErrorState from '../../components/ui/ErrorState';
 import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 import Dropdown from '../../components/ui/Dropdown';
+import Image from '../../components/ui/Image';
+import { formatCurrency } from '../../utils/helpers';
 
 const AdminPersonalizedProductsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -106,14 +108,16 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                                     sortedProducts.map(product => (
                                         <TableRow key={product.id}>
                                             <TableCell className="flex items-center gap-4">
-                                                <img src={product.image_url || 'https://i.ibb.co/C0bSJJT/favicon.png'} alt={product.title} className="w-12 h-12 object-contain rounded-md bg-muted" loading="lazy" />
+                                                <div className="w-12 h-12 flex-shrink-0 rounded-md overflow-hidden bg-muted">
+                                                    <Image src={product.image_url || 'https://i.ibb.co/C0bSJJT/favicon.png'} alt={product.title} className="w-full h-full" objectFit="contain" />
+                                                </div>
                                                 <span className="font-semibold">{product.title}</span>
                                             </TableCell>
                                             <TableCell className="font-mono text-sm">
                                                 {product.key === 'subscription_box' ? (
                                                     <span className="font-sans font-semibold text-primary">باقات متعددة</span>
                                                 ) : (
-                                                    `${product.price_printed ?? '-'} / ${product.price_electronic ?? '-'}`
+                                                    `${product.price_printed ? formatCurrency(product.price_printed) : '-'} / ${product.price_electronic ? formatCurrency(product.price_electronic) : '-'}`
                                                 )}
                                             </TableCell>
                                             <TableCell>{product.sort_order}</TableCell>
