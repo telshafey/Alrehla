@@ -206,8 +206,8 @@ export const pageConfigs: PageConfig[] = [
                     { key: 'enhaLakPage.main.productsTitle', label: 'عنوان قسم المنتجات', type: 'input' },
                     { key: 'enhaLakPage.main.howItWorksTitle', label: 'عنوان "كيف نعمل؟"', type: 'input' },
                     { key: 'enhaLakPage.main.testimonialsTitle', label: 'عنوان الآراء', type: 'input' },
-                    { key: 'enhaLakPage.main.customStoryImageUrl', label: 'صورة القصة المخصصة', type: 'image' },
-                    { key: 'enhaLakPage.main.subscriptionBoxImageUrl', label: 'صورة صندوق الاشتراك', type: 'image' }
+                    { key: 'enhaLakPage.main.customStoryImageUrl', label: 'صورة عرض "القصة المخصصة" (بالصفحة التعريفية)', type: 'image' },
+                    { key: 'enhaLakPage.main.subscriptionBoxImageUrl', label: 'صورة عرض "صندوق الاشتراك" (بالصفحة التعريفية)', type: 'image' }
                 ]
             },
             {

@@ -1,7 +1,10 @@
 
 import { getToken, clearToken } from './tokenManager';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+// Use relative path for Vercel deployment. 
+// This allows the app to communicate with Vercel Serverless Functions (e.g. /api/sendEmail)
+// or a proxy configured in vercel.json.
+const API_BASE_URL = '/api';
 
 export class ApiError extends Error {
     status: number;

@@ -12,29 +12,24 @@ interface State {
 }
 
 class GlobalErrorBoundary extends Component<Props, State> {
-    // FIX: Removed 'public' access modifier for idiomatic React code.
-    state: State = {
+    public state: State = {
         hasError: false,
         error: null,
     };
 
-    // FIX: Removed 'public' access modifier for idiomatic React code.
-    static getDerivedStateFromError(error: Error): State {
+    public static getDerivedStateFromError(error: Error): State {
         return { hasError: true, error };
     }
 
-    // FIX: Removed 'public' access modifier for idiomatic React code.
-    componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error('Uncaught error:', error, errorInfo);
     }
 
-    // FIX: Removed 'public' access modifier for idiomatic React code.
-    handleReload = () => {
+    public handleReload = () => {
         window.location.reload();
     };
 
-    // FIX: Removed 'public' access modifier for idiomatic React code.
-    render() {
+    public render() {
         if (this.state.hasError) {
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -63,7 +58,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
             );
         }
 
-        return this.props.children;
+        return (this as any).props.children;
     }
 }
 
