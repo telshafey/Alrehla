@@ -13,8 +13,10 @@ export default defineConfig({
         output: {
             manualChunks: {
                 vendor: ['react', 'react-dom', 'react-router-dom'],
-                ui: ['lucide-react', '@radix-ui/react-slot', 'clsx', 'tailwind-merge'],
-                utils: ['@tanstack/react-query', 'zod', 'react-hook-form', 'date-fns']
+                // Removed @radix-ui/react-slot, clsx, tailwind-merge as they caused build errors
+                ui: ['lucide-react'], 
+                // Removed date-fns as it is not explicitly used/installed
+                utils: ['@tanstack/react-query', 'zod', 'react-hook-form'] 
             }
         }
     }
