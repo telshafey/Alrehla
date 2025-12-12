@@ -9,6 +9,15 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     minify: 'esbuild',
+    rollupOptions: {
+        output: {
+            manualChunks: {
+                vendor: ['react', 'react-dom', 'react-router-dom'],
+                ui: ['lucide-react', '@radix-ui/react-slot', 'clsx', 'tailwind-merge'],
+                utils: ['@tanstack/react-query', 'zod', 'react-hook-form', 'date-fns']
+            }
+        }
+    }
   },
   server: {
     port: 3000,

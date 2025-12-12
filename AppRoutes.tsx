@@ -6,7 +6,6 @@ import PageLoader from './components/ui/PageLoader';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Eagerly load core pages
-import HomePage from './pages/HomePage';
 import PortalPage from './pages/PortalPage';
 import AboutPage from './pages/AboutPage';
 import SupportPage from './pages/SupportPage';
@@ -55,7 +54,6 @@ const AppRoutes: React.FC = () => {
             <Routes>
                 {/* --- Public Routes --- */}
                 <Route path="/" element={<PortalPage />} />
-                <Route path="/home" element={<HomePage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/support" element={<SupportPage />} />
                 <Route path="/join-us" element={<JoinUsPage />} />
