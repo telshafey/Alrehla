@@ -12,6 +12,7 @@ import OfflineBanner from './components/shared/OfflineBanner';
 function App() {
   const location = useLocation();
 
+  // Determine if the current route should hide the standard layout (Header/Footer)
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isStudentArea = location.pathname.startsWith('/student');
   const isSessionRoute = location.pathname.startsWith('/session');
@@ -19,7 +20,7 @@ function App() {
   const showLayout = !isAdminRoute && !isStudentArea && !isSessionRoute;
 
   return (
-    <div className="flex flex-col min-h-screen bg-muted/50" dir="rtl">
+    <div className="flex flex-col min-h-screen" dir="rtl">
       <OfflineBanner />
       {showLayout && <Header />}
       <ScrollToTop />

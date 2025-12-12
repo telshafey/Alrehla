@@ -5,26 +5,28 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import PageLoader from './components/ui/PageLoader';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
-// Eagerly load core pages
+// --- Core Pages (Eagerly Loaded for LCP) ---
 import PortalPage from './pages/PortalPage';
 import AboutPage from './pages/AboutPage';
 import SupportPage from './pages/SupportPage';
 import JoinUsPage from './pages/JoinUsPage';
 import AccountPage from './pages/AccountPage';
 import RegisterPage from './pages/RegisterPage';
-import StudentLoginPage from './pages/StudentLoginPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import PaymentStatusPage from './pages/PaymentStatusPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfUsePage from './pages/TermsOfUsePage';
 
-// Lazy load feature-specific pages
+// --- Feature Pages (Lazy Loaded) ---
+
+// Enha Lak (Story Store)
 const EnhaLakPage = lazy(() => import('./pages/EnhaLakPage'));
 const PersonalizedStoriesPage = lazy(() => import('./pages/PersonalizedStoriesPage'));
 const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage'));
 const OrderPage = lazy(() => import('./pages/OrderPage'));
 
+// Creative Writing (Start of the Journey)
 const CreativeWritingPage = lazy(() => import('./pages/CreativeWritingPage'));
 const CreativeWritingAboutPage = lazy(() => import('./pages/CreativeWritingAboutPage'));
 const CreativeWritingCurriculumPage = lazy(() => import('./pages/CreativeWritingCurriculumPage'));
@@ -38,10 +40,11 @@ const ServiceOrderPage = lazy(() => import('./pages/creative-writing/ServiceOrde
 const TrainingJourneyPage = lazy(() => import('./pages/TrainingJourneyPage'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
 
+// Blog
 const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
 
-// Lazy load protected areas
+// Protected Layouts & Areas
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
 const StudentLayout = lazy(() => import('./components/student/StudentLayout'));
 const StudentDashboardPage = lazy(() => import('./pages/student/StudentDashboardPage'));
@@ -52,7 +55,7 @@ const AppRoutes: React.FC = () => {
     return (
         <Suspense fallback={<PageLoader />}>
             <Routes>
-                {/* --- Public Routes --- */}
+                {/* ================= Public Routes ================= */}
                 <Route path="/" element={<PortalPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/support" element={<SupportPage />} />
@@ -67,27 +70,28 @@ const AppRoutes: React.FC = () => {
                 {/* Authentication */}
                 <Route path="/account" element={<AccountPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route path="/student-login" element={<StudentLoginPage />} />
 
-                {/* E-commerce */}
+                {/* E-commerce & Checkout */}
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
                 <Route path="/payment-status" element={<PaymentStatusPage />} />
                 
-                {/* Enha Lak Section */}
+                {/* ================= Feature Routes ================= */}
+
+                {/* Enha Lak (Stories) */}
                 <Route path="/enha-lak" element={<EnhaLakPage />} />
                 <Route path="/enha-lak/store" element={<PersonalizedStoriesPage />} />
                 <Route path="/enha-lak/subscription" element={<SubscriptionPage />} />
                 <Route path="/enha-lak/order/:productKey" element={<OrderPage />} />
 
-                {/* Creative Writing Section */}
+                {/* Creative Writing (Academy) */}
                 <Route path="/creative-writing" element={<CreativeWritingPage />} />
                 <Route path="/creative-writing/about" element={<CreativeWritingAboutPage />} />
                 <Route path="/creative-writing/curriculum" element={<CreativeWritingCurriculumPage />} />
                 <Route path="/creative-writing/instructors" element={<CreativeWritingInstructorsPage />} />
                 <Route path="/creative-writing/packages" element={<CreativeWritingPackagesPage />} />
                 
-                {/* Services Flow */}
+                {/* Creative Writing Services & Booking */}
                 <Route path="/creative-writing/services" element={<CreativeWritingServicesPage />} />
                 <Route path="/creative-writing/services/:serviceId/providers" element={<ServiceProvidersPage />} />
                 <Route path="/creative-writing/services/:serviceId/order" element={<ServiceOrderPage />} />
@@ -95,22 +99,23 @@ const AppRoutes: React.FC = () => {
                 <Route path="/instructor/:slug" element={<InstructorProfilePage />} />
                 <Route path="/creative-writing/booking" element={<ProtectedRoute><CreativeWritingBookingPage /></ProtectedRoute>} />
 
-                {/* --- Protected Routes --- */}
+                {/* ================= Protected Routes ================= */}
                 
-                {/* Student Area */}
+                {/* Student Portal */}
                 <Route path="/student" element={<ProtectedRoute studentOnly><StudentLayout /></ProtectedRoute>}>
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<StudentDashboardPage />} />
                     <Route path="portfolio" element={<StudentPortfolioPage />} />
                 </Route>
 
+                {/* Active Sessions & Journeys */}
                 <Route path="/journey/:journeyId" element={<ProtectedRoute><TrainingJourneyPage /></ProtectedRoute>} />
                 <Route path="/session/:sessionId" element={<ProtectedRoute><SessionPage /></ProtectedRoute>} />
 
-                {/* Admin Area */}
+                {/* Admin Dashboard */}
                 <Route path="/admin/*" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>} />
 
-                {/* Fallback Route */}
+                {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Suspense>
