@@ -1,106 +1,140 @@
 
-import { mockUsers, mockChildProfiles } from '../data/mockData';
+import { supabase } from '../lib/supabaseClient';
 import type { UserProfile, ChildProfile } from '../lib/database.types';
-import { mockFetch } from './mockAdapter';
-import { apiClient } from '../lib/api';
-
-// Toggle this to switch between Mock and Real API
-const USE_MOCK = true;
 
 export const userService = {
     // --- Queries ---
     async getAllUsers() {
-        if (USE_MOCK) {
-            return mockFetch(mockUsers);
-        }
-        return apiClient.get<UserProfile[]>('/admin/users');
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw new Error(error.message);
+        return data as UserProfile[];
     },
 
     async getAllChildProfiles() {
-        if (USE_MOCK) {
-            return mockFetch(mockChildProfiles);
-        }
-        return apiClient.get<ChildProfile[]>('/admin/child-profiles');
+        const { data, error } = await supabase
+            .from('child_profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw new Error(error.message);
+        return data as ChildProfile[];
     },
 
     async getUserById(id: string) {
-        if (USE_MOCK) {
-            const user = mockUsers.find(u => u.id === id);
-            return mockFetch(user);
-        }
-        return apiClient.get<UserProfile>(`/admin/users/${id}`);
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as UserProfile;
     },
 
     // --- Mutations ---
     async updateUser(payload: { id: string, name?: string, role?: string, address?: string, governorate?: string, phone?: string }) {
-        if (USE_MOCK) {
-            console.log("Service: Updating user (mock)", payload);
-            return mockFetch({ ...payload });
-        }
-        return apiClient.put<UserProfile>(`/admin/users/${payload.id}`, payload);
+        const { data, error } = await supabase
+            .from('profiles')
+            .update(payload)
+            .eq('id', payload.id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as UserProfile;
     },
 
-    async updateUserPassword(payload: { userId: string, currentPassword?: string, newPassword?: string }) {
-        if (USE_MOCK) {
-            console.log("Service: Updating password (mock)", payload.userId);
-            return mockFetch({ success: true });
-        }
-        return apiClient.put<{ success: boolean }>(`/admin/users/${payload.userId}/password`, payload);
+    async updateUserPassword(payload: { userId: string, newPassword?: string }) {
+        // Note: Updating another user's password requires Service Role key (Server-side).
+        // Client-side can only update OWN password.
+        const { error } = await supabase.auth.updateUser({ password: payload.newPassword });
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async createChildProfile(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Creating child profile (mock)", payload);
-            return mockFetch({ ...payload, id: Math.floor(Math.random() * 10000) });
-        }
-        return apiClient.post<ChildProfile>('/user/child-profiles', payload);
+        // Ensure user_id is set (usually from auth context, but explicitly handled here)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not logged in');
+
+        const { data, error } = await supabase
+            .from('child_profiles')
+            .insert([{ ...payload, user_id: user.id }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as ChildProfile;
     },
 
     async updateChildProfile(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Updating child profile (mock)", payload);
-            return mockFetch(payload);
-        }
-        return apiClient.put<ChildProfile>(`/user/child-profiles/${payload.id}`, payload);
+        const { data, error } = await supabase
+            .from('child_profiles')
+            .update(payload)
+            .eq('id', payload.id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as ChildProfile;
     },
 
     async deleteChildProfile(childId: number) {
-        if (USE_MOCK) {
-            console.log("Service: Deleting child profile (mock)", childId);
-            return mockFetch({ success: true });
-        }
-        return apiClient.delete<{ success: boolean }>(`/user/child-profiles/${childId}`);
+        const { error } = await supabase
+            .from('child_profiles')
+            .delete()
+            .eq('id', childId);
+
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async createAndLinkStudentAccount(payload: { name: string, email: string, password: string, childProfileId: number }) {
-        if (USE_MOCK) {
-            console.log("Service: Creating student account (mock)", payload);
-            return mockFetch({ success: true }, 800);
-        }
-        return apiClient.post<{ success: boolean }>('/admin/students/create-link', payload);
+        // This operation requires creating a new User in Supabase Auth.
+        // Important: Client-side SDK cannot create a user without logging the current user out,
+        // unless you use a secondary client or Edge Function.
+        // For now, we will simulate linking if the user is already created manually, or throw error.
+        
+        // Real implementation should call a Supabase Edge Function:
+        // const { data, error } = await supabase.functions.invoke('create-student-user', { body: payload });
+        
+        console.warn("Creating a new user requires an Edge Function or Admin API. Logic skipped for client-side safety.");
+        throw new Error("هذه الميزة تتطلب إعداد وظائف السيرفر (Edge Functions).");
     },
 
     async linkStudentToChildProfile(payload: { studentUserId: string, childProfileId: number }) {
-        if (USE_MOCK) {
-            console.log("Service: Linking student (mock)", payload);
-            return mockFetch({ success: true });
-        }
-        return apiClient.post<{ success: boolean }>('/admin/students/link', payload);
+        const { error } = await supabase
+            .from('child_profiles')
+            .update({ student_user_id: payload.studentUserId })
+            .eq('id', payload.childProfileId);
+
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async unlinkStudentFromChildProfile(childProfileId: number) {
-        if (USE_MOCK) {
-            console.log("Service: Unlinking student (mock)", childProfileId);
-            return mockFetch({ success: true });
-        }
-        return apiClient.post<{ success: boolean }>('/admin/students/unlink', { childProfileId });
+        const { error } = await supabase
+            .from('child_profiles')
+            .update({ student_user_id: null })
+            .eq('id', childProfileId);
+
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async bulkDeleteUsers(userIds: string[]) {
-        if (USE_MOCK) {
-            console.log("Service: Bulk deleting users (mock)", userIds);
-            return mockFetch({ success: true });
-        }
-        return apiClient.post<{ success: boolean }>('/admin/users/bulk-delete', { userIds });
+        // Requires Admin privileges (Service Role) usually.
+        // We will try deleting from profiles, but Auth users might remain unless using Edge Function.
+        const { error } = await supabase
+            .from('profiles')
+            .delete()
+            .in('id', userIds);
+
+        if (error) throw new Error(error.message);
+        return { success: true };
     }
 };

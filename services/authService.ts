@@ -1,105 +1,110 @@
 
-import { mockUsers, mockChildProfiles } from '../data/mockData';
+import { supabase } from '../lib/supabaseClient';
 import type { UserProfile, ChildProfile, UserRole } from '../lib/database.types';
-import { mockFetch } from './mockAdapter';
-import { apiClient } from '../lib/api';
-
-// Flag to switch between Mock and Real API globally for Auth
-const USE_MOCK_AUTH = true;
 
 export const authService = {
     async login(email: string, password: string) {
-        if (USE_MOCK_AUTH) {
-            // Simulate network delay
-            await mockFetch(null, 800);
-            
-            // Demo Logic
-            if (password === '123456') {
-                const user = mockUsers.find(u => u.email === email);
-                if (!user) throw new Error('البريد الإلكتروني غير صحيح');
-                
-                // Store mock session
-                localStorage.setItem('mockUserEmail', user.email);
-                return {
-                    user,
-                    accessToken: 'mock_token_' + Math.random().toString(36).substr(2),
-                };
-            }
-            throw new Error('كلمة المرور غير صحيحة');
-        } else {
-            // Real API Logic (Laravel Sanctum)
-            const response = await apiClient.post<{ user: UserProfile, accessToken: string }>('/auth/login', { email, password });
-            return response;
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+
+        if (authError) throw new Error(authError.message);
+        if (!authData.user) throw new Error('فشل تسجيل الدخول');
+
+        // جلب بيانات البروفايل الإضافية (مثل الدور والاسم)
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authData.user.id)
+            .single();
+
+        if (profileError) {
+            // في حالة عدم وجود بروفايل (نادر الحدوث بسبب التريجر)، نعيد البيانات الأساسية
+            console.warn('Profile not found, using basic auth data');
+            return {
+                user: { id: authData.user.id, email: authData.user.email, role: 'user', created_at: authData.user.created_at } as UserProfile,
+                accessToken: authData.session?.access_token || '',
+            };
         }
+
+        return {
+            user: { ...profile, email: authData.user.email } as UserProfile,
+            accessToken: authData.session?.access_token || '',
+        };
     },
 
     async register(email: string, password: string, name: string, role: UserRole) {
-        if (USE_MOCK_AUTH) {
-            await mockFetch(null, 1000);
-            // Check if email exists
-            if (mockUsers.find(u => u.email === email)) {
-                throw new Error('البريد الإلكتروني مستخدم بالفعل');
+        // نمرر البيانات الإضافية في metadata ليقوم التريجر (Trigger) بإنشاء البروفايل تلقائياً
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    name,
+                    role,
+                }
             }
-            
-            const newUser: UserProfile = {
-                id: `usr_${Math.random().toString(36).substr(2, 9)}`,
-                email,
-                name,
-                role,
-                created_at: new Date().toISOString(),
-            };
-            
-            localStorage.setItem('mockUserEmail', newUser.email);
-            // In a real mock scenario, we would push to mockUsers array, 
-            // but since it's imported from a file, we simulate success for the session.
-            
-            return {
-                user: newUser,
-                accessToken: 'mock_token_' + Math.random().toString(36).substr(2),
-            };
-        } else {
-            return apiClient.post<{ user: UserProfile, accessToken: string }>('/auth/register', { email, password, name, role });
-        }
+        });
+
+        if (authError) throw new Error(authError.message);
+        if (!authData.user) throw new Error('فشل إنشاء الحساب');
+
+        // ننتظر قليلاً لضمان عمل التريجر (اختياري، لكن آمن)
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authData.user.id)
+            .single();
+
+        return {
+            user: (profile ? { ...profile, email: authData.user.email } : { id: authData.user.id, email, name, role }) as UserProfile,
+            accessToken: authData.session?.access_token || '',
+        };
     },
 
     async logout() {
-        if (USE_MOCK_AUTH) {
-            localStorage.removeItem('mockUserEmail');
-            await mockFetch(null, 300);
-        } else {
-            // await apiClient.post('/auth/logout', {});
-            localStorage.removeItem('accessToken');
-        }
+        const { error } = await supabase.auth.signOut();
+        if (error) throw new Error(error.message);
     },
 
     async getCurrentUser() {
-        if (USE_MOCK_AUTH) {
-            const mockEmail = localStorage.getItem('mockUserEmail');
-            if (!mockEmail) return null;
-            
-            // Simulate verifying token
-            const user = mockUsers.find(u => u.email === mockEmail);
-            return user ? { user } : null;
-        } else {
-            return apiClient.get<{ user: UserProfile }>('/auth/me');
-        }
+        const { data: { user: authUser }, error } = await supabase.auth.getUser();
+        if (error || !authUser) return null;
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authUser.id)
+            .single();
+
+        if (!profile) return null;
+
+        return {
+            user: { ...profile, email: authUser.email } as UserProfile
+        };
     },
 
     async getUserChildren(userId: string) {
-        if (USE_MOCK_AUTH) {
-            return mockChildProfiles.filter(c => c.user_id === userId);
-        } else {
-            const res = await apiClient.get<{ childProfiles: ChildProfile[] }>('/user/child-profiles');
-            return res.childProfiles;
-        }
+        const { data, error } = await supabase
+            .from('child_profiles')
+            .select('*')
+            .eq('user_id', userId);
+        
+        if (error) throw new Error(error.message);
+        return data as ChildProfile[];
     },
     
     async getStudentProfile(userId: string) {
-        if (USE_MOCK_AUTH) {
-            return mockChildProfiles.find(c => c.student_user_id === userId) || null;
-        } else {
-             const res = await apiClient.get<{ currentChildProfile: ChildProfile }>('/user/student-profile');
-             return res.currentChildProfile;
-        }
+        const { data, error } = await supabase
+            .from('child_profiles')
+            .select('*')
+            .eq('student_user_id', userId)
+            .single();
+            
+        if (error && error.code !== 'PGRST116') throw new Error(error.message);
+        return data as ChildProfile | null;
     }
 };

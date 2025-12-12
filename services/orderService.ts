@@ -1,11 +1,5 @@
 
-import { 
-    mockOrders, 
-    mockSubscriptions, 
-    mockSubscriptionPlans, 
-    mockPersonalizedProducts,
-    mockServiceOrders
-} from '../data/mockData';
+import { supabase } from '../lib/supabaseClient';
 import type { 
     Order, 
     Subscription, 
@@ -14,186 +8,264 @@ import type {
     ServiceOrder,
     OrderStatus 
 } from '../lib/database.types';
-import { mockFetch } from './mockAdapter';
-import { apiClient } from '../lib/api';
-
-const USE_MOCK = true;
 
 export const orderService = {
     // --- Queries ---
     async getAllOrders() {
-        if (USE_MOCK) {
-            return mockFetch(mockOrders as Order[]);
-        }
-        return apiClient.get<Order[]>('/admin/orders');
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .order('order_date', { ascending: false });
+        if (error) throw new Error(error.message);
+        return data as Order[];
     },
 
     async getAllSubscriptions() {
-        if (USE_MOCK) {
-            return mockFetch(mockSubscriptions as Subscription[]);
-        }
-        return apiClient.get<Subscription[]>('/admin/subscriptions');
+        const { data, error } = await supabase
+            .from('subscriptions')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) throw new Error(error.message);
+        return data as Subscription[];
     },
 
     async getSubscriptionPlans() {
-        if (USE_MOCK) {
-            return mockFetch(mockSubscriptionPlans as SubscriptionPlan[]);
-        }
-        return apiClient.get<SubscriptionPlan[]>('/admin/subscription-plans');
+        const { data, error } = await supabase
+            .from('subscription_plans')
+            .select('*')
+            .order('price', { ascending: true });
+        if (error) throw new Error(error.message);
+        return data as SubscriptionPlan[];
     },
 
     async getPersonalizedProducts() {
-        if (USE_MOCK) {
-            return mockFetch(mockPersonalizedProducts as PersonalizedProduct[]);
-        }
-        return apiClient.get<PersonalizedProduct[]>('/admin/personalized-products');
+        const { data, error } = await supabase
+            .from('personalized_products')
+            .select('*')
+            .order('sort_order', { ascending: true });
+        if (error) throw new Error(error.message);
+        return data as PersonalizedProduct[];
     },
 
     async getAllServiceOrders() {
-        if (USE_MOCK) {
-            return mockFetch(mockServiceOrders as ServiceOrder[]);
-        }
-        return apiClient.get<ServiceOrder[]>('/admin/service-orders');
+        const { data, error } = await supabase
+            .from('service_orders')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) throw new Error(error.message);
+        return data as ServiceOrder[];
     },
 
     // --- Mutations: Orders ---
     async createOrder(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Creating order (mock)", payload);
-            // Simulate email sending for gifts
-            const { formData } = payload;
-            if (formData?.shippingOption === 'gift' && formData?.sendDigitalCard && formData?.recipientEmail) {
-                console.log("Service: Simulating gift email...");
-            }
-            return mockFetch({ ...payload, id: `ord_${Math.random()}` }, 1000);
-        }
-        return apiClient.post<Order>('/orders', payload);
+        // Generate a random ID if not provided (Client-side generation for ID)
+        // Ideally, use the database default if it's auto-generated, but 'orders.id' is text PK.
+        const orderId = `ord_${Math.floor(Math.random() * 1000000)}`;
+        
+        const { data, error } = await supabase
+            .from('orders')
+            .insert([{
+                id: orderId,
+                user_id: payload.userId,
+                child_id: payload.payload.details.childId || payload.payload.childId, // Adjust based on payload structure
+                item_summary: payload.summary,
+                total: payload.totalPrice || payload.total,
+                status: 'بانتظار الدفع',
+                details: payload.payload.details || payload.payload.formData,
+                order_date: new Date().toISOString()
+            }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as Order;
     },
 
     async updateOrderStatus(orderId: string, newStatus: OrderStatus) {
-        if (USE_MOCK) {
-            console.log("Service: Updating order status (mock)", { orderId, newStatus });
-            return mockFetch({ success: true }, 300);
-        }
-        return apiClient.put<{ success: boolean }>(`/admin/orders/${orderId}/status`, { status: newStatus });
+        const { error } = await supabase
+            .from('orders')
+            .update({ status: newStatus })
+            .eq('id', orderId);
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async updateOrderComment(orderId: string, comment: string) {
-        if (USE_MOCK) {
-            console.log("Service: Updating order comment (mock)", { orderId, comment });
-            return mockFetch({ success: true }, 300);
-        }
-        return apiClient.put<{ success: boolean }>(`/admin/orders/${orderId}/comment`, { comment });
+        const { error } = await supabase
+            .from('orders')
+            .update({ admin_comment: comment })
+            .eq('id', orderId);
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async uploadReceipt(itemId: string, itemType: string, receiptFile: File) {
-        if (USE_MOCK) {
-            console.log("Service: Uploading receipt (mock)", { itemId, fileName: receiptFile.name });
-            return mockFetch({ receiptUrl: 'https://example.com/mock-receipt.jpg' }, 1000);
+        // 1. Upload file to Storage (Assuming 'receipts' bucket exists)
+        const fileExt = receiptFile.name.split('.').pop();
+        const fileName = `${itemType}_${itemId}_${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        // Note: You need to create a bucket named 'receipts' in Supabase
+        const { error: uploadError } = await supabase.storage
+            .from('receipts')
+            .upload(filePath, receiptFile);
+
+        if (uploadError) {
+            console.error("Storage error:", uploadError);
+            throw new Error('فشل رفع الملف. تأكد من إعدادات التخزين (Storage Bucket).');
         }
-        const formData = new FormData();
-        formData.append('receipt', receiptFile);
-        formData.append('itemType', itemType);
-        return apiClient.post<{ receiptUrl: string }>(`/orders/${itemId}/receipt`, formData);
+
+        const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(filePath);
+
+        // 2. Update the record
+        const table = itemType === 'order' ? 'orders' : itemType === 'booking' ? 'bookings' : 'subscriptions';
+        const { error: updateError } = await supabase
+            .from(table)
+            .update({ 
+                receipt_url: publicUrl,
+                status: 'بانتظار المراجعة' // Auto update status
+            })
+            .eq('id', itemId);
+
+        if (updateError) throw new Error(updateError.message);
+        return { receiptUrl: publicUrl };
     },
 
     async bulkUpdateOrderStatus(orderIds: string[], status: OrderStatus) {
-        if (USE_MOCK) {
-            console.log("Service: Bulk update status (mock)", { orderIds, status });
-            return mockFetch({ success: true });
-        }
-        return apiClient.post<{ success: boolean }>('/admin/orders/bulk-status', { orderIds, status });
+        const { error } = await supabase
+            .from('orders')
+            .update({ status })
+            .in('id', orderIds);
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async bulkDeleteOrders(orderIds: string[]) {
-        if (USE_MOCK) {
-            console.log("Service: Bulk delete orders (mock)", orderIds);
-            return mockFetch({ success: true });
-        }
-        return apiClient.post<{ success: boolean }>('/admin/orders/bulk-delete', { orderIds });
+        const { error } = await supabase
+            .from('orders')
+            .delete()
+            .in('id', orderIds);
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     // --- Mutations: Service Orders ---
     async updateServiceOrderStatus(orderId: string, newStatus: OrderStatus) {
-        if (USE_MOCK) {
-            console.log("Service: Updating service order status (mock)", { orderId, newStatus });
-            return mockFetch({ success: true }, 300);
-        }
-        return apiClient.put<{ success: boolean }>(`/admin/service-orders/${orderId}/status`, { status: newStatus });
+        const { error } = await supabase
+            .from('service_orders')
+            .update({ status: newStatus })
+            .eq('id', orderId);
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async assignInstructorToServiceOrder(orderId: string, instructorId: number | null) {
-        if (USE_MOCK) {
-            console.log("Service: Assigning instructor (mock)", { orderId, instructorId });
-            return mockFetch({ success: true }, 300);
-        }
-        return apiClient.put<{ success: boolean }>(`/admin/service-orders/${orderId}/assign`, { instructorId });
+        const { error } = await supabase
+            .from('service_orders')
+            .update({ assigned_instructor_id: instructorId })
+            .eq('id', orderId);
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     // --- Mutations: Subscriptions ---
     async createSubscription(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Creating subscription (mock)", payload);
-            return mockFetch({ ...payload, id: `sub_${Math.random()}` }, 1000);
-        }
-        return apiClient.post<Subscription>('/subscriptions', payload);
+        const subId = `sub_${Math.floor(Math.random() * 1000000)}`;
+        const { data, error } = await supabase
+            .from('subscriptions')
+            .insert([{
+                id: subId,
+                user_id: payload.userId,
+                child_id: 1, // Need to fix this in the payload structure to send child ID
+                plan_id: payload.payload.plan.id,
+                plan_name: payload.payload.plan.name,
+                start_date: new Date().toISOString(),
+                next_renewal_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+                status: 'pending_payment',
+                total: payload.payload.total
+            }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as Subscription;
     },
 
     async updateSubscriptionStatus(subscriptionId: string, action: 'pause' | 'cancel' | 'reactivate') {
-        if (USE_MOCK) {
-            console.log(`Service: ${action} subscription (mock)`, subscriptionId);
-            return mockFetch({ success: true });
-        }
-        return apiClient.post<{ success: boolean }>(`/admin/subscriptions/${subscriptionId}/${action}`, {});
+        const statusMap = {
+            pause: 'paused',
+            cancel: 'cancelled',
+            reactivate: 'active'
+        };
+        
+        const { error } = await supabase
+            .from('subscriptions')
+            .update({ status: statusMap[action] })
+            .eq('id', subscriptionId);
+
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     // --- Mutations: Subscription Plans ---
     async createSubscriptionPlan(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Creating plan (mock)", payload);
-            return mockFetch({ ...payload, id: Math.random() });
-        }
-        return apiClient.post<SubscriptionPlan>('/admin/subscription-plans', payload);
+        const { data, error } = await supabase
+            .from('subscription_plans')
+            .insert([payload])
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data as SubscriptionPlan;
     },
 
     async updateSubscriptionPlan(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Updating plan (mock)", payload);
-            return mockFetch(payload);
-        }
-        return apiClient.put<SubscriptionPlan>(`/admin/subscription-plans/${payload.id}`, payload);
+        const { data, error } = await supabase
+            .from('subscription_plans')
+            .update(payload)
+            .eq('id', payload.id)
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data as SubscriptionPlan;
     },
 
     async deleteSubscriptionPlan(planId: number) {
-        if (USE_MOCK) {
-            console.log("Service: Deleting plan (mock)", planId);
-            return mockFetch({ success: true });
-        }
-        return apiClient.delete<{ success: boolean }>(`/admin/subscription-plans/${planId}`);
+        const { error } = await supabase
+            .from('subscription_plans')
+            .delete()
+            .eq('id', planId);
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     // --- Mutations: Personalized Products ---
     async createPersonalizedProduct(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Creating product (mock)", payload);
-            return mockFetch({ ...payload, id: Math.random() }, 800);
-        }
-        return apiClient.post<PersonalizedProduct>('/admin/personalized-products', payload);
+        const { data, error } = await supabase
+            .from('personalized_products')
+            .insert([payload])
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data as PersonalizedProduct;
     },
 
     async updatePersonalizedProduct(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Updating product (mock)", payload);
-            return mockFetch(payload, 800);
-        }
-        return apiClient.put<PersonalizedProduct>(`/admin/personalized-products/${payload.id}`, payload);
+        const { data, error } = await supabase
+            .from('personalized_products')
+            .update(payload)
+            .eq('id', payload.id)
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data as PersonalizedProduct;
     },
 
     async deletePersonalizedProduct(productId: number) {
-        if (USE_MOCK) {
-            console.log("Service: Deleting product (mock)", productId);
-            return mockFetch({ success: true });
-        }
-        return apiClient.delete<{ success: boolean }>(`/admin/personalized-products/${productId}`);
+        const { error } = await supabase
+            .from('personalized_products')
+            .delete()
+            .eq('id', productId);
+        if (error) throw new Error(error.message);
+        return { success: true };
     }
 };

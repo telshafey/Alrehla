@@ -1,10 +1,5 @@
 
-import { 
-    mockBookings, 
-    mockScheduledSessions,
-    mockInstructors,
-    mockSessionAttachments
-} from '../data/mockData';
+import { supabase } from '../lib/supabaseClient';
 import type { 
     CreativeWritingBooking, 
     ScheduledSession, 
@@ -14,121 +9,156 @@ import type {
     StandaloneService,
     SessionAttachment
 } from '../lib/database.types';
-import { mockFetch } from './mockAdapter';
-import { apiClient } from '../lib/api';
-
-const USE_MOCK = true;
 
 export const bookingService = {
     // --- Queries ---
     async getAllBookings() {
-        if (USE_MOCK) {
-            return mockFetch(mockBookings as CreativeWritingBooking[]);
-        }
-        return apiClient.get<CreativeWritingBooking[]>('/admin/bookings');
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('*')
+            .order('booking_date', { ascending: false });
+        if (error) throw new Error(error.message);
+        return data as CreativeWritingBooking[];
     },
 
     async getAllScheduledSessions() {
-        if (USE_MOCK) {
-            return mockFetch(mockScheduledSessions as ScheduledSession[]);
-        }
-        return apiClient.get<ScheduledSession[]>('/admin/scheduled-sessions');
+        const { data, error } = await supabase
+            .from('scheduled_sessions')
+            .select('*')
+            .order('session_date', { ascending: true });
+        if (error) throw new Error(error.message);
+        return data as ScheduledSession[];
     },
 
     async getAllInstructors() {
-        if (USE_MOCK) {
-            return mockFetch(mockInstructors as Instructor[]);
-        }
-        return apiClient.get<Instructor[]>('/admin/instructors');
+        const { data, error } = await supabase
+            .from('instructors')
+            .select('*')
+            .order('name', { ascending: true });
+        if (error) throw new Error(error.message);
+        return data as Instructor[];
     },
 
     async getAllAttachments() {
-        if (USE_MOCK) {
-            return mockFetch(mockSessionAttachments as SessionAttachment[]);
-        }
-        return apiClient.get<SessionAttachment[]>('/admin/attachments');
+        const { data, error } = await supabase
+            .from('session_attachments')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) throw new Error(error.message);
+        return data as SessionAttachment[];
     },
 
     // --- Mutations: Bookings ---
     async createBooking(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Creating booking (mock)", payload);
-            return mockFetch({ ...payload, id: `bk_${Math.random()}` }, 1000);
-        }
-        return apiClient.post<CreativeWritingBooking>('/bookings', payload);
+        const bookingId = `bk_${Math.floor(Math.random() * 1000000)}`;
+        // payload usually has: { child, package, instructor, dateTime, total }
+        const { data, error } = await supabase
+            .from('bookings')
+            .insert([{
+                id: bookingId,
+                user_id: payload.userId,
+                child_id: payload.payload.child.id,
+                instructor_id: payload.payload.instructor.id,
+                package_name: payload.payload.package.name,
+                booking_date: payload.payload.dateTime.date,
+                booking_time: payload.payload.dateTime.time,
+                total: payload.payload.total,
+                status: 'بانتظار الدفع',
+                created_at: new Date().toISOString()
+            }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as CreativeWritingBooking;
     },
 
     async updateBookingStatus(bookingId: string, newStatus: BookingStatus) {
-        if (USE_MOCK) {
-            console.log("Service: Updating booking status (mock)", { bookingId, newStatus });
-            return mockFetch({ success: true }, 300);
-        }
-        return apiClient.put<{ success: boolean }>(`/admin/bookings/${bookingId}/status`, { status: newStatus });
+        const { error } = await supabase
+            .from('bookings')
+            .update({ status: newStatus })
+            .eq('id', bookingId);
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async updateBookingProgressNotes(bookingId: string, notes: string) {
-        if (USE_MOCK) {
-            console.log("Service: Updating progress notes (mock)", { bookingId, notes });
-            return mockFetch({ success: true });
-        }
-        return apiClient.put<{ success: boolean }>(`/admin/bookings/${bookingId}/notes`, { notes });
+        const { error } = await supabase
+            .from('bookings')
+            .update({ progress_notes: notes })
+            .eq('id', bookingId);
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async saveBookingDraft(bookingId: string, draft: string) {
-        if (USE_MOCK) {
-            console.log("Service: Saving draft (mock)", { bookingId, draft });
-            return mockFetch({ success: true });
-        }
-        return apiClient.put<{ success: boolean }>(`/bookings/${bookingId}/draft`, { draft });
+        const { error } = await supabase
+            .from('bookings')
+            .update({ draft_content: draft }) // Ensure column exists in DB or map it
+            .eq('id', bookingId);
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     // --- Mutations: Packages ---
     async createPackage(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Creating package (mock)", payload);
-            return mockFetch({ ...payload, id: Math.random() }, 500);
-        }
-        return apiClient.post<CreativeWritingPackage>('/admin/cw-packages', payload);
+        const { data, error } = await supabase
+            .from('creative_writing_packages')
+            .insert([payload])
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data as CreativeWritingPackage;
     },
 
     async updatePackage(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Updating package (mock)", payload);
-            return mockFetch(payload, 500);
-        }
-        return apiClient.put<CreativeWritingPackage>(`/admin/cw-packages/${payload.id}`, payload);
+        const { data, error } = await supabase
+            .from('creative_writing_packages')
+            .update(payload)
+            .eq('id', payload.id)
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data as CreativeWritingPackage;
     },
 
     async deletePackage(packageId: number) {
-        if (USE_MOCK) {
-            console.log("Service: Deleting package (mock)", packageId);
-            return mockFetch({ success: true }, 500);
-        }
-        return apiClient.delete<{ success: boolean }>(`/admin/cw-packages/${packageId}`);
+        const { error } = await supabase
+            .from('creative_writing_packages')
+            .delete()
+            .eq('id', packageId);
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     // --- Mutations: Standalone Services ---
     async createStandaloneService(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Creating standalone service (mock)", payload);
-            return mockFetch({ ...payload, id: Math.random() }, 500);
-        }
-        return apiClient.post<StandaloneService>('/admin/standalone-services', payload);
+        const { data, error } = await supabase
+            .from('standalone_services')
+            .insert([payload])
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data as StandaloneService;
     },
 
     async updateStandaloneService(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Updating standalone service (mock)", payload);
-            return mockFetch(payload, 500);
-        }
-        return apiClient.put<StandaloneService>(`/admin/standalone-services/${payload.id}`, payload);
+        const { data, error } = await supabase
+            .from('standalone_services')
+            .update(payload)
+            .eq('id', payload.id)
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data as StandaloneService;
     },
 
     async deleteStandaloneService(serviceId: number) {
-        if (USE_MOCK) {
-            console.log("Service: Deleting standalone service (mock)", serviceId);
-            return mockFetch({ success: true }, 500);
-        }
-        return apiClient.delete<{ success: boolean }>(`/admin/standalone-services/${serviceId}`);
+        const { error } = await supabase
+            .from('standalone_services')
+            .delete()
+            .eq('id', serviceId);
+        if (error) throw new Error(error.message);
+        return { success: true };
     }
 };
