@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, Navigate } from 'react-router-dom';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useContentMutations } from '../../hooks/mutations/useContentMutations';
 import { useProduct } from '../../contexts/ProductContext';
@@ -16,57 +17,79 @@ import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 import Accordion from '../../components/ui/Accordion';
 import { Checkbox } from '../../components/ui/Checkbox';
 
-// Helper to get/set nested properties safely
+// Helper to get nested properties safely
 const getNestedValue = (obj: any, path: string) => {
     if (!path || !obj) return undefined;
     return path.split('.').reduce((o, i) => (o ? o[i] : undefined), obj);
 };
 
-const setNestedValue = (obj: any, path: string, value: any) => {
-    if (!path) return obj;
-    const newObj = JSON.parse(JSON.stringify(obj)); // Deep clone
+// Safe immutable update helper
+const setNestedValue = (state: any, path: string, value: any): any => {
+    if (!path) return state;
     const keys = path.split('.');
-    let current = newObj;
-    for (let i = 0; i < keys.length - 1; i++) {
-        if (current[keys[i]] === undefined || current[keys[i]] === null) {
-            current[keys[i]] = {};
-        }
-        current = current[keys[i]];
+    const [head, ...tail] = keys;
+
+    if (keys.length === 1) {
+        return { ...state, [head]: value };
     }
-    current[keys[keys.length - 1]] = value;
-    return newObj;
+
+    return {
+        ...state,
+        [head]: setNestedValue(state[head] || {}, tail.join('.'), value)
+    };
 };
 
 const AdminContentManagementPage: React.FC = () => {
+    // 1. Get Section from URL
+    const { sectionKey } = useParams<{ sectionKey: string }>();
+    const pageConfig = pageConfigs.find(p => p.key === sectionKey);
+
     const { data: siteContent, isLoading: contentLoading } = useAdminSiteContent();
     const { siteBranding, setSiteBranding, loading: brandingLoading } = useProduct();
     const { updateSiteContent } = useContentMutations();
 
-    const [selectedPageKey, setSelectedPageKey] = useState(pageConfigs[0].key);
     const [combinedState, setCombinedState] = useState<any>(null);
     const [hasChanges, setHasChanges] = useState(false);
 
-    // Initialize local state by merging Content and Branding
+    // 2. Initialize State
     useEffect(() => {
-        if (siteContent && siteBranding && !combinedState) {
-            setCombinedState({
-                ...siteContent,
-                siteBranding: siteBranding // Inject branding into the state tree
-            });
+        if (siteContent && siteBranding) {
+            // Re-initialize only if combinedState is null to avoid overwriting edits
+            if (!combinedState) {
+                setCombinedState({
+                    ...siteContent,
+                    siteBranding: siteBranding 
+                });
+            }
         }
     }, [siteContent, siteBranding, combinedState]);
 
-    const pageConfig = pageConfigs.find(p => p.key === selectedPageKey);
+    // Reset state when switching sections via URL
+    useEffect(() => {
+        setHasChanges(false);
+        // Force re-sync when changing section if desired, 
+        // OR rely on the single state object if you want persistence across tabs (less common for this UI)
+        // Here we just ensure we have data.
+    }, [sectionKey]);
 
-    // --- Change Handlers ---
 
+    // 3. Change Handler (Optimized)
     const handleFieldChange = useCallback((path: string, value: any) => {
         setCombinedState((prev: any) => {
-            const newState = setNestedValue(prev, path, value);
-            return newState;
+            try {
+                return setNestedValue(prev, path, value);
+            } catch (error) {
+                console.error("Error updating field:", path, error);
+                return prev;
+            }
         });
         setHasChanges(true);
     }, []);
+
+    // If invalid section, redirect
+    if (!pageConfig && !contentLoading) {
+        return <Navigate to="/admin" />;
+    }
 
     // --- Renderers ---
 
@@ -93,7 +116,7 @@ const AdminContentManagementPage: React.FC = () => {
         <ImageUploadField 
             label={field.label}
             fieldKey={field.key}
-            currentUrl={value}
+            currentUrl={value || ''}
             onUrlChange={(key, url) => handleFieldChange(key, url)}
         />
     );
@@ -180,7 +203,7 @@ const AdminContentManagementPage: React.FC = () => {
                                     {subField.type === 'image' ? (
                                          <ImageUploadField 
                                             label={subField.label}
-                                            fieldKey={`${field.key}[${index}].${subField.key}`} // Dummy key for UI tracking
+                                            fieldKey={`${field.key}[${index}].${subField.key}`} 
                                             currentUrl={item[subField.key]}
                                             onUrlChange={(_, url) => handleSubFieldChange(index, subField.key, url)}
                                         />
@@ -227,16 +250,13 @@ const AdminContentManagementPage: React.FC = () => {
 
     const handleSave = async () => {
         if (combinedState) {
-            // Separate SiteContent and SiteBranding
-            // 'siteBranding' key holds the branding object, everything else is content
             const { siteBranding: newBranding, ...newContent } = combinedState;
-            
             const promises = [];
             
             // Save Content
             promises.push(updateSiteContent.mutateAsync(newContent));
             
-            // Save Branding if it was modified and exists
+            // Save Branding if it exists in state
             if (newBranding) {
                 promises.push(setSiteBranding(newBranding));
             }
@@ -249,109 +269,69 @@ const AdminContentManagementPage: React.FC = () => {
     if (contentLoading || brandingLoading || !combinedState) return <PageLoader text="جاري تحميل المحتوى..." />;
 
     return (
-        <div className="animate-fadeIn flex flex-col h-full max-w-full overflow-hidden">
-            <div className="flex justify-between items-center flex-shrink-0 mb-6 px-1">
+        <div className="animate-fadeIn max-w-5xl mx-auto pb-20">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-foreground">مركز إدارة المحتوى</h1>
-                    <p className="text-muted-foreground mt-1">تحكم كامل في جميع نصوص وصور الموقع.</p>
+                    <h1 className="text-3xl font-extrabold text-foreground flex items-center gap-2">
+                        {pageConfig?.icon}
+                        {pageConfig?.title}
+                    </h1>
+                    <p className="text-muted-foreground mt-1">{pageConfig?.description}</p>
                 </div>
                 <Button onClick={handleSave} loading={updateSiteContent.isPending} size="lg" icon={<Save />} disabled={!hasChanges}>
                     {updateSiteContent.isPending ? 'جاري الحفظ...' : 'حفظ التغييرات'}
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start flex-grow overflow-hidden">
-                {/* Sidebar Navigation */}
-                <div className="lg:col-span-3 lg:h-full lg:overflow-y-auto pb-4">
-                    <Card className="h-full">
-                        <CardHeader><CardTitle className="text-lg">الصفحات</CardTitle></CardHeader>
-                        <CardContent className="p-2">
-                            <ul className="space-y-1">
-                                {pageConfigs.map(page => (
-                                    <li key={page.key}>
-                                        <button
-                                            onClick={() => setSelectedPageKey(page.key)}
-                                            className={cn(
-                                                'w-full flex items-center gap-3 p-3 rounded-md text-right font-semibold transition-all text-sm',
-                                                selectedPageKey === page.key 
-                                                    ? 'bg-primary text-primary-foreground shadow-md' 
-                                                    : 'text-foreground hover:bg-muted'
-                                            )}
-                                        >
-                                            {page.icon}
-                                            <div className="flex flex-col">
-                                                <span>{page.title}</span>
+            {/* Sections */}
+            <div className="space-y-8">
+                {pageConfig?.sections.map(section => {
+                    const isVisible = section.visibilityKey ? getNestedValue(combinedState, section.visibilityKey) ?? true : true;
+                    
+                    return (
+                        <Card key={section.key} className={cn("border-t-4 transition-colors", isVisible ? "border-t-primary/20" : "border-t-muted bg-muted/20")}>
+                            <Accordion 
+                                title={
+                                    <div className="flex items-center gap-4" onClick={e => e.stopPropagation()}>
+                                        <span>{section.title}</span>
+                                        {section.visibilityKey && (
+                                            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                                <Checkbox 
+                                                    checked={isVisible} 
+                                                    onCheckedChange={(checked) => handleFieldChange(section.visibilityKey!, checked)} 
+                                                    id={`visibility-${section.key}`}
+                                                />
+                                                <label htmlFor={`visibility-${section.key}`} className="text-xs font-normal text-muted-foreground cursor-pointer">
+                                                    {isVisible ? 'معروض في الموقع' : 'مخفي'}
+                                                </label>
                                             </div>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </CardContent>
-                    </Card>
-                </div>
-                
-                {/* Main Content Editor */}
-                <div className="lg:col-span-9 h-full overflow-y-auto pb-20 px-1">
-                    {pageConfig ? (
-                        <div className="space-y-6">
-                            <div className="mb-6">
-                                <h2 className="text-2xl font-bold">{pageConfig.title}</h2>
-                                <p className="text-muted-foreground">{pageConfig.description}</p>
-                            </div>
-
-                            {pageConfig.sections.map(section => {
-                                const isVisible = section.visibilityKey ? getNestedValue(combinedState, section.visibilityKey) ?? true : true;
-                                
-                                return (
-                                    <Card key={section.key} className={cn("border-t-4 transition-colors", isVisible ? "border-t-primary/20" : "border-t-muted bg-muted/20")}>
-                                        <Accordion 
-                                            title={
-                                                <div className="flex items-center gap-4" onClick={e => e.stopPropagation()}>
-                                                    <span>{section.title}</span>
-                                                    {section.visibilityKey && (
-                                                        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                                            <Checkbox 
-                                                                checked={isVisible} 
-                                                                onCheckedChange={(checked) => handleFieldChange(section.visibilityKey!, checked)} 
-                                                                id={`visibility-${section.key}`}
-                                                            />
-                                                            <label htmlFor={`visibility-${section.key}`} className="text-xs font-normal text-muted-foreground cursor-pointer">
-                                                                {isVisible ? 'معروض في الموقع' : 'مخفي'}
-                                                            </label>
-                                                        </div>
+                                        )}
+                                    </div>
+                                }
+                            >
+                                <div className={cn("pt-4", !isVisible && "opacity-50 pointer-events-none")}>
+                                    <CardContent className="space-y-6 pt-0">
+                                        {section.description && <p className="text-sm text-muted-foreground mb-4">{section.description}</p>}
+                                        
+                                        <div className="grid grid-cols-1 gap-6">
+                                            {section.fields.map(field => (
+                                                <div key={field.key} className={field.type === 'object_array' ? 'col-span-full' : ''}>
+                                                    {field.type !== 'image' && field.type !== 'object_array' && (
+                                                        <label htmlFor={field.key} className="block text-sm font-bold text-gray-700 mb-2">
+                                                            {field.label}
+                                                        </label>
                                                     )}
+                                                    {renderField(field)}
                                                 </div>
-                                            }
-                                        >
-                                            <div className={cn("pt-4", !isVisible && "opacity-50 pointer-events-none")}>
-                                                <CardContent className="space-y-6 pt-0">
-                                                    {section.description && <p className="text-sm text-muted-foreground mb-4">{section.description}</p>}
-                                                    
-                                                    <div className="grid grid-cols-1 gap-6">
-                                                        {section.fields.map(field => (
-                                                            <div key={field.key} className={field.type === 'object_array' ? 'col-span-full' : ''}>
-                                                                {field.type !== 'image' && field.type !== 'object_array' && (
-                                                                    <label htmlFor={field.key} className="block text-sm font-bold text-gray-700 mb-2">
-                                                                        {field.label}
-                                                                    </label>
-                                                                )}
-                                                                {renderField(field)}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </CardContent>
-                                            </div>
-                                        </Accordion>
-                                    </Card>
-                                )
-                            })}
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                            <p>الرجاء اختيار صفحة من القائمة للبدء في التعديل.</p>
-                        </div>
-                    )}
-                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </div>
+                            </Accordion>
+                        </Card>
+                    )
+                })}
             </div>
         </div>
     );

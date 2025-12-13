@@ -121,7 +121,10 @@ const AdminLayout: React.FC = () => {
                                      <Route path="join-requests" element={<PermissionBasedRoute permission="canManageJoinRequests"><AdminJoinRequestsPage /></PermissionBasedRoute>} />
                                      <Route path="blog" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPage /></PermissionBasedRoute>} />
                                      <Route path="blog/:id" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPostEditorPage /></PermissionBasedRoute>} />
-                                     <Route path="content-management" element={<PermissionBasedRoute permission="canManageSiteContent"><AdminContentManagementPage /></PermissionBasedRoute>} />
+                                     
+                                     {/* Updated Content Management Route */}
+                                     <Route path="content/:sectionKey" element={<PermissionBasedRoute permission="canManageSiteContent"><AdminContentManagementPage /></PermissionBasedRoute>} />
+                                     
                                      <Route path="shipping" element={<PermissionBasedRoute permission="canManageSettings"><AdminShippingPage /></PermissionBasedRoute>} />
                                      <Route path="subscriptions" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminSubscriptionsPage /></PermissionBasedRoute>} />
                                      <Route path="subscription-box" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminSubscriptionBoxPage /></PermissionBasedRoute>} />

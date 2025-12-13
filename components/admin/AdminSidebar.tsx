@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
     LayoutDashboard, Users, ShoppingBag, BookOpen, UserCog, MessageSquare, UserPlus,
-    FileText, Settings, Star, Package, Sparkles, CalendarCheck, Plug, DollarSign, BarChart, History, X
+    FileText, Settings, Star, Package, Sparkles, CalendarCheck, Plug, DollarSign, BarChart, History, X,
+    Globe, Home, Info, Phone, Palette
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Image from '../ui/Image';
@@ -130,11 +132,17 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                     { to: '/admin/creative-writing-services', icon: <Sparkles size={20} />, label: 'إعدادات الخدمات', permission: permissions.canManageCreativeWritingSettings },
                 ]
             },
-             // Content
+             // Content Management (Expanded)
             {
-                title: 'المحتوى والتواصل',
+                title: 'إدارة الصفحات والمحتوى',
                 items: [
-                     { to: '/admin/content-management', icon: <FileText size={20} />, label: 'محتوى الموقع', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/global', icon: <Palette size={20} />, label: 'الهوية والفوتر', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/portalPage', icon: <Home size={20} />, label: 'الصفحة الرئيسية', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/aboutPage', icon: <Info size={20} />, label: 'من نحن', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/enhaLakPage', icon: <ShoppingBag size={20} />, label: 'صفحات "إنها لك"', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/creativeWritingPage', icon: <BookOpen size={20} />, label: 'صفحات "بداية الرحلة"', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/supportPage', icon: <Phone size={20} />, label: 'الدعم والأسئلة', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/joinUsPage', icon: <Globe size={20} />, label: 'انضم إلينا', permission: permissions.canManageSiteContent },
                      { to: '/admin/blog', icon: <FileText size={20} />, label: 'المدونة', permission: permissions.canManageBlog },
                      { to: '/admin/support', icon: <MessageSquare size={20} />, label: 'رسائل الدعم', permission: permissions.canManageSupportTickets },
                      { to: '/admin/join-requests', icon: <UserPlus size={20} />, label: 'طلبات الانضمام', permission: permissions.canManageJoinRequests },
@@ -159,8 +167,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
             "bg-background border-l rtl:border-l-0 rtl:border-r transition-all duration-300 flex flex-col",
             // Mobile Styles: Fixed overlay
             "fixed inset-y-0 right-0 z-[60] h-full w-64 shadow-2xl transform",
-            // Fix: Simply move 100% to the right when closed. 
-            // Since it's right-0, translateX(100%) moves it off-screen to the right.
             !isMobileOpen && "translate-x-full", 
             
             // Desktop Styles: Static layout
