@@ -100,7 +100,14 @@ const AdminInstructorDetailPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (isNew) {
-            await createInstructor.mutateAsync({ ...profile, avatarFile });
+            // عند الإنشاء بواسطة الإدارة، نعتبر الحالة معتمدة تلقائياً
+            await createInstructor.mutateAsync({ 
+                ...profile, 
+                avatarFile,
+                schedule_status: 'approved',
+                profile_update_status: 'approved',
+                rate_per_session: profile.rate_per_session || 0
+            });
         } else {
             await updateInstructor.mutateAsync({ ...profile, avatarFile });
         }
