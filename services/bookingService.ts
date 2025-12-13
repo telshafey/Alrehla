@@ -96,9 +96,9 @@ export const bookingService = {
         let avatarUrl = payload.avatar_url;
         if (payload.avatarFile) {
             const fileName = `avatars/${Date.now()}_${payload.avatarFile.name}`;
-            const { error: uploadError } = await supabase.storage.from('public').upload(fileName, payload.avatarFile);
+            const { error: uploadError } = await supabase.storage.from('Helio').upload(fileName, payload.avatarFile); // Changed bucket
             if (!uploadError) {
-                const { data: publicUrlData } = supabase.storage.from('public').getPublicUrl(fileName);
+                const { data: publicUrlData } = supabase.storage.from('Helio').getPublicUrl(fileName); // Changed bucket
                 avatarUrl = publicUrlData.publicUrl;
             }
         }
@@ -120,9 +120,9 @@ export const bookingService = {
         let avatarUrl = payload.avatar_url;
         if (payload.avatarFile) {
             const fileName = `avatars/${Date.now()}_${payload.avatarFile.name}`;
-            const { error: uploadError } = await supabase.storage.from('public').upload(fileName, payload.avatarFile);
+            const { error: uploadError } = await supabase.storage.from('Helio').upload(fileName, payload.avatarFile); // Changed bucket
             if (!uploadError) {
-                const { data: publicUrlData } = supabase.storage.from('public').getPublicUrl(fileName);
+                const { data: publicUrlData } = supabase.storage.from('Helio').getPublicUrl(fileName); // Changed bucket
                 avatarUrl = publicUrlData.publicUrl;
             }
         }

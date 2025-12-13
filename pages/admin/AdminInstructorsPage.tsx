@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Users, Plus, UserCog, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { Users, Plus, UserCog, ArrowUp, ArrowDown, Trash2, FileEdit, AlertCircle, Calendar } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -84,7 +84,7 @@ const AdminInstructorsPage: React.FC = () => {
                             <TableRow>
                                 <SortableTh sortKey="name" label="المدرب" />
                                 <SortableTh sortKey="specialty" label="التخصص" />
-                                <SortableTh sortKey="schedule_status" label="حالة الجدول" />
+                                <TableHead>حالة الطلبات</TableHead>
                                 <TableHead>إجراءات</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -98,20 +98,31 @@ const AdminInstructorsPage: React.FC = () => {
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">{instructor.specialty}</TableCell>
                                          <TableCell>
-                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${
-                                                instructor.schedule_status === 'approved' ? 'bg-green-100 text-green-800' :
-                                                instructor.schedule_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                instructor.schedule_status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-muted text-muted-foreground'
-                                            }`}>
-                                                {instructor.schedule_status === 'approved' ? 'معتمد' :
-                                                 instructor.schedule_status === 'pending' ? 'قيد المراجعة' :
-                                                 instructor.schedule_status === 'rejected' ? 'مرفوض' : 'غير محدد'}
-                                            </span>
+                                            <div className="flex flex-wrap gap-2">
+                                                {instructor.schedule_status === 'pending' && (
+                                                    <span className="flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-full bg-blue-100 text-blue-800 animate-pulse">
+                                                        <Calendar size={12} /> تحديث جدول
+                                                    </span>
+                                                )}
+                                                {instructor.profile_update_status === 'pending' && (
+                                                    <span className="flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-full bg-orange-100 text-orange-800 animate-pulse">
+                                                        <FileEdit size={12} /> تحديث بيانات/أسعار
+                                                    </span>
+                                                )}
+                                                {instructor.schedule_status !== 'pending' && instructor.profile_update_status !== 'pending' && (
+                                                    <span className="text-xs text-muted-foreground">لا توجد طلبات معلقة</span>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex gap-2">
                                                 <Button as={Link} to={`/admin/instructors/${instructor.id}`} variant="ghost" size="icon" title="إدارة ملف المدرب">
-                                                    <UserCog size={20} />
+                                                    <div className="relative">
+                                                        <UserCog size={20} />
+                                                        {(instructor.profile_update_status === 'pending' || instructor.schedule_status === 'pending') && (
+                                                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse border-2 border-white"></span>
+                                                        )}
+                                                    </div>
                                                 </Button>
                                                 <Button 
                                                     variant="ghost" 

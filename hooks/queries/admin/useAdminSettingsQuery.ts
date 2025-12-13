@@ -1,5 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../../../lib/supabaseClient';
 import {
     mockSocialLinks,
     mockPricingSettings,
@@ -10,7 +11,11 @@ import {
 } from '../../../data/mockData';
 import { bookingService } from '../../../services/bookingService';
 
-const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
+// Helper to fetch single setting
+const fetchSetting = async (key: string, fallback: any) => {
+    const { data } = await supabase.from('site_settings').select('value').eq('key', key).single();
+    return data?.value || fallback;
+};
 
 export const useAdminCWSettings = () => useQuery({
     queryKey: ['adminCWSettings'],
@@ -18,7 +23,7 @@ export const useAdminCWSettings = () => useQuery({
         const [packages, standaloneServices, services] = await Promise.all([
             bookingService.getAllPackages(),
             bookingService.getAllStandaloneServices(),
-            mockFetch(mockAdditionalServices), // Keep this mocked if not in DB yet or part of standalone
+            fetchSetting('additional_services', mockAdditionalServices),
         ]);
         return { packages, services, standaloneServices };
     },
@@ -26,25 +31,25 @@ export const useAdminCWSettings = () => useQuery({
 
 export const useAdminSocialLinks = () => useQuery({
     queryKey: ['adminSocialLinks'],
-    queryFn: () => mockFetch(mockSocialLinks),
+    queryFn: () => fetchSetting('social_links', mockSocialLinks),
 });
 
 export const useAdminCommunicationSettings = () => useQuery({
     queryKey: ['adminCommunicationSettings'],
-    queryFn: () => mockFetch(mockCommunicationSettings),
+    queryFn: () => fetchSetting('communication_settings', mockCommunicationSettings),
 });
 
 export const useAdminJitsiSettings = () => useQuery({
     queryKey: ['adminJitsiSettings'],
-    queryFn: () => mockFetch(mockJitsiSettings),
+    queryFn: () => fetchSetting('jitsi_settings', mockJitsiSettings),
 });
 
 export const useAdminPricingSettings = () => useQuery({
     queryKey: ['adminPricingSettings'],
-    queryFn: () => mockFetch(mockPricingSettings),
+    queryFn: () => fetchSetting('pricing_config', mockPricingSettings),
 });
 
 export const useAdminRolePermissions = () => useQuery({
     queryKey: ['adminRolePermissions'],
-    queryFn: () => mockFetch(mockRolePermissions),
+    queryFn: () => fetchSetting('role_permissions', mockRolePermissions),
 });

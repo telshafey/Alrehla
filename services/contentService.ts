@@ -1,71 +1,143 @@
 
-import { mockSiteContent, mockBlogPosts } from '../data/mockData';
+import { supabase } from '../lib/supabaseClient';
 import type { SiteContent, BlogPost } from '../lib/database.types';
-import { mockFetch } from './mockAdapter';
-import { apiClient } from '../lib/api';
-
-// Switch to FALSE to use Real Backend
-const USE_MOCK = false;
+import { mockSiteContent } from '../data/mockData';
 
 export const contentService = {
-    async updateSiteContent(newContent: SiteContent) {
-        if (USE_MOCK) {
-            await mockFetch(null, 800);
-            localStorage.setItem('alrehla_site_content', JSON.stringify(newContent));
-            return newContent;
+    // --- Site Content (Stored as JSON in site_settings) ---
+    async getSiteContent() {
+        const { data, error } = await supabase
+            .from('site_settings')
+            .select('value')
+            .eq('key', 'global_content')
+            .single();
+        
+        if (error || !data) {
+            console.warn("Could not fetch site content from DB, falling back to mock:", error?.message);
+            return mockSiteContent;
         }
-        return apiClient.put<SiteContent>('/admin/content', newContent);
+        return data.value as SiteContent;
+    },
+
+    async updateSiteContent(newContent: SiteContent) {
+        const { data, error } = await supabase
+            .from('site_settings')
+            .upsert({ 
+                key: 'global_content', 
+                value: newContent,
+                updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data.value as SiteContent;
     },
 
     async uploadFile(file: File): Promise<{ url: string }> {
-        if (USE_MOCK) {
-            await mockFetch(null, 1000);
-            // In a real app, this URL comes from the server (S3/Cloudinary)
-            return { url: URL.createObjectURL(file) };
-        }
-        const formData = new FormData();
-        formData.append('file', file);
-        return apiClient.post<{ url: string }>('/upload', formData);
+        // Upload to 'Helio' bucket
+        const fileExt = file.name.split('.').pop();
+        const fileName = `uploads/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('Helio') // Changed bucket name
+            .upload(fileName, file);
+
+        if (uploadError) throw new Error(uploadError.message);
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('Helio') // Changed bucket name
+            .getPublicUrl(fileName);
+
+        return { url: publicUrl };
     },
 
-    // --- Blog Posts ---
+    // --- Blog Posts (Stored in blog_posts table) ---
+    async getAllBlogPosts() {
+        const { data, error } = await supabase
+            .from('blog_posts')
+            .select('*')
+            .is('deleted_at', null)
+            .order('created_at', { ascending: false });
+            
+        if (error) throw new Error(error.message);
+        return data as BlogPost[];
+    },
+
     async createBlogPost(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Creating blog post (mock)", payload);
-            return mockFetch({ ...payload, id: Math.floor(Math.random() * 10000) }, 800);
+        // Handle image upload if provided as File
+        let imageUrl = payload.image_url;
+        if (payload.imageFile) {
+            const { url } = await this.uploadFile(payload.imageFile);
+            imageUrl = url;
         }
-        return apiClient.post<BlogPost>('/admin/blog-posts', payload);
+
+        const { imageFile, ...dbPayload } = payload;
+        const insertData = { 
+            ...dbPayload, 
+            image_url: imageUrl,
+            created_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('blog_posts')
+            .insert([insertData])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as BlogPost;
     },
 
     async updateBlogPost(payload: any) {
-        if (USE_MOCK) {
-            console.log("Service: Updating blog post (mock)", payload);
-            return mockFetch(payload, 800);
+        let imageUrl = payload.image_url;
+        if (payload.imageFile) {
+            const { url } = await this.uploadFile(payload.imageFile);
+            imageUrl = url;
         }
-        return apiClient.put<BlogPost>(`/admin/blog-posts/${payload.id}`, payload);
+
+        const { id, imageFile, ...updates } = payload;
+        const updateData = { ...updates, image_url: imageUrl };
+
+        const { data, error } = await supabase
+            .from('blog_posts')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as BlogPost;
     },
 
     async deleteBlogPost(postId: number) {
-        if (USE_MOCK) {
-            console.log("Service: Deleting blog post (mock)", postId);
-            return mockFetch({ success: true }, 500);
-        }
-        return apiClient.delete<{ success: boolean }>(`/admin/blog-posts/${postId}`);
+        // Soft delete
+        const { error } = await supabase
+            .from('blog_posts')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', postId);
+
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async bulkUpdateBlogPostsStatus(postIds: number[], status: 'published' | 'draft') {
-        if (USE_MOCK) {
-            console.log("Service: Bulk updating post status (mock)", { postIds, status });
-            return mockFetch({ success: true }, 500);
-        }
-        return apiClient.post<{ success: boolean }>('/admin/blog-posts/bulk-status', { postIds, status });
+        const { error } = await supabase
+            .from('blog_posts')
+            .update({ status })
+            .in('id', postIds);
+
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async bulkDeleteBlogPosts(postIds: number[]) {
-        if (USE_MOCK) {
-            console.log("Service: Bulk deleting posts (mock)", { postIds });
-            return mockFetch({ success: true }, 500);
-        }
-        return apiClient.post<{ success: boolean }>('/admin/blog-posts/bulk-delete', { postIds });
+        const { error } = await supabase
+            .from('blog_posts')
+            .update({ deleted_at: new Date().toISOString() })
+            .in('id', postIds);
+
+        if (error) throw new Error(error.message);
+        return { success: true };
     }
 };

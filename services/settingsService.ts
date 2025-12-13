@@ -1,12 +1,11 @@
 
+import { supabase } from '../lib/supabaseClient';
 import { 
     mockSocialLinks, 
     mockCommunicationSettings, 
     mockPricingSettings, 
     mockJitsiSettings,
-    mockSiteBranding,
-    mockPrices,
-    mockShippingCosts
+    mockSiteBranding
 } from '../data/mockData';
 import type { 
     SocialLinks, 
@@ -17,83 +16,104 @@ import type {
     Prices,
     ShippingCosts
 } from '../lib/database.types';
-import { mockFetch } from './mockAdapter';
-import { apiClient } from '../lib/api';
-
-// Switch to FALSE to use Real Backend
-const USE_MOCK = false;
 
 export const settingsService = {
-    // --- Branding & Prices ---
+    // --- Branding ---
     async updateBranding(newBranding: Partial<SiteBranding>) {
-        if (USE_MOCK) {
-            await mockFetch(null, 500);
-            const stored = localStorage.getItem('alrehla_branding');
-            const current = stored ? JSON.parse(stored) : mockSiteBranding;
-            const updated = { ...current, ...newBranding };
-            localStorage.setItem('alrehla_branding', JSON.stringify(updated));
-            return updated;
-        }
-        return apiClient.put<SiteBranding>('/admin/settings/branding', newBranding);
+        // 1. Get current branding to merge
+        const { data: current } = await supabase
+            .from('site_settings')
+            .select('value')
+            .eq('key', 'branding')
+            .single();
+            
+        const currentVal = current?.value || mockSiteBranding;
+        const updatedValue = { ...currentVal, ...newBranding };
+
+        // 2. Save to DB
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ 
+                key: 'branding', 
+                value: updatedValue,
+                updated_at: new Date().toISOString()
+            });
+
+        if (error) throw new Error(error.message);
+        return updatedValue as SiteBranding;
     },
 
+    // --- Prices ---
     async updatePrices(newPrices: Prices) {
-        if (USE_MOCK) {
-            await mockFetch(null, 500);
-            localStorage.setItem('alrehla_prices', JSON.stringify(newPrices));
-            return newPrices;
-        }
-        return apiClient.put<Prices>('/admin/settings/prices', newPrices);
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ 
+                key: 'prices', 
+                value: newPrices,
+                updated_at: new Date().toISOString()
+            });
+
+        if (error) throw new Error(error.message);
+        return newPrices;
     },
 
+    // --- Shipping ---
     async updateShippingCosts(newCosts: ShippingCosts) {
-        if (USE_MOCK) {
-            await mockFetch(null, 500);
-            localStorage.setItem('alrehla_shipping', JSON.stringify(newCosts));
-            return newCosts;
-        }
-        return apiClient.put<ShippingCosts>('/admin/settings/shipping', newCosts);
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ 
+                key: 'shipping_costs', 
+                value: newCosts,
+                updated_at: new Date().toISOString()
+            });
+
+        if (error) throw new Error(error.message);
+        return newCosts;
     },
 
     // --- General Settings ---
     async updateSocialLinks(links: SocialLinks) {
-        if (USE_MOCK) {
-            console.log("Service: Updating social links (mock)", links);
-            return mockFetch(links, 500);
-        }
-        return apiClient.put<SocialLinks>('/admin/settings/social-links', links);
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ key: 'social_links', value: links, updated_at: new Date().toISOString() });
+        
+        if (error) throw new Error(error.message);
+        return links;
     },
 
     async updateCommunicationSettings(settings: CommunicationSettings) {
-        if (USE_MOCK) {
-            console.log("Service: Updating comms settings (mock)", settings);
-            return mockFetch(settings, 500);
-        }
-        return apiClient.put<CommunicationSettings>('/admin/settings/communication', settings);
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ key: 'communication_settings', value: settings, updated_at: new Date().toISOString() });
+
+        if (error) throw new Error(error.message);
+        return settings;
     },
 
     async updatePricingSettings(settings: PricingSettings) {
-        if (USE_MOCK) {
-            console.log("Service: Updating pricing settings (mock)", settings);
-            return mockFetch(settings, 500);
-        }
-        return apiClient.put<PricingSettings>('/admin/settings/pricing-config', settings);
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ key: 'pricing_config', value: settings, updated_at: new Date().toISOString() });
+
+        if (error) throw new Error(error.message);
+        return settings;
     },
 
     async updateJitsiSettings(settings: JitsiSettings) {
-        if (USE_MOCK) {
-            console.log("Service: Updating Jitsi settings (mock)", settings);
-            return mockFetch(settings, 500);
-        }
-        return apiClient.put<JitsiSettings>('/admin/settings/jitsi', settings);
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ key: 'jitsi_settings', value: settings, updated_at: new Date().toISOString() });
+
+        if (error) throw new Error(error.message);
+        return settings;
     },
 
     async updateRolePermissions(permissions: any) {
-        if (USE_MOCK) {
-            await mockFetch(null, 800);
-            console.log("Service: Updating permissions (mock)", permissions);
-            return { success: true };
-        }
-        return apiClient.put<{ success: boolean }>('/admin/settings/permissions', permissions);
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ key: 'role_permissions', value: permissions, updated_at: new Date().toISOString() });
+
+        if (error) throw new Error(error.message);
+        return { success: true };
     }
 };

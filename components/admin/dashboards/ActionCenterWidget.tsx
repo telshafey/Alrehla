@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldQuestion, ShoppingBag, BookOpen, CalendarCheck, UserCog, MessageSquare, UserPlus, ArrowLeft } from 'lucide-react';
+import { ShieldQuestion, ShoppingBag, BookOpen, CalendarCheck, UserCog, MessageSquare, UserPlus, ArrowLeft, FileEdit } from 'lucide-react';
 import AdminSection from '../AdminSection';
 import { Button } from '../../ui/Button';
 import { formatDate } from '../../../utils/helpers';
@@ -54,6 +55,14 @@ const ActionCenterWidget = React.forwardRef<HTMLElement, { data: any; permission
             permission: permissions.canManageInstructorUpdates,
             to: '/admin/instructors',
             icon: <UserCog className="text-teal-500" />
+        },
+        {
+            title: 'طلبات تحديث البيانات/الأسعار',
+            items: data.instructors.filter((i: any) => i.profile_update_status === 'pending'),
+            render: (item: any) => `تحديث من ${item.name}`,
+            permission: permissions.canManageInstructorUpdates,
+            to: '/admin/instructors',
+            icon: <FileEdit className="text-orange-500" />
         },
         {
             title: 'رسائل دعم جديدة',
