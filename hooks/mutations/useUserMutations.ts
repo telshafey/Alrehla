@@ -7,6 +7,23 @@ export const useUserMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
 
+    // Admin mutation to create a user profile
+    const createUser = useMutation({
+        mutationFn: userService.createUser,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+            addToast('تم إنشاء المستخدم بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            let msg = error.message;
+            // Check for specific foreign key constraint error
+            if (msg.includes('profiles_id_fkey') || msg.includes('violates foreign key constraint')) {
+                msg = "تعذر إنشاء الملف الشخصي لأن قيد الربط مع جدول المصادقة (Auth) مفعل. يرجى تشغيل ملف SQL المسمى 'remove_profiles_fk.sql' في لوحة تحكم Supabase لحل هذه المشكلة.";
+            }
+            addToast(`فشل إنشاء المستخدم: ${msg}`, 'error');
+        }
+    });
+
     // Admin mutation to update any user
     const updateUser = useMutation({
         mutationFn: userService.updateUser,
@@ -101,6 +118,7 @@ export const useUserMutations = () => {
     });
 
     return { 
+        createUser,
         updateUser, 
         updateUserPassword, 
         createChildProfile, 

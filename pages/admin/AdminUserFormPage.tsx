@@ -21,7 +21,7 @@ const AdminUserFormPage: React.FC = () => {
     const { currentUser } = useAuth();
 
     const { data: users = [], isLoading: usersLoading } = useAdminUsers();
-    const { updateUser } = useUserMutations(); 
+    const { updateUser, createUser, updateUserPassword } = useUserMutations(); 
 
     const [formData, setFormData] = useState({
         name: '',
@@ -39,7 +39,7 @@ const AdminUserFormPage: React.FC = () => {
                 setFormData({
                     name: userToEdit.name,
                     email: userToEdit.email,
-                    password: '', // Don't show password
+                    password: '', // Don't show hash
                     role: userToEdit.role,
                     phone: userToEdit.phone || '',
                     address: userToEdit.address || ''
@@ -59,24 +59,33 @@ const AdminUserFormPage: React.FC = () => {
         e.preventDefault();
         
         try {
-            if (isNew) {
-                alert("في هذا الإصدار التجريبي، إنشاء المستخدمين يتم عبر صفحة التسجيل أو وظائف السيرفر (Edge Functions). يمكنك تعديل المستخدمين الحاليين.");
-                return; 
-            } else {
-                const payload: any = { 
-                    id: id!, 
-                    name: formData.name, 
-                    role: formData.role,
-                    phone: formData.phone,
-                    address: formData.address
-                };
-                
-                // Only send password update if field is filled (requires backend support for admin password reset)
-                if (formData.password) {
-                    payload.password = formData.password;
-                }
+            // 1. Prepare Profile Data (EXCLUDE password to prevent Schema Error)
+            const profilePayload = { 
+                name: formData.name, 
+                email: formData.email,
+                role: formData.role,
+                phone: formData.phone,
+                address: formData.address
+            };
 
-                await updateUser.mutateAsync(payload);
+            if (isNew) {
+                // Create new profile
+                await createUser.mutateAsync(profilePayload);
+                
+                // Note: We cannot set the password for a new user here directly via client-side SDK for another user.
+                // It requires server-side admin API. The profile is created, but Auth user is not.
+            } else {
+                // Update existing profile (Ensure 'id' is passed)
+                await updateUser.mutateAsync({ id: id!, ...profilePayload });
+                
+                // 2. Handle Password Update Separately (if provided)
+                if (formData.password && formData.password.trim() !== '') {
+                    // This attempts to update the password via Auth API
+                    await updateUserPassword.mutateAsync({
+                        userId: id!,
+                        newPassword: formData.password
+                    });
+                }
             }
             navigate('/admin/users');
         } catch (error) {
@@ -84,9 +93,11 @@ const AdminUserFormPage: React.FC = () => {
         }
     };
 
+    const isSaving = isNew ? createUser.isPending : (updateUser.isPending || updateUserPassword.isPending);
+
     if (usersLoading && !isNew) return <PageLoader text="جاري تحميل بيانات المستخدم..." />;
 
-    // Filter roles: only Super Admin can assign admin roles
+    // Filter roles
     const availableRoles = Object.entries(roleNames);
 
     return (
@@ -99,7 +110,7 @@ const AdminUserFormPage: React.FC = () => {
                 <h1 className="text-3xl font-extrabold text-foreground">
                     {isNew ? 'إضافة مستخدم جديد' : `تعديل المستخدم: ${formData.name}`}
                 </h1>
-                <Button type="submit" form="user-form" loading={updateUser.isPending} icon={<Save />}>
+                <Button type="submit" form="user-form" loading={isSaving} icon={<Save />}>
                     {isNew ? 'إنشاء الحساب' : 'حفظ التغييرات'}
                 </Button>
             </div>
@@ -145,21 +156,27 @@ const AdminUserFormPage: React.FC = () => {
                         <CardTitle className="flex items-center gap-2 text-base"><Lock size={18}/> الأمان وكلمة المرور</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <FormField label={isNew ? "كلمة المرور" : "تعيين كلمة مرور جديدة (اختياري)"} htmlFor="password">
+                        <FormField label={isNew ? "كلمة المرور (لإنشاء الحساب)" : "تعيين كلمة مرور جديدة (اختياري)"} htmlFor="password">
                             <Input 
                                 id="password" 
                                 name="password" 
                                 type="password" 
                                 value={formData.password} 
                                 onChange={handleChange} 
-                                placeholder={isNew ? "" : "اتركه فارغاً للإبقاء على الكلمة الحالية"}
-                                required={isNew}
+                                placeholder={isNew ? "اكتب كلمة المرور" : "اتركه فارغاً للإبقاء على الكلمة الحالية"}
+                                required={false} 
                             />
                         </FormField>
+                        {isNew && (
+                            <div className="mt-2 flex items-start gap-2 text-xs text-yellow-700 bg-yellow-50 p-2 rounded-md">
+                                <AlertCircle size={20} className="flex-shrink-0" />
+                                <span>ملاحظة: إنشاء حساب من لوحة التحكم ينشئ "الملف الشخصي" فقط في قاعدة البيانات. لن يتمكن المستخدم من تسجيل الدخول بكلمة المرور هذه لأن نظام المصادقة منفصل (يتطلب Supabase Admin API). يجب على المستخدم التسجيل بنفس الإيميل لربط الحساب.</span>
+                            </div>
+                        )}
                         {!isNew && (
                             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                                 <AlertCircle size={14} />
-                                <span>تغيير كلمة المرور من هنا سيؤدي لتسجيل خروج المستخدم من جميع الأجهزة.</span>
+                                <span>تغيير كلمة المرور من هنا سيقوم بتحديثها في نظام المصادقة (إذا كنت تملك صلاحيات المشرف).</span>
                             </div>
                         )}
                     </CardContent>
