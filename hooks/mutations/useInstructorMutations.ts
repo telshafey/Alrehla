@@ -1,6 +1,8 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
 import type { WeeklySchedule, AvailableSlots } from '../../lib/database.types';
+import { bookingService } from '../../services/bookingService';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -9,29 +11,33 @@ export const useInstructorMutations = () => {
     const { addToast } = useToast();
 
     const createInstructor = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(500);
-            console.log("Creating instructor (mock)", payload);
-            return { ...payload, id: Math.random() };
-        },
+        mutationFn: bookingService.createInstructor,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            queryClient.invalidateQueries({ queryKey: ['publicData'] });
             addToast('تم إضافة المدرب بنجاح.', 'success');
         },
-        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+        onError: (err: Error) => addToast(`فشل إضافة المدرب: ${err.message}`, 'error'),
     });
     
     const updateInstructor = useMutation({
-        mutationFn: async (payload: any) => {
-            await sleep(500);
-            console.log("Updating instructor (mock)", payload);
-            return payload;
-        },
+        mutationFn: bookingService.updateInstructor,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            queryClient.invalidateQueries({ queryKey: ['publicData'] });
             addToast('تم تحديث المدرب بنجاح.', 'success');
         },
-        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+        onError: (err: Error) => addToast(`فشل تحديث المدرب: ${err.message}`, 'error'),
+    });
+
+    const deleteInstructor = useMutation({
+        mutationFn: ({ instructorId }: { instructorId: number }) => bookingService.deleteInstructor(instructorId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+            queryClient.invalidateQueries({ queryKey: ['publicData'] });
+            addToast('تم حذف المدرب بنجاح.', 'info');
+        },
+        onError: (err: Error) => addToast(`فشل حذف المدرب: ${err.message}`, 'error'),
     });
 
     const approveInstructorSchedule = useMutation({
@@ -178,5 +184,20 @@ export const useInstructorMutations = () => {
         onError: (err: Error) => addToast(`فشل إرسال الطلب: ${err.message}`, 'error'),
     });
 
-    return { createInstructor, updateInstructor, approveInstructorSchedule, rejectInstructorSchedule, updateInstructorAvailability, requestScheduleChange, requestProfileUpdate, approveSupportSessionRequest, rejectSupportSessionRequest, createSupportSessionRequest, approveInstructorProfileUpdate, rejectInstructorProfileUpdate, requestIntroAvailabilityChange };
+    return { 
+        createInstructor, 
+        updateInstructor, 
+        deleteInstructor,
+        approveInstructorSchedule, 
+        rejectInstructorSchedule, 
+        updateInstructorAvailability, 
+        requestScheduleChange, 
+        requestProfileUpdate, 
+        approveSupportSessionRequest, 
+        rejectSupportSessionRequest, 
+        createSupportSessionRequest, 
+        approveInstructorProfileUpdate, 
+        rejectInstructorProfileUpdate, 
+        requestIntroAvailabilityChange 
+    };
 }

@@ -34,6 +34,7 @@ export const bookingService = {
         const { data, error } = await supabase
             .from('instructors')
             .select('*')
+            .is('deleted_at', null) // Filter active instructors only
             .order('name', { ascending: true });
         if (error) throw new Error(error.message);
         return data as Instructor[];
@@ -64,6 +65,69 @@ export const bookingService = {
             .order('price', { ascending: true });
         if (error) throw new Error(error.message);
         return data as StandaloneService[];
+    },
+
+    // --- Mutations: Instructors ---
+    async createInstructor(payload: any) {
+        // Handle Avatar Upload if a file is provided
+        let avatarUrl = payload.avatar_url;
+        if (payload.avatarFile) {
+            const fileName = `avatars/${Date.now()}_${payload.avatarFile.name}`;
+            const { error: uploadError } = await supabase.storage.from('public').upload(fileName, payload.avatarFile);
+            if (!uploadError) {
+                const { data: publicUrlData } = supabase.storage.from('public').getPublicUrl(fileName);
+                avatarUrl = publicUrlData.publicUrl;
+            }
+        }
+
+        const { avatarFile, ...dbPayload } = payload;
+        const insertData = { ...dbPayload, avatar_url: avatarUrl };
+
+        const { data, error } = await supabase
+            .from('instructors')
+            .insert([insertData])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as Instructor;
+    },
+
+    async updateInstructor(payload: any) {
+        let avatarUrl = payload.avatar_url;
+        if (payload.avatarFile) {
+            const fileName = `avatars/${Date.now()}_${payload.avatarFile.name}`;
+            const { error: uploadError } = await supabase.storage.from('public').upload(fileName, payload.avatarFile);
+            if (!uploadError) {
+                const { data: publicUrlData } = supabase.storage.from('public').getPublicUrl(fileName);
+                avatarUrl = publicUrlData.publicUrl;
+            }
+        }
+
+        const { id, avatarFile, ...updates } = payload;
+        const updateData = { ...updates };
+        if (avatarUrl) updateData.avatar_url = avatarUrl;
+
+        const { data, error } = await supabase
+            .from('instructors')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as Instructor;
+    },
+
+    async deleteInstructor(instructorId: number) {
+        // Perform Soft Delete by setting deleted_at
+        const { error } = await supabase
+            .from('instructors')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', instructorId);
+        
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     // --- Mutations: Bookings ---
@@ -141,13 +205,11 @@ export const bookingService = {
 
         if (error) throw new Error(error.message);
         
-        // If data is empty but no error, it usually means RLS blocked the update OR ID is wrong.
         if (!data || data.length === 0) {
-            // Check if item exists to give better error
             const { count } = await supabase.from('creative_writing_packages').select('*', { count: 'exact', head: true }).eq('id', id);
             
             if (count && count > 0) {
-                throw new Error("فشل التحديث: يرجى التحقق من سياسات الأمان (RLS Policies) في Supabase، يبدو أنك لا تملك صلاحية التعديل.");
+                throw new Error("فشل التحديث: يرجى التحقق من سياسات الأمان (RLS Policies).");
             } else {
                 throw new Error(`لم يتم العثور على الباقة رقم ${id}. ربما تم حذفها.`);
             }
@@ -190,7 +252,7 @@ export const bookingService = {
         if (!data || data.length === 0) {
              const { count } = await supabase.from('standalone_services').select('*', { count: 'exact', head: true }).eq('id', id);
              if (count && count > 0) {
-                throw new Error("فشل التحديث: يرجى التحقق من سياسات الأمان (RLS Policies) في Supabase.");
+                throw new Error("فشل التحديث: يرجى التحقق من سياسات الأمان (RLS Policies).");
             } else {
                 throw new Error("لم يتم العثور على الخدمة للتحديث");
             }

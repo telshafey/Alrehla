@@ -239,6 +239,7 @@ export interface Instructor {
     id: number;
     user_id: string | null;
     name: string;
+    email?: string; 
     specialty: string;
     bio: string;
     avatar_url: string | null;
@@ -256,13 +257,14 @@ export interface Instructor {
     expertise_areas: string[];
     intro_video_url: string | null;
     published_works: PublishedWork[];
+    deleted_at?: string | null;
 }
 
 export interface SiteBranding {
     logoUrl: string;
     heroImageUrl: string;
-    aboutHeroImageUrl: string; // For About Page Hero
-    aboutPortalImageUrl: string; // For Home Page Card
+    aboutHeroImageUrl: string; 
+    aboutPortalImageUrl: string; 
     joinUsImageUrl: string;
     creativeWritingPortalImageUrl: string;
     enhaLakPortalImageUrl: string;

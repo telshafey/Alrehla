@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
+import { useAdminUsers } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useAdminCWSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -9,7 +10,8 @@ import { Button } from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
-import { ArrowLeft, Save, User, AlertCircle, Check, XCircle, FileEdit, Calendar, DollarSign } from 'lucide-react';
+import { Select } from '../../components/ui/Select';
+import { ArrowLeft, Save, User, AlertCircle, Check, XCircle, FileEdit, Calendar, UserPlus } from 'lucide-react';
 import type { Instructor, WeeklySchedule } from '../../lib/database.types';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -34,14 +36,25 @@ const AdminInstructorDetailPage: React.FC = () => {
     const isNew = id === 'new';
 
     const { data: instructors = [], isLoading: instructorsLoading, error: instructorsError, refetch: refetchInstructors } = useAdminInstructors();
+    const { data: users = [], isLoading: usersLoading } = useAdminUsers();
     const { data: settingsData, isLoading: settingsLoading, error: settingsError, refetch: refetchSettings } = useAdminCWSettings();
     const { createInstructor, updateInstructor, approveInstructorProfileUpdate, rejectInstructorProfileUpdate, approveInstructorSchedule, rejectInstructorSchedule } = useInstructorMutations();
     
-    const [profile, setProfile] = useState<Partial<Instructor>>({ name: '', specialty: '', slug: '', bio: '' });
+    // Add email to initial state
+    const [profile, setProfile] = useState<Partial<Instructor>>({ name: '', email: '', specialty: '', slug: '', bio: '', user_id: '' });
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
 
     const instructor = !isNew ? instructors.find(i => i.id === parseInt(id!)) : null;
+
+    // Filter available users for new instructor creation
+    const availableCandidates = useMemo(() => {
+        if (!users) return [];
+        return users.filter(user => 
+            user.role === 'instructor' && 
+            !instructors.some(inst => inst.user_id === user.id)
+        );
+    }, [users, instructors]);
 
     useEffect(() => {
         if (instructor) {
@@ -50,7 +63,7 @@ const AdminInstructorDetailPage: React.FC = () => {
         }
     }, [instructor]);
 
-    const isLoading = instructorsLoading || settingsLoading;
+    const isLoading = instructorsLoading || settingsLoading || usersLoading;
     const isSaving = createInstructor.isPending || updateInstructor.isPending;
     const error = instructorsError || settingsError;
 
@@ -71,6 +84,19 @@ const AdminInstructorDetailPage: React.FC = () => {
         setProfile(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
+    const handleUserSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedUserId = e.target.value;
+        const selectedUser = users.find(u => u.id === selectedUserId);
+        if (selectedUser) {
+            setProfile(prev => ({
+                ...prev,
+                user_id: selectedUser.id,
+                name: selectedUser.name, 
+                email: selectedUser.email // Set email from user profile
+            }));
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (isNew) {
@@ -78,6 +104,7 @@ const AdminInstructorDetailPage: React.FC = () => {
         } else {
             await updateInstructor.mutateAsync({ ...profile, avatarFile });
         }
+        navigate('/admin/instructors');
     };
 
     const renderPendingProfileUpdates = () => {
@@ -150,6 +177,52 @@ const AdminInstructorDetailPage: React.FC = () => {
                 <Card>
                     <CardHeader><CardTitle className="flex items-center gap-2"><User /> الملف الشخصي للمدرب</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
+                        {isNew ? (
+                            <div className="space-y-4">
+                                <FormField label="اختر المستخدم (يجب أن يكون دوره 'مدرب' في النظام)" htmlFor="user_id">
+                                    <Select 
+                                        id="user_id" 
+                                        name="user_id" 
+                                        value={profile.user_id || ''} 
+                                        onChange={handleUserSelection}
+                                        required
+                                    >
+                                        <option value="" disabled>-- اختر مستخدماً من القائمة --</option>
+                                        {availableCandidates.map(u => (
+                                            <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                                        ))}
+                                    </Select>
+                                </FormField>
+                                {availableCandidates.length === 0 && (
+                                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-sm text-yellow-800 flex items-start gap-2">
+                                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                        <div>
+                                            <p className="font-bold">لا يوجد مستخدمون متاحون.</p>
+                                            <p className="mt-1">يجب أولاً إنشاء حساب مستخدم وتعيين دوره كـ "مدرب"، أو تعديل دور مستخدم حالي من صفحة المستخدمين.</p>
+                                            <Link to="/admin/users" className="text-primary hover:underline mt-2 inline-flex items-center gap-1 font-semibold">
+                                                الذهاب لإدارة المستخدمين <UserPlus size={14}/>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )}
+                                <FormField label="اسم المدرب" htmlFor="name">
+                                    <Input id="name" name="name" value={profile.name} onChange={handleProfileChange} required />
+                                </FormField>
+                                <FormField label="البريد الإلكتروني" htmlFor="email">
+                                    <Input id="email" name="email" value={profile.email} onChange={handleProfileChange} />
+                                </FormField>
+                            </div>
+                        ) : (
+                            <>
+                                <FormField label="اسم المدرب" htmlFor="name">
+                                    <Input id="name" name="name" value={profile.name} onChange={handleProfileChange} required />
+                                </FormField>
+                                <FormField label="البريد الإلكتروني" htmlFor="email">
+                                    <Input id="email" name="email" value={profile.email} onChange={handleProfileChange} />
+                                </FormField>
+                            </>
+                        )}
+
                         <FormField label="الصورة الرمزية" htmlFor="avatarFile">
                             <div className="flex items-center gap-4">
                                 <div className="relative">
@@ -162,22 +235,20 @@ const AdminInstructorDetailPage: React.FC = () => {
                                 </div>
                             </div>
                         </FormField>
-                        <FormField label="اسم المدرب" htmlFor="name">
-                            <Input id="name" name="name" value={profile.name} onChange={handleProfileChange} required />
-                        </FormField>
+                        
                         <FormField label="التخصص" htmlFor="specialty">
-                            <Input id="specialty" name="specialty" value={profile.specialty} onChange={handleProfileChange} />
+                            <Input id="specialty" name="specialty" value={profile.specialty} onChange={handleProfileChange} placeholder="مثال: كتابة القصة القصيرة، أدب الطفل" />
                         </FormField>
                         <FormField label="معرّف الرابط (Slug)" htmlFor="slug">
-                            <Input id="slug" name="slug" value={profile.slug} onChange={handleProfileChange} placeholder="مثال: ahmed-masri" required />
+                            <Input id="slug" name="slug" value={profile.slug} onChange={handleProfileChange} placeholder="مثال: ahmed-masri" required dir="ltr" />
                         </FormField>
                         <FormField label="نبذة تعريفية" htmlFor="bio">
-                            <Textarea id="bio" name="bio" value={profile.bio} onChange={handleProfileChange} rows={5} />
+                            <Textarea id="bio" name="bio" value={profile.bio} onChange={handleProfileChange} rows={5} placeholder="نبذة مختصرة تظهر للطلاب..." />
                         </FormField>
                     </CardContent>
                 </Card>
                  <div className="flex justify-end sticky bottom-6 mt-8">
-                    <Button type="submit" loading={isSaving} size="lg" icon={<Save />}>
+                    <Button type="submit" loading={isSaving} size="lg" icon={<Save />} disabled={isNew && !profile.user_id}>
                         {isSaving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
                     </Button>
                 </div>
