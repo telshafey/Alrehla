@@ -39,6 +39,7 @@ const AdminPackageDetailPage: React.FC = () => {
                 setPkg(foundPkg);
                 setFeaturesString(foundPkg.features.join('\n'));
             } else if (!settingsLoading) {
+                // Wait for loading to finish before redirecting
                 navigate('/admin/creative-writing-packages');
             }
         }
@@ -56,8 +57,11 @@ const AdminPackageDetailPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Ensure ID is a number if it exists
         const payload = {
             ...pkg,
+            id: isNew ? undefined : Number(id), 
             features: featuresString.split('\n').filter(f => f.trim() !== ''),
         };
 

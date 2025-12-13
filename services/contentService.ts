@@ -4,7 +4,8 @@ import type { SiteContent, BlogPost } from '../lib/database.types';
 import { mockFetch } from './mockAdapter';
 import { apiClient } from '../lib/api';
 
-const USE_MOCK = true;
+// Switch to FALSE to use Real Backend
+const USE_MOCK = false;
 
 export const contentService = {
     async updateSiteContent(newContent: SiteContent) {

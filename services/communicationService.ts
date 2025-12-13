@@ -12,7 +12,11 @@ export const communicationService = {
             .from('support_tickets')
             .select('*')
             .order('created_at', { ascending: false });
-        if (error) throw new Error(error.message);
+        
+        if (error) {
+            console.warn("Error fetching support tickets (table might be missing):", error.message);
+            return [];
+        }
         return data as SupportTicket[];
     },
 
@@ -21,17 +25,20 @@ export const communicationService = {
             .from('join_requests')
             .select('*')
             .order('created_at', { ascending: false });
-        if (error) throw new Error(error.message);
+            
+        if (error) {
+            console.warn("Error fetching join requests (table might be missing):", error.message);
+            return [];
+        }
         return data as JoinRequest[];
     },
 
-    // Note: 'support_session_requests' table was NOT in the initial SQL provided.
-    // If you need this feature, you should create the table.
-    // For now, we will return an empty array or throw error if called, 
-    // or implement a mock if critical. Let's return empty to prevent crash.
     async getAllSupportSessionRequests() {
-        // const { data, error } = await supabase.from('support_session_requests').select('*');
-        console.warn("Table 'support_session_requests' does not exist yet.");
-        return [] as SupportSessionRequest[];
+        const { data, error } = await supabase.from('support_session_requests').select('*');
+        if (error) {
+            console.warn("Table 'support_session_requests' missing or error:", error.message);
+            return [] as SupportSessionRequest[];
+        }
+        return data as SupportSessionRequest[];
     }
 };

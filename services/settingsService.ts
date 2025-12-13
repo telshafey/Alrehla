@@ -20,7 +20,8 @@ import type {
 import { mockFetch } from './mockAdapter';
 import { apiClient } from '../lib/api';
 
-const USE_MOCK = true;
+// Switch to FALSE to use Real Backend
+const USE_MOCK = false;
 
 export const settingsService = {
     // --- Branding & Prices ---

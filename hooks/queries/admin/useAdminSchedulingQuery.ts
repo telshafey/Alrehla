@@ -1,17 +1,17 @@
-import { useQuery } from '@tanstack/react-query';
-import { mockScheduledSessions, mockInstructors, mockChildProfiles, mockBookings } from '../../../data/mockData';
-import type { ScheduledSession, Instructor, ChildProfile, CreativeWritingBooking } from '../../../lib/database.types';
 
-const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
+import { useQuery } from '@tanstack/react-query';
+import { bookingService } from '../../../services/bookingService';
+import { userService } from '../../../services/userService';
+import type { ScheduledSession, Instructor, ChildProfile, CreativeWritingBooking } from '../../../lib/database.types';
 
 export const useAdminScheduledSessions = () => useQuery({
     queryKey: ['adminScheduledSessions'],
     queryFn: async () => {
         const [sessions, instructors, children, bookings] = await Promise.all([
-            mockFetch(mockScheduledSessions) as Promise<ScheduledSession[]>,
-            mockFetch(mockInstructors) as Promise<Instructor[]>,
-            mockFetch(mockChildProfiles) as Promise<ChildProfile[]>,
-            mockFetch(mockBookings) as Promise<CreativeWritingBooking[]>
+            bookingService.getAllScheduledSessions(),
+            bookingService.getAllInstructors(),
+            userService.getAllChildProfiles(), // Note: This gets all children in admin context
+            bookingService.getAllBookings()
         ]);
 
         return sessions.map(session => {

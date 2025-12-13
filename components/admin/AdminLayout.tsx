@@ -1,3 +1,4 @@
+
 import React, { useState, Suspense, lazy } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,6 +11,7 @@ import PermissionBasedRoute from '../auth/PermissionBasedRoute';
 // Lazy load admin pages
 const AdminDashboardPage = lazy(() => import('../../pages/admin/AdminDashboardPage'));
 const AdminUsersPage = lazy(() => import('../../pages/admin/AdminUsersPage'));
+const AdminUserFormPage = lazy(() => import('../../pages/admin/AdminUserFormPage')); // New Page
 const AdminOrdersPage = lazy(() => import('../../pages/admin/AdminOrdersPage'));
 const AdminCreativeWritingPage = lazy(() => import('../../pages/admin/AdminCreativeWritingPage'));
 const AdminPersonalizedProductsPage = lazy(() => import('../../pages/admin/AdminPersonalizedProductsPage'));
@@ -105,6 +107,9 @@ const AdminLayout: React.FC = () => {
                                 <>
                                      <Route index element={<AdminDashboardPage />} />
                                      <Route path="users" element={<PermissionBasedRoute permission="canManageUsers"><AdminUsersPage /></PermissionBasedRoute>} />
+                                     <Route path="users/new" element={<PermissionBasedRoute permission="canManageUsers"><AdminUserFormPage /></PermissionBasedRoute>} />
+                                     <Route path="users/:id" element={<PermissionBasedRoute permission="canManageUsers"><AdminUserFormPage /></PermissionBasedRoute>} />
+                                     
                                      <Route path="orders" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminOrdersPage /></PermissionBasedRoute>} />
                                      <Route path="creative-writing" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminCreativeWritingPage /></PermissionBasedRoute>} />
                                      <Route path="personalized-products" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminPersonalizedProductsPage /></PermissionBasedRoute>} />

@@ -1,24 +1,24 @@
+
 import { useQuery } from '@tanstack/react-query';
 import {
-    mockCreativeWritingPackages,
-    mockAdditionalServices,
     mockSocialLinks,
-    mockStandaloneServices,
     mockPricingSettings,
     mockRolePermissions,
     mockCommunicationSettings,
     mockJitsiSettings,
+    mockAdditionalServices
 } from '../../../data/mockData';
+import { bookingService } from '../../../services/bookingService';
 
 const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
 
 export const useAdminCWSettings = () => useQuery({
     queryKey: ['adminCWSettings'],
     queryFn: async () => {
-        const [packages, services, standaloneServices] = await Promise.all([
-            mockFetch(mockCreativeWritingPackages),
-            mockFetch(mockAdditionalServices),
-            mockFetch(mockStandaloneServices),
+        const [packages, standaloneServices, services] = await Promise.all([
+            bookingService.getAllPackages(),
+            bookingService.getAllStandaloneServices(),
+            mockFetch(mockAdditionalServices), // Keep this mocked if not in DB yet or part of standalone
         ]);
         return { packages, services, standaloneServices };
     },

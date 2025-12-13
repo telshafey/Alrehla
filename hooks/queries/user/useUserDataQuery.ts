@@ -1,17 +1,7 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
-import {
-    mockNotifications,
-    mockOrders,
-    mockSubscriptions,
-    mockBookings,
-    mockScheduledSessions,
-    mockCreativeWritingPackages,
-    mockInstructors,
-    mockChildBadges,
-    mockBadges,
-    mockSessionAttachments,
-} from '../../../data/mockData';
+import { supabase } from '../../../lib/supabaseClient';
 import type { 
     Notification,
     Order, 
@@ -26,15 +16,27 @@ import type {
 
 export type { SessionAttachment };
 
-const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
-
 export const useUserNotifications = () => {
     const { currentUser } = useAuth();
     return useQuery<Notification[]>({
         queryKey: ['userNotifications', currentUser?.id],
-        queryFn: () => {
+        queryFn: async () => {
             if (!currentUser) return [];
-            return mockFetch(mockNotifications.filter(n => n.user_id === currentUser.id)) as Promise<Notification[]>;
+            try {
+                const { data, error } = await supabase
+                    .from('notifications')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    console.warn('Notifications fetch warning (Table might be missing):', error.message);
+                    return [];
+                }
+                return data as Notification[];
+            } catch (e) {
+                return [];
+            }
         },
         enabled: !!currentUser,
     });
@@ -56,39 +58,104 @@ export interface UserAccountData {
     attachments: SessionAttachment[];
 }
 
-
 export const useUserAccountData = () => {
     const { currentUser, childProfiles } = useAuth();
+    
     return useQuery<UserAccountData>({
         queryKey: ['userAccountData', currentUser?.id],
         queryFn: async () => {
             if (!currentUser) return { userOrders: [], userSubscriptions: [], userBookings: [], childBadges: [], allBadges: [], attachments: [] };
-            const userOrders = mockOrders.filter(o => o.user_id === currentUser.id);
-            const userSubscriptions = mockSubscriptions.filter(s => s.user_id === currentUser.id);
-            
-            const userBookings: EnrichedBooking[] = mockBookings
-                .filter(b => b.user_id === currentUser.id)
-                .map(booking => {
-                    const sessions = mockScheduledSessions.filter(s => s.booking_id === booking.id);
-                    const packageDetails = mockCreativeWritingPackages.find(p => p.name === booking.package_name);
-                    const instructorName = mockInstructors.find(i => i.id === booking.instructor_id)?.name || 'N/A';
+
+            const safeFetch = async (table: string, query: any) => {
+                try {
+                    const { data, error } = await query;
+                    if (error) {
+                        console.warn(`Failed to fetch ${table}:`, error.message);
+                        return [];
+                    }
+                    return data;
+                } catch (e) {
+                    console.warn(`Exception fetching ${table}`, e);
+                    return [];
+                }
+            };
+
+            // 1. Fetch Orders
+            const userOrders = await safeFetch('orders', supabase
+                .from('orders')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('order_date', { ascending: false }));
+
+            // 2. Fetch Subscriptions
+            const userSubscriptions = await safeFetch('subscriptions', supabase
+                .from('subscriptions')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false }));
+
+            // 3. Fetch Bookings
+            const userBookingsData = await safeFetch('bookings', supabase
+                .from('bookings') 
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('booking_date', { ascending: false }));
+
+            // 4. Enrich Bookings
+            let userBookings: EnrichedBooking[] = [];
+            if (userBookingsData && userBookingsData.length > 0) {
+                const bookingIds = userBookingsData.map((b: any) => b.id);
+                
+                const sessions = await safeFetch('scheduled_sessions', supabase.from('scheduled_sessions').select('*').in('booking_id', bookingIds));
+                const instructors = await safeFetch('instructors', supabase.from('instructors').select('id, name'));
+                const packages = await safeFetch('creative_writing_packages', supabase.from('creative_writing_packages').select('*'));
+
+                userBookings = userBookingsData.map((booking: any) => {
+                    const bookingSessions = sessions?.filter((s: any) => s.booking_id === booking.id) || [];
+                    const pkg = packages?.find((p: any) => p.name === booking.package_name); 
+                    const instructor = instructors?.find((i: any) => i.id === booking.instructor_id);
                     const child = childProfiles.find(c => c.id === booking.child_id);
-                    return { 
-                        ...booking, 
-                        sessions, 
-                        packageDetails, 
-                        instructorName,
+
+                    return {
+                        ...booking,
+                        sessions: bookingSessions as ScheduledSession[],
+                        packageDetails: pkg as CreativeWritingPackage,
+                        instructorName: instructor?.name || 'غير محدد',
                         child_profiles: child ? { name: child.name } : null
                     };
                 });
-            
-            const childBadges = mockChildBadges.filter(cb => childProfiles.some(p => p.id === cb.child_id));
-            const allBadges = mockBadges;
+            }
 
-            const userBookingIds = new Set(userBookings.map(b => b.id));
-            const attachments = mockSessionAttachments.filter(att => userBookingIds.has(att.booking_id));
+            // 5. Fetch Badges
+            const childIds = childProfiles.map(c => c.id);
+            let childBadges: ChildBadge[] = [];
+            if (childIds.length > 0) {
+                childBadges = await safeFetch('child_badges', supabase
+                    .from('child_badges')
+                    .select('*')
+                    .in('child_id', childIds)) as ChildBadge[];
+            }
 
-            return mockFetch({ userOrders, userSubscriptions, userBookings, childBadges, allBadges, attachments }) as Promise<UserAccountData>;
+            const allBadges = await safeFetch('badges', supabase.from('badges').select('*')) as Badge[];
+
+            // 6. Fetch Attachments
+            let attachments: SessionAttachment[] = [];
+            if (userBookingsData && userBookingsData.length > 0) {
+                 const bookingIds = userBookingsData.map((b: any) => b.id);
+                 attachments = await safeFetch('session_attachments', supabase
+                    .from('session_attachments')
+                    .select('*')
+                    .in('booking_id', bookingIds)) as SessionAttachment[];
+            }
+
+            return {
+                userOrders: (userOrders as Order[]) || [],
+                userSubscriptions: (userSubscriptions as Subscription[]) || [],
+                userBookings,
+                childBadges,
+                allBadges,
+                attachments
+            };
         },
         enabled: !!currentUser,
     });

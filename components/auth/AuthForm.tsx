@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -39,11 +40,9 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
     };
 
     return (
-        <div className="w-full bg-white p-8 rounded-2xl shadow-lg">
+        <div className="w-full bg-white p-8 rounded-2xl shadow-lg border">
             <h2 className="text-2xl font-bold text-center mb-6">{isLogin ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}</h2>
             
-            {isLogin && <p className="text-center text-xs text-gray-500 -mt-4 mb-6">لتجربة المنصة، استخدم أزرار الدخول السريع.</p>}
-
             <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && (
                     <FormField label="الاسم" htmlFor="name">
@@ -57,15 +56,15 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
                      <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                 </FormField>
                 
-                {error && <p className="text-red-500 text-sm">{error}</p>}
+                {error && <p className="text-red-500 text-sm bg-red-50 p-2 rounded">{error}</p>}
                 
                 <Button type="submit" loading={loading} className="w-full">
                     {isLogin ? 'دخول' : 'إنشاء حساب'}
                 </Button>
             </form>
-            <p className="text-center mt-4 text-sm">
+            <p className="text-center mt-6 text-sm text-muted-foreground">
                 {isLogin ? 'ليس لديك حساب؟' : 'لديك حساب بالفعل؟'}
-                <Link to={isLogin ? '/register' : '/account'} className="text-blue-600 hover:underline font-semibold ms-2">
+                <Link to={isLogin ? '/register' : '/account'} className="text-primary hover:underline font-semibold ms-2">
                     {isLogin ? 'أنشئ حسابًا' : 'سجل الدخول'}
                 </Link>
             </p>

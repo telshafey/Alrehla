@@ -2,7 +2,7 @@
 import { mockFetch } from './mockAdapter';
 import { apiClient } from '../lib/api';
 
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 export const financialService = {
     async createPayout(payload: { instructorId: number, amount: number, details: string }) {

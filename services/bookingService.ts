@@ -48,10 +48,27 @@ export const bookingService = {
         return data as SessionAttachment[];
     },
 
+    async getAllPackages() {
+        const { data, error } = await supabase
+            .from('creative_writing_packages')
+            .select('*')
+            .order('price', { ascending: true });
+        if (error) throw new Error(error.message);
+        return data as CreativeWritingPackage[];
+    },
+
+    async getAllStandaloneServices() {
+        const { data, error } = await supabase
+            .from('standalone_services')
+            .select('*')
+            .order('price', { ascending: true });
+        if (error) throw new Error(error.message);
+        return data as StandaloneService[];
+    },
+
     // --- Mutations: Bookings ---
     async createBooking(payload: any) {
         const bookingId = `bk_${Math.floor(Math.random() * 1000000)}`;
-        // payload usually has: { child, package, instructor, dateTime, total }
         const { data, error } = await supabase
             .from('bookings')
             .insert([{
@@ -66,11 +83,10 @@ export const bookingService = {
                 status: 'بانتظار الدفع',
                 created_at: new Date().toISOString()
             }])
-            .select()
-            .single();
+            .select();
 
         if (error) throw new Error(error.message);
-        return data as CreativeWritingBooking;
+        return data?.[0] as CreativeWritingBooking;
     },
 
     async updateBookingStatus(bookingId: string, newStatus: BookingStatus) {
@@ -94,7 +110,7 @@ export const bookingService = {
     async saveBookingDraft(bookingId: string, draft: string) {
         const { error } = await supabase
             .from('bookings')
-            .update({ draft_content: draft }) // Ensure column exists in DB or map it
+            .update({ draft_content: draft })
             .eq('id', bookingId);
         if (error) throw new Error(error.message);
         return { success: true };
@@ -102,24 +118,42 @@ export const bookingService = {
 
     // --- Mutations: Packages ---
     async createPackage(payload: any) {
+        const { id, ...rest } = payload; 
         const { data, error } = await supabase
             .from('creative_writing_packages')
-            .insert([payload])
-            .select()
-            .single();
+            .insert([rest])
+            .select();
+            
         if (error) throw new Error(error.message);
-        return data as CreativeWritingPackage;
+        return data?.[0] as CreativeWritingPackage;
     },
 
     async updatePackage(payload: any) {
+        const { id, ...updates } = payload;
+        
+        if (!id) throw new Error("لم يتم تحديد معرف الباقة (ID) للتحديث");
+
         const { data, error } = await supabase
             .from('creative_writing_packages')
-            .update(payload)
-            .eq('id', payload.id)
-            .select()
-            .single();
+            .update(updates)
+            .eq('id', id)
+            .select();
+
         if (error) throw new Error(error.message);
-        return data as CreativeWritingPackage;
+        
+        // If data is empty but no error, it usually means RLS blocked the update OR ID is wrong.
+        if (!data || data.length === 0) {
+            // Check if item exists to give better error
+            const { count } = await supabase.from('creative_writing_packages').select('*', { count: 'exact', head: true }).eq('id', id);
+            
+            if (count && count > 0) {
+                throw new Error("فشل التحديث: يرجى التحقق من سياسات الأمان (RLS Policies) في Supabase، يبدو أنك لا تملك صلاحية التعديل.");
+            } else {
+                throw new Error(`لم يتم العثور على الباقة رقم ${id}. ربما تم حذفها.`);
+            }
+        }
+        
+        return data[0] as CreativeWritingPackage;
     },
 
     async deletePackage(packageId: number) {
@@ -133,24 +167,35 @@ export const bookingService = {
 
     // --- Mutations: Standalone Services ---
     async createStandaloneService(payload: any) {
+        const { id, ...rest } = payload;
         const { data, error } = await supabase
             .from('standalone_services')
-            .insert([payload])
-            .select()
-            .single();
+            .insert([rest])
+            .select();
+            
         if (error) throw new Error(error.message);
-        return data as StandaloneService;
+        return data?.[0] as StandaloneService;
     },
 
     async updateStandaloneService(payload: any) {
+        const { id, ...updates } = payload;
         const { data, error } = await supabase
             .from('standalone_services')
-            .update(payload)
-            .eq('id', payload.id)
-            .select()
-            .single();
+            .update(updates)
+            .eq('id', id)
+            .select();
+            
         if (error) throw new Error(error.message);
-        return data as StandaloneService;
+        
+        if (!data || data.length === 0) {
+             const { count } = await supabase.from('standalone_services').select('*', { count: 'exact', head: true }).eq('id', id);
+             if (count && count > 0) {
+                throw new Error("فشل التحديث: يرجى التحقق من سياسات الأمان (RLS Policies) في Supabase.");
+            } else {
+                throw new Error("لم يتم العثور على الخدمة للتحديث");
+            }
+        }
+        return data[0] as StandaloneService;
     },
 
     async deleteStandaloneService(serviceId: number) {

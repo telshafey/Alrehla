@@ -1,9 +1,9 @@
+
 import React, { useState } from 'react';
 import { useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PageLoader from '../components/ui/PageLoader';
 import { AuthForm } from '../components/auth/AuthForm';
-import DemoLogins from '../components/auth/DemoLogins';
 import DashboardPanel from '../components/account/DashboardPanel';
 import AccountSettingsPanel from '../components/account/AccountSettingsPanel';
 import NotificationPanel from '../components/account/NotificationPanel';
@@ -43,10 +43,9 @@ const AccountPage: React.FC = () => {
 
     if (!isLoggedIn) {
         return (
-            <div className="container mx-auto px-4 py-12">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start max-w-5xl mx-auto">
+            <div className="container mx-auto px-4 py-12 flex justify-center items-center min-h-[60vh]">
+                <div className="w-full max-w-md">
                     <AuthForm mode="login" />
-                    <DemoLogins />
                 </div>
             </div>
         );

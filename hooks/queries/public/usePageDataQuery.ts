@@ -1,31 +1,18 @@
-import { useQuery } from '@tanstack/react-query';
-import {
-    mockInstructors,
-    mockCreativeWritingPackages,
-    mockPublicHolidays,
-    mockAdditionalServices,
-    mockPersonalizedProducts
-} from '../../../data/mockData';
 
-const mockFetch = (data: any, delay = 300) => new Promise(resolve => setTimeout(() => resolve(data), delay));
+import { useQuery } from '@tanstack/react-query';
+import { publicService } from '../../../services/publicService';
 
 export const useBookingData = () => {
     return useQuery({
         queryKey: ['creativeWritingBookingData'],
         queryFn: async () => {
-            const [instructors, cw_packages, holidays, services] = await Promise.all([
-                mockFetch(mockInstructors),
-                mockFetch(mockCreativeWritingPackages),
-                mockFetch(mockPublicHolidays),
-                mockFetch(mockAdditionalServices)
-            ]);
-            const data = {
-                instructors,
-                cw_packages,
-                holidays,
-                cw_services: services,
+            const data = await publicService.getAllPublicData();
+            return {
+                instructors: data.instructors,
+                cw_packages: data.creativeWritingPackages,
+                holidays: data.publicHolidays,
+                cw_services: data.standaloneServices,
             };
-            return data;
         },
         staleTime: 1000 * 60 * 5, // 5 minutes
     });
@@ -35,10 +22,10 @@ export const useOrderData = () => {
     return useQuery({
         queryKey: ['enhaLakOrderData'],
         queryFn: async () => {
-            const data = {
-                personalizedProducts: await mockFetch(mockPersonalizedProducts),
+            const data = await publicService.getAllPublicData();
+            return {
+                personalizedProducts: data.personalizedProducts,
             };
-            return data;
         },
         staleTime: 1000 * 60 * 5, // 5 minutes
     });
