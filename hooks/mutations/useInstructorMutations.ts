@@ -17,7 +17,13 @@ export const useInstructorMutations = () => {
             queryClient.invalidateQueries({ queryKey: ['publicData'] });
             addToast('تم إضافة المدرب بنجاح.', 'success');
         },
-        onError: (err: Error) => addToast(`فشل إضافة المدرب: ${err.message}`, 'error'),
+        onError: (err: Error) => {
+            if (err.message.includes('instructors_slug_key') || err.message.includes('duplicate key')) {
+                addToast('فشل الإضافة: معرّف الرابط (Slug) مستخدم بالفعل. يرجى اختيار معرف آخر.', 'error');
+            } else {
+                addToast(`فشل إضافة المدرب: ${err.message}`, 'error');
+            }
+        },
     });
     
     const updateInstructor = useMutation({
@@ -27,7 +33,13 @@ export const useInstructorMutations = () => {
             queryClient.invalidateQueries({ queryKey: ['publicData'] });
             addToast('تم تحديث المدرب بنجاح.', 'success');
         },
-        onError: (err: Error) => addToast(`فشل تحديث المدرب: ${err.message}`, 'error'),
+        onError: (err: Error) => {
+            if (err.message.includes('instructors_slug_key') || err.message.includes('duplicate key')) {
+                addToast('فشل التحديث: معرّف الرابط (Slug) مستخدم بالفعل. يرجى اختيار معرف آخر.', 'error');
+            } else {
+                addToast(`فشل تحديث المدرب: ${err.message}`, 'error');
+            }
+        },
     });
 
     const deleteInstructor = useMutation({

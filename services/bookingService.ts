@@ -21,6 +21,16 @@ export const bookingService = {
         return data as CreativeWritingBooking[];
     },
 
+    async getInstructorBookings(instructorId: number) {
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('*')
+            .eq('instructor_id', instructorId)
+            .order('booking_date', { ascending: false });
+        if (error) throw new Error(error.message);
+        return data as CreativeWritingBooking[];
+    },
+
     async getAllScheduledSessions() {
         const { data, error } = await supabase
             .from('scheduled_sessions')
@@ -38,6 +48,19 @@ export const bookingService = {
             .order('name', { ascending: true });
         if (error) throw new Error(error.message);
         return data as Instructor[];
+    },
+
+    async getInstructorByUserId(userId: string) {
+        const { data, error } = await supabase
+            .from('instructors')
+            .select('*')
+            .eq('user_id', userId)
+            .is('deleted_at', null)
+            .single();
+        
+        // It's possible the user is an instructor but hasn't been linked yet, or query failed
+        if (error && error.code !== 'PGRST116') throw new Error(error.message);
+        return data as Instructor | null;
     },
 
     async getAllAttachments() {

@@ -1,19 +1,20 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
-import {
-    mockInstructors,
-    mockBookings,
-    mockChildProfiles,
-    mockCreativeWritingPackages,
-    mockScheduledSessions,
-    mockInstructorPayouts,
-    mockServiceOrders,
-    mockSessionAttachments, // Added import
-} from '../../../data/mockData';
-import { transformCwBookings } from '../admin/useAdminBookingsQuery';
-import type { Instructor, CreativeWritingBooking, CreativeWritingPackage, ScheduledSession, ChildProfile, SessionAttachment } from '../../../lib/database.types';
-
-const mockFetch = (data: any, delay = 100) => new Promise(resolve => setTimeout(() => resolve(data), delay));
+import { bookingService } from '../../../services/bookingService';
+import { orderService } from '../../../services/orderService';
+import { userService } from '../../../services/userService';
+import { supabase } from '../../../lib/supabaseClient';
+import type { 
+    Instructor, 
+    CreativeWritingBooking, 
+    CreativeWritingPackage, 
+    ScheduledSession, 
+    ChildProfile, 
+    SessionAttachment,
+    InstructorPayout,
+    ServiceOrder
+} from '../../../lib/database.types';
 
 export const useInstructorData = () => {
     const { currentUser } = useAuth();
@@ -23,41 +24,41 @@ export const useInstructorData = () => {
         queryFn: async () => {
             if (!currentUser) return null;
 
-            // Fetch all data in parallel
-            const [
-                allInstructors, 
-                rawBookings, 
-                allChildren, 
-                allPackages, 
-                allScheduledSessions, 
-                allPayouts,
-                allServiceOrders,
-                allAttachments // Added fetch
-            ] = await Promise.all([
-                mockFetch(mockInstructors) as Promise<Instructor[]>,
-                mockFetch(mockBookings) as Promise<CreativeWritingBooking[]>,
-                mockFetch(mockChildProfiles) as Promise<ChildProfile[]>,
-                mockFetch(mockCreativeWritingPackages) as Promise<CreativeWritingPackage[]>,
-                mockFetch(mockScheduledSessions) as Promise<ScheduledSession[]>,
-                mockFetch(mockInstructorPayouts),
-                mockFetch(mockServiceOrders),
-                mockFetch(mockSessionAttachments) as Promise<SessionAttachment[]> // Added fetch
-            ]);
-
-            const currentInstructor = allInstructors.find((i: Instructor) => i.user_id === currentUser.id);
+            // 1. Fetch Instructor Profile (Real DB)
+            const currentInstructor = await bookingService.getInstructorByUserId(currentUser.id);
             if (!currentInstructor) return { instructor: null };
 
-            const instructorBookings = rawBookings.filter((b: CreativeWritingBooking) => b.instructor_id === currentInstructor.id);
-            
-            const transformedBookings = transformCwBookings(instructorBookings, allChildren, allInstructors);
+            // 2. Fetch related data (Real DB)
+            const [
+                instructorBookings,
+                allPackages,
+                allScheduledSessions,
+                allChildren,
+                instructorServiceOrders,
+                instructorPayouts,
+                instructorAttachments
+            ] = await Promise.all([
+                bookingService.getInstructorBookings(currentInstructor.id),
+                bookingService.getAllPackages(),
+                bookingService.getAllScheduledSessions(),
+                userService.getAllChildProfiles(), // We might need a more optimized query later
+                supabase.from('service_orders').select('*').eq('assigned_instructor_id', currentInstructor.id).then(res => res.data as ServiceOrder[] || []),
+                // Payouts might not have a service yet, using direct supabase call or empty array
+                supabase.from('instructor_payouts').select('*').eq('instructor_id', currentInstructor.id).then(res => res.data as InstructorPayout[] || []).catch(() => []),
+                supabase.from('session_attachments').select('*').then(res => res.data as SessionAttachment[] || [])
+            ]);
 
-            const enrichedBookings = transformedBookings.map(booking => {
-                const journeySessions = (allScheduledSessions as ScheduledSession[]).filter(s => s.booking_id === booking.id);
-                const packageDetails = (allPackages as CreativeWritingPackage[]).find(p => p.name === booking.package_name);
+            // 3. Process and Enrich Data
+            const enrichedBookings = instructorBookings.map(booking => {
+                const journeySessions = allScheduledSessions.filter(s => s.booking_id === booking.id);
+                const packageDetails = allPackages.find(p => p.name === booking.package_name);
+                const child = allChildren.find(c => c.id === booking.child_id);
+                
                 return {
                     ...booking,
                     sessions: journeySessions,
                     packageDetails,
+                    child_profiles: child ? { id: child.id, name: child.name, avatar_url: child.avatar_url } : null
                 }
             });
 
@@ -69,13 +70,9 @@ export const useInstructorData = () => {
                 new Date(b.booking_date).getMonth() === currentMonth &&
                 new Date(b.booking_date).getFullYear() === currentYear
             ).length;
-
-            const instructorPayouts = (allPayouts as any[]).filter(p => p.instructor_id === currentInstructor.id);
-            const instructorServiceOrders = (allServiceOrders as any[]).filter(o => o.assigned_instructor_id === currentInstructor.id);
             
             const instructorBookingIds = new Set(instructorBookings.map(b => b.id));
-            const instructorAttachments = allAttachments.filter(att => instructorBookingIds.has(att.booking_id));
-
+            const relevantAttachments = instructorAttachments.filter(att => instructorBookingIds.has(att.booking_id));
 
             return {
                 instructor: currentInstructor,
@@ -83,7 +80,7 @@ export const useInstructorData = () => {
                 introSessionsThisMonth,
                 payouts: instructorPayouts,
                 serviceOrders: instructorServiceOrders,
-                attachments: instructorAttachments, // Added attachments to returned data
+                attachments: relevantAttachments,
             };
         },
         enabled: !!currentUser,
