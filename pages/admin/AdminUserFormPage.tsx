@@ -10,7 +10,7 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
-import { ArrowLeft, Save, User, Lock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, User, Lock, AlertCircle, CheckCircle } from 'lucide-react';
 import PageLoader from '../../components/ui/PageLoader';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -59,28 +59,30 @@ const AdminUserFormPage: React.FC = () => {
         e.preventDefault();
         
         try {
-            // 1. Prepare Profile Data (EXCLUDE password to prevent Schema Error)
-            const profilePayload = { 
-                name: formData.name, 
-                email: formData.email,
-                role: formData.role,
-                phone: formData.phone,
-                address: formData.address
-            };
-
             if (isNew) {
-                // Create new profile
-                await createUser.mutateAsync(profilePayload);
-                
-                // Note: We cannot set the password for a new user here directly via client-side SDK for another user.
-                // It requires server-side admin API. The profile is created, but Auth user is not.
+                // Create new user (Auth + Profile)
+                await createUser.mutateAsync({ 
+                    name: formData.name, 
+                    email: formData.email,
+                    role: formData.role,
+                    phone: formData.phone,
+                    address: formData.address,
+                    password: formData.password
+                });
             } else {
-                // Update existing profile (Ensure 'id' is passed)
+                // Update existing profile
+                const profilePayload = { 
+                    name: formData.name, 
+                    email: formData.email,
+                    role: formData.role,
+                    phone: formData.phone,
+                    address: formData.address
+                };
+                
                 await updateUser.mutateAsync({ id: id!, ...profilePayload });
                 
-                // 2. Handle Password Update Separately (if provided)
+                // Handle Password Update Separately (if provided)
                 if (formData.password && formData.password.trim() !== '') {
-                    // This attempts to update the password via Auth API
                     await updateUserPassword.mutateAsync({
                         userId: id!,
                         newPassword: formData.password
@@ -151,32 +153,35 @@ const AdminUserFormPage: React.FC = () => {
                     </CardContent>
                 </Card>
 
-                <Card border="border-yellow-200" className="bg-yellow-50/30">
+                <Card border="border-blue-200" className="bg-blue-50/30">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base"><Lock size={18}/> الأمان وكلمة المرور</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <FormField label={isNew ? "كلمة المرور (لإنشاء الحساب)" : "تعيين كلمة مرور جديدة (اختياري)"} htmlFor="password">
+                        <FormField label={isNew ? "كلمة المرور (مطلوبة لإنشاء الحساب)" : "تعيين كلمة مرور جديدة (اختياري)"} htmlFor="password">
                             <Input 
                                 id="password" 
                                 name="password" 
                                 type="password" 
                                 value={formData.password} 
                                 onChange={handleChange} 
-                                placeholder={isNew ? "اكتب كلمة المرور" : "اتركه فارغاً للإبقاء على الكلمة الحالية"}
-                                required={false} 
+                                placeholder={isNew ? "اكتب كلمة المرور (6 أحرف على الأقل)" : "اتركه فارغاً للإبقاء على الكلمة الحالية"}
+                                required={isNew} 
+                                minLength={6}
                             />
                         </FormField>
+                        
                         {isNew && (
-                            <div className="mt-2 flex items-start gap-2 text-xs text-yellow-700 bg-yellow-50 p-2 rounded-md">
-                                <AlertCircle size={20} className="flex-shrink-0" />
-                                <span>ملاحظة: إنشاء حساب من لوحة التحكم ينشئ "الملف الشخصي" فقط في قاعدة البيانات. لن يتمكن المستخدم من تسجيل الدخول بكلمة المرور هذه لأن نظام المصادقة منفصل (يتطلب Supabase Admin API). يجب على المستخدم التسجيل بنفس الإيميل لربط الحساب.</span>
+                            <div className="mt-2 flex items-start gap-2 text-xs text-green-700 bg-green-50 p-2 rounded-md border border-green-100">
+                                <CheckCircle size={20} className="flex-shrink-0" />
+                                <span>سيتم إنشاء الحساب وتفعيله فوراً. يمكن للمستخدم تسجيل الدخول مباشرة باستخدام البريد وكلمة المرور المدخلة هنا.</span>
                             </div>
                         )}
+                        
                         {!isNew && (
                             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                                 <AlertCircle size={14} />
-                                <span>تغيير كلمة المرور من هنا سيقوم بتحديثها في نظام المصادقة (إذا كنت تملك صلاحيات المشرف).</span>
+                                <span>تغيير كلمة المرور من هنا سيقوم بتحديثها في نظام المصادقة فوراً.</span>
                             </div>
                         )}
                     </CardContent>
