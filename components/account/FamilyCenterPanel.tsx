@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { ChildProfile } from '../../contexts/AuthContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,19 +7,19 @@ import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import { Users, UserPlus } from 'lucide-react';
 import { Button } from '../ui/Button';
 import EmptyState from './EmptyState';
-import ChildProfileModal from './ChildProfileModal';
-import CreateStudentAccountModal from '../auth/CreateStudentAccountModal';
 import ChildDashboardCard from './ChildDashboardCard';
+import ChildForm from './ChildForm';
+import StudentAccountForm from './StudentAccountForm';
+
+type ViewMode = 'list' | 'child-form' | 'student-form';
 
 const FamilyCenterPanel: React.FC = () => {
     const { childProfiles } = useAuth();
     const { data: accountData, isLoading } = useUserAccountData();
     const { deleteChildProfile } = useUserMutations();
 
-    const [isChildModalOpen, setIsChildModalOpen] = useState(false);
-    const [childToEdit, setChildToEdit] = useState<ChildProfile | null>(null);
-    const [isCreateStudentModalOpen, setIsCreateStudentModalOpen] = useState(false);
-    const [childToLink, setChildToLink] = useState<ChildProfile | null>(null);
+    const [viewMode, setViewMode] = useState<ViewMode>('list');
+    const [selectedChild, setSelectedChild] = useState<ChildProfile | null>(null);
     
     const { userOrders = [], userBookings = [], userSubscriptions = [], childBadges = [], allBadges = [] } = accountData || {};
     
@@ -49,14 +50,15 @@ const FamilyCenterPanel: React.FC = () => {
     }, [childProfiles, userOrders, userBookings, userSubscriptions]);
 
 
+    // Handlers
     const handleAddChild = () => {
-        setChildToEdit(null);
-        setIsChildModalOpen(true);
+        setSelectedChild(null);
+        setViewMode('child-form');
     };
 
     const handleEditChild = (child: ChildProfile) => {
-        setChildToEdit(child);
-        setIsChildModalOpen(true);
+        setSelectedChild(child);
+        setViewMode('child-form');
     };
     
     const handleDeleteChild = (childId: number) => {
@@ -66,64 +68,87 @@ const FamilyCenterPanel: React.FC = () => {
     };
 
     const handleCreateStudentAccount = (child: ChildProfile) => {
-        setChildToLink(child);
-        setIsCreateStudentModalOpen(true);
+        setSelectedChild(child);
+        setViewMode('student-form');
+    };
+
+    const handleBackToList = () => {
+        setViewMode('list');
+        setSelectedChild(null);
     };
 
     if (isLoading && childProfiles.length === 0) {
-        return <div className="bg-white p-8 rounded-2xl shadow-lg">جاري التحميل...</div>
+        return <div className="bg-white p-8 rounded-2xl shadow-lg text-center">جاري تحميل بيانات العائلة...</div>
     }
 
-    return (
-        <>
-            <ChildProfileModal 
-                isOpen={isChildModalOpen}
-                onClose={() => setIsChildModalOpen(false)}
-                childToEdit={childToEdit}
-            />
-             <CreateStudentAccountModal
-                isOpen={isCreateStudentModalOpen}
-                onClose={() => setIsCreateStudentModalOpen(false)}
-                childProfile={childToLink}
-            />
+    // --- Render Views ---
+
+    if (viewMode === 'child-form') {
+        return (
             <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
+                <ChildForm 
+                    childToEdit={selectedChild} 
+                    onCancel={handleBackToList}
+                    onSuccess={handleBackToList}
+                />
+            </div>
+        );
+    }
+
+    if (viewMode === 'student-form' && selectedChild) {
+        return (
+            <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+                <StudentAccountForm
+                    childProfile={selectedChild}
+                    onCancel={handleBackToList}
+                    onSuccess={handleBackToList}
+                />
+            </div>
+        );
+    }
+
+    // Default View: List
+    return (
+        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8 pb-4 border-b">
+                <div>
                     <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
                         <Users /> المركز العائلي
                     </h2>
-                     {childProfiles.length > 0 && (
-                        <Button onClick={handleAddChild} icon={<UserPlus size={18} />} size="sm">
-                            إضافة طفل
-                        </Button>
-                    )}
+                    <p className="text-sm text-muted-foreground mt-1">إدارة ملفات أطفالك وحساباتهم التعليمية.</p>
                 </div>
-                
-                {childProfiles.length > 0 ? (
-                    <div className="space-y-8">
-                        {childProfiles.map(child => (
-                           <ChildDashboardCard 
-                                key={child.id}
-                                child={child}
-                                childActivity={activityByChildId.get(child.id) || { orders: [], bookings: [], subscriptions: [] }}
-                                allBadges={allBadges}
-                                childBadges={childBadges}
-                                onEdit={handleEditChild}
-                                onDelete={handleDeleteChild}
-                                onCreateStudentAccount={handleCreateStudentAccount}
-                           />
-                        ))}
-                    </div>
-                ) : (
-                    <EmptyState 
-                        icon={<Users className="w-12 h-12 text-gray-400" />}
-                        title="أضف أطفالك لبدء رحلتهم"
-                        message="المركز العائلي هو مكانك لإدارة ملفات أطفالك، ومتابعة رحلاتهم الإبداعية، وإنشاء حسابات طلابية لهم."
-                        actionText="أضف طفلك الأول"
-                        onAction={handleAddChild}
-                    />
+                 {childProfiles.length > 0 && (
+                    <Button onClick={handleAddChild} icon={<UserPlus size={18} />} size="sm">
+                        إضافة طفل
+                    </Button>
                 )}
             </div>
-        </>
+            
+            {childProfiles.length > 0 ? (
+                <div className="space-y-8 animate-fadeIn">
+                    {childProfiles.map(child => (
+                       <ChildDashboardCard 
+                            key={child.id}
+                            child={child}
+                            childActivity={activityByChildId.get(child.id) || { orders: [], bookings: [], subscriptions: [] }}
+                            allBadges={allBadges}
+                            childBadges={childBadges}
+                            onEdit={handleEditChild}
+                            onDelete={handleDeleteChild}
+                            onCreateStudentAccount={handleCreateStudentAccount}
+                       />
+                    ))}
+                </div>
+            ) : (
+                <EmptyState 
+                    icon={<Users className="w-12 h-12 text-gray-400" />}
+                    title="أضف أطفالك لبدء رحلتهم"
+                    message="بإضافة طفلك الأول، ستتم ترقية حسابك إلى 'ولي أمر' وتتمكن من الاستفادة من كافة خدمات المنصة المخصصة."
+                    actionText="أضف طفلك الأول"
+                    onAction={handleAddChild}
+                />
+            )}
+        </div>
     );
 };
 
