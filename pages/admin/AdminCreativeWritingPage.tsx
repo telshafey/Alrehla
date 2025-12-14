@@ -1,13 +1,12 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, Eye, Edit, Loader2, Search } from 'lucide-react';
 import { useAdminRawCwBookings, transformCwBookings } from '../../hooks/queries/admin/useAdminBookingsQuery';
 import { useAdminAllChildProfiles } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
 import PageLoader from '../../components/ui/PageLoader';
-import { BookingDetailsModal } from '../../components/admin/BookingDetailsModal';
 import { StudentProgressModal } from '../../components/admin/StudentProgressModal';
 import { getStatusColor, formatDate } from '../../utils/helpers';
 import type { BookingWithRelations, CreativeWritingBooking, BookingStatus } from '../../lib/database.types';
@@ -38,15 +37,14 @@ const statusColors: { [key in BookingStatus]: string } = {
 
 
 const AdminCreativeWritingPage: React.FC = () => {
+    const navigate = useNavigate();
     const { data: rawBookings = [], isLoading: bookingsLoading, error: bookingsError, refetch: refetchBookings } = useAdminRawCwBookings();
     const { data: allChildren = [], isLoading: childrenLoading, error: childrenError, refetch: refetchChildren } = useAdminAllChildProfiles();
     const { data: instructors = [], isLoading: instructorsLoading, error: instructorsError, refetch: refetchInstructors } = useAdminInstructors();
     const { updateBookingStatus } = useBookingMutations();
     const location = useLocation();
 
-    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
-    const [selectedBooking, setSelectedBooking] = useState<BookingWithRelations | null>(null);
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     
     const [statusFilter, setStatusFilter] = useState<BookingStatus | 'all'>((location.state as any)?.statusFilter || 'all');
@@ -114,7 +112,7 @@ const AdminCreativeWritingPage: React.FC = () => {
             });
         }
         return sortableItems;
-    }, [students, studentsSortConfig, searchTerm]); // Added searchTerm to deps
+    }, [students, studentsSortConfig, searchTerm]); 
     
     const statusCounts = useMemo(() => {
         const counts: { [key in BookingStatus]?: number } = {};
@@ -165,11 +163,6 @@ const AdminCreativeWritingPage: React.FC = () => {
         return filtered;
     }, [bookings, statusFilter, packageFilter, searchTerm, bookingsSortConfig]);
 
-    const handleViewDetails = (booking: BookingWithRelations) => {
-        setSelectedBooking(booking);
-        setIsDetailsModalOpen(true);
-    };
-
     const handleEditProgress = (student: Student) => {
         setSelectedStudent(student);
         setIsProgressModalOpen(true);
@@ -200,7 +193,6 @@ const AdminCreativeWritingPage: React.FC = () => {
 
     return (
         <>
-            <BookingDetailsModal isOpen={isDetailsModalOpen} onClose={() => setIsDetailsModalOpen(false)} booking={selectedBooking} />
             <StudentProgressModal isOpen={isProgressModalOpen} onClose={() => setIsProgressModalOpen(false)} student={selectedStudent} />
             <div className="animate-fadeIn space-y-8">
                 <h1 className="text-3xl font-extrabold text-foreground">إدارة حجوزات "بداية الرحلة"</h1>
@@ -315,7 +307,7 @@ const AdminCreativeWritingPage: React.FC = () => {
                                                 </TableCell>
                                                 <TableCell className="text-sm">{formatDate(booking.booking_date)}</TableCell>
                                                 <TableCell>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleViewDetails(booking)}><Eye size={20} /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/creative-writing/bookings/${booking.id}`)} title="عرض التفاصيل"><Eye size={20} /></Button>
                                                 </TableCell>
                                             </TableRow>
                                         )) : (

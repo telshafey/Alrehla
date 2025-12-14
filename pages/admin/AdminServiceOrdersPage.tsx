@@ -1,10 +1,11 @@
+
 import React, { useState, useMemo } from 'react';
 import { Eye, Sparkles, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAdminServiceOrders } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
 import PageLoader from '../../components/ui/PageLoader';
-import ViewServiceOrderModal from '../../components/admin/ViewServiceOrderModal';
-import { formatDate, getStatusColor } from '../../utils/helpers';
+import { getStatusColor } from '../../utils/helpers';
 import type { ServiceOrderWithRelations, OrderStatus } from '../../lib/database.types';
 import { Button } from '../../components/ui/Button';
 import StatFilterCard from '../../components/admin/StatFilterCard';
@@ -24,10 +25,10 @@ const statusColors: { [key in OrderStatus]?: string } = {
 };
 
 const AdminServiceOrdersPage: React.FC = () => {
+    const navigate = useNavigate();
     const { data: orders = [], isLoading, error, refetch } = useAdminServiceOrders();
     const { updateServiceOrderStatus } = useOrderMutations();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState<ServiceOrderWithRelations | null>(null);
+    
     const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
@@ -65,11 +66,6 @@ const AdminServiceOrdersPage: React.FC = () => {
         return filtered;
     }, [orders, statusFilter, searchTerm, sortConfig]);
 
-    const handleViewOrder = (order: ServiceOrderWithRelations) => {
-        setSelectedOrder(order);
-        setIsModalOpen(true);
-    };
-
     const handleSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -82,87 +78,84 @@ const AdminServiceOrdersPage: React.FC = () => {
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
-        <>
-            <ViewServiceOrderModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} order={selectedOrder} />
-            <div className="animate-fadeIn space-y-8">
-                <h1 className="text-3xl font-extrabold text-foreground">إدارة طلبات الخدمات الإبداعية</h1>
-                
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <StatFilterCard label="الكل" value={orders.length} color="bg-primary" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
-                    {orderStatuses.map(status => (
-                        <StatFilterCard 
-                            key={status}
-                            label={status}
-                            value={statusCounts[status] || 0}
-                            color={statusColors[status] || 'bg-gray-500'}
-                            isActive={statusFilter === status}
-                            onClick={() => setStatusFilter(status)}
-                        />
-                    ))}
-                </div>
-                
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Sparkles /> قائمة كل الطلبات
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="mb-6 max-w-lg">
-                            <Input 
-                                type="search"
-                                placeholder="ابحث برقم الطلب، اسم العميل، أو اسم الطفل..."
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        <div className="overflow-x-auto">
-                            <Table>
-                               <TableHeader>
-                                   <TableRow>
-                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="users.name" label="العميل" sortConfig={sortConfig} onSort={handleSort} />
-                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="child_profiles.name" label="الطفل" sortConfig={sortConfig} onSort={handleSort} />
-                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="standalone_services.name" label="الخدمة" sortConfig={sortConfig} onSort={handleSort} />
-                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="instructors.name" label="المدرب المسؤول" sortConfig={sortConfig} onSort={handleSort} />
-                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="total" label="الإجمالي" sortConfig={sortConfig} onSort={handleSort} />
-                                        <SortableTableHead<ServiceOrderWithRelations> sortKey="status" label="الحالة" sortConfig={sortConfig} onSort={handleSort} />
-                                        <TableHead>إجراءات</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {sortedAndFilteredOrders.map(order => (
-                                        <TableRow key={order.id}>
-                                            <TableCell className="font-semibold">{order.users?.name || 'N/A'}</TableCell>
-                                            <TableCell>{order.child_profiles?.name || 'N/A'}</TableCell>
-                                            <TableCell className="text-sm">{order.standalone_services?.name || 'N/A'}</TableCell>
-                                            <TableCell className="text-sm">{order.instructors?.name || 'غير معين'}</TableCell>
-                                            <TableCell className="font-bold">{order.total} ج.م</TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <Select
-                                                        value={order.status}
-                                                        onChange={e => updateServiceOrderStatus.mutate({ orderId: order.id, newStatus: e.target.value as OrderStatus })}
-                                                        className={`w-full p-1 text-xs font-bold ${getStatusColor(order.status)}`}
-                                                        disabled={updateServiceOrderStatus.isPending && updateServiceOrderStatus.variables?.orderId === order.id}
-                                                    >
-                                                        {orderStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                                                    </Select>
-                                                    {updateServiceOrderStatus.isPending && updateServiceOrderStatus.variables?.orderId === order.id && <Loader2 className="animate-spin" size={16} />}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Button variant="ghost" size="icon" onClick={() => handleViewOrder(order)}><Eye size={20} /></Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                             {sortedAndFilteredOrders.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد طلبات تطابق بحثك.</p>}
-                        </div>
-                    </CardContent>
-                </Card>
+        <div className="animate-fadeIn space-y-8">
+            <h1 className="text-3xl font-extrabold text-foreground">إدارة طلبات الخدمات الإبداعية</h1>
+            
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <StatFilterCard label="الكل" value={orders.length} color="bg-primary" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
+                {orderStatuses.map(status => (
+                    <StatFilterCard 
+                        key={status}
+                        label={status}
+                        value={statusCounts[status] || 0}
+                        color={statusColors[status] || 'bg-gray-500'}
+                        isActive={statusFilter === status}
+                        onClick={() => setStatusFilter(status)}
+                    />
+                ))}
             </div>
-        </>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Sparkles /> قائمة كل الطلبات
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="mb-6 max-w-lg">
+                        <Input 
+                            type="search"
+                            placeholder="ابحث برقم الطلب، اسم العميل، أو اسم الطفل..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <SortableTableHead<ServiceOrderWithRelations> sortKey="users.name" label="العميل" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableTableHead<ServiceOrderWithRelations> sortKey="child_profiles.name" label="الطفل" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableTableHead<ServiceOrderWithRelations> sortKey="standalone_services.name" label="الخدمة" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableTableHead<ServiceOrderWithRelations> sortKey="instructors.name" label="المدرب المسؤول" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableTableHead<ServiceOrderWithRelations> sortKey="total" label="الإجمالي" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableTableHead<ServiceOrderWithRelations> sortKey="status" label="الحالة" sortConfig={sortConfig} onSort={handleSort} />
+                                    <TableHead>إجراءات</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {sortedAndFilteredOrders.map(order => (
+                                    <TableRow key={order.id}>
+                                        <TableCell className="font-semibold">{order.users?.name || 'N/A'}</TableCell>
+                                        <TableCell>{order.child_profiles?.name || 'N/A'}</TableCell>
+                                        <TableCell className="text-sm">{order.standalone_services?.name || 'N/A'}</TableCell>
+                                        <TableCell className="text-sm">{order.instructors?.name || 'غير معين'}</TableCell>
+                                        <TableCell className="font-bold">{order.total} ج.م</TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <Select
+                                                    value={order.status}
+                                                    onChange={e => updateServiceOrderStatus.mutate({ orderId: order.id, newStatus: e.target.value as OrderStatus })}
+                                                    className={`w-full p-1 text-xs font-bold ${getStatusColor(order.status)}`}
+                                                    disabled={updateServiceOrderStatus.isPending && updateServiceOrderStatus.variables?.orderId === order.id}
+                                                >
+                                                    {orderStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                                </Select>
+                                                {updateServiceOrderStatus.isPending && updateServiceOrderStatus.variables?.orderId === order.id && <Loader2 className="animate-spin" size={16} />}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/service-orders/${order.id}`)} title="عرض التفاصيل"><Eye size={20} /></Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                            {sortedAndFilteredOrders.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد طلبات تطابق بحثك.</p>}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 

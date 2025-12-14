@@ -14,9 +14,10 @@ export const orderService = {
     // --- Queries ---
     async getAllOrders() {
         // Use Supabase Join to fetch related user and child profile data directly
+        // We specify the exact constraint names (!fk_orders_user, !fk_orders_child) to avoid ambiguity errors
         const { data, error } = await supabase
             .from('orders')
-            .select('*, users:profiles!user_id(name, email), child_profiles:child_profiles!child_id(name)') 
+            .select('*, users:profiles!fk_orders_user(name, email), child_profiles:child_profiles!fk_orders_child(name)') 
             .order('order_date', { ascending: false });
             
         if (error) {
