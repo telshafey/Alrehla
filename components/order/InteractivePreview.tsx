@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Package, User, Palette, Sparkles, Image as ImageIcon } from 'lucide-react';
 import type { PersonalizedProduct } from '../../lib/database.types';
@@ -32,6 +33,7 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, produ
     }
     
     const getGoalTitle = () => {
+        // Only show goal if config is NOT none
         if (product.goal_config !== 'none') {
             const predefinedGoal = (storyGoals || []).find(v => v.key === formData.storyValue)?.title;
             return formData.storyValue === 'custom' ? formData.customGoal : predefinedGoal;
@@ -72,6 +74,7 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, produ
                     </div>
                 </div>
 
+                {/* Dynamic Text Fields Preview */}
                 {product.text_fields?.map(field => field.required && formData[field.id] && (
                      <div key={field.id}>
                         <h3 className="text-base font-semibold text-muted-foreground mb-2 flex items-center gap-2">
@@ -82,6 +85,7 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({ formData, produ
                     </div>
                 ))}
                 
+                {/* Goal Preview - Only if applicable */}
                 {goalTitle && (
                     <div>
                         <h3 className="text-base font-semibold text-muted-foreground mb-2 flex items-center gap-2">

@@ -5,7 +5,7 @@ import { useOrderMutations } from '../hooks/mutations/useOrderMutations';
 import { useBookingMutations } from '../hooks/mutations/useBookingMutations';
 import { useSubscriptionMutations } from '../hooks/mutations/useSubscriptionMutations';
 import { useToast } from '../contexts/ToastContext';
-import { useCart } from '../contexts/CartContext';
+import { useCart, CartItem } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import { ArrowLeft, Upload, ShoppingCart, CreditCard, Link as LinkIcon, AlertCircle, Copy, Check } from 'lucide-react';
@@ -13,6 +13,7 @@ import ReceiptUpload from '../components/shared/ReceiptUpload';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import Image from '../components/ui/Image';
+import { orderService } from '../services/orderService'; // Direct import for file helper
 
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
@@ -50,6 +51,87 @@ const CheckoutPage: React.FC = () => {
         );
     }
     
+    const processCartItem = async (item: CartItem, receiptUrl: string) => {
+        if (!currentUser) throw new Error('User not authenticated');
+
+        // 1. Handle Order (Enha Lak)
+        if (item.type === 'order') {
+            const { imageFiles, formData, details } = item.payload;
+            // Merge formData and details to ensure we have all fields
+            const mergedDetails = { ...formData, ...details };
+            const finalDetails = { ...mergedDetails }; // Copy to modify
+
+            // Upload customization images if they exist (Checking both imageFiles and direct File objects in formData)
+            const filesToUpload = { ...(imageFiles || {}) };
+            
+            // Check for File objects directly in formData/details (legacy support)
+            Object.keys(mergedDetails).forEach(key => {
+                if (mergedDetails[key] instanceof File) {
+                    filesToUpload[key] = mergedDetails[key];
+                }
+            });
+
+            if (Object.keys(filesToUpload).length > 0) {
+                for (const [key, file] of Object.entries(filesToUpload)) {
+                    if (file instanceof File) {
+                        try {
+                            const publicUrl = await orderService.uploadOrderFile(file, `order-images/${currentUser.id}`);
+                            finalDetails[key] = publicUrl; // Replace File object with URL string
+                        } catch (err) {
+                            console.error(`Failed to upload ${key}`, err);
+                            // We continue, but you might want to stop here in strict mode
+                        }
+                    }
+                }
+            }
+
+            // Determine Child ID safely
+            let childId = null;
+            if (item.payload.details?.childId && item.payload.details.childId > 0) {
+                childId = item.payload.details.childId;
+            } else if (item.payload.childId && item.payload.childId > 0) {
+                 childId = item.payload.childId;
+            }
+
+            return createOrder.mutateAsync({
+                userId: currentUser.id,
+                childId: childId,
+                summary: item.payload.summary,
+                total: item.payload.totalPrice || item.payload.total,
+                productKey: item.payload.productKey,
+                details: finalDetails, // Now contains URLs instead of Files
+                receiptUrl
+            });
+        }
+
+        // 2. Handle Subscription
+        if (item.type === 'subscription') {
+            const { imageFiles, formData, plan } = item.payload;
+            
+            // Upload child images if any
+            if (imageFiles) {
+                 // Upload logic similar to orders can be added here if needed
+            }
+
+            return createSubscription.mutateAsync({
+                userId: currentUser.id,
+                childId: item.payload.childId || 1, // Fallback ID if not provided, handle properly in real app
+                planId: plan.id,
+                planName: plan.name,
+                total: item.payload.total
+            });
+        }
+
+        // 3. Handle Booking
+        if (item.type === 'booking') {
+            return createBooking.mutateAsync({
+                userId: currentUser.id,
+                payload: item.payload,
+                receiptUrl // Pass receipt here
+            });
+        }
+    };
+
     const handleConfirmPayment = async () => {
         if (!receiptFile) {
             addToast('يرجى رفع إيصال الدفع أولاً.', 'warning');
@@ -62,29 +144,19 @@ const CheckoutPage: React.FC = () => {
         
         setIsSubmitting(true);
         try {
-            // Mock receipt upload
-            const receiptUrl = 'https://example.com/mock-receipt.jpg';
+            // 1. Upload Payment Receipt Once
+            const receiptUrl = await orderService.uploadOrderFile(receiptFile, `receipts/${currentUser.id}`);
 
-            const creationPromises = cart.map(item => {
-                const payload = { ...item.payload, userId: currentUser.id, userName: currentUser.name, receiptUrl };
-                if (item.type === 'order') {
-                    return createOrder.mutateAsync(payload);
-                }
-                if (item.type === 'booking') {
-                    return createBooking.mutateAsync(payload);
-                }
-                if (item.type === 'subscription') {
-                    return createSubscription.mutateAsync(payload);
-                }
-                return Promise.resolve();
-            });
-
-            await Promise.all(creationPromises);
+            // 2. Process all items sequentially
+            for (const item of cart) {
+                await processCartItem(item, receiptUrl);
+            }
             
             clearCart();
             navigate('/payment-status?status=success_review');
         } catch (error: any) {
-            addToast(`حدث خطأ أثناء إنشاء الطلبات: ${error.message}`, 'error');
+            console.error("Checkout Error:", error);
+            addToast(`حدث خطأ أثناء معالجة الطلب: ${error.message}`, 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -178,7 +250,7 @@ const CheckoutPage: React.FC = () => {
                                 className="w-full"
                                 size="lg"
                             >
-                                {isSubmitting ? 'جاري التأكيد...' : 'تأكيد ورفع الإيصال'}
+                                {isSubmitting ? 'جاري معالجة الطلب...' : 'تأكيد ورفع الإيصال'}
                             </Button>
                              <Button as={Link} to="/cart" variant="link" size="sm" className="text-muted-foreground">
                                 <ArrowLeft size={16} className="transform rotate-180 ml-1"/>

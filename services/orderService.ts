@@ -56,28 +56,67 @@ export const orderService = {
         return data as ServiceOrder[];
     },
 
+    // --- Helpers ---
+    async uploadOrderFile(file: File, path: string): Promise<string> {
+        // نستخدم دلو (Bucket) اسمه 'uploads' أو 'receipts'. تأكد من إنشائه في Supabase Dashboard
+        // أو نستخدم 'public' كمجلد عام إذا لم تكن الصلاحيات معقدة
+        const bucketName = 'receipts'; 
+        
+        // تنظيف اسم الملف لتجنب مشاكل الرموز العربية
+        const fileExt = file.name.split('.').pop();
+        const safeFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${path}/${safeFileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from(bucketName)
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (uploadError) {
+            // محاولة إنشاء الباكيت إذا لم يكن موجوداً (للمحاكاة فقط، في الواقع يجب إنشاؤه يدوياً)
+            console.error(`Upload failed to ${bucketName}:`, uploadError);
+            throw new Error(`فشل رفع الملف: ${uploadError.message}. تأكد من إعداد Storage في Supabase.`);
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(filePath);
+
+        return publicUrl;
+    },
+
     // --- Mutations: Orders ---
     async createOrder(payload: any) {
-        // Generate a random ID if not provided (Client-side generation for ID)
-        // Ideally, use the database default if it's auto-generated, but 'orders.id' is text PK.
-        const orderId = `ord_${Math.floor(Math.random() * 1000000)}`;
+        // payload expects: { userId, summary, total, status, details, childId?, receiptUrl? }
+        
+        const orderId = `ord_${Date.now()}`;
+        
+        // التأكد من أن details كائن صالح
+        const orderDetails = payload.details || {};
         
         const { data, error } = await supabase
             .from('orders')
             .insert([{
                 id: orderId,
                 user_id: payload.userId,
-                child_id: payload.payload.details.childId || payload.payload.childId, // Adjust based on payload structure
+                child_id: payload.childId || null, 
                 item_summary: payload.summary,
-                total: payload.totalPrice || payload.total,
-                status: 'بانتظار الدفع',
-                details: payload.payload.details || payload.payload.formData,
+                total: payload.total,
+                status: 'بانتظار المراجعة',
+                details: orderDetails,
+                receipt_url: payload.receiptUrl || null,
                 order_date: new Date().toISOString()
             }])
             .select()
             .single();
 
-        if (error) throw new Error(error.message);
+        if (error) {
+            console.error("Database Insert Error:", error);
+            throw new Error(error.message);
+        }
+        
         return data as Order;
     },
 
@@ -100,30 +139,19 @@ export const orderService = {
     },
 
     async uploadReceipt(itemId: string, itemType: string, receiptFile: File) {
-        // 1. Upload file to Storage (Assuming 'receipts' bucket exists)
-        const fileExt = receiptFile.name.split('.').pop();
-        const fileName = `${itemType}_${itemId}_${Math.random()}.${fileExt}`;
-        const filePath = `${fileName}`;
+        // 1. Upload File
+        const publicUrl = await this.uploadOrderFile(receiptFile, `receipts/${itemType}_${itemId}`);
 
-        // Note: You need to create a bucket named 'receipts' in Supabase
-        const { error: uploadError } = await supabase.storage
-            .from('receipts')
-            .upload(filePath, receiptFile);
+        // 2. Update Table based on type
+        let table = 'orders';
+        if (itemType === 'booking') table = 'bookings';
+        if (itemType === 'subscription') table = 'subscriptions';
 
-        if (uploadError) {
-            console.error("Storage error:", uploadError);
-            throw new Error('فشل رفع الملف. تأكد من إعدادات التخزين (Storage Bucket).');
-        }
-
-        const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(filePath);
-
-        // 2. Update the record
-        const table = itemType === 'order' ? 'orders' : itemType === 'booking' ? 'bookings' : 'subscriptions';
         const { error: updateError } = await supabase
             .from(table)
             .update({ 
                 receipt_url: publicUrl,
-                status: 'بانتظار المراجعة' // Auto update status
+                status: 'بانتظار المراجعة' // تغيير الحالة لتنبيه الإدارة
             })
             .eq('id', itemId);
 
@@ -170,19 +198,20 @@ export const orderService = {
 
     // --- Mutations: Subscriptions ---
     async createSubscription(payload: any) {
-        const subId = `sub_${Math.floor(Math.random() * 1000000)}`;
+        const subId = `sub_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        
         const { data, error } = await supabase
             .from('subscriptions')
             .insert([{
                 id: subId,
                 user_id: payload.userId,
-                child_id: 1, // Need to fix this in the payload structure to send child ID
-                plan_id: payload.payload.plan.id,
-                plan_name: payload.payload.plan.name,
+                child_id: payload.childId || null, 
+                plan_id: payload.planId,
+                plan_name: payload.planName,
                 start_date: new Date().toISOString(),
                 next_renewal_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
                 status: 'pending_payment',
-                total: payload.payload.total
+                total: payload.total
             }])
             .select()
             .single();

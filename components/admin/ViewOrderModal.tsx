@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Save, Link as LinkIcon } from 'lucide-react';
 import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
@@ -38,14 +39,25 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
     };
 
     const details = order.details as any || {};
-    const isEmotionStory = details.productKey === 'emotion_story';
     const age = calculateAge(details.childBirthDate);
 
     const statuses: OrderStatus[] = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "قيد التنفيذ", "تم الشحن", "تم التسليم", "مكتمل", "ملغي"];
     
+    // Fields we know are standard and handled in the top section
+    const excludedFields = [
+        'childName', 'childBirthDate', 'childGender', 'deliveryType', 'shippingOption', 
+        'governorate', 'recipientName', 'recipientAddress', 'recipientPhone', 
+        'recipientEmail', 'giftMessage', 'sendDigitalCard', 'storyValue', 'customGoal',
+        'productKey'
+    ];
+
+    // Get all other custom fields (Dynamic Content)
+    const customFields = Object.keys(details).filter(key => !excludedFields.includes(key));
+
     const emotionMap: { [key: string]: string } = {
         anger: 'الغضب', fear: 'الخوف', jealousy: 'الغيرة',
         frustration: 'الإحباط', anxiety: 'القلق', sadness: 'الحزن',
+        respect: 'الاحترام', cooperation: 'التعاون', honesty: 'الصدق'
     };
 
     return (
@@ -81,27 +93,27 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
             
              <div className="mt-6 space-y-2">
                 <h3 className="font-bold text-lg border-b pb-2 mb-2">بيانات التخصيص</h3>
-                {!isEmotionStory ? (
-                    <>
-                        <DetailRow label="وصف الطفل" value={details.childTraits} isTextArea />
-                        <DetailRow label="الهدف من القصة" value={details.storyValue} />
-                    </>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                        <DetailRow label="البيئة المنزلية" value={details.homeEnvironment} isTextArea />
-                        <DetailRow label="بيئة الأصدقاء والمدرسة" value={details.friendsAndSchool} isTextArea />
-                        <DetailRow label="الوصف الجسدي" value={details.physicalDescription} isTextArea />
-                        <DetailRow label="الحيوان الأليف" value={details.petInfo} isTextArea />
-                        <DetailRow label="المشاعر المستهدفة" value={emotionMap[details.storyValue] || details.storyValue} />
-                        <DetailRow label="الموقف المحفز" value={details.triggerSituation} isTextArea />
-                        <DetailRow label="رد فعل الطفل" value={details.childReaction} isTextArea />
-                        <DetailRow label="أسلوب التهدئة الحالي" value={details.calmingMethod} isTextArea />
-                        <DetailRow label="التحول الإيجابي المطلوب" value={details.positiveBehavior} isTextArea />
-                        <DetailRow label="الهواية المفضلة" value={details.favoriteHobby} />
-                        <DetailRow label="الكلمة المفضلة" value={details.favoritePhrase} />
-                        <DetailRow label="عنصر البحث البصري" value={details.interactiveElementChoice} />
-                    </div>
+                
+                {/* 1. Goal (if exists) */}
+                {details.storyValue && (
+                    <DetailRow label="الهدف من القصة" value={emotionMap[details.storyValue] || details.storyValue} />
                 )}
+                {details.customGoal && (
+                    <DetailRow label="الهدف المخصص" value={details.customGoal} isTextArea />
+                )}
+
+                {/* 2. Dynamic Custom Fields (e.g. Dedication, Story Inputs) */}
+                <div className="grid grid-cols-1 gap-y-2">
+                    {customFields.map(key => (
+                        <DetailRow 
+                            key={key} 
+                            // Try to format key from camelCase to readable label if possible, or just use key
+                            label={key} 
+                            value={details[key]} 
+                            isTextArea={typeof details[key] === 'string' && details[key].length > 50} 
+                        />
+                    ))}
+                </div>
             </div>
             
             {details.shippingOption === 'gift' && (

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, ShoppingCart } from 'lucide-react';
+import { Loader2, ArrowLeft, ShoppingCart, Check } from 'lucide-react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,21 +23,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import DynamicTextFields from '../components/order/DynamicTextFields';
 import ChildProfileModal from '../components/account/ChildProfileModal';
 
-// --- Steps Configuration ---
-const defaultSteps = [
-    { key: 'child', title: 'بيانات الطفل' },
-    { key: 'customization', title: 'تخصيص القصة' },
+// --- Specialized Flows ---
+
+const emotionStorySteps = [
+    { key: 'child_context', title: 'البطل والبيئة' },
+    { key: 'emotion_journey', title: 'رحلة المشاعر' },
+    { key: 'creative_touches', title: 'لمسات إبداعية' },
     { key: 'images', title: 'رفع الصور' },
     { key: 'addons', title: 'إضافات' },
     { key: 'delivery', title: 'التوصيل' },
 ];
 
-const emotionStorySteps = [
-    { key: 'child_context', title: 'بيانات البطل والسياق' },
-    { key: 'emotion_journey', title: 'رحلة المشاعر' },
-    { key: 'creative_touches', title: 'لمسات إبداعية' },
-    { key: 'images', title: 'رفع الصور' },
-    { key: 'addons', title: 'إضافات' },
+const subscriptionSteps = [
+    { key: 'child', title: 'بيانات المشترك' },
+    { key: 'customization', title: 'تفضيلات الصندوق' },
+    { key: 'images', title: 'صور الطفل' },
     { key: 'delivery', title: 'التوصيل' },
 ];
 
@@ -60,7 +60,54 @@ const OrderPage: React.FC = () => {
         orderData?.personalizedProducts.find(p => p.key === productKey) as PersonalizedProduct | undefined, 
     [orderData, productKey]);
 
-    const stepsConfig = useMemo(() => productKey === 'emotion_story' ? emotionStorySteps : defaultSteps, [productKey]);
+    // --- Dynamic Steps Logic ---
+    const stepsConfig = useMemo(() => {
+        if (!product) return [];
+
+        // 1. Specialized Products
+        if (product.key === 'emotion_story') return emotionStorySteps;
+        if (product.key === 'subscription_box') return subscriptionSteps;
+
+        // 2. Standard & Simple Products (Dynamic Generation)
+        const steps = [
+            { key: 'child', title: 'بيانات الطفل' }
+        ];
+
+        const hasTextFields = product.text_fields && product.text_fields.length > 0;
+        const hasGoals = product.goal_config !== 'none';
+
+        // Dynamic naming logic for the customization step
+        let customizationTitle = 'تخصيص المنتج';
+        if (hasGoals) {
+            customizationTitle = 'تخصيص القصة';
+        } else if (hasTextFields) {
+            // Check if the only field is 'dedication'
+            const isOnlyDedication = product.text_fields?.length === 1 && product.text_fields[0].id === 'dedication';
+            if (isOnlyDedication) {
+                customizationTitle = 'كتابة الإهداء';
+            } else {
+                customizationTitle = 'بيانات إضافية';
+            }
+        }
+
+        // Only add customization step if there are text fields OR goals
+        if (hasTextFields || hasGoals) {
+            steps.push({ 
+                key: 'customization', 
+                title: customizationTitle
+            });
+        }
+
+        // Only add image step if there are image slots
+        if (product.image_slots && product.image_slots.length > 0) {
+            steps.push({ key: 'images', title: 'رفع الصور' });
+        }
+
+        steps.push({ key: 'addons', title: 'إضافات' });
+        steps.push({ key: 'delivery', title: 'التوصيل' });
+
+        return steps;
+    }, [product]);
 
     // --- React Hook Form Setup ---
     const schema = useMemo(() => createOrderSchema(product), [product]);
@@ -86,12 +133,15 @@ const OrderPage: React.FC = () => {
         }
     });
 
-    const { watch, trigger, setValue, reset, formState: { errors } } = methods;
+    const { watch, trigger, setValue, formState: { errors } } = methods;
     const formData = watch();
 
     useEffect(() => {
         if (product) {
-            setStep(stepsConfig[0].key);
+            // Set initial step based on config
+            const initialStep = product.key === 'emotion_story' ? 'child_context' : 'child';
+            setStep(initialStep);
+
             if (!product.has_printed_version) {
                 setValue('deliveryType', 'electronic');
             }
@@ -101,7 +151,7 @@ const OrderPage: React.FC = () => {
                 setSelectedAddons([]);
             }
         }
-    }, [product, setValue, stepsConfig]);
+    }, [product, setValue]);
 
     const isLoading = productContextLoading || orderDataLoading;
     const allProducts = useMemo(() => orderData?.personalizedProducts || [], [orderData]);
@@ -166,29 +216,38 @@ const OrderPage: React.FC = () => {
         
         switch(stepKey) {
             case 'child':
-            case 'child_context':
+            case 'child_context': 
                 fields.push('childName', 'childBirthDate', 'childGender');
-                if (productKey === 'emotion_story') {
-                    product.text_fields?.slice(0, 4).forEach(f => f.required && fields.push(f.id));
+                if (product.key === 'emotion_story' && product.text_fields) {
+                    product.text_fields.slice(0, 4).forEach(f => f.required && fields.push(f.id));
                 }
                 break;
-            case 'customization':
+                
+            case 'customization': 
                 product.text_fields?.forEach(f => f.required && fields.push(f.id));
                 if (product.goal_config !== 'none') {
                     fields.push('storyValue');
                     if (formData.storyValue === 'custom') fields.push('customGoal');
                 }
                 break;
-            case 'emotion_journey':
-                product.text_fields?.slice(4, 8).forEach(f => f.required && fields.push(f.id));
-                fields.push('storyValue');
+
+            case 'emotion_journey': 
+                if (product.text_fields) {
+                    product.text_fields.slice(4, 8).forEach(f => f.required && fields.push(f.id));
+                }
+                if (product.goal_config !== 'none') fields.push('storyValue');
                 break;
+
             case 'creative_touches':
-                product.text_fields?.slice(8, 11).forEach(f => f.required && fields.push(f.id));
+                if (product.text_fields) {
+                    product.text_fields.slice(8).forEach(f => f.required && fields.push(f.id));
+                }
                 break;
+
             case 'images':
                 product.image_slots?.forEach(slot => slot.required && fields.push(slot.id));
                 break;
+
             case 'delivery':
                 if (formData.deliveryType === 'printed' && formData.shippingOption === 'gift') {
                     fields.push('recipientName', 'recipientAddress', 'recipientPhone');
@@ -206,7 +265,6 @@ const OrderPage: React.FC = () => {
             const currentIndex = stepsConfig.findIndex(s => s.key === step);
             if (currentIndex < stepsConfig.length - 1) {
                 setStep(stepsConfig[currentIndex + 1].key);
-                // Scroll to top of form
                 window.scrollTo({ top: 100, behavior: 'smooth' });
             }
         } else {
@@ -224,7 +282,6 @@ const OrderPage: React.FC = () => {
     };
 
     const handleSubmit = async () => {
-        // Validate entire form first
         const isValid = await trigger();
         if (!isValid) {
              addToast('يرجى مراجعة البيانات الناقصة.', 'warning');
@@ -238,7 +295,6 @@ const OrderPage: React.FC = () => {
 
         setIsSubmitting(true);
         
-        // Extract image files from form data
         const imageFiles: Record<string, File> = {};
         product?.image_slots?.forEach(slot => {
             if (formData[slot.id] instanceof File) {
@@ -268,30 +324,20 @@ const OrderPage: React.FC = () => {
     if (isLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
     if (!product) return <div className="text-center py-20">المنتج غير موجود.</div>;
     
-    // Find the image preview url if any
     const previewSourceSlot = product.image_slots?.find(s => s.required)?.id;
     const previewFile = previewSourceSlot ? formData[previewSourceSlot] : null;
     const imagePreviewUrl = previewFile instanceof File ? URL.createObjectURL(previewFile) : null;
 
-    const currentStepTitle = stepsConfig.find(s => s.key === step)?.title;
+    const currentStepConfig = stepsConfig.find(s => s.key === step);
+    const currentStepTitle = currentStepConfig?.title;
 
-    // Render Helpers
+    // --- Step Render Logic ---
     const renderStepContent = () => {
         switch(step) {
             case 'child':
-                return (
-                    <ChildDetailsSection 
-                        childProfiles={childProfiles}
-                        onSelectChild={handleChildSelect}
-                        selectedChildId={selectedChildId}
-                        onSelectSelf={handleSelfSelect}
-                        currentUser={currentUser}
-                        onAddChild={() => setIsChildModalOpen(true)}
-                    />
-                );
             case 'child_context':
                 return (
-                    <div>
+                    <div className="space-y-8">
                         <ChildDetailsSection 
                             childProfiles={childProfiles}
                             onSelectChild={handleChildSelect}
@@ -300,45 +346,54 @@ const OrderPage: React.FC = () => {
                             currentUser={currentUser}
                             onAddChild={() => setIsChildModalOpen(true)}
                         />
-                        <div className="mt-8 pt-8 border-t">
-                            <h3 className="text-xl font-bold text-gray-700 mb-4">معلومات إضافية عن السياق</h3>
-                            <DynamicTextFields fields={product.text_fields?.slice(0, 4) || []} />
-                        </div>
+                        {step === 'child_context' && (
+                            <div className="pt-6 border-t">
+                                <h3 className="text-xl font-bold text-gray-700 mb-4">البيئة المحيطة (السياق)</h3>
+                                <DynamicTextFields fields={product.text_fields?.slice(0, 4) || []} />
+                            </div>
+                        )}
                     </div>
                 );
-            case 'customization':
+
+            case 'customization': 
                 return (
                     <StoryCustomizationSection 
                         textFields={product.text_fields || null} 
                         goalConfig={product.goal_config || 'none'} 
                         storyGoals={storyGoals} 
+                        sectionTitle={currentStepTitle}
                     />
                 );
-            case 'emotion_journey':
+
+            case 'emotion_journey': 
                 return (
-                    <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-6">رحلة المشاعر</h3>
+                    <div className="space-y-6">
+                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800">
+                            هذا الجزء هو قلب القصة العلاجية. ساعدنا في فهم مشاعر طفلك بدقة لنصنع له حكاية تلامس قلبه.
+                        </div>
                         <StoryCustomizationSection 
                             textFields={[]} 
-                            goalConfig={product.goal_config || 'none'} 
+                            goalConfig={product.goal_config} 
                             storyGoals={storyGoals} 
                         />
-                        <div className="mt-6">
-                            <DynamicTextFields fields={product.text_fields?.slice(4, 8) || []} />
-                        </div>
+                        <DynamicTextFields fields={product.text_fields?.slice(4, 8) || []} />
                     </div>
                 );
+
             case 'creative_touches':
                 return (
-                    <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-6">لمسات إبداعية</h3>
-                        <DynamicTextFields fields={product.text_fields?.slice(8, 11) || []} />
+                    <div className="space-y-6">
+                        <h3 className="text-xl font-bold text-gray-700">لمسات خاصة</h3>
+                        <p className="text-muted-foreground text-sm">تفاصيل صغيرة تجعل القصة مفضلة لطفلك.</p>
+                        <DynamicTextFields fields={product.text_fields?.slice(8) || []} />
                     </div>
                 );
+
             case 'images':
                 return (
                     <ImageUploadSection imageSlots={product.image_slots || null} />
                 );
+
             case 'addons':
                 return (
                     <AddonsSection 
@@ -347,8 +402,10 @@ const OrderPage: React.FC = () => {
                         onToggle={handleAddonToggle} 
                     />
                 );
+
             case 'delivery':
                 return <DeliverySection product={product} />;
+                
             default:
                 return null;
         }
@@ -357,34 +414,48 @@ const OrderPage: React.FC = () => {
     return (
         <FormProvider {...methods}>
             <ChildProfileModal isOpen={isChildModalOpen} onClose={() => setIsChildModalOpen(false)} childToEdit={null} />
-            <div className="bg-muted/50 py-12 sm:py-16">
+            <div className="bg-muted/30 py-12 sm:py-16">
                 <div className="container mx-auto px-4">
-                    <div className="max-w-5xl mx-auto">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="mb-10 text-center">
+                             <h1 className="text-3xl font-extrabold text-foreground mb-4">
+                                {product.key === 'subscription_box' ? 'اشتراك صندوق الرحلة' : `طلب: ${product.title}`}
+                             </h1>
+                             {product.key === 'emotion_story' && (
+                                 <span className="inline-block bg-purple-100 text-purple-800 text-xs px-3 py-1 rounded-full font-bold">نسخة علاجية متقدمة</span>
+                             )}
+                        </div>
+                        
                         <div className="mb-12">
-                             <h1 className="text-3xl sm:text-4xl font-extrabold text-center text-foreground mb-4">تخصيص: {product.title}</h1>
                              <OrderStepper steps={stepsConfig} currentStep={step} />
                         </div>
+
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                            <Card className="lg:col-span-2">
+                            <Card className="lg:col-span-2 shadow-lg border-t-4 border-t-primary/80">
                                 {currentStepTitle && (
                                     <CardHeader>
                                         <CardTitle className="text-2xl">{currentStepTitle}</CardTitle>
                                     </CardHeader>
                                 )}
-                               <CardContent className="pt-2 space-y-10">
+                               <CardContent className="pt-2 space-y-8">
                                   {renderStepContent()}
-                                  <div className="flex justify-between pt-6 border-t">
+                                  
+                                  <div className="flex justify-between pt-8 border-t mt-8">
                                       <Button type="button" onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />}>
-                                          {step === stepsConfig[0].key ? 'رجوع' : 'السابق'}
+                                          {step === stepsConfig[0].key ? 'إلغاء' : 'السابق'}
                                       </Button>
+                                      
                                       {step !== stepsConfig[stepsConfig.length - 1].key ? (
                                           <Button type="button" onClick={handleNext}>التالي <ArrowLeft className="mr-2 h-4 w-4" /></Button>
                                       ) : (
-                                          <Button type="button" onClick={handleSubmit} loading={isSubmitting} variant="success" icon={<ShoppingCart />}>إضافة إلى السلة</Button>
+                                          <Button type="button" onClick={handleSubmit} loading={isSubmitting} variant="success" icon={<ShoppingCart />}>
+                                              إضافة إلى السلة
+                                          </Button>
                                       )}
                                   </div>
                                </CardContent>
                             </Card>
+                            
                             <div className="lg:col-span-1 sticky top-24">
                                 <InteractivePreview 
                                     formData={formData as any}
@@ -392,7 +463,7 @@ const OrderPage: React.FC = () => {
                                     basePrice={basePrice}
                                     addons={selectedAddons.map(key => {
                                         const componentProd = allProducts.find(p => p.key === key);
-                                        if (!componentProd) return { key, title: `Unknown (${key})`, price: 0 };
+                                        if (!componentProd) return { key, title: `Unknown`, price: 0 };
                                         const price = componentProd.has_printed_version ? componentProd.price_printed : componentProd.price_electronic;
                                         return { key, title: componentProd?.title || '', price: price || 0 };
                                     })}

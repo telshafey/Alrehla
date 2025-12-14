@@ -3,15 +3,39 @@ import { supabase } from '../lib/supabaseClient';
 import { createClient } from '@supabase/supabase-js';
 import type { UserProfile, ChildProfile } from '../lib/database.types';
 
+// Helper to safely access environment variables or use defaults
+// This prevents "Cannot read properties of undefined" errors
+const getEnv = (key: string, fallback: string) => {
+    try {
+        // @ts-ignore
+        if (typeof import.meta !== 'undefined' && import.meta.env) {
+             // @ts-ignore
+            return import.meta.env[key] || fallback;
+        }
+    } catch (e) {
+        // Ignore errors
+    }
+    return fallback;
+};
+
+// Default credentials (matches lib/supabaseClient.ts) to ensure app works in all envs
+const DEFAULT_URL = 'https://mqsmgtparbdpvnbyxokh.supabase.co';
+const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xc21ndHBhcmJkcHZuYnl4b2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NTgwNDQsImV4cCI6MjA4MTEzNDA0NH0.RoZXNNqH7--_bFq4Qi3hKsFVONEtjgiuOZc_N95PxPg';
+
 // نحتاج لإنشاء عميل Supabase ثانوي لعمليات إنشاء المستخدمين
 // هذا يمنع تسجيل خروج الأدمن عند استخدام signUp
+// We creates a new client instance solely for the registration action so it doesn't affect the global auth state.
 const getSecondaryClient = () => {
-    const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
-    if (supabaseUrl && supabaseAnonKey) {
-        return createClient(supabaseUrl, supabaseAnonKey);
-    }
-    return supabase; // Fallback
+    const supabaseUrl = getEnv('VITE_SUPABASE_URL', DEFAULT_URL);
+    const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY', DEFAULT_KEY);
+    
+    return createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+            persistSession: false, // Important: Do not persist this session to localStorage
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+        }
+    });
 };
 
 export const userService = {
@@ -51,10 +75,11 @@ export const userService = {
     
     // إنشاء مستخدم حقيقي في Supabase Auth و Profiles
     async createUser(payload: { name: string, email: string, role: string, phone?: string, address?: string, password?: string }) {
+        // استخدام العميل الثانوي هنا هو السر لعدم تسجيل خروج المدير
         const tempClient = getSecondaryClient();
         const { password, ...profileData } = payload;
 
-        // 1. Create Auth User (using secondary client to keep admin logged in)
+        // 1. Create Auth User (using secondary client)
         const { data: authData, error: authError } = await tempClient.auth.signUp({
             email: payload.email,
             password: password || '123456', // Default password if not provided
@@ -73,6 +98,7 @@ export const userService = {
 
         // 2. Create/Ensure Profile Exists
         // Using UPSERT to be safe if a trigger already created the profile
+        // Note: We use the MAIN 'supabase' client here to insert into the DB, because the Admin has RLS permissions to insert.
         const { data, error } = await supabase
             .from('profiles')
             .upsert([{ 
@@ -122,7 +148,6 @@ export const userService = {
         // لكن بما أننا في بيئة تطوير، سنقوم بمحاكاة النجاح أو استخدام دالة RPC إذا كانت متاحة.
         // في الإنتاج، يجب استخدام Edge Function مع Service Role Key.
         
-        // For now, assume success in the UI flow or log a warning if simulated backend not active.
         console.warn("Client-side Admin password update is restricted by Supabase Auth policies. In a real production app, this requires a backend Edge Function.");
         return { success: true }; 
     },

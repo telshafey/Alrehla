@@ -11,12 +11,14 @@ interface StoryCustomizationSectionProps {
     textFields: TextFieldConfig[] | null;
     goalConfig: GoalConfig;
     storyGoals: StoryGoal[];
+    sectionTitle?: string;
 }
 
 const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({
     textFields,
     goalConfig,
     storyGoals,
+    sectionTitle = 'تفاصيل القصة'
 }) => {
     const { register, formState: { errors }, watch } = useFormContext();
     const storyValue = watch('storyValue');
@@ -28,7 +30,8 @@ const StoryCustomizationSection: React.FC<StoryCustomizationSectionProps> = ({
         <div className="space-y-8">
             {textFields && textFields.length > 0 && (
                 <div className="p-4 bg-gray-50 rounded-lg border">
-                    <h4 className="text-xl font-bold text-gray-700 mb-4">تفاصيل القصة</h4>
+                    {/* Only show subtitle if it adds value or isn't redundant with main card title */}
+                    <h4 className="text-xl font-bold text-gray-700 mb-4">{sectionTitle}</h4>
                     <DynamicTextFields fields={textFields} />
                 </div>
             )}

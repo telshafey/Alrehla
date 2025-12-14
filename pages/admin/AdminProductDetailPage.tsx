@@ -249,7 +249,8 @@ const AdminProductDetailPage: React.FC = () => {
                                     اختر المنتجات التي يتكون منها هذا المنتج تلقائياً. هذا مفيد للمنتجات المجمعة مثل "بوكس الهدية".
                                 </p>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    {allProducts.filter(p => p.id !== product.id && p.key !== 'subscription_box').map(component => (
+                                    {/* Updated filter: Show ALL products except the current one being edited */}
+                                    {allProducts.filter(p => p.id !== product.id).map(component => (
                                         <label key={component.id} className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50 cursor-pointer hover:border-primary">
                                             <Checkbox
                                                 checked={(product.component_keys || []).includes(component.key)}
