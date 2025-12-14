@@ -116,7 +116,11 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({ onNavigateTab }) => {
                     {recentItems.length > 0 ? (
                         <div className="space-y-3">
                             {recentItems.map(item => (
-                                <div key={`${item.type}-${item.id}`} className="p-3 bg-muted/50 rounded-lg flex items-center gap-3">
+                                <button 
+                                    key={`${item.type}-${item.id}`} 
+                                    onClick={() => onNavigateTab('myLibrary')}
+                                    className="w-full text-right p-3 bg-muted/50 rounded-lg flex items-center gap-3 hover:bg-muted transition-colors"
+                                >
                                     <div className="flex-shrink-0">
                                         {item.type === 'order' ? <ShoppingBag size={20} className="text-primary"/> : item.type === 'subscription' ? <Star size={20} className="text-orange-500"/> : <BookOpen size={20} className="text-purple-500" />}
                                     </div>
@@ -124,7 +128,8 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({ onNavigateTab }) => {
                                         <p className="font-semibold text-foreground text-sm">{item.summary}</p>
                                         <p className="text-xs text-muted-foreground">{formatDate(item.date)}</p>
                                     </div>
-                                </div>
+                                    <ArrowLeft size={16} className="text-muted-foreground" />
+                                </button>
                             ))}
                         </div>
                     ) : (
