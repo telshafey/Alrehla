@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import { Users, Plus, Edit, Trash2, Search, Briefcase, GraduationCap, Shield } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Briefcase, GraduationCap, Shield, User } from 'lucide-react';
 import { roleNames } from '../../lib/roles';
 import type { UserProfileWithRelations } from '../../lib/database.types';
 import { Button } from '../../components/ui/Button';
@@ -194,13 +194,17 @@ const AdminUsersPage: React.FC = () => {
                                                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                                     <GraduationCap size={12} /> طالب
                                                                 </span>
-                                                            ) : (
+                                                            ) : (user.childrenCount && user.childrenCount > 0) ? (
                                                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                                                     <Briefcase size={12} /> ولي أمر
                                                                 </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                                                                    <User size={12} /> مستخدم
+                                                                </span>
                                                             )}
                                                         </TableCell>
-                                                        <TableCell className="text-center">{user.childrenCount ?? '-'}</TableCell>
+                                                        <TableCell className="text-center">{user.childrenCount || 0}</TableCell>
                                                         <TableCell>
                                                             <div className="flex items-center gap-1">
                                                                 <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}`)} title="تعديل">

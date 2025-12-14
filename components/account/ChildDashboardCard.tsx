@@ -1,14 +1,16 @@
+
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Edit, Trash2, UserPlus, ShoppingBag, BookOpen, Star, ArrowLeft, Award } from 'lucide-react';
-import type { ChildProfile, Order, CreativeWritingBooking, Subscription, Badge, ChildBadge } from '../../lib/database.types';
+import { Edit, Trash2, UserPlus, ShoppingBag, BookOpen, Star, ArrowLeft, Award, Lock, Mail } from 'lucide-react';
+import type { Order, CreativeWritingBooking, Subscription, Badge, ChildBadge } from '../../lib/database.types';
+import type { EnrichedChildProfile } from '../../hooks/queries/user/useUserDataQuery';
 import { Button } from '../ui/Button';
 import { formatDate, calculateAge } from '../../utils/helpers';
 import BadgeDisplay from '../shared/BadgeDisplay';
 import Image from '../ui/Image';
 
 interface ChildDashboardCardProps {
-    child: ChildProfile;
+    child: EnrichedChildProfile;
     childActivity: {
         orders: Order[];
         bookings: CreativeWritingBooking[];
@@ -16,9 +18,9 @@ interface ChildDashboardCardProps {
     };
     allBadges: Badge[];
     childBadges: ChildBadge[];
-    onEdit: (child: ChildProfile) => void;
+    onEdit: (child: EnrichedChildProfile) => void;
     onDelete: (childId: number) => void;
-    onCreateStudentAccount: (child: ChildProfile) => void;
+    onCreateStudentAccount: (child: EnrichedChildProfile) => void;
 }
 
 const ActivityIcon: React.FC<{type: string}> = ({type}) => {
@@ -53,30 +55,53 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
     const age = calculateAge(child.birth_date);
 
     return (
-        <div className="bg-gray-50 p-6 rounded-2xl shadow-md border">
+        <div className="bg-gray-50 p-6 rounded-2xl shadow-md border animate-fadeIn">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 border-b pb-4">
+            <div className="flex flex-col sm:flex-row items-start gap-4 border-b pb-4">
                 <Image 
                     src={child.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
                     alt={child.name} 
-                    className="w-24 h-24 rounded-full border-4 border-white shadow-md"
+                    className="w-24 h-24 rounded-full border-4 border-white shadow-md flex-shrink-0"
                 />
-                <div className="flex-grow text-center sm:text-right">
-                    <h3 className="text-2xl font-bold text-gray-800">{child.name}</h3>
-                    <p className="text-gray-500">{age !== null ? `${age} سنوات` : 'غير محدد'}</p>
-                    {child.student_user_id ? (
-                        <span className="text-xs font-semibold bg-green-100 text-green-800 px-2 py-1 rounded-full inline-block mt-2">حساب طالب مفعل</span>
-                    ) : null}
-                </div>
-                <div className="flex-shrink-0 flex flex-col items-center gap-2">
-                    {!child.student_user_id && (
-                        <Button variant="outline" size="sm" onClick={() => onCreateStudentAccount(child)} icon={<UserPlus size={16} />}>
-                            إنشاء حساب
-                        </Button>
-                    )}
-                    <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(child)} aria-label={`تعديل ${child.name}`}><Edit size={18} /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => onDelete(child.id)} className="text-red-500" aria-label={`حذف ${child.name}`}><Trash2 size={18} /></Button>
+                <div className="flex-grow w-full">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3 className="text-2xl font-bold text-gray-800">{child.name}</h3>
+                            <p className="text-gray-500 text-sm mb-2">{age !== null ? `${age} سنوات` : 'غير محدد'}</p>
+                        </div>
+                        <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => onEdit(child)} aria-label={`تعديل ${child.name}`}><Edit size={18} /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => onDelete(child.id)} className="text-red-500" aria-label={`حذف ${child.name}`}><Trash2 size={18} /></Button>
+                        </div>
+                    </div>
+                    
+                    {/* Student Account Status / Credentials */}
+                    <div className="mt-2 p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
+                        {child.student_user_id ? (
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                    <span className="text-xs font-bold text-green-700">حساب طالب نشط</span>
+                                </div>
+                                <div className="text-sm text-gray-600 space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <Mail size={14} className="text-gray-400"/>
+                                        <span className="font-mono text-xs">{child.student_email || 'البريد غير متاح'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                                        <Lock size={14}/>
+                                        <span>كلمة المرور: التي قمت بتعيينها</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">لا يوجد حساب طالب</span>
+                                <Button variant="outline" size="sm" onClick={() => onCreateStudentAccount(child)} icon={<UserPlus size={14} />} className="h-8 text-xs">
+                                    إنشاء حساب
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -126,8 +151,8 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
                     {earnedBadges.length > 0 && (
                         <div className="mt-4 pt-4 border-t">
                             <h4 className="font-bold text-gray-700 mb-2">أحدث الإنجازات</h4>
-                            <div className="flex gap-4">
-                                {earnedBadges.slice(0, 2).map(badge => (
+                            <div className="flex gap-4 overflow-x-auto pb-2">
+                                {earnedBadges.slice(0, 3).map(badge => (
                                     <BadgeDisplay key={badge.id} badge={badge} size="lg" />
                                 ))}
                             </div>

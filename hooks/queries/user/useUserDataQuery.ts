@@ -11,7 +11,8 @@ import type {
     CreativeWritingPackage, 
     ChildBadge, 
     Badge, 
-    SessionAttachment 
+    SessionAttachment,
+    ChildProfile 
 } from '../../../lib/database.types';
 
 export type { SessionAttachment };
@@ -30,7 +31,7 @@ export const useUserNotifications = () => {
                     .order('created_at', { ascending: false });
                 
                 if (error) {
-                    console.warn('Notifications fetch warning (Table might be missing):', error.message);
+                    console.warn('Notifications fetch warning:', error.message);
                     return [];
                 }
                 return data as Notification[];
@@ -49,6 +50,11 @@ export type EnrichedBooking = CreativeWritingBooking & {
     child_profiles: { name: string } | null;
 };
 
+// Extend ChildProfile to include the linked student email
+export interface EnrichedChildProfile extends ChildProfile {
+    student_email?: string;
+}
+
 export interface UserAccountData {
     userOrders: Order[];
     userSubscriptions: Subscription[];
@@ -56,15 +62,16 @@ export interface UserAccountData {
     childBadges: ChildBadge[];
     allBadges: Badge[];
     attachments: SessionAttachment[];
+    childProfiles: EnrichedChildProfile[]; // Added live child profiles
 }
 
 export const useUserAccountData = () => {
-    const { currentUser, childProfiles } = useAuth();
+    const { currentUser } = useAuth(); // We still use Auth for ID, but fetch data freshly
     
     return useQuery<UserAccountData>({
         queryKey: ['userAccountData', currentUser?.id],
         queryFn: async () => {
-            if (!currentUser) return { userOrders: [], userSubscriptions: [], userBookings: [], childBadges: [], allBadges: [], attachments: [] };
+            if (!currentUser) return { userOrders: [], userSubscriptions: [], userBookings: [], childBadges: [], allBadges: [], attachments: [], childProfiles: [] };
 
             const safeFetch = async (table: string, query: any) => {
                 try {
@@ -79,6 +86,19 @@ export const useUserAccountData = () => {
                     return [];
                 }
             };
+
+            // 0. Fetch Child Profiles (Freshly from DB to fix "Not showing" issue)
+            // We fetch the child profile AND the linked student user email
+            const childrenData = await safeFetch('child_profiles', supabase
+                .from('child_profiles')
+                .select('*, student:profiles!student_user_id(email)')
+                .eq('user_id', currentUser.id)
+            );
+            
+            const childProfiles: EnrichedChildProfile[] = childrenData.map((child: any) => ({
+                ...child,
+                student_email: child.student?.email // Flatten the relationship
+            }));
 
             // 1. Fetch Orders
             const userOrders = await safeFetch('orders', supabase
@@ -154,7 +174,8 @@ export const useUserAccountData = () => {
                 userBookings,
                 childBadges,
                 allBadges,
-                attachments
+                attachments,
+                childProfiles // Return fresh profiles
             };
         },
         enabled: !!currentUser,

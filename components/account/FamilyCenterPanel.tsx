@@ -10,17 +10,20 @@ import EmptyState from './EmptyState';
 import ChildDashboardCard from './ChildDashboardCard';
 import ChildForm from './ChildForm';
 import StudentAccountForm from './StudentAccountForm';
+import PageLoader from '../ui/PageLoader';
 
 type ViewMode = 'list' | 'child-form' | 'student-form';
 
 const FamilyCenterPanel: React.FC = () => {
-    const { childProfiles } = useAuth();
+    // We rely on useUserAccountData for the *list* of children to ensure it refreshes after mutations
     const { data: accountData, isLoading } = useUserAccountData();
     const { deleteChildProfile } = useUserMutations();
 
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [selectedChild, setSelectedChild] = useState<ChildProfile | null>(null);
     
+    // Use childProfiles from the query, fallback to empty array
+    const childProfiles = accountData?.childProfiles || [];
     const { userOrders = [], userBookings = [], userSubscriptions = [], childBadges = [], allBadges = [] } = accountData || {};
     
     const activityByChildId = useMemo(() => {
@@ -77,8 +80,8 @@ const FamilyCenterPanel: React.FC = () => {
         setSelectedChild(null);
     };
 
-    if (isLoading && childProfiles.length === 0) {
-        return <div className="bg-white p-8 rounded-2xl shadow-lg text-center">جاري تحميل بيانات العائلة...</div>
+    if (isLoading) {
+        return <div className="bg-white p-8 rounded-2xl shadow-lg"><PageLoader text="جاري تحميل بيانات العائلة..." /></div>
     }
 
     // --- Render Views ---
