@@ -97,7 +97,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
             
             {instapayQrUrl && (
                 <div className="mb-4 flex justify-center">
-                    <div className="w-40 h-40 bg-white p-2 rounded-lg shadow-sm">
+                    <div className="w-64 h-64 bg-white p-2 rounded-lg shadow-sm">
                         <Image src={instapayQrUrl} alt="Instapay QR Code" className="w-full h-full object-contain" />
                     </div>
                 </div>

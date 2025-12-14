@@ -56,6 +56,7 @@ const SubscriptionPage: React.FC = () => {
     const content = data?.siteContent?.enhaLakPage.subscription;
     const subscriptionPlans = data?.subscriptionPlans || [];
     const pageUrl = window.location.href;
+    const today = new Date().toISOString().split('T')[0];
 
     const [step, setStep] = useState<SubscriptionStep>('plan');
     const [formData, setFormData] = useState({
@@ -197,7 +198,7 @@ const SubscriptionPage: React.FC = () => {
                                 <Input type="text" id="childName" name="childName" value={formData.childName} onChange={handleChange} required />
                             </FormField>
                             <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={errors.childBirthDate}>
-                                <Input type="date" id="childBirthDate" name="childBirthDate" value={formData.childBirthDate} onChange={handleChange} required />
+                                <Input type="date" id="childBirthDate" name="childBirthDate" value={formData.childBirthDate} max={today} onChange={handleChange} required />
                             </FormField>
                             <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={errors.childGender}>
                                 <Select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange} required>

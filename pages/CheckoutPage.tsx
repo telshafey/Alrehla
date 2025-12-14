@@ -62,7 +62,7 @@ const CheckoutPage: React.FC = () => {
 
         // 1. Handle Order (Enha Lak)
         if (item.type === 'order') {
-            const { imageFiles, formData, details } = item.payload;
+            const { imageFiles, formData, details, shippingPrice } = item.payload;
             
             // Defensive coding: Ensure objects exist
             const safeFormData = formData || {};
@@ -98,12 +98,16 @@ const CheckoutPage: React.FC = () => {
             } else if (item.payload.childId && Number(item.payload.childId) > 0) {
                  childId = Number(item.payload.childId);
             }
+            
+            // Add shipping price to total
+            const baseTotal = item.payload.totalPrice || item.payload.total || 0;
+            const finalTotal = baseTotal + (shippingPrice || 0);
 
             return createOrder.mutateAsync({
                 userId: currentUser.id,
                 childId: childId,
                 summary: item.payload.summary || 'طلب جديد',
-                total: item.payload.totalPrice || item.payload.total || 0,
+                total: finalTotal,
                 productKey: item.payload.productKey,
                 details: finalDetails, 
                 receiptUrl
@@ -191,15 +195,17 @@ const CheckoutPage: React.FC = () => {
                         <CardContent className="space-y-6">
                             <div className="p-4 bg-muted rounded-lg border space-y-3">
                                 <h3 className="font-bold text-lg">ملخص السلة</h3>
-                                {cart.map(item => (
+                                {cart.map(item => {
+                                    const itemTotal = (item.payload.total || item.payload.totalPrice || 0) + (item.payload.shippingPrice || 0);
+                                    return (
                                      <div key={item.id} className="flex justify-between items-center text-sm">
                                         <span className="font-semibold text-foreground flex items-center gap-2">
                                             {item.payload.formData?.shippingOption === 'gift' && <span title="هدية">🎁</span>}
                                             {item.payload.summary}
                                         </span>
-                                        <span className="font-bold text-foreground">{item.payload.total || item.payload.totalPrice} ج.م</span>
+                                        <span className="font-bold text-foreground">{itemTotal} ج.م</span>
                                     </div>
-                                ))}
+                                )})}
                                 <div className="border-t pt-3 mt-3 flex justify-between items-center">
                                      <span className="font-bold text-xl text-foreground">الإجمالي</span>
                                     <span className="font-extrabold text-2xl text-primary">{cartTotal} ج.م</span>
@@ -212,7 +218,7 @@ const CheckoutPage: React.FC = () => {
                                     
                                      {instapayQrUrl && (
                                         <div className="mb-4 flex justify-center">
-                                            <div className="w-40 h-40 bg-white p-2 rounded-lg shadow-sm border">
+                                            <div className="w-64 h-64 bg-white p-2 rounded-lg shadow-sm border">
                                                 <Image src={instapayQrUrl} alt="Instapay QR Code" className="w-full h-full object-contain" />
                                             </div>
                                         </div>

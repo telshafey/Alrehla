@@ -25,6 +25,7 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
     onAddChild
 }) => {
     const { register, formState: { errors } } = useFormContext();
+    const today = new Date().toISOString().split('T')[0];
     
     type SelectionMode = 'profile' | 'self' | 'manual';
     const [mode, setMode] = useState<SelectionMode>(() => {
@@ -95,7 +96,7 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
                         <Input type="text" id="childName" {...register('childName')} aria-invalid={!!errors.childName} disabled={mode === 'self'} />
                     </FormField>
                     <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={errors.childBirthDate?.message as string}>
-                        <Input type="date" id="childBirthDate" {...register('childBirthDate')} aria-invalid={!!errors.childBirthDate} />
+                        <Input type="date" id="childBirthDate" max={today} {...register('childBirthDate')} aria-invalid={!!errors.childBirthDate} />
                     </FormField>
                     <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={errors.childGender?.message as string}>
                         <Select id="childGender" {...register('childGender')} aria-invalid={!!errors.childGender}>

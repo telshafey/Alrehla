@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -54,8 +55,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const getCartTotal = useCallback(() => {
         return cart.reduce((total, item) => {
-            const itemTotal = item.payload.total || item.payload.totalPrice || 0;
-            return total + itemTotal;
+            const itemBase = item.payload.total || item.payload.totalPrice || 0;
+            const shipping = item.payload.shippingPrice || 0;
+            return total + itemBase + shipping;
         }, 0);
     }, [cart]);
 

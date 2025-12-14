@@ -20,6 +20,7 @@ interface ChildProfileModalProps {
 const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, childToEdit }) => {
     const { createChildProfile, updateChildProfile } = useUserMutations();
     const isSaving = createChildProfile.isPending || updateChildProfile.isPending;
+    const today = new Date().toISOString().split('T')[0];
     
     const [name, setName] = useState('');
     const [birthDate, setBirthDate] = useState('');
@@ -124,7 +125,7 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
                 </FormField>
                 <div className="grid grid-cols-2 gap-4">
                     <FormField label="تاريخ الميلاد*" htmlFor="birthDate">
-                        <Input type="date" id="birthDate" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} required />
+                        <Input type="date" id="birthDate" value={birthDate} max={today} onChange={(e) => setBirthDate(e.target.value)} required />
                     </FormField>
                     <FormField label="الجنس*" htmlFor="gender">
                         <Select id="gender" value={gender} onChange={(e) => setGender(e.target.value as 'ذكر' | 'أنثى' | '')} required>
