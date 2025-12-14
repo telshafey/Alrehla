@@ -178,7 +178,10 @@ const OrderPage: React.FC = () => {
 
     const shippingPrice = useMemo(() => {
         if (formData.deliveryType === 'electronic' || !shippingCosts) return 0;
-        return shippingCosts[formData.governorate] || 0;
+        // Access nested "مصر" key since our shippingCosts structure is Country -> Region
+        const countryCosts = shippingCosts['مصر'] || {};
+        // Find cost for selected governorate in Egypt
+        return countryCosts[formData.governorate] || 0;
     }, [formData.governorate, formData.deliveryType, shippingCosts]);
     
     const totalPrice = basePrice + addonsPrice;

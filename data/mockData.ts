@@ -260,7 +260,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         image_url: null,
         features: [],
         sort_order: 7,
-        is_featured: false,
+        is_featured: false, 
         is_addon: true,
         has_printed_version: false,
         price_printed: null,
@@ -459,7 +459,35 @@ export const mockCommunicationSettings: CommunicationSettings = {
 export const mockPrices: Prices = { base_session: 150 };
 
 export const mockShippingCosts: ShippingCosts = {
-    'مصر': { 'القاهرة': 50, 'الجيزة': 50, 'الإسكندرية': 70 }
+    'مصر': {
+        'القاهرة': 50,
+        'الجيزة': 50,
+        'الإسكندرية': 60,
+        'الدقهلية': 65,
+        'البحر الأحمر': 80,
+        'البحيرة': 65,
+        'الفيوم': 65,
+        'الغربية': 60,
+        'الإسماعيلية': 60,
+        'المنوفية': 60,
+        'المنيا': 70,
+        'القليوبية': 55,
+        'الوادي الجديد': 100,
+        'السويس': 60,
+        'اسوان': 100,
+        'اسيوط': 80,
+        'بني سويف': 65,
+        'بورسعيد': 60,
+        'دمياط': 65,
+        'الشرقية': 60,
+        'جنوب سيناء': 90,
+        'كفر الشيخ': 65,
+        'مطروح': 85,
+        'الأقصر': 100,
+        'قنا': 90,
+        'شمال سيناء': 90,
+        'سوهاج': 80
+    }
 };
 
 export const mockBlogPosts: BlogPost[] = [
