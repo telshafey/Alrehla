@@ -25,16 +25,14 @@ export const cloudinaryService = {
      * رفع ملف إلى Cloudinary
      */
     async uploadImage(file: File, folder: string = 'alrehla_general'): Promise<string> {
-        // قراءة القيم عند كل عملية رفع للتأكد من أنها محدثة
-        const cloudName = getEnv('VITE_CLOUDINARY_CLOUD_NAME'); // المتوقع: dvouptrzu
-        const uploadPreset = getEnv('VITE_CLOUDINARY_UPLOAD_PRESET'); // المتوقع: alrehla_uploads
+        // نستخدم القيم من البيئة، ونضع القيم الصحيحة كاحتياطي مباشر (Hardcoded Fallback) لحل المشكلة فوراً
+        const cloudName = getEnv('VITE_CLOUDINARY_CLOUD_NAME') || 'dvouptrzu'; 
+        const uploadPreset = getEnv('VITE_CLOUDINARY_UPLOAD_PRESET') || 'alrehla_uploads';
 
-        // طباعة القيم في الكونسول للمساعدة في الديباج (افتح الكونسول F12 في المتصفح للتأكد)
-        console.log(`Cloudinary Config Check: CloudName=${cloudName}, Preset=${uploadPreset}`);
+        console.log(`Cloudinary Upload: Cloud=${cloudName}, Preset=${uploadPreset}`);
 
         if (!cloudName || !uploadPreset) {
-            console.error('Missing Configuration:', { cloudName, uploadPreset });
-            throw new Error('إعدادات Cloudinary ناقصة. يرجى التأكد من إضافة VITE_CLOUDINARY_CLOUD_NAME و VITE_CLOUDINARY_UPLOAD_PRESET في إعدادات Vercel وإعادة النشر (Redeploy).');
+            throw new Error('إعدادات Cloudinary غير موجودة.');
         }
 
         const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
@@ -44,7 +42,7 @@ export const cloudinaryService = {
         formData.append('upload_preset', uploadPreset);
         formData.append('folder', folder);
 
-        // منطق الرفع الموقع (اختياري، إذا توفرت المفاتيح)
+        // منطق الرفع الموقع (اختياري)
         if (API_KEY && API_SECRET) {
             const timestamp = Math.floor(Date.now() / 1000).toString();
             const paramsToSign = {
@@ -58,7 +56,7 @@ export const cloudinaryService = {
                 formData.append('timestamp', timestamp);
                 formData.append('signature', signature);
             } catch (e) {
-                console.warn("فشل توقيع الطلب، سيتم المحاولة باستخدام الرفع غير الموقع.");
+                console.warn("فشل توقيع الطلب، جاري المحاولة بدون توقيع.");
             }
         } 
 
@@ -71,19 +69,18 @@ export const cloudinaryService = {
             const data = await response.json();
 
             if (!response.ok) {
-                const cloudError = data.error?.message || 'Unknown Error';
-                console.error('Cloudinary API Response Error:', data);
+                const errorMsg = data.error?.message || 'Unknown Cloudinary Error';
+                console.error('Cloudinary Error Response:', data);
                 
-                if (cloudError.includes('Invalid cloud_name')) {
-                    throw new Error(`اسم السحابة "${cloudName}" غير صحيح. يجب أن يكون "dvouptrzu".`);
+                if (errorMsg.includes('Invalid cloud_name')) {
+                    throw new Error(`اسم السحابة "${cloudName}" غير صحيح. تأكد من أن الاسم هو "dvouptrzu".`);
                 }
-                
-                throw new Error(`فشل الرفع: ${cloudError}`);
+                throw new Error(`فشل الرفع: ${errorMsg}`);
             }
 
             return data.secure_url;
         } catch (error: any) {
-            console.error('Upload Service Network Error:', error);
+            console.error('Upload Network Error:', error);
             throw error;
         }
     }

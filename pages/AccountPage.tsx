@@ -9,24 +9,25 @@ import AccountSettingsPanel from '../components/account/AccountSettingsPanel';
 import NotificationPanel from '../components/account/NotificationPanel';
 import FamilyCenterPanel from '../components/account/FamilyCenterPanel';
 import PortfolioPanel from '../components/account/PortfolioPanel';
+import MyLibraryPanel from '../components/account/MyLibraryPanel'; // Import Added
 import PaymentModal from '../components/PaymentModal';
-import { LayoutDashboard, Settings, Bell, Users, GalleryVertical } from 'lucide-react';
+import { LayoutDashboard, Settings, Bell, Users, GalleryVertical, BookOpen } from 'lucide-react'; // BookOpen Added
 import { Card } from '../components/ui/card';
 
-type AccountTab = 'dashboard' | 'portfolio' | 'familyCenter' | 'settings' | 'notifications';
+type AccountTab = 'dashboard' | 'myLibrary' | 'portfolio' | 'familyCenter' | 'settings' | 'notifications';
 
 const AccountPage: React.FC = () => {
     const { isLoggedIn, loading: authLoading, hasAdminAccess, currentUser, isParent } = useAuth();
     const location = useLocation();
     
-    const defaultTab = (location.state as any)?.defaultTab || (isParent ? 'familyCenter' : 'dashboard');
+    const defaultTab = (location.state as any)?.defaultTab || 'dashboard';
     const [activeTab, setActiveTab] = useState<AccountTab>(defaultTab);
 
     const [paymentItem, setPaymentItem] = useState<{ id: string; type: 'order' | 'subscription' | 'booking' } | null>(null);
 
     const handlePaymentSuccess = () => {
         setPaymentItem(null);
-        // Data will be refetched by the panels themselves.
+        // Data will be refetched by the panels themselves via React Query invalidation
     }
 
     if (authLoading) {
@@ -53,14 +54,15 @@ const AccountPage: React.FC = () => {
     
     const allTabs = [
         { key: 'dashboard', label: 'لوحة التحكم', icon: <LayoutDashboard className="h-5 w-5" /> },
-        { key: 'familyCenter', label: 'المركز العائلي', icon: <Users className="h-5 w-5" />, parentOnly: true },
+        { key: 'myLibrary', label: 'مكتبتي (الطلبات)', icon: <BookOpen className="h-5 w-5" /> }, // Added My Library
+        { key: 'familyCenter', label: 'المركز العائلي', icon: <Users className="h-5 w-5" /> },
         { key: 'portfolio', label: 'معرض أعمالي', icon: <GalleryVertical className="h-5 w-5" /> },
         { key: 'settings', label: 'الإعدادات', icon: <Settings className="h-5 w-5" /> },
         { key: 'notifications', label: 'الإشعارات', icon: <Bell className="h-5 w-5" /> },
     ];
 
-    const availableTabs = allTabs.filter(tab => !tab.parentOnly || isParent);
-
+    // Show Family Center to everyone now so they can add children
+    const availableTabs = allTabs; 
 
     return (
         <>
@@ -90,6 +92,7 @@ const AccountPage: React.FC = () => {
                     {/* Main Content */}
                     <div className="lg:col-span-3">
                         {activeTab === 'dashboard' && <DashboardPanel onNavigateTab={setActiveTab} />}
+                        {activeTab === 'myLibrary' && <MyLibraryPanel onPay={(item) => setPaymentItem(item)} />}
                         {activeTab === 'portfolio' && <PortfolioPanel />}
                         {activeTab === 'familyCenter' && <FamilyCenterPanel />}
                         {activeTab === 'settings' && <AccountSettingsPanel />}

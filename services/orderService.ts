@@ -13,9 +13,10 @@ import type {
 export const orderService = {
     // --- Queries ---
     async getAllOrders() {
+        // Use Supabase Join to fetch related user and child profile data directly
         const { data, error } = await supabase
             .from('orders')
-            .select('*') 
+            .select('*, users:profiles!user_id(name, email), child_profiles:child_profiles!child_id(name)') 
             .order('order_date', { ascending: false });
             
         if (error) {
