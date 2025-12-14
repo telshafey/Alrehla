@@ -5,7 +5,10 @@ import {
     mockCommunicationSettings, 
     mockPricingSettings, 
     mockJitsiSettings,
-    mockSiteBranding
+    mockSiteBranding,
+    mockSiteContent,
+    mockPrices,
+    mockShippingCosts
 } from '../data/mockData';
 import type { 
     SocialLinks, 
@@ -114,6 +117,37 @@ export const settingsService = {
             .upsert({ key: 'role_permissions', value: permissions, updated_at: new Date().toISOString() });
 
         if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    // --- Database Initialization ---
+    async initializeDefaults() {
+        const defaults = [
+            { key: 'branding', value: mockSiteBranding },
+            { key: 'social_links', value: mockSocialLinks },
+            { key: 'communication_settings', value: mockCommunicationSettings },
+            { key: 'pricing_config', value: mockPricingSettings },
+            { key: 'jitsi_settings', value: mockJitsiSettings },
+            { key: 'global_content', value: mockSiteContent },
+            { key: 'prices', value: mockPrices },
+            { key: 'shipping_costs', value: mockShippingCosts }
+        ];
+
+        const promises = defaults.map(item => 
+            supabase.from('site_settings').upsert({
+                key: item.key,
+                value: item.value,
+                updated_at: new Date().toISOString()
+            })
+        );
+
+        const results = await Promise.all(promises);
+        const errors = results.filter(r => r.error);
+        
+        if (errors.length > 0) {
+            throw new Error(`Fails to seed ${errors.length} settings. Ensure table 'site_settings' exists.`);
+        }
+        
         return { success: true };
     }
 };

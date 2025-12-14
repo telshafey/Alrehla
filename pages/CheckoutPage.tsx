@@ -13,7 +13,7 @@ import ReceiptUpload from '../components/shared/ReceiptUpload';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import Image from '../components/ui/Image';
-import { orderService } from '../services/orderService'; // Direct import for file helper
+import { orderService } from '../services/orderService';
 
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
@@ -54,20 +54,27 @@ const CheckoutPage: React.FC = () => {
     const processCartItem = async (item: CartItem, receiptUrl: string) => {
         if (!currentUser) throw new Error('User not authenticated');
 
+        // Safe check for payload
+        if (!item.payload) {
+            console.error("Cart item missing payload", item);
+            return;
+        }
+
         // 1. Handle Order (Enha Lak)
         if (item.type === 'order') {
             const { imageFiles, formData, details } = item.payload;
-            // Merge formData and details to ensure we have all fields
-            const mergedDetails = { ...formData, ...details };
-            const finalDetails = { ...mergedDetails }; // Copy to modify
+            
+            // Defensive coding: Ensure objects exist
+            const safeFormData = formData || {};
+            const safeDetails = details || {};
+            const finalDetails = { ...safeFormData, ...safeDetails };
 
-            // Upload customization images if they exist (Checking both imageFiles and direct File objects in formData)
+            // Handle Image Uploads
             const filesToUpload = { ...(imageFiles || {}) };
             
-            // Check for File objects directly in formData/details (legacy support)
-            Object.keys(mergedDetails).forEach(key => {
-                if (mergedDetails[key] instanceof File) {
-                    filesToUpload[key] = mergedDetails[key];
+            Object.keys(finalDetails).forEach(key => {
+                if (finalDetails[key] instanceof File) {
+                    filesToUpload[key] = finalDetails[key];
                 }
             });
 
@@ -76,10 +83,9 @@ const CheckoutPage: React.FC = () => {
                     if (file instanceof File) {
                         try {
                             const publicUrl = await orderService.uploadOrderFile(file, `order-images/${currentUser.id}`);
-                            finalDetails[key] = publicUrl; // Replace File object with URL string
+                            finalDetails[key] = publicUrl; 
                         } catch (err) {
                             console.error(`Failed to upload ${key}`, err);
-                            // We continue, but you might want to stop here in strict mode
                         }
                     }
                 }
@@ -87,37 +93,31 @@ const CheckoutPage: React.FC = () => {
 
             // Determine Child ID safely
             let childId = null;
-            if (item.payload.details?.childId && item.payload.details.childId > 0) {
-                childId = item.payload.details.childId;
-            } else if (item.payload.childId && item.payload.childId > 0) {
-                 childId = item.payload.childId;
+            if (safeDetails.childId && Number(safeDetails.childId) > 0) {
+                childId = Number(safeDetails.childId);
+            } else if (item.payload.childId && Number(item.payload.childId) > 0) {
+                 childId = Number(item.payload.childId);
             }
 
             return createOrder.mutateAsync({
                 userId: currentUser.id,
                 childId: childId,
-                summary: item.payload.summary,
-                total: item.payload.totalPrice || item.payload.total,
+                summary: item.payload.summary || 'طلب جديد',
+                total: item.payload.totalPrice || item.payload.total || 0,
                 productKey: item.payload.productKey,
-                details: finalDetails, // Now contains URLs instead of Files
+                details: finalDetails, 
                 receiptUrl
             });
         }
 
         // 2. Handle Subscription
         if (item.type === 'subscription') {
-            const { imageFiles, formData, plan } = item.payload;
-            
-            // Upload child images if any
-            if (imageFiles) {
-                 // Upload logic similar to orders can be added here if needed
-            }
-
+            const { plan } = item.payload;
             return createSubscription.mutateAsync({
                 userId: currentUser.id,
-                childId: item.payload.childId || 1, // Fallback ID if not provided, handle properly in real app
-                planId: plan.id,
-                planName: plan.name,
+                childId: item.payload.childId || 1, // Fallback ID
+                planId: plan?.id,
+                planName: plan?.name,
                 total: item.payload.total
             });
         }
@@ -127,7 +127,7 @@ const CheckoutPage: React.FC = () => {
             return createBooking.mutateAsync({
                 userId: currentUser.id,
                 payload: item.payload,
-                receiptUrl // Pass receipt here
+                receiptUrl 
             });
         }
     };
@@ -145,7 +145,13 @@ const CheckoutPage: React.FC = () => {
         setIsSubmitting(true);
         try {
             // 1. Upload Payment Receipt Once
-            const receiptUrl = await orderService.uploadOrderFile(receiptFile, `receipts/${currentUser.id}`);
+            let receiptUrl = '';
+            try {
+                receiptUrl = await orderService.uploadOrderFile(receiptFile, `receipts/${currentUser.id}`);
+            } catch (uploadErr: any) {
+                // If bucket missing, it throws a specific error we want to show
+                throw new Error(uploadErr.message);
+            }
 
             // 2. Process all items sequentially
             for (const item of cart) {
@@ -156,7 +162,7 @@ const CheckoutPage: React.FC = () => {
             navigate('/payment-status?status=success_review');
         } catch (error: any) {
             console.error("Checkout Error:", error);
-            addToast(`حدث خطأ أثناء معالجة الطلب: ${error.message}`, 'error');
+            addToast(`${error.message}`, 'error');
         } finally {
             setIsSubmitting(false);
         }

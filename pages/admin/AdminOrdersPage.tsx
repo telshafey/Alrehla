@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { ShoppingBag, Eye, Search } from 'lucide-react';
+import { ShoppingBag, Eye, Search, RefreshCw } from 'lucide-react';
 import { useAdminOrders } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -18,7 +18,7 @@ import { getStatusColor } from '../../utils/helpers';
 const orderStatuses: OrderStatus[] = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "تم الشحن", "تم التسليم", "مكتمل", "ملغي"];
 
 const AdminOrdersPage: React.FC = () => {
-    const { data: orders = [], isLoading, error, refetch } = useAdminOrders();
+    const { data: orders = [], isLoading, error, refetch, isRefetching } = useAdminOrders();
     const { bulkUpdateOrderStatus, bulkDeleteOrders } = useOrderMutations();
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<OrderWithRelations | null>(null);
@@ -89,7 +89,12 @@ const AdminOrdersPage: React.FC = () => {
         <>
             <ViewOrderModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} order={selectedOrder} />
             <div className="animate-fadeIn space-y-8">
-                <h1 className="text-3xl font-extrabold text-foreground">إدارة طلبات "إنها لك"</h1>
+                <div className="flex justify-between items-center">
+                    <h1 className="text-3xl font-extrabold text-foreground">إدارة طلبات "إنها لك"</h1>
+                    <Button onClick={() => refetch()} variant="outline" size="sm" icon={<RefreshCw className={isRefetching ? "animate-spin" : ""} size={16} />}>
+                        تحديث البيانات
+                    </Button>
+                </div>
                 
                 <Card>
                     <CardHeader>
@@ -133,8 +138,8 @@ const AdminOrdersPage: React.FC = () => {
                                     {filteredAndSortedOrders.length > 0 ? (
                                         filteredAndSortedOrders.map((order) => (
                                             <TableRow key={order.id}>
-                                                <TableCell className="font-medium">{order.users?.name || 'غير معروف'}</TableCell>
-                                                <TableCell>{order.child_profiles?.name || 'غير معروف'}</TableCell>
+                                                <TableCell className="font-medium">{order.users?.name || <span className="text-muted-foreground italic">غير معروف</span>}</TableCell>
+                                                <TableCell>{order.child_profiles?.name || <span className="text-muted-foreground italic">غير محدد</span>}</TableCell>
                                                 <TableCell className="max-w-xs truncate" title={order.item_summary}>{order.item_summary}</TableCell>
                                                 <TableCell className="font-bold">{order.total} ج.م</TableCell>
                                                 <TableCell>
@@ -152,7 +157,7 @@ const AdminOrdersPage: React.FC = () => {
                                     ) : (
                                         <TableRow>
                                             <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                                لا توجد طلبات تطابق بحثك.
+                                                {orders.length === 0 ? "لا توجد طلبات في قاعدة البيانات." : "لا توجد طلبات تطابق بحثك."}
                                             </TableCell>
                                         </TableRow>
                                     )}

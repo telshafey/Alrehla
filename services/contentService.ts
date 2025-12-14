@@ -1,5 +1,6 @@
 
 import { supabase } from '../lib/supabaseClient';
+import { cloudinaryService } from './cloudinaryService';
 import type { SiteContent, BlogPost } from '../lib/database.types';
 import { mockSiteContent } from '../data/mockData';
 
@@ -35,21 +36,9 @@ export const contentService = {
     },
 
     async uploadFile(file: File): Promise<{ url: string }> {
-        // Upload to 'Helio' bucket
-        const fileExt = file.name.split('.').pop();
-        const fileName = `uploads/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-            .from('Helio') // Changed bucket name
-            .upload(fileName, file);
-
-        if (uploadError) throw new Error(uploadError.message);
-
-        const { data: { publicUrl } } = supabase.storage
-            .from('Helio') // Changed bucket name
-            .getPublicUrl(fileName);
-
-        return { url: publicUrl };
+        // Upload to Cloudinary under 'alrehla_content' folder
+        const url = await cloudinaryService.uploadImage(file, 'alrehla_content');
+        return { url };
     },
 
     // --- Blog Posts (Stored in blog_posts table) ---

@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, DollarSign, Shield, Mail } from 'lucide-react';
+import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Database } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
 import { useAdminSocialLinks, useAdminPricingSettings, useAdminCommunicationSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
 import { useContentMutations } from '../../hooks/mutations/useContentMutations';
+import { settingsService } from '../../services/settingsService';
+import { useToast } from '../../contexts/ToastContext';
 import PageLoader from '../../components/ui/PageLoader';
 import { Button } from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
@@ -18,7 +20,9 @@ import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 
 
 const AdminSettingsPage: React.FC = () => {
-    
+    const { addToast } = useToast();
+    const [isSeeding, setIsSeeding] = useState(false);
+
     // 1. Branding Context (Global Images)
     const { siteBranding: initialBranding, setSiteBranding, loading: brandingLoading } = useProduct();
     const [branding, setBranding] = useState<Partial<SiteBranding>>({});
@@ -149,6 +153,22 @@ const AdminSettingsPage: React.FC = () => {
         }
     };
 
+    const handleInitializeDefaults = async () => {
+        if (!window.confirm("هل أنت متأكد؟ سيقوم هذا بنسخ جميع الإعدادات الافتراضية إلى قاعدة البيانات. لن يتم حذف أي بيانات موجودة ولكن قد يتم استبدالها بالقيم الافتراضية إذا كانت المفاتيح متطابقة.")) return;
+        
+        setIsSeeding(true);
+        try {
+            await settingsService.initializeDefaults();
+            addToast('تم تهيئة الإعدادات بنجاح في قاعدة البيانات.', 'success');
+            // Reload page to fetch new data
+            window.location.reload();
+        } catch (error: any) {
+            addToast(`حدث خطأ: ${error.message}. تأكد من إنشاء جدول site_settings في Supabase أولاً.`, 'error');
+        } finally {
+            setIsSeeding(false);
+        }
+    };
+
     const isLoading = brandingLoading || socialsLoading || pricingLoading || commsLoading || contentLoading;
     const error = socialsError || pricingError || commsError;
     const refetch = () => {
@@ -162,7 +182,18 @@ const AdminSettingsPage: React.FC = () => {
 
     return (
         <div className="animate-fadeIn space-y-8 w-full max-w-full overflow-x-hidden">
-            <h1 className="text-3xl font-extrabold text-foreground">الإعدادات العامة</h1>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h1 className="text-3xl font-extrabold text-foreground">الإعدادات العامة</h1>
+                <Button 
+                    variant="outline" 
+                    className="border-yellow-500 text-yellow-700 hover:bg-yellow-50" 
+                    onClick={handleInitializeDefaults} 
+                    loading={isSeeding}
+                    icon={<Database size={16} />}
+                >
+                    إصلاح / تهيئة قاعدة البيانات
+                </Button>
+            </div>
             
             <Tabs defaultValue="branding">
                 <TabsList>

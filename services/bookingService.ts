@@ -1,5 +1,6 @@
 
 import { supabase } from '../lib/supabaseClient';
+import { cloudinaryService } from './cloudinaryService';
 import type { 
     CreativeWritingBooking, 
     ScheduledSession, 
@@ -58,7 +59,6 @@ export const bookingService = {
             .is('deleted_at', null)
             .single();
         
-        // It's possible the user is an instructor but hasn't been linked yet, or query failed
         if (error && error.code !== 'PGRST116') throw new Error(error.message);
         return data as Instructor | null;
     },
@@ -92,14 +92,13 @@ export const bookingService = {
 
     // --- Mutations: Instructors ---
     async createInstructor(payload: any) {
-        // Handle Avatar Upload if a file is provided
+        // Handle Avatar Upload via Cloudinary
         let avatarUrl = payload.avatar_url;
         if (payload.avatarFile) {
-            const fileName = `avatars/${Date.now()}_${payload.avatarFile.name}`;
-            const { error: uploadError } = await supabase.storage.from('Helio').upload(fileName, payload.avatarFile); // Changed bucket
-            if (!uploadError) {
-                const { data: publicUrlData } = supabase.storage.from('Helio').getPublicUrl(fileName); // Changed bucket
-                avatarUrl = publicUrlData.publicUrl;
+            try {
+                avatarUrl = await cloudinaryService.uploadImage(payload.avatarFile, 'alrehla_instructors');
+            } catch (err) {
+                console.error("Avatar upload failed, falling back to existing/placeholder", err);
             }
         }
 
@@ -119,11 +118,10 @@ export const bookingService = {
     async updateInstructor(payload: any) {
         let avatarUrl = payload.avatar_url;
         if (payload.avatarFile) {
-            const fileName = `avatars/${Date.now()}_${payload.avatarFile.name}`;
-            const { error: uploadError } = await supabase.storage.from('Helio').upload(fileName, payload.avatarFile); // Changed bucket
-            if (!uploadError) {
-                const { data: publicUrlData } = supabase.storage.from('Helio').getPublicUrl(fileName); // Changed bucket
-                avatarUrl = publicUrlData.publicUrl;
+            try {
+                avatarUrl = await cloudinaryService.uploadImage(payload.avatarFile, 'alrehla_instructors');
+            } catch (err) {
+                console.error("Avatar upload failed", err);
             }
         }
 
@@ -143,7 +141,6 @@ export const bookingService = {
     },
 
     async deleteInstructor(instructorId: number) {
-        // Perform Soft Delete by setting deleted_at
         const { error } = await supabase
             .from('instructors')
             .update({ deleted_at: new Date().toISOString() })
