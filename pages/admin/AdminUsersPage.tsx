@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import { Users, Plus, Edit, Trash2, Search, Briefcase, GraduationCap, Shield, User } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Briefcase, GraduationCap, Shield, User, ArrowRight } from 'lucide-react';
 import { roleNames } from '../../lib/roles';
 import type { UserProfileWithRelations } from '../../lib/database.types';
 import { Button } from '../../components/ui/Button';
@@ -35,6 +35,20 @@ const AdminUsersPage: React.FC = () => {
         if (usersLoading || childrenLoading || error) return [];
         return transformUsersWithRelations(users, children);
     }, [users, children, usersLoading, childrenLoading, error]);
+
+    // Create a map to find Parent for a Student
+    const studentParentMap = useMemo(() => {
+        const map = new Map<string, { id: string, name: string }>();
+        children.forEach(child => {
+            if (child.student_user_id) {
+                const parent = users.find(u => u.id === child.user_id);
+                if (parent) {
+                    map.set(child.student_user_id, { id: parent.id, name: parent.name });
+                }
+            }
+        });
+        return map;
+    }, [children, users]);
 
     const { staffUsers, customerUsers } = useMemo(() => {
         const staff = enrichedUsers.filter(u => u.role !== 'user' && u.role !== 'student');
@@ -185,38 +199,59 @@ const AdminUsersPage: React.FC = () => {
                                         </TableHeader>
                                         <TableBody>
                                             {filteredAndSortedUsers.length > 0 ? (
-                                                filteredAndSortedUsers.map((user) => (
-                                                    <TableRow key={user.id}>
-                                                        <TableCell className="font-medium">{user.name}</TableCell>
-                                                        <TableCell>{user.email}</TableCell>
-                                                        <TableCell>
-                                                            {user.role === 'student' ? (
-                                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                    <GraduationCap size={12} /> طالب
-                                                                </span>
-                                                            ) : (user.childrenCount && user.childrenCount > 0) ? (
-                                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                                    <Briefcase size={12} /> ولي أمر
-                                                                </span>
-                                                            ) : (
-                                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-                                                                    <User size={12} /> مستخدم
-                                                                </span>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell className="text-center">{user.childrenCount || 0}</TableCell>
-                                                        <TableCell>
-                                                            <div className="flex items-center gap-1">
-                                                                <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}`)} title="تعديل">
-                                                                    <Edit size={18} />
-                                                                </Button>
-                                                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteUser(user.id)} title="حذف">
-                                                                    <Trash2 size={18} />
-                                                                </Button>
-                                                            </div>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))
+                                                filteredAndSortedUsers.map((user) => {
+                                                    const parentInfo = user.role === 'student' ? studentParentMap.get(user.id) : null;
+                                                    
+                                                    return (
+                                                        <TableRow key={user.id}>
+                                                            <TableCell className="font-medium">
+                                                                <div>{user.name}</div>
+                                                                {parentInfo && (
+                                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                                                        <ArrowRight size={10} className="transform rotate-180 rtl:rotate-0" />
+                                                                        <span>تابع لـ: </span>
+                                                                        <span 
+                                                                            className="text-blue-600 hover:underline cursor-pointer"
+                                                                            onClick={() => {
+                                                                                 setSearchTerm(parentInfo.name);
+                                                                                 // Ideally highlight or navigate, but search is good enough for now
+                                                                            }}
+                                                                        >
+                                                                            {parentInfo.name}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell>{user.email}</TableCell>
+                                                            <TableCell>
+                                                                {user.role === 'student' ? (
+                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                        <GraduationCap size={12} /> طالب
+                                                                    </span>
+                                                                ) : (user.childrenCount && user.childrenCount > 0) ? (
+                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                                        <Briefcase size={12} /> ولي أمر
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                                                                        <User size={12} /> مستخدم
+                                                                    </span>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="text-center">{user.childrenCount || 0}</TableCell>
+                                                            <TableCell>
+                                                                <div className="flex items-center gap-1">
+                                                                    <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}`)} title="تعديل">
+                                                                        <Edit size={18} />
+                                                                    </Button>
+                                                                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteUser(user.id)} title="حذف">
+                                                                        <Trash2 size={18} />
+                                                                    </Button>
+                                                                </div>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })
                                             ) : (
                                                 <TableRow>
                                                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">لا يوجد عملاء يطابقون البحث.</TableCell>
