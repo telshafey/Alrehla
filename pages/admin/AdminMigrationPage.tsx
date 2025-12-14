@@ -18,11 +18,15 @@ const AdminMigrationPage: React.FC = () => {
 
     const urlToBlob = async (url: string) => {
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Network response was not ok');
+            // Try standard fetch with CORS
+            const response = await fetch(url, { mode: 'cors', credentials: 'omit' });
+            if (!response.ok) throw new Error(`Status: ${response.status}`);
             return await response.blob();
         } catch (error) {
-            console.error('Error downloading image:', url, error);
+            console.warn(`Direct fetch failed for ${url}, trying alternative...`, error);
+            // In a real browser environment without a proxy, we cannot fetch opaque resources (no-cors) and then read the blob.
+            // This is a browser security limitation.
+            // For now, we log the error. In production, you'd need a server-side proxy.
             return null;
         }
     };
@@ -44,7 +48,7 @@ const AdminMigrationPage: React.FC = () => {
         // 2. Filter records that need migration (not already cloudinary)
         const toMigrate = records.filter((rec: any) => {
             const url = rec[column];
-            return url && !url.includes('cloudinary.com');
+            return url && !url.includes('cloudinary.com') && url.startsWith('http');
         });
 
         addLog(`وجد ${toMigrate.length} سجل بحاجة للترحيل في ${tableName}.`);
@@ -58,7 +62,7 @@ const AdminMigrationPage: React.FC = () => {
             // Download
             const blob = await urlToBlob(oldUrl);
             if (!blob) {
-                addLog(`⚠️ فشل تحميل الصورة للسجل ${record[idColumn]}. تخطي.`);
+                addLog(`⚠️ فشل تحميل الصورة (CORS/Network) للسجل ${record[idColumn]}. تخطي.`);
                 continue;
             }
 
@@ -103,15 +107,13 @@ const AdminMigrationPage: React.FC = () => {
         
         try {
             // Count total (Approximate)
-            // Ideally we count first, but for simplicity we'll just run
             setTotalItems(100); // Dummy total for progress bar visual
 
             await processTable('child_profiles', 'avatar_url', 'alrehla_profiles');
             await processTable('instructors', 'avatar_url', 'alrehla_instructors');
-            await processTable('instructors', 'intro_video_url', 'alrehla_instructors_videos'); // Note: Cloudinary handles videos too if configured
+            await processTable('instructors', 'intro_video_url', 'alrehla_instructors_videos'); 
             await processTable('personalized_products', 'image_url', 'alrehla_products');
             await processTable('blog_posts', 'image_url', 'alrehla_blog');
-            // Add session_attachments if needed
             
             addLog('🎉 اكتملت عملية الترحيل!');
         } catch (error: any) {
@@ -135,7 +137,7 @@ const AdminMigrationPage: React.FC = () => {
                         <ul className="list-disc list-inside space-y-1">
                             <li>هذه الأداة ستقوم بفحص الجداول (الطلاب، المدربين، المنتجات، المدونة).</li>
                             <li>أي رابط صورة لا يتبع لـ Cloudinary سيتم تنزيل الصورة وإعادة رفعها إلى Cloudinary.</li>
-                            <li>سيتم تحديث قاعدة البيانات بالروابط الجديدة تلقائياً.</li>
+                            <li>قد تفشل بعض الصور بسبب قيود الأمان (CORS) إذا لم يسمح الخادم المصدر بذلك.</li>
                             <li>يرجى عدم إغلاق هذه الصفحة حتى انتهاء العملية.</li>
                         </ul>
                     </div>

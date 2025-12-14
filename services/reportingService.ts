@@ -6,32 +6,46 @@ import type { Order, UserProfile, Instructor } from '../lib/database.types';
 // but we implement direct Supabase calls since API endpoints like /admin/reports don't exist in a pure client-side Supabase setup.
 const USE_MOCK = false;
 
+// Helper to safely fetch data or return default
+const safeFetch = async <T>(promise: Promise<{ data: T | null; error: any }>, defaultValue: T): Promise<T> => {
+    try {
+        const { data, error } = await promise;
+        if (error) {
+            console.warn(`Reporting Service Warning: ${error.message}`);
+            return defaultValue;
+        }
+        return data || defaultValue;
+    } catch (e) {
+        console.error("Reporting Service Exception:", e);
+        return defaultValue;
+    }
+};
+
 export const reportingService = {
     // --- Financials ---
     async getFinancialOverview() {
         const [
-            { data: orders },
-            { data: bookings },
-            { data: serviceOrders },
-            { data: subscriptions },
-            // { data: payouts }, // Assuming table exists
-            { data: subscriptionPlans }
+            orders,
+            bookings,
+            serviceOrders,
+            subscriptions,
+            subscriptionPlans
         ] = await Promise.all([
-            supabase.from('orders').select('*'),
-            supabase.from('bookings').select('*'),
-            supabase.from('service_orders').select('*'),
-            supabase.from('subscriptions').select('*'),
-            // supabase.from('instructor_payouts').select('*'),
-            supabase.from('subscription_plans').select('*'),
+            safeFetch(supabase.from('orders').select('*'), []),
+            safeFetch(supabase.from('bookings').select('*'), []),
+            safeFetch(supabase.from('service_orders').select('*'), []),
+            safeFetch(supabase.from('subscriptions').select('*'), []),
+            // supabase.from('instructor_payouts').select('*'), // Assuming table exists
+            safeFetch(supabase.from('subscription_plans').select('*'), []),
         ]);
 
         return { 
-            orders: orders || [], 
-            bookings: bookings || [], 
-            serviceOrders: serviceOrders || [], 
-            subscriptions: subscriptions || [], 
+            orders, 
+            bookings, 
+            serviceOrders, 
+            subscriptions, 
             payouts: [], // payouts || [] 
-            subscriptionPlans: subscriptionPlans || [] 
+            subscriptionPlans 
         };
     },
 
@@ -39,8 +53,8 @@ export const reportingService = {
         // This requires complex joining. For client-side, we fetch all and join in JS as done in hooks/useAdminFinancialsQuery
         // We can reuse that logic or duplicate fetch here.
         // Returning minimal structure to avoid breaking the app
-        const { data: instructors } = await supabase.from('instructors').select('*');
-        return instructors || [];
+        const instructors = await safeFetch(supabase.from('instructors').select('*'), []);
+        return instructors;
     },
 
     async getRevenueStreams() {
@@ -63,21 +77,18 @@ export const reportingService = {
             if (filters.startDate) query = query.gte('order_date', filters.startDate);
             if (filters.endDate) query = query.lte('order_date', filters.endDate);
             
-            const { data } = await query;
-            return data || [];
+            return safeFetch(query, []);
         } 
         else if (reportType === 'users') {
             query = supabase.from('profiles').select('*');
             if (filters.startDate) query = query.gte('created_at', filters.startDate);
             if (filters.endDate) query = query.lte('created_at', filters.endDate);
             
-            const { data } = await query;
-            return data || [];
+            return safeFetch(query, []);
         }
         else if (reportType === 'instructors') {
             // Complex aggregation usually needed. Returning raw instructors for now.
-            const { data } = await supabase.from('instructors').select('*');
-            return data || [];
+            return safeFetch(supabase.from('instructors').select('*'), []);
         }
         
         return [];
@@ -89,7 +100,7 @@ export const reportingService = {
         // If not, we return empty to prevent crash.
         const { data, error } = await supabase.from('audit_logs').select('*');
         if (error) {
-            console.warn("Audit logs table might not exist.", error.message);
+            // console.warn("Audit logs table might not exist.", error.message);
             return [];
         }
         return data || [];

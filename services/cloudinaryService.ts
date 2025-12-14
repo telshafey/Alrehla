@@ -29,10 +29,10 @@ export const cloudinaryService = {
         const cloudName = getEnv('VITE_CLOUDINARY_CLOUD_NAME') || 'dvouptrzu'; 
         const uploadPreset = getEnv('VITE_CLOUDINARY_UPLOAD_PRESET') || 'alrehla_uploads';
 
-        console.log(`Cloudinary Upload: Cloud=${cloudName}, Preset=${uploadPreset}`);
+        console.log(`Cloudinary Upload: Cloud=${cloudName}, Preset=${uploadPreset}, Folder=${folder}`);
 
         if (!cloudName || !uploadPreset) {
-            throw new Error('إعدادات Cloudinary غير موجودة.');
+            throw new Error('إعدادات Cloudinary (Cloud Name أو Upload Preset) غير موجودة. يرجى التحقق من ملف .env.');
         }
 
         const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;

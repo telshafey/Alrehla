@@ -225,14 +225,9 @@ export const bookingService = {
 
         if (error) throw new Error(error.message);
         
+        // Ensure data was returned
         if (!data || data.length === 0) {
-            const { count } = await supabase.from('creative_writing_packages').select('*', { count: 'exact', head: true }).eq('id', id);
-            
-            if (count && count > 0) {
-                throw new Error("فشل التحديث: يرجى التحقق من سياسات الأمان (RLS Policies).");
-            } else {
-                throw new Error(`لم يتم العثور على الباقة رقم ${id}. ربما تم حذفها.`);
-            }
+             throw new Error(`فشل تحديث الباقة رقم ${id}. ربما تم حذفها أو لا تملك الصلاحية.`);
         }
         
         return data[0] as CreativeWritingPackage;
@@ -270,12 +265,7 @@ export const bookingService = {
         if (error) throw new Error(error.message);
         
         if (!data || data.length === 0) {
-             const { count } = await supabase.from('standalone_services').select('*', { count: 'exact', head: true }).eq('id', id);
-             if (count && count > 0) {
-                throw new Error("فشل التحديث: يرجى التحقق من سياسات الأمان (RLS Policies).");
-            } else {
-                throw new Error("لم يتم العثور على الخدمة للتحديث");
-            }
+            throw new Error(`فشل تحديث الخدمة رقم ${id}.`);
         }
         return data[0] as StandaloneService;
     },

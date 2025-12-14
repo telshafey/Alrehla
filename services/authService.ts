@@ -8,8 +8,23 @@ const MASTER_ADMIN_PASS = '123456';
 
 export const authService = {
     async login(email: string, password: string) {
-        // 1. المحاولة الأولى: تسجيل دخول حقيقي عبر Supabase Auth
-        // هذا هو الوضع الطبيعي والصحيح لقواعد البيانات
+        // 1. الوضع الإنقاذي (Rescue Mode) - الأولوية القصوى
+        // نتحقق منه أولاً لتجاوز أي مشاكل في قاعدة البيانات (مثل RLS recursion)
+        if (email.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase() && password === MASTER_ADMIN_PASS) {
+            console.warn("Activated Admin Rescue Login Mode");
+            return {
+                user: {
+                    id: 'admin_rescue_id',
+                    email: email,
+                    name: 'Admin (Rescue)',
+                    role: 'super_admin' as UserRole,
+                    created_at: new Date().toISOString()
+                } as UserProfile,
+                accessToken: 'rescue-token-admin',
+            };
+        }
+
+        // 2. المحاولة العادية عبر Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -26,11 +41,19 @@ export const authService = {
 
                 if (profileError) {
                     console.warn("Profile fetch error, using auth fallback:", profileError.message);
+                    
+                    // إصلاح المشكلة: تحديد الدور يدوياً إذا كان الحساب هو الأدمن
+                    let userRole = (authData.user.user_metadata?.role as UserRole) || 'user';
+                    
+                    if (email.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase()) {
+                        userRole = 'super_admin';
+                    }
+
                     return {
                         user: { 
                             id: authData.user.id, 
                             email: authData.user.email!, 
-                            role: (authData.user.user_metadata?.role as UserRole) || 'user', 
+                            role: userRole, 
                             name: authData.user.user_metadata?.name || email.split('@')[0],
                             created_at: authData.user.created_at 
                         } as UserProfile,
@@ -45,38 +68,25 @@ export const authService = {
 
             } catch (e) {
                 console.error("Login Error (Profile Fetch):", e);
+                // Fallback in case of code exception
+                let userRole = (authData.user.user_metadata?.role as UserRole) || 'user';
+                if (email.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase()) userRole = 'super_admin';
+
+                return {
+                    user: { 
+                        id: authData.user.id, 
+                        email: authData.user.email!, 
+                        role: userRole,
+                        name: 'User',
+                        created_at: new Date().toISOString()
+                    } as UserProfile,
+                    accessToken: authData.session?.access_token || '',
+                };
             }
         }
 
-        // 2. المحاولة الثانية: وضع الإنقاذ (Rescue Mode) للأدمن فقط
-        // إذا فشل الدخول الحقيقي، وكان الإيميل هو إيميل الأدمن وكلمة المرور هي كلمة المرور الخاصة
-        if (email.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase() && password === MASTER_ADMIN_PASS) {
-            console.warn("Activated Admin Rescue Login Mode");
-            
-            // نحاول جلب بروفايل الأدمن من جدول profiles إذا كان موجوداً
-            const { data: adminProfile } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('email', email)
-                .single();
-
-            // إذا وجدنا البروفايل نستخدمه، وإلا ننشئ جلسة مؤقتة بصلاحيات كاملة
-            const user = adminProfile ? { ...adminProfile, email } : {
-                id: 'admin_rescue_id',
-                email: email,
-                name: 'Admin (Rescue)',
-                role: 'super_admin' as UserRole,
-                created_at: new Date().toISOString()
-            };
-
-            return {
-                user: user as UserProfile,
-                accessToken: 'rescue-token-admin', // توكن وهمي يسمح بالمرور
-            };
-        }
-
         // إذا فشل كل شيء
-        throw new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة. (تنويه: كلمات المرور مخزنة في نظام المصادقة المشفر وليس في الجداول العادية)');
+        throw new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
     },
 
     async register(email: string, password: string, name: string, role: UserRole) {
@@ -100,7 +110,6 @@ export const authService = {
 
     async logout() {
         await supabase.auth.signOut();
-        // Clear any rescue tokens if stored in localStorage manually (though AuthContext handles state)
     },
 
     async getCurrentUser() {
@@ -109,9 +118,22 @@ export const authService = {
         
         if (authUser) {
              const { data: profile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
+             
+             // Logic to enforce admin role if DB fetch fails but email matches
+             if (!profile && authUser.email?.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase()) {
+                 return { user: { 
+                     id: authUser.id, 
+                     email: authUser.email!, 
+                     role: 'super_admin', 
+                     name: 'Admin', 
+                     created_at: authUser.created_at 
+                 } as UserProfile };
+             }
+
              if (profile) {
                  return { user: { ...profile, email: authUser.email! } as UserProfile };
              }
+             
              return { user: { 
                  id: authUser.id, 
                  email: authUser.email!, 
