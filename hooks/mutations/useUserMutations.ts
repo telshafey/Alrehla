@@ -16,9 +16,8 @@ export const useUserMutations = () => {
         },
         onError: (error: Error) => {
             let msg = error.message;
-            // Check for specific foreign key constraint error
             if (msg.includes('profiles_id_fkey') || msg.includes('violates foreign key constraint')) {
-                msg = "تعذر إنشاء الملف الشخصي لأن قيد الربط مع جدول المصادقة (Auth) مفعل. يرجى تشغيل ملف SQL المسمى 'remove_profiles_fk.sql' في لوحة تحكم Supabase لحل هذه المشكلة.";
+                msg = "تعذر إنشاء الملف الشخصي. يرجى التحقق من إعدادات قاعدة البيانات.";
             }
             addToast(`فشل إنشاء المستخدم: ${msg}`, 'error');
         }
@@ -29,7 +28,7 @@ export const useUserMutations = () => {
         mutationFn: userService.updateUser,
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
-            queryClient.invalidateQueries({ queryKey: ['userAccountData', data.id] }); 
+            queryClient.invalidateQueries({ queryKey: ['userAccountData'] }); 
             addToast('تم تحديث بيانات المستخدم بنجاح.', 'success');
         },
         onError: (error: Error) => addToast(`فشل تحديث المستخدم: ${error.message}`, 'error')
@@ -106,6 +105,14 @@ export const useUserMutations = () => {
         onError: (error: Error) => addToast(`فشل إلغاء الربط: ${error.message}`, 'error'),
     });
 
+    const resetStudentPassword = useMutation({
+        mutationFn: userService.resetStudentPassword,
+        onSuccess: () => {
+            addToast('تم تغيير كلمة المرور بنجاح.', 'success');
+        },
+        onError: (error: Error) => addToast(`فشل تغيير كلمة المرور: ${error.message}`, 'error'),
+    });
+
     // --- BULK ACTIONS ---
     const bulkDeleteUsers = useMutation({
         mutationFn: (payload: { userIds: string[] }) => userService.bulkDeleteUsers(payload.userIds),
@@ -127,6 +134,7 @@ export const useUserMutations = () => {
         createAndLinkStudentAccount, 
         linkStudentToChildProfile, 
         unlinkStudentFromChildProfile,
+        resetStudentPassword,
         bulkDeleteUsers 
     };
 };

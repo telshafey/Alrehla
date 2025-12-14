@@ -18,8 +18,10 @@ import PaymentStatusPage from './pages/PaymentStatusPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfUsePage from './pages/TermsOfUsePage';
 
-// Import StudentLayout directly to prevent chunk loading errors
+// Import Student Components directly to prevent chunk loading errors
 import StudentLayout from './components/student/StudentLayout';
+import StudentDashboardPage from './pages/student/StudentDashboardPage';
+import StudentPortfolioPage from './pages/student/StudentPortfolioPage';
 
 // --- Feature Pages (Lazy Loaded) ---
 
@@ -49,10 +51,6 @@ const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
 
 // Protected Layouts & Areas
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
-
-// Lazy load student pages content
-const StudentDashboardPage = lazy(() => import('./pages/student/StudentDashboardPage'));
-const StudentPortfolioPage = lazy(() => import('./pages/student/StudentPortfolioPage'));
 
 
 const AppRoutes: React.FC = () => {
@@ -105,7 +103,7 @@ const AppRoutes: React.FC = () => {
 
                 {/* ================= Protected Routes ================= */}
                 
-                {/* Student Portal - Eager Layout, Lazy Pages */}
+                {/* Student Portal - Eager Layout & Pages for Stability */}
                 <Route path="/student" element={<ProtectedRoute studentOnly><StudentLayout /></ProtectedRoute>}>
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<StudentDashboardPage />} />

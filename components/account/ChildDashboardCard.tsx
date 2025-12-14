@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Edit, Trash2, UserPlus, ShoppingBag, BookOpen, Star, ArrowLeft, Award, Lock, Mail } from 'lucide-react';
+import { Edit, UserPlus, ShoppingBag, BookOpen, Star, ArrowLeft, Award, Lock, Mail, Key } from 'lucide-react';
 import type { Order, CreativeWritingBooking, Subscription, Badge, ChildBadge } from '../../lib/database.types';
 import type { EnrichedChildProfile } from '../../hooks/queries/user/useUserDataQuery';
 import { Button } from '../ui/Button';
@@ -19,8 +19,9 @@ interface ChildDashboardCardProps {
     allBadges: Badge[];
     childBadges: ChildBadge[];
     onEdit: (child: EnrichedChildProfile) => void;
-    onDelete: (childId: number) => void;
+    onDelete: (childId: number) => void; // Kept in prop type for compatibility but not used in UI
     onCreateStudentAccount: (child: EnrichedChildProfile) => void;
+    onResetPassword: (child: EnrichedChildProfile) => void;
 }
 
 const ActivityIcon: React.FC<{type: string}> = ({type}) => {
@@ -32,7 +33,7 @@ const ActivityIcon: React.FC<{type: string}> = ({type}) => {
     }
 }
 
-const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childActivity, allBadges, childBadges, onEdit, onDelete, onCreateStudentAccount }) => {
+const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childActivity, allBadges, childBadges, onEdit, onCreateStudentAccount, onResetPassword }) => {
     
     const recentActivity = useMemo(() => {
         const { orders, bookings, subscriptions } = childActivity;
@@ -71,7 +72,7 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
                         </div>
                         <div className="flex gap-1">
                             <Button variant="ghost" size="icon" onClick={() => onEdit(child)} aria-label={`تعديل ${child.name}`}><Edit size={18} /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => onDelete(child.id)} className="text-red-500" aria-label={`حذف ${child.name}`}><Trash2 size={18} /></Button>
+                            {/* Delete button removed as requested */}
                         </div>
                     </div>
                     
@@ -79,9 +80,14 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
                     <div className="mt-2 p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
                         {child.student_user_id ? (
                             <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                    <span className="text-xs font-bold text-green-700">حساب طالب نشط</span>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                        <span className="text-xs font-bold text-green-700">حساب طالب نشط</span>
+                                    </div>
+                                    <Button variant="outline" size="sm" onClick={() => onResetPassword(child)} className="h-7 text-xs px-2" icon={<Key size={12} />}>
+                                        تغيير كلمة المرور
+                                    </Button>
                                 </div>
                                 <div className="text-sm text-gray-600 space-y-1">
                                     <div className="flex items-center gap-2">
@@ -90,7 +96,7 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
                                     </div>
                                     <div className="flex items-center gap-2 text-xs text-gray-400">
                                         <Lock size={14}/>
-                                        <span>كلمة المرور: التي قمت بتعيينها</span>
+                                        <span>كلمة المرور: (مخفية)</span>
                                     </div>
                                 </div>
                             </div>

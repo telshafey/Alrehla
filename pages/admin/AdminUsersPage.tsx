@@ -214,7 +214,6 @@ const AdminUsersPage: React.FC = () => {
                                                                             className="text-blue-600 hover:underline cursor-pointer"
                                                                             onClick={() => {
                                                                                  setSearchTerm(parentInfo.name);
-                                                                                 // Ideally highlight or navigate, but search is good enough for now
                                                                             }}
                                                                         >
                                                                             {parentInfo.name}
