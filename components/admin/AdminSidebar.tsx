@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
     LayoutDashboard, Users, ShoppingBag, BookOpen, UserCog, MessageSquare, UserPlus,
     FileText, Settings, Star, Package, Sparkles, CalendarCheck, Plug, DollarSign, BarChart, History, X,
-    Globe, Home, Info, Phone, Palette
+    Globe, Home, Info, Phone, Palette, Database
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Image from '../ui/Image';
@@ -156,6 +156,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                      { to: '/admin/shipping', icon: <Settings size={20} />, label: 'إعدادات الشحن', permission: permissions.canManageSettings },
                      { to: '/admin/integrations', icon: <Plug size={20} />, label: 'التكاملات', permission: permissions.canManageSettings },
                      { to: '/admin/audit-log', icon: <History size={20} />, label: 'سجل النشاطات', permission: permissions.canViewAuditLog },
+                     { to: '/admin/migration', icon: <Database size={20} />, label: 'ترحيل الصور', permission: permissions.canManageSettings }, // Added migration link
                 ]
             },
         ];
