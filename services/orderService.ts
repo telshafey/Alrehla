@@ -39,6 +39,7 @@ export const orderService = {
         const { data, error } = await supabase
             .from('subscription_plans')
             .select('*')
+            .is('deleted_at', null) // Filter deleted plans
             .order('price', { ascending: true });
         if (error) throw new Error(error.message);
         return data as SubscriptionPlan[];
@@ -162,9 +163,42 @@ export const orderService = {
     async assignInstructorToServiceOrder(orderId: string, instructorId: number | null) { return { success: true }; },
     async createSubscription(payload: any) { return {} as Subscription; },
     async updateSubscriptionStatus(subscriptionId: string, action: string) { return { success: true }; },
-    async createSubscriptionPlan(payload: any) { return {} as SubscriptionPlan; },
-    async updateSubscriptionPlan(payload: any) { return {} as SubscriptionPlan; },
-    async deleteSubscriptionPlan(planId: number) { return { success: true }; },
+    
+    async createSubscriptionPlan(payload: any) { 
+        const { id, ...rest } = payload;
+        const { data, error } = await supabase
+            .from('subscription_plans')
+            .insert([rest])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as SubscriptionPlan;
+    },
+    
+    async updateSubscriptionPlan(payload: any) { 
+        const { id, ...updates } = payload;
+        const { data, error } = await supabase
+            .from('subscription_plans')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as SubscriptionPlan;
+    },
+
+    async deleteSubscriptionPlan(planId: number) { 
+        // Implement Soft Delete for Plans
+        const { error } = await supabase
+            .from('subscription_plans')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', planId);
+
+        if (error) throw new Error(error.message);
+        return { success: true }; 
+    },
     
     // Personalized Products CRUD
     async createPersonalizedProduct(payload: any) { 

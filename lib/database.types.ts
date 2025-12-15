@@ -138,6 +138,7 @@ export interface SubscriptionPlan {
   price_per_month: number;
   savings_text: string;
   is_best_value?: boolean;
+  deleted_at?: string | null;
 }
 
 export type BookingStatus = 'بانتظار الدفع' | 'مؤكد' | 'مكتمل' | 'ملغي';

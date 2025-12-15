@@ -96,7 +96,7 @@ const AdminLayout: React.FC = () => {
                 
                 {/* Scrollable Page Content Container */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col scroll-smooth">
-                     <div className="flex-1 p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-4rem)]">
+                     <div className="flex-grow p-4 sm:p-6 lg:p-8 min-h-0">
                         <Suspense fallback={<PageLoader />}>
                             <Routes>
                                 {isInstructorOnly ? (
