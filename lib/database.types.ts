@@ -534,3 +534,18 @@ export interface JitsiSettings {
     start_with_audio_muted: boolean;
     start_with_video_muted: boolean;
 }
+
+// Ensure badges are included in the Public Data response type
+export interface PublicData {
+    instructors: Instructor[];
+    blogPosts: BlogPost[];
+    personalizedProducts: PersonalizedProduct[];
+    creativeWritingPackages: CreativeWritingPackage[];
+    siteContent: SiteContent;
+    socialLinks: SocialLinks;
+    publicHolidays: string[];
+    subscriptionPlans: SubscriptionPlan[];
+    standaloneServices: StandaloneService[];
+    communicationSettings: CommunicationSettings;
+    badges: Badge[]; // Added this
+}

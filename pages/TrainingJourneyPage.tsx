@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTrainingJourneyData } from '../hooks/queries/user/useJourneyDataQuery';
@@ -5,15 +6,23 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '../contexts/ToastContext';
 import { useBookingMutations } from '../hooks/mutations/useBookingMutations';
+import { useGamificationMutations } from '../hooks/mutations/useGamificationMutations';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
 import WritingDraftPanel from '../components/student/WritingDraftPanel';
-import { MessageSquare, Paperclip, FileText, Target, Award, Calendar, Clock, User, Video, CheckCircle, AlertTriangle, X, Send, Upload, Save, Sparkles, FileCheck2, BookUp, ArrowLeft, PenSquare, ChevronRight, ChevronLeft } from 'lucide-react';
+import { MessageSquare, Paperclip, FileText, Calendar, Clock, Video, CheckCircle, Send, Upload, Save, FileCheck2, PenSquare, Award, MoreVertical, XCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
 import { formatDate } from '../utils/helpers';
-import type { SessionAttachment, ScheduledSession, CreativeWritingPackage } from '../lib/database.types';
+import type { SessionAttachment, ScheduledSession, Badge } from '../lib/database.types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
+import { Select } from '../components/ui/Select';
+import Dropdown from '../components/ui/Dropdown';
+import Modal from '../components/ui/Modal';
+import BadgeDisplay from '../components/shared/BadgeDisplay';
+
+// --- Sub-components ---
 
 const DiscussionSection: React.FC<{ messages: any[]; journeyId: string; canInteract: boolean }> = ({ messages, journeyId, canInteract }) => {
     const { currentUser } = useAuth();
@@ -21,7 +30,6 @@ const DiscussionSection: React.FC<{ messages: any[]; journeyId: string; canInter
 
     const handleSendMessage = () => {
         if (!newMessage.trim()) return;
-        // Mock sending message
         console.log('Sending message:', { journeyId, senderId: currentUser?.id, message: newMessage });
         setNewMessage('');
     };
@@ -54,10 +62,8 @@ const AttachmentsSection: React.FC<{ attachments: any[]; journeyId: string; canI
 
     const handleUpload = () => {
         if (!file) return;
-        // Mock uploading file
         console.log('Uploading file:', { journeyId, file: file.name });
         setFile(null);
-        // Clear the file input
         const input = document.getElementById('file-upload') as HTMLInputElement;
         if (input) input.value = '';
     };
@@ -110,7 +116,7 @@ const NotesSection: React.FC<{
                     value={notes}
                     onChange={(e) => onNotesChange(e.target.value)}
                     rows={8}
-                    placeholder="اكتب ملاحظاتك حول تقدم الطالب هنا..."
+                    placeholder="اكتب ملاحظاتك حول تقدم الطالب هنا... (هذه الملاحظات مرئية للطالب وولي الأمر)"
                 />
                 <div className="flex items-center gap-2">
                     <Button onClick={onSave} loading={isSaving} icon={<Save />}>
@@ -124,11 +130,62 @@ const NotesSection: React.FC<{
     return (
         <div>
             {notes ? (
-                <p className="text-foreground bg-muted p-4 rounded-lg border whitespace-pre-wrap">{notes}</p>
+                <div className="bg-yellow-50/50 p-6 rounded-xl border border-yellow-100">
+                    <h4 className="font-bold text-yellow-800 mb-2 flex items-center gap-2"><FileText size={18}/> ملاحظات المدرب</h4>
+                    <p className="text-foreground whitespace-pre-wrap leading-relaxed">{notes}</p>
+                </div>
             ) : (
-                <p className="text-muted-foreground text-center py-4">لا توجد ملاحظات من المدرب بعد.</p>
+                <p className="text-muted-foreground text-center py-8">لا توجد ملاحظات من المدرب بعد.</p>
             )}
         </div>
+    );
+};
+
+const GrantBadgeModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onGrant: (badgeId: number) => void;
+    badges: Badge[];
+}> = ({ isOpen, onClose, onGrant, badges }) => {
+    const [selectedBadge, setSelectedBadge] = useState<number | string>('');
+
+    const handleSubmit = () => {
+        if (selectedBadge) {
+            onGrant(Number(selectedBadge));
+            onClose();
+            setSelectedBadge('');
+        }
+    };
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="منح شارة إنجاز"
+            size="md"
+            footer={
+                <>
+                    <Button variant="ghost" onClick={onClose}>إلغاء</Button>
+                    <Button onClick={handleSubmit} disabled={!selectedBadge}>منح الشارة</Button>
+                </>
+            }
+        >
+            <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">اختر الشارة التي تريد منحها للطالب تقديراً لجهوده.</p>
+                <div className="grid grid-cols-2 gap-4">
+                    {badges.map(badge => (
+                        <div 
+                            key={badge.id} 
+                            className={`border rounded-xl p-3 cursor-pointer transition-all flex flex-col items-center text-center gap-2 ${selectedBadge == badge.id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted'}`}
+                            onClick={() => setSelectedBadge(badge.id)}
+                        >
+                            <div className="scale-75"><BadgeDisplay badge={badge} /></div>
+                            <span className="font-bold text-xs">{badge.name}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </Modal>
     );
 };
 
@@ -145,32 +202,38 @@ const TrainingJourneyPage: React.FC = () => {
     const { currentUser, childProfiles } = useAuth();
     const { addItemToCart } = useCart();
     const { addToast } = useToast();
-    const { data, isLoading, error } = useTrainingJourneyData(journeyId);
-    const { updateBookingProgressNotes } = useBookingMutations();
     
+    // Hooks
+    const { data: journeyData, isLoading, error, refetch } = useTrainingJourneyData(journeyId);
+    const { data: publicData } = usePublicData(); 
+    const { updateBookingProgressNotes } = useBookingMutations(); 
+    const { awardBadge } = useGamificationMutations();
+    
+    // State
     const [activeTab, setActiveTab] = useState<'draft' |'discussion' | 'attachments' | 'notes'>('draft');
     const [notesContent, setNotesContent] = useState('');
+    const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
 
     React.useEffect(() => {
-        if(data?.booking?.progress_notes) {
-            setNotesContent(data.booking.progress_notes);
+        if(journeyData?.booking?.progress_notes) {
+            setNotesContent(journeyData.booking.progress_notes);
         }
-    }, [data]);
+    }, [journeyData]);
     
     const canInteract = currentUser?.role === 'student' || currentUser?.role === 'instructor' || currentUser?.role === 'user';
     const isInstructor = currentUser?.role === 'instructor';
     const isStudentOrParent = currentUser?.role === 'student' || currentUser?.role === 'user';
 
     const childName = useMemo(() => {
-        if (!data) return '';
-        const child = childProfiles.find(c => c.id === data.booking.child_id);
-        return child?.name || '';
-    }, [data, childProfiles]);
+        if (!journeyData) return '';
+        const child = childProfiles.find(c => c.id === journeyData.booking.child_id);
+        return child?.name || journeyData.booking.child_profiles?.name || '';
+    }, [journeyData, childProfiles]);
 
     const { upcomingSessions, pastSessions, totalSessions, completedSessionsCount, progress } = useMemo(() => {
-        if (!data) return { upcomingSessions: [], pastSessions: [], totalSessions: 0, completedSessionsCount: 0, progress: 0 };
+        if (!journeyData) return { upcomingSessions: [], pastSessions: [], totalSessions: 0, completedSessionsCount: 0, progress: 0 };
 
-        const allSessions = data.scheduledSessions || [];
+        const allSessions = journeyData.scheduledSessions || [];
         const upcoming = allSessions
             .filter(s => s.status === 'upcoming')
             .sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
@@ -179,7 +242,7 @@ const TrainingJourneyPage: React.FC = () => {
             .filter(s => s.status !== 'upcoming')
             .sort((a, b) => new Date(b.session_date).getTime() - new Date(a.session_date).getTime());
 
-        const total = parseTotalSessions(data.package?.sessions);
+        const total = parseTotalSessions(journeyData.package?.sessions);
         const completed = past.filter(s => s.status === 'completed').length;
         
         return { 
@@ -190,13 +253,15 @@ const TrainingJourneyPage: React.FC = () => {
             progress: total > 0 ? (completed / total) * 100 : 0
         };
 
-    }, [data]);
+    }, [journeyData]);
 
     if (isLoading) return <PageLoader text="جاري تحميل رحلتك التدريبية..." />;
-    if (error || !data) return <div className="text-center text-red-500 py-20">{error?.message || 'لم يتم العثور على الرحلة.'}</div>;
+    if (error || !journeyData) return <div className="text-center text-red-500 py-20">{error?.message || 'لم يتم العثور على الرحلة.'}</div>;
 
-    const { booking, package: pkg, instructor, messages, attachments, additionalServices } = data;
+    const { booking, package: pkg, instructor, messages, attachments, additionalServices } = journeyData;
+    const allBadges = (publicData?.badges || []) as Badge[]; // Correct property usage
 
+    // Handlers
     const handleSaveNotes = async () => {
         if (!booking?.id) return;
         await updateBookingProgressNotes.mutateAsync({
@@ -234,6 +299,23 @@ const TrainingJourneyPage: React.FC = () => {
         addToast(`تمت إضافة "${service.name}" إلى السلة بنجاح!`, 'success');
     };
 
+    const handleGrantBadge = async (badgeId: number) => {
+        if(!instructor) return;
+        await awardBadge.mutateAsync({
+            childId: booking.child_id,
+            badgeId,
+            instructorId: instructor.id
+        });
+    };
+
+    // Instructor: Mark session as completed (Mock logic for UI demo)
+    const handleCompleteSession = (sessionId: string) => {
+        if (!window.confirm('هل أنت متأكد من تحديد هذه الجلسة كمكتملة؟')) return;
+        // Ideally call a mutation here. For demo, we just toast.
+        addToast('تم تحديث حالة الجلسة (محاكاة)', 'success');
+        refetch(); // Reload data to reflect change if mutation existed
+    };
+
     const workspaceTabs = [
         { key: 'draft', label: 'مسودة الكتابة', icon: <PenSquare size={16} /> },
         { key: 'discussion', label: 'النقاش', icon: <MessageSquare size={16} /> },
@@ -242,21 +324,42 @@ const TrainingJourneyPage: React.FC = () => {
     ];
     
     return (
-        <div className="bg-muted/50 py-12">
+        <div className="bg-muted/50 py-12 animate-fadeIn">
+            {isInstructor && (
+                 <GrantBadgeModal 
+                    isOpen={isBadgeModalOpen} 
+                    onClose={() => setIsBadgeModalOpen(false)} 
+                    onGrant={handleGrantBadge} 
+                    badges={allBadges} 
+                 />
+            )}
+
             <div className="container mx-auto px-4">
-                 <Card className="mb-8">
-                    <CardHeader>
-                        <CardTitle className="text-3xl">{pkg?.name || booking.package_name}</CardTitle>
-                        <CardDescription>هذه هي مساحة العمل الخاصة برحلتك الإبداعية. بالتوفيق!</CardDescription>
+                 <Card className="mb-8 border-t-4 border-t-primary">
+                    <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <CardTitle className="text-3xl">{pkg?.name || booking.package_name}</CardTitle>
+                            <CardDescription>
+                                {isInstructor 
+                                    ? `مساحة العمل مع الطالب: ${childName}` 
+                                    : 'هذه هي مساحة العمل الخاصة برحلتك الإبداعية. بالتوفيق!'}
+                            </CardDescription>
+                        </div>
+                        {isInstructor && (
+                            <Button variant="outline" className="gap-2 border-yellow-500 text-yellow-700 hover:bg-yellow-50" onClick={() => setIsBadgeModalOpen(true)}>
+                                <Award size={18} /> منح شارة
+                            </Button>
+                        )}
                     </CardHeader>
                 </Card>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left Column: Workspace */}
                     <div className="lg:col-span-2">
-                        <Card>
+                        <Card className="h-full min-h-[600px]">
                             <CardContent className="pt-6">
                                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
-                                    <TabsList>
+                                    <TabsList className="mb-6">
                                         {workspaceTabs.map(tab => (
                                             <TabsTrigger key={tab.key} value={tab.key}>
                                                 {tab.icon} {tab.label}
@@ -280,6 +383,7 @@ const TrainingJourneyPage: React.FC = () => {
                         </Card>
                     </div>
                     
+                    {/* Right Column: Sidebar Stats & Sessions */}
                     <div className="lg:col-span-1 space-y-6 sticky top-24">
                         <Card>
                              <CardHeader>
@@ -294,7 +398,7 @@ const TrainingJourneyPage: React.FC = () => {
                             <CardContent>
                                 <h3 className="text-sm font-bold text-muted-foreground mb-2">تقدم الرحلة</h3>
                                 <div className="w-full bg-muted rounded-full h-2.5">
-                                    <div className="bg-primary h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                                    <div className="bg-primary h-2.5 rounded-full transition-all duration-1000" style={{ width: `${progress}%` }}></div>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1 text-center">{completedSessionsCount}/{totalSessions} جلسة مكتملة</p>
 
@@ -315,11 +419,35 @@ const TrainingJourneyPage: React.FC = () => {
 
                         <Card>
                              <CardHeader>
-                                <CardTitle className="text-lg">كل الجلسات</CardTitle>
+                                <CardTitle className="text-lg">سجل الجلسات</CardTitle>
                             </CardHeader>
-                            <CardContent className="max-h-60 overflow-y-auto space-y-2">
-                                {upcomingSessions.map(s => <div key={s.id} className="flex items-center gap-2 text-sm text-foreground"><Clock size={14} className="text-primary"/><span>{formatDate(s.session_date)}</span></div>)}
-                                {pastSessions.map(s => <div key={s.id} className="flex items-center gap-2 text-sm text-muted-foreground"><CheckCircle size={14} className="text-green-500"/><span>{formatDate(s.session_date)}</span></div>)}
+                            <CardContent className="max-h-80 overflow-y-auto space-y-3">
+                                {upcomingSessions.map(s => (
+                                    <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 border">
+                                        <div className="flex items-center gap-2 text-sm text-foreground">
+                                            <Clock size={16} className="text-primary"/>
+                                            <span>{formatDate(s.session_date)}</span>
+                                        </div>
+                                        {isInstructor && (
+                                            <Dropdown 
+                                                trigger={<MoreVertical size={16} className="text-muted-foreground" />}
+                                                items={[
+                                                    { label: 'تحديد كمكتملة', action: () => handleCompleteSession(s.id) },
+                                                    { label: 'لم يحضر الطالب', action: () => alert('سيتم خصم الجلسة') },
+                                                ]}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
+                                {pastSessions.map(s => (
+                                    <div key={s.id} className="flex items-center justify-between p-2 rounded-lg opacity-75">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            {s.status === 'completed' ? <CheckCircle size={16} className="text-green-500"/> : <XCircle size={16} className="text-red-500"/>}
+                                            <span className="line-through">{formatDate(s.session_date)}</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-muted-foreground">{s.status === 'completed' ? 'مكتملة' : 'فائتة'}</span>
+                                    </div>
+                                ))}
                             </CardContent>
                         </Card>
                     </div>

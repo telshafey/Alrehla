@@ -78,6 +78,9 @@ export const orderService = {
         // Ensure details is a valid object
         const safeDetails = payload.details || {};
         
+        // Determine status based on receipt presence
+        const initialStatus: OrderStatus = payload.receiptUrl ? 'بانتظار المراجعة' : 'بانتظار الدفع';
+        
         const { data, error } = await supabase
             .from('orders')
             .insert([{
@@ -86,7 +89,7 @@ export const orderService = {
                 child_id: payload.childId || null, 
                 item_summary: payload.summary,
                 total: payload.total,
-                status: 'بانتظار المراجعة',
+                status: initialStatus,
                 details: safeDetails,
                 receipt_url: payload.receiptUrl || null,
                 order_date: new Date().toISOString()
@@ -124,9 +127,47 @@ export const orderService = {
         // Upload to Cloudinary under 'alrehla_receipts' folder
         const publicUrl = await cloudinaryService.uploadImage(receiptFile, 'alrehla_receipts');
 
+        // Handling Subscription Payments specifically
+        // If the user pays for a subscription, we must update the associated ORDER(s)
+        if (itemType === 'subscription') {
+            // 1. Fetch ALL orders that are pending payment. 
+            // We do this to manually filter the JSON details on the client side, 
+            // which is more reliable than complex Supabase JSON queries in some environments.
+            const { data: pendingOrders, error: fetchError } = await supabase
+                .from('orders')
+                .select('id, details')
+                .eq('status', 'بانتظار الدفع');
+
+            if (!fetchError && pendingOrders && pendingOrders.length > 0) {
+                // 2. Find orders where details.subscriptionId matches the itemId
+                const relatedOrderIds = pendingOrders
+                    .filter((order: any) => order.details && order.details.subscriptionId === itemId)
+                    .map((order: any) => order.id);
+
+                if (relatedOrderIds.length > 0) {
+                    // 3. Update the found orders to 'Review Pending'
+                    await supabase
+                        .from('orders')
+                        .update({
+                            receipt_url: publicUrl,
+                            status: 'بانتظار المراجعة'
+                        })
+                        .in('id', relatedOrderIds);
+                }
+            }
+            
+            // Also attempt to update subscription table (if needed for status tracking)
+             await supabase
+                .from('subscriptions')
+                .update({ status: 'pending_payment' }) // Subscription usually stays pending until Admin approves the Order
+                .eq('id', itemId);
+
+            return { receiptUrl: publicUrl };
+        }
+
+        // Standard Order or Booking Update
         let table = 'orders';
         if (itemType === 'booking') table = 'bookings';
-        if (itemType === 'subscription') table = 'subscriptions';
 
         const { error: updateError } = await supabase
             .from(table)
@@ -193,6 +234,9 @@ export const orderService = {
 
         const childName = child?.name || payload.shippingDetails?.childName || 'Unknown';
 
+        // Determine initial status based on receipt
+        const initialOrderStatus: OrderStatus = payload.receiptUrl ? 'بانتظار المراجعة' : 'بانتظار الدفع';
+
         // 1. Create the Subscription Record (Recurring logic)
         const { data: subData, error: subError } = await supabase
             .from('subscriptions')
@@ -204,7 +248,7 @@ export const orderService = {
                 plan_name: payload.planName,
                 start_date: startDate.toISOString(),
                 next_renewal_date: renewalDate.toISOString(),
-                status: 'pending_payment',
+                status: 'pending_payment', // Subscription remains pending until admin activates it
                 total: payload.total,
                 user_name: user?.name || 'Unknown',
                 child_name: childName,
@@ -227,7 +271,7 @@ export const orderService = {
                 child_id: payload.childId, 
                 item_summary: `اشتراك صندوق الرحلة - ${payload.planName} (الشهر الأول)`,
                 total: payload.total, // Total now includes shipping
-                status: 'بانتظار الدفع',
+                status: initialOrderStatus, // Correctly set status based on receipt
                 details: {
                     ...payload.shippingDetails, // Pass address info
                     subscriptionId: subId,

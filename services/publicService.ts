@@ -5,7 +5,8 @@ import {
     mockPublicHolidays,
     mockCommunicationSettings,
     mockSiteBranding,
-    mockSiteContent 
+    mockSiteContent,
+    mockBadges 
 } from '../data/mockData';
 
 export const publicService = {
@@ -18,15 +19,17 @@ export const publicService = {
             { data: creativeWritingPackages },
             { data: subscriptionPlans },
             { data: standaloneServices },
-            { data: settingsData } // Fetch all settings in one query if possible or separate
+            { data: settingsData },
+            { data: badges } 
         ] = await Promise.all([
             supabase.from('instructors').select('*').is('deleted_at', null),
             supabase.from('blog_posts').select('*').eq('status', 'published').is('deleted_at', null),
-            supabase.from('personalized_products').select('*').is('deleted_at', null).order('sort_order'), // Filter deleted products
+            supabase.from('personalized_products').select('*').is('deleted_at', null).order('sort_order'),
             supabase.from('creative_writing_packages').select('*'),
             supabase.from('subscription_plans').select('*').order('price'),
             supabase.from('standalone_services').select('*'),
-            supabase.from('site_settings').select('*') // Get all key-value settings
+            supabase.from('site_settings').select('*'),
+            supabase.from('badges').select('*')
         ]);
 
         // Helper to extract value from settings array
@@ -42,6 +45,7 @@ export const publicService = {
             creativeWritingPackages: creativeWritingPackages || [],
             subscriptionPlans: subscriptionPlans || [],
             standaloneServices: standaloneServices || [],
+            badges: badges && badges.length > 0 ? badges : mockBadges,
             
             // Dynamic Settings from site_settings table
             siteContent: getSetting('global_content', mockSiteContent),

@@ -37,6 +37,7 @@ const SubscriptionSummary: React.FC<SubscriptionSummaryProps> = ({
     // Calculate final total
     const planPrice = selectedPlan?.price || 0;
     const finalTotal = planPrice + shippingCost;
+    const months = selectedPlan?.duration_months || 1;
 
     return (
         <div className="bg-white p-6 rounded-2xl shadow-lg border">
@@ -58,7 +59,10 @@ const SubscriptionSummary: React.FC<SubscriptionSummaryProps> = ({
                  <div className="mt-6 pt-4 border-t space-y-3">
                     <div className="flex justify-between items-center text-gray-600">
                         <span>الباقة المختارة:</span>
-                        <span className="font-bold text-gray-800">{selectedPlan.name}</span>
+                        <div className="text-left">
+                             <span className="font-bold text-gray-800 block">{selectedPlan.name}</span>
+                             <span className="text-xs text-muted-foreground">({months} أشهر)</span>
+                        </div>
                     </div>
                     <div className="flex justify-between items-center text-gray-600 text-sm">
                         <span>سعر الباقة:</span>
@@ -66,9 +70,16 @@ const SubscriptionSummary: React.FC<SubscriptionSummaryProps> = ({
                     </div>
                     
                     {shippingCost > 0 ? (
-                        <div className="flex justify-between items-center text-green-700 text-sm bg-green-50 p-2 rounded">
-                            <span className="flex items-center gap-1"><Truck size={14}/> الشحن ({governorate}):</span>
-                            <span className="font-bold">{shippingCost} ج.م</span>
+                        <div className="flex justify-between items-start text-green-700 text-sm bg-green-50 p-2 rounded">
+                            <span className="flex items-center gap-1 mt-0.5"><Truck size={14}/> الشحن ({governorate}):</span>
+                            <div className="text-left">
+                                <span className="font-bold block">{shippingCost} ج.م</span>
+                                {months > 1 && (
+                                    <span className="text-[10px] block opacity-80">
+                                        ({shippingCost / months} ج.م × {months} شهور)
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     ) : (
                         <div className="flex justify-between items-center text-muted-foreground text-sm">

@@ -48,6 +48,9 @@ const PlanCard: React.FC<{ plan: SubscriptionPlan, isSelected: boolean, onSelect
         <p className="text-3xl font-black my-2">{plan.price} <span className="text-lg font-medium">ج.م</span></p>
         <p className="text-sm text-gray-500">~{plan.price_per_month} ج.م / شهرياً</p>
         {plan.savings_text && <p className="text-sm font-bold text-green-600 mt-2">{plan.savings_text}</p>}
+        <div className="mt-3 text-xs bg-gray-100 p-1 rounded text-center text-gray-600">
+            لمدة {plan.duration_months} أشهر
+        </div>
     </button>
 );
 
@@ -92,11 +95,14 @@ const SubscriptionPage: React.FC = () => {
     const bestValuePlan = subscriptionPlans.find((p: SubscriptionPlan) => p.is_best_value) || subscriptionPlans[0];
     const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(bestValuePlan);
 
-    // Calculate Real-time Shipping Cost
+    // Calculate Real-time Shipping Cost (Base Cost * Duration Months)
     const countryCosts = shippingCosts?.['مصر'] || {};
-    const currentShippingCost = (formData.shippingOption === 'my_address' || formData.shippingOption === 'gift') 
+    const baseShippingCost = (formData.shippingOption === 'my_address' || formData.shippingOption === 'gift') 
         ? (countryCosts[formData.governorate] || 0) 
         : 0;
+    
+    const planDuration = selectedPlan?.duration_months || 1;
+    const totalShippingCost = baseShippingCost * planDuration;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -225,7 +231,7 @@ const SubscriptionPage: React.FC = () => {
                 formData, 
                 imageFiles,
                 total: selectedPlan!.price,
-                shippingPrice: currentShippingCost,
+                shippingPrice: totalShippingCost, // Use the multiplied total
                 summary: `صندوق الرحلة (${selectedPlan!.name})`,
                 plan: selectedPlan,
                 childId: childIdToUse
@@ -361,7 +367,7 @@ const SubscriptionPage: React.FC = () => {
                                     onSubmit={handleSubmit}
                                     step={step}
                                     features={content?.features}
-                                    shippingCost={currentShippingCost}
+                                    shippingCost={totalShippingCost}
                                     governorate={formData.governorate}
                                 />
                             </div>

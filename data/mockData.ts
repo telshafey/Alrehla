@@ -12,11 +12,9 @@ import type {
     ChildBadge,
     CommunicationSettings,
     JitsiSettings,
-    TeamMember,
-    PublishedWork,
-    FAQItem
+    UserRole
 } from '../lib/database.types';
-import { getPermissions, Permissions, UserRole } from '../lib/roles';
+import type { Permissions } from '../lib/roles';
 
 export const mockUsers: UserProfile[] = [
     { id: 'usr_parent', created_at: '2023-08-01T10:00:00Z', last_sign_in_at: '2024-08-10T12:00:00Z', name: 'أحمد عبدالله', email: 'parent@alrehlah.com', role: 'user', address: '123 شارع المثال، مدينة نصر', governorate: 'القاهرة', phone: '01234567890' },
@@ -42,6 +40,7 @@ export const mockBadges: Badge[] = [
     { id: 2, name: 'صانع العوالم', description: 'أتممت رحلة تدريبية كاملة!', icon_name: 'Globe2' },
     { id: 3, name: 'البطل الملتزم', description: 'حضرت 5 جلسات متتالية.', icon_name: 'Trophy' },
     { id: 4, name: 'مستكشف الكلمات', description: 'استخدمت 10 كلمات جديدة ومميزة.', icon_name: 'Search' },
+    { id: 5, name: 'نجم الإلقاء', description: 'قرأت قصتك بصوت عالٍ وبثقة.', icon_name: 'Mic' },
 ];
 
 export const mockChildBadges: ChildBadge[] = [
