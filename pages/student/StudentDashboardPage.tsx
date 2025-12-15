@@ -1,12 +1,14 @@
+
 import React from 'react';
 import { useStudentDashboardData } from '../../hooks/queries/user/useJourneyDataQuery';
 import PageLoader from '../../components/ui/PageLoader';
 import StudentJourneyCard from '../../components/student/StudentJourneyCard';
 import BadgeDisplay from '../../components/shared/BadgeDisplay';
-import { BookOpen, ShoppingBag, Star, Award } from 'lucide-react';
+import { BookOpen, ShoppingBag, Star, Award, AlertCircle } from 'lucide-react';
 import { getStatusColor, getSubStatusColor, getSubStatusText, formatDate } from '../../utils/helpers';
 import type { Order, Subscription, Badge } from '../../lib/database.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { useAuth } from '../../contexts/AuthContext';
 
 const OrderCard = React.memo(React.forwardRef<HTMLElement, { order: Order }>(({ order }, ref) => (
     <Card ref={ref} className="transition-transform transform hover:-translate-y-1">
@@ -51,14 +53,33 @@ EmptyStateCard.displayName = "EmptyStateCard";
 
 
 const StudentDashboardPage: React.FC = () => {
+    const { currentChildProfile } = useAuth();
     const { data, isLoading, error } = useStudentDashboardData();
 
     if (isLoading) {
         return <PageLoader text="جاري تحميل بياناتك..." />;
     }
 
+    if (!currentChildProfile) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+                <AlertCircle className="w-16 h-16 text-yellow-500 mb-4" />
+                <h2 className="text-2xl font-bold text-gray-800">الحساب غير مرتبط بملف طالب</h2>
+                <p className="text-gray-600 max-w-md mt-2">
+                    يبدو أن هذا الحساب لم يتم ربطه بملف طالب بشكل صحيح حتى الآن. يرجى الطلب من ولي أمرك مراجعة إعدادات الحساب في "المركز العائلي".
+                </p>
+            </div>
+        );
+    }
+
     if (error || !data) {
-        return <div className="text-center text-red-500 py-20">{error?.message || 'حدث خطأ في تحميل بياناتك.'}</div>;
+        return (
+            <div className="text-center py-20 bg-red-50 rounded-xl border border-red-100 m-4">
+                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+                <p className="text-red-700 font-semibold">حدث خطأ في تحميل بياناتك.</p>
+                <p className="text-sm text-red-500 mt-1">{error?.message}</p>
+            </div>
+        );
     }
 
     const { journeys = [], orders = [], subscriptions = [], badges = [] } = data;

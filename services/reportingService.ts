@@ -1,12 +1,8 @@
 
 import { supabase } from '../lib/supabaseClient';
-import type { Order, UserProfile, Instructor } from '../lib/database.types';
+import type { Order, CreativeWritingBooking, ServiceOrder, Subscription, Instructor, SubscriptionPlan } from '../lib/database.types';
 
-// Temporarily disabling MOCK to force DB usage, 
-// but we implement direct Supabase calls since API endpoints like /admin/reports don't exist in a pure client-side Supabase setup.
-const USE_MOCK = false;
-
-// Helper to safely fetch data or return default
+// Helper to safely fetch data
 const safeFetch = async <T>(promise: Promise<{ data: T | null; error: any }>, defaultValue: T): Promise<T> => {
     try {
         const { data, error } = await promise;
@@ -22,21 +18,23 @@ const safeFetch = async <T>(promise: Promise<{ data: T | null; error: any }>, de
 };
 
 export const reportingService = {
-    // --- Financials ---
+    // --- Financials Overview ---
     async getFinancialOverview() {
+        // Fetch all raw data needed for calculation
         const [
             orders,
             bookings,
             serviceOrders,
             subscriptions,
-            subscriptionPlans
+            subscriptionPlans,
+            payouts
         ] = await Promise.all([
-            safeFetch(supabase.from('orders').select('*'), []),
-            safeFetch(supabase.from('bookings').select('*'), []),
-            safeFetch(supabase.from('service_orders').select('*'), []),
-            safeFetch(supabase.from('subscriptions').select('*'), []),
-            // supabase.from('instructor_payouts').select('*'), // Assuming table exists
-            safeFetch(supabase.from('subscription_plans').select('*'), []),
+            safeFetch(supabase.from('orders').select('*'), [] as Order[]),
+            safeFetch(supabase.from('bookings').select('*'), [] as CreativeWritingBooking[]),
+            safeFetch(supabase.from('service_orders').select('*'), [] as ServiceOrder[]),
+            safeFetch(supabase.from('subscriptions').select('*'), [] as Subscription[]),
+            safeFetch(supabase.from('subscription_plans').select('*'), [] as SubscriptionPlan[]),
+            safeFetch(supabase.from('instructor_payouts').select('*'), []) // New Table
         ]);
 
         return { 
@@ -44,30 +42,69 @@ export const reportingService = {
             bookings, 
             serviceOrders, 
             subscriptions, 
-            payouts: [], // payouts || [] 
-            subscriptionPlans 
+            subscriptionPlans,
+            payouts 
         };
     },
 
+    // --- Instructor Financials (Calculated on the fly) ---
     async getInstructorFinancials() {
-        // This requires complex joining. For client-side, we fetch all and join in JS as done in hooks/useAdminFinancialsQuery
-        // We can reuse that logic or duplicate fetch here.
-        // Returning minimal structure to avoid breaking the app
-        const instructors = await safeFetch(supabase.from('instructors').select('*'), []);
-        return instructors;
+        // 1. Fetch Data
+        // FIX: Add .is('deleted_at', null) to ignore deleted instructors
+        const [instructors, bookings, serviceOrders, payouts] = await Promise.all([
+            safeFetch(supabase.from('instructors').select('id, name, rate_per_session').is('deleted_at', null), [] as Instructor[]),
+            safeFetch(supabase.from('bookings').select('*').eq('status', 'مكتمل'), [] as CreativeWritingBooking[]),
+            safeFetch(supabase.from('service_orders').select('*').eq('status', 'مكتمل'), [] as ServiceOrder[]),
+            safeFetch(supabase.from('instructor_payouts').select('*'), [])
+        ]);
+
+        // 2. Aggregate per instructor
+        const instructorStats = instructors.map(instructor => {
+            // A. Calculate Earnings from Sessions (Bookings)
+            
+            const totalBookingRevenue = bookings
+                .filter(b => b.instructor_id === instructor.id)
+                .reduce((sum, b) => sum + b.total, 0);
+
+            const totalServiceRevenue = serviceOrders
+                .filter(s => s.assigned_instructor_id === instructor.id)
+                .reduce((sum, s) => sum + s.total, 0);
+
+            // Assuming 70% share for instructor
+            const estimatedEarnings = (totalBookingRevenue + totalServiceRevenue) * 0.70;
+
+            // B. Calculate Payouts
+            const totalPaid = payouts
+                .filter((p: any) => p.instructor_id === instructor.id)
+                .reduce((sum, p: any) => sum + p.amount, 0);
+
+            return {
+                id: instructor.id,
+                name: instructor.name,
+                totalEarnings: estimatedEarnings, // المستحقات الكلية
+                totalPaid: totalPaid, // ما تم صرفه
+                outstandingBalance: estimatedEarnings - totalPaid, // المتبقي
+                // Pass raw data for details modal
+                rawCompletedBookings: bookings.filter(b => b.instructor_id === instructor.id),
+                rawCompletedServices: serviceOrders.filter(s => s.assigned_instructor_id === instructor.id),
+                payouts: payouts.filter((p: any) => p.instructor_id === instructor.id)
+            };
+        });
+
+        return instructorStats;
     },
 
     async getRevenueStreams() {
-        // Similar to overview
         return this.getFinancialOverview();
     },
 
     async getTransactionsLog() {
-        // Similar to overview
-        return this.getFinancialOverview();
+        const data = await this.getFinancialOverview();
+        const instructors = await safeFetch(supabase.from('instructors').select('id, name'), []);
+        return { ...data, instructors };
     },
 
-    // --- Custom Reports ---
+    // --- Reports & Audit ---
     async getReportData(reportType: 'orders' | 'users' | 'instructors', filters: any) {
         let query;
 
@@ -87,22 +124,14 @@ export const reportingService = {
             return safeFetch(query, []);
         }
         else if (reportType === 'instructors') {
-            // Complex aggregation usually needed. Returning raw instructors for now.
             return safeFetch(supabase.from('instructors').select('*'), []);
         }
         
         return [];
     },
 
-    // --- Audit Logs ---
     async getAuditLogs(filters: any) {
-        // Ensure table exists first in your SQL schema. 
-        // If not, we return empty to prevent crash.
-        const { data, error } = await supabase.from('audit_logs').select('*');
-        if (error) {
-            // console.warn("Audit logs table might not exist.", error.message);
-            return [];
-        }
+        const { data } = await supabase.from('audit_logs').select('*').order('timestamp', { ascending: false });
         return data || [];
     }
 };

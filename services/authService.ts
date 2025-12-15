@@ -1,6 +1,7 @@
 
 import { supabase } from '../lib/supabaseClient';
 import type { UserProfile, ChildProfile, UserRole } from '../lib/database.types';
+import { mockChildProfiles } from '../data/mockData';
 
 // كلمة مرور الطوارئ للأدمن فقط
 const MASTER_ADMIN_EMAIL = 'admin@alrehlah.com';
@@ -9,7 +10,6 @@ const MASTER_ADMIN_PASS = '123456';
 export const authService = {
     async login(email: string, password: string) {
         // 1. الوضع الإنقاذي (Rescue Mode) - الأولوية القصوى
-        // نتحقق منه أولاً لتجاوز أي مشاكل في قاعدة البيانات (مثل RLS recursion)
         if (email.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase() && password === MASTER_ADMIN_PASS) {
             console.warn("Activated Admin Rescue Login Mode");
             return {
@@ -42,12 +42,11 @@ export const authService = {
                 if (profileError) {
                     console.warn("Profile fetch error, using auth fallback:", profileError.message);
                     
-                    // إصلاح المشكلة: تحديد الدور يدوياً إذا كان الحساب هو الأدمن
                     let userRole = (authData.user.user_metadata?.role as UserRole) || 'user';
                     
-                    if (email.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase()) {
-                        userRole = 'super_admin';
-                    }
+                    // Fallback for demo accounts roles based on email if metadata is missing
+                    if (email.includes('student')) userRole = 'student';
+                    if (email.includes('admin')) userRole = 'super_admin';
 
                     return {
                         user: { 
@@ -68,15 +67,11 @@ export const authService = {
 
             } catch (e) {
                 console.error("Login Error (Profile Fetch):", e);
-                // Fallback in case of code exception
-                let userRole = (authData.user.user_metadata?.role as UserRole) || 'user';
-                if (email.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase()) userRole = 'super_admin';
-
                 return {
                     user: { 
                         id: authData.user.id, 
                         email: authData.user.email!, 
-                        role: userRole,
+                        role: 'user',
                         name: 'User',
                         created_at: new Date().toISOString()
                     } as UserProfile,
@@ -85,7 +80,6 @@ export const authService = {
             }
         }
 
-        // إذا فشل كل شيء
         throw new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
     },
 
@@ -99,7 +93,6 @@ export const authService = {
         if (authError) throw new Error(authError.message);
         if (!authData.user) throw new Error('فشل إنشاء الحساب');
 
-        // ننتظر قليلاً لضمان عمل Triggers في قاعدة البيانات
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         return {
@@ -113,13 +106,11 @@ export const authService = {
     },
 
     async getCurrentUser() {
-        // 1. Check Real Session
         const { data: { user: authUser } } = await supabase.auth.getUser();
         
         if (authUser) {
              const { data: profile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
              
-             // Logic to enforce admin role if DB fetch fails but email matches
              if (!profile && authUser.email?.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase()) {
                  return { user: { 
                      id: authUser.id, 
@@ -147,24 +138,37 @@ export const authService = {
     },
 
     async getUserChildren(userId: string) {
-        // Safe check for rescue mode ID
         if (userId === 'admin_rescue_id') return [];
 
+        // 1. Try Real DB
         const { data, error } = await supabase
             .from('child_profiles')
             .select('*')
             .eq('user_id', userId);
         
-        if (error) return [];
-        return data as ChildProfile[];
+        if (!error && data && data.length > 0) return data as ChildProfile[];
+
+        // 2. Mock Data Fallback (For Demo Parent)
+        // If DB returns nothing, check if we have mock data for this ID
+        const mockChildren = mockChildProfiles.filter(c => c.user_id === userId);
+        if (mockChildren.length > 0) return mockChildren;
+        
+        return [];
     },
     
     async getStudentProfile(userId: string) {
-        const { data } = await supabase
+        // 1. Try Real DB
+        const { data, error } = await supabase
             .from('child_profiles')
             .select('*')
             .eq('student_user_id', userId)
             .single();
-        return data as ChildProfile | null;
+
+        if (!error && data) return data as ChildProfile;
+        
+        // 2. Mock Data Fallback (For Demo Student)
+        // This ensures the demo student account works even without a real DB entry
+        const mockProfile = mockChildProfiles.find(c => c.student_user_id === userId);
+        return mockProfile || null;
     }
 };

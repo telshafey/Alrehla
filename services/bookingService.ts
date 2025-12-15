@@ -59,7 +59,13 @@ export const bookingService = {
             .is('deleted_at', null)
             .single();
         
-        if (error && error.code !== 'PGRST116') throw new Error(error.message);
+        if (error) {
+            // PGRST116 means "Results contain 0 rows" for single(), which is valid if not an instructor
+            if (error.code !== 'PGRST116') {
+                throw new Error(error.message);
+            }
+            return null;
+        }
         return data as Instructor | null;
     },
 

@@ -503,6 +503,8 @@ export interface InstructorPayout {
     payout_date: string;
     amount: number;
     details: string;
+    created_at?: string;
+    created_by?: string;
 }
 
 export interface PricingSettings {

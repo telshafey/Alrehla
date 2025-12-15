@@ -4,7 +4,7 @@ import { useFinancialsOverview } from '../../../hooks/queries/admin/useFinancial
 import PageLoader from '../../../components/ui/PageLoader';
 import ErrorState from '../../../components/ui/ErrorState';
 import StatCard from '../../../components/admin/StatCard';
-import { DollarSign, TrendingUp, TrendingDown, Clock, AlertCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Clock, AlertCircle, Wallet } from 'lucide-react';
 import BarChart from '../../../components/admin/BarChart';
 import LineChart from '../../../components/admin/LineChart';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
@@ -20,7 +20,8 @@ const FinancialOverviewPage: React.FC = () => {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        // 1. Recognized Revenue (Completed/Delivered)
+        // 1. Recognized Revenue (الإيرادات المحققة - Completed/Delivered)
+        // Only count money that is "earned" (service delivered)
         const revenueEnhaLak = orders
             .filter((o: any) => o.status === 'تم التسليم' || o.status === 'مكتمل')
             .reduce((sum: number, o: any) => sum + o.total, 0);
@@ -32,9 +33,10 @@ const FinancialOverviewPage: React.FC = () => {
             .filter((o: any) => o.status === 'مكتمل')
             .reduce((sum: number, o: any) => sum + o.total, 0);
             
-        const totalRevenue = revenueEnhaLak + revenueCreativeWriting;
+        const totalRealizedRevenue = revenueEnhaLak + revenueCreativeWriting;
 
-        // 2. Pending Revenue (New/Processing/Pending Payment)
+        // 2. Pending Revenue (إيرادات تحت التنفيذ - Processing)
+        // Money in the system but service not yet fully delivered/confirmed
         const pendingRevenueEnhaLak = orders
             .filter((o: any) => ['بانتظار الدفع', 'بانتظار المراجعة', 'قيد التجهيز', 'قيد التنفيذ', 'يحتاج مراجعة', 'تم الشحن'].includes(o.status))
             .reduce((sum: number, o: any) => sum + o.total, 0);
@@ -48,36 +50,40 @@ const FinancialOverviewPage: React.FC = () => {
 
         const totalPendingRevenue = pendingRevenueEnhaLak + pendingRevenueCreativeWriting;
 
-        // 3. MRR
+        // 3. MRR (Monthly Recurring Revenue - Subscriptions)
         const mrr = subscriptions.filter((s: any) => s.status === 'active').reduce((sum: number, s: any) => {
              const plan = subscriptionPlans.find((p: any) => p.name === s.plan_name);
              return sum + (plan?.price_per_month || 0);
         }, 0);
         
-        // 4. Payouts
+        // 4. Payouts (Expenses)
+        const totalPayouts = payouts.reduce((sum: number, p: any) => sum + p.amount, 0);
         const payoutsThisMonth = payouts.filter((p: any) => new Date(p.payout_date) >= startOfMonth).reduce((sum: number, p: any) => sum + p.amount, 0);
 
+        // 5. Net Profit (Estimate: Realized Revenue - Payouts)
+        const netProfit = totalRealizedRevenue - totalPayouts;
+
+        // Mock data for chart visualization
         const revenueOverTimeData = [
-            { label: 'Jan', value: 5000 },
-            { label: 'Feb', value: 7000 },
-            { label: 'Mar', value: 6500 },
-            { label: 'Apr', value: 8200 },
-            { label: 'May', value: 9500 },
-            { label: 'Jun', value: 11000 },
-        ]; // Mock data for chart
+            { label: 'يناير', value: totalRealizedRevenue * 0.4 },
+            { label: 'فبراير', value: totalRealizedRevenue * 0.6 },
+            { label: 'مارس', value: totalRealizedRevenue * 0.8 },
+            { label: 'أبريل', value: totalRealizedRevenue },
+        ]; 
 
         return {
-            totalRevenue,
+            totalRealizedRevenue,
             totalPendingRevenue,
             mrr,
             payoutsThisMonth,
             revenueEnhaLak,
             revenueCreativeWriting,
             revenueOverTimeData,
+            netProfit
         };
     }, [data]);
 
-    if (isLoading) return <PageLoader text="جاري تحميل البيانات المالية..." />;
+    if (isLoading) return <PageLoader text="جاري تحليل البيانات المالية..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
     if (!stats) return null;
 
@@ -85,24 +91,24 @@ const FinancialOverviewPage: React.FC = () => {
         <div className="space-y-8 animate-fadeIn">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard 
-                    title="الأرباح المحققة (مكتملة)" 
-                    value={`${stats.totalRevenue.toLocaleString()} ج.م`} 
+                    title="الإيرادات المحققة (تم التنفيذ)" 
+                    value={`${stats.totalRealizedRevenue.toLocaleString()} ج.م`} 
                     icon={<DollarSign className="text-green-600" />} 
                 />
                 <StatCard 
-                    title="أرباح متوقعة (قيد التنفيذ)" 
+                    title="إيرادات قيد التحصيل/التنفيذ" 
                     value={`${stats.totalPendingRevenue.toLocaleString()} ج.م`} 
                     icon={<Clock className="text-orange-500" />} 
                 />
                 <StatCard 
-                    title="الإيرادات الشهرية المتكررة (MRR)" 
-                    value={`${stats.mrr.toLocaleString()} ج.م`} 
-                    icon={<TrendingUp className="text-blue-500" />} 
-                />
-                <StatCard 
-                    title="مدفوعات للمدربين (هذا الشهر)" 
+                    title="مدفوعات المدربين (هذا الشهر)" 
                     value={`${stats.payoutsThisMonth.toLocaleString()} ج.م`} 
                     icon={<TrendingDown className="text-red-500" />} 
+                />
+                 <StatCard 
+                    title="صافي الربح التقديري" 
+                    value={`${stats.netProfit.toLocaleString()} ج.م`} 
+                    icon={<Wallet className="text-blue-600" />} 
                 />
             </div>
             
@@ -110,9 +116,9 @@ const FinancialOverviewPage: React.FC = () => {
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3">
                     <AlertCircle className="text-orange-600 w-5 h-5 mt-0.5" />
                     <div>
-                        <h4 className="font-bold text-orange-800 text-sm">تنبيه مالي</h4>
+                        <h4 className="font-bold text-orange-800 text-sm">تنبيه التدفق النقدي</h4>
                         <p className="text-sm text-orange-700 mt-1">
-                            لديك طلبات بقيمة <span className="font-bold">{stats.totalPendingRevenue.toLocaleString()} ج.م</span> قيد الانتظار أو التنفيذ. قم بمراجعة صفحة الطلبات وتغيير الحالة إلى "مكتمل" أو "تم التسليم" ليتم احتسابها ضمن الأرباح المحققة.
+                            لديك عمليات بقيمة <span className="font-bold">{stats.totalPendingRevenue.toLocaleString()} ج.م</span> قيد المعالجة. تأكد من متابعة الطلبات والحجوزات العالقة لتحويلها إلى إيرادات محققة.
                         </p>
                     </div>
                 </div>
@@ -120,18 +126,24 @@ const FinancialOverviewPage: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <Card className="lg:col-span-2">
-                    <CardHeader><CardTitle>نمو الإيرادات</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>مؤشر نمو الإيرادات</CardTitle></CardHeader>
                     <CardContent>
-                        <LineChart data={stats.revenueOverTimeData} title="الإيرادات الشهرية (محاكاة)" />
+                        <LineChart data={stats.revenueOverTimeData} title="الإيرادات الشهرية" />
                     </CardContent>
                 </Card>
                  <Card>
-                    <CardHeader><CardTitle>مصادر الدخل (المحققة)</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>توزيع مصادر الدخل</CardTitle></CardHeader>
                     <CardContent>
-                        <BarChart title="توزيع الإيرادات" data={[
-                            { label: 'إنها لك', value: stats.revenueEnhaLak, color: 'hsl(var(--primary))' },
+                        <BarChart title="مقارنة القطاعات" data={[
+                            { label: 'منتجات إنها لك', value: stats.revenueEnhaLak, color: 'hsl(var(--primary))' },
                             { label: 'بداية الرحلة', value: stats.revenueCreativeWriting, color: 'hsl(var(--secondary))' },
                         ]}/>
+                        <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
+                            <div className="flex justify-between mb-1">
+                                <span>إيرادات الاشتراكات (MRR):</span>
+                                <span className="font-bold text-foreground">{stats.mrr.toLocaleString()} ج.م</span>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

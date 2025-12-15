@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
@@ -49,15 +50,21 @@ type ButtonProps = {
   size?: 'default' | 'sm' | 'lg' | 'icon';
   loading?: boolean;
   icon?: React.ReactNode;
-} & React.HTMLAttributes<HTMLElement> & { [key: string]: any };
+} & React.ButtonHTMLAttributes<HTMLButtonElement> & React.AnchorHTMLAttributes<HTMLAnchorElement>;
 
 const Button = React.forwardRef<HTMLElement, ButtonProps>(
-  ({ className, variant, size, loading = false, icon, children, as: Component = 'button', ...props }, ref) => {
+  ({ className, variant, size, loading = false, icon, children, as: Component = 'button', disabled, ...props }, ref) => {
+    
+    // Explicitly handle disabling when loading
+    const isDisabled = disabled || loading;
+
     return (
       <Component
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        disabled={loading || (props as any).disabled}
+        disabled={isDisabled}
+        aria-busy={loading ? "true" : undefined}
+        aria-disabled={isDisabled ? "true" : undefined}
         {...props}
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (

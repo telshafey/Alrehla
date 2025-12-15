@@ -14,7 +14,6 @@ export const orderService = {
     // --- Queries ---
     async getAllOrders() {
         // Use Supabase Join to fetch related user and child profile data directly
-        // We specify the exact constraint names (!fk_orders_user, !fk_orders_child) to avoid ambiguity errors
         const { data, error } = await supabase
             .from('orders')
             .select('*, users:profiles!fk_orders_user(name, email), child_profiles:child_profiles!fk_orders_child(name)') 
@@ -22,7 +21,7 @@ export const orderService = {
             
         if (error) {
             console.error("Error fetching orders:", error);
-            return [];
+            throw new Error(error.message);
         }
         return data as any[];
     },
@@ -32,7 +31,7 @@ export const orderService = {
             .from('subscriptions')
             .select('*')
             .order('created_at', { ascending: false });
-        if (error) return [];
+        if (error) throw new Error(error.message);
         return data as Subscription[];
     },
 
@@ -41,7 +40,7 @@ export const orderService = {
             .from('subscription_plans')
             .select('*')
             .order('price', { ascending: true });
-        if (error) return [];
+        if (error) throw new Error(error.message);
         return data as SubscriptionPlan[];
     },
 
@@ -50,7 +49,7 @@ export const orderService = {
             .from('personalized_products')
             .select('*')
             .order('sort_order', { ascending: true });
-        if (error) return [];
+        if (error) throw new Error(error.message);
         return data as PersonalizedProduct[];
     },
 
@@ -59,14 +58,13 @@ export const orderService = {
             .from('service_orders')
             .select('*')
             .order('created_at', { ascending: false });
-        if (error) return [];
+        if (error) throw new Error(error.message);
         return data as ServiceOrder[];
     },
 
     // --- Helpers ---
     async uploadOrderFile(file: File, folderName: string): Promise<string> {
         // Use Cloudinary Service instead of Supabase Storage
-        // Note: folderName logic in Cloudinary is a bit different, but we pass it as 'folder' param
         return await cloudinaryService.uploadImage(file, folderName);
     },
 
@@ -166,7 +164,46 @@ export const orderService = {
     async createSubscriptionPlan(payload: any) { return {} as SubscriptionPlan; },
     async updateSubscriptionPlan(payload: any) { return {} as SubscriptionPlan; },
     async deleteSubscriptionPlan(planId: number) { return { success: true }; },
-    async createPersonalizedProduct(payload: any) { return {} as PersonalizedProduct; },
-    async updatePersonalizedProduct(payload: any) { return {} as PersonalizedProduct; },
-    async deletePersonalizedProduct(productId: number) { return { success: true }; }
+    
+    // Personalized Products CRUD
+    async createPersonalizedProduct(payload: any) { 
+         const { id, ...rest } = payload;
+         const { data, error } = await supabase
+            .from('personalized_products')
+            .insert([rest])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as PersonalizedProduct;
+    },
+
+    async updatePersonalizedProduct(payload: any) { 
+        const { id, ...updates } = payload;
+        const { data, error } = await supabase
+            .from('personalized_products')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as PersonalizedProduct;
+    },
+
+    async deletePersonalizedProduct(productId: number) { 
+        const { error } = await supabase
+            .from('personalized_products')
+            .delete()
+            .eq('id', productId);
+            
+        if (error) {
+             // Handle Foreign Key Constraint (Product used in orders)
+             if (error.code === '23503') {
+                 throw new Error('لا يمكن حذف هذا المنتج لأنه مرتبط بطلبات موجودة.');
+             }
+             throw new Error(error.message);
+        }
+        return { success: true }; 
+    }
 };

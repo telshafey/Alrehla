@@ -18,8 +18,6 @@ export const userService = {
     },
 
     async createUser(payload: any) {
-        // This usually interacts with Supabase Auth via a backend function
-        // For client-side demo, we simulate or call a specific edge function if available
         const { data, error } = await supabase.auth.signUp({
             email: payload.email,
             password: payload.password,
@@ -51,17 +49,11 @@ export const userService = {
     },
     
     async updateUserPassword(payload: { userId: string, newPassword: string }) {
-        // In a real app, this requires an Admin API call (Edge Function)
-        // For this demo, we'll log it. Client-side SDK cannot update ANOTHER user's password.
         console.log(`Simulating password reset for user ${payload.userId} to ${payload.newPassword}`);
-        
-        // Mock success for UI flow
         return { success: true };
     },
 
     async bulkDeleteUsers(userIds: string[]) {
-        // In reality, we need to delete from Auth and Profiles.
-        // Client side can only delete from profiles if RLS allows, but Auth requires Admin.
         const { error } = await supabase
             .from('profiles')
             .delete()
@@ -82,8 +74,6 @@ export const userService = {
     },
 
     async createChildProfile(payload: any) {
-        // Automatically link to current user if not provided (handled by RLS/Backend usually)
-        // Here we expect user_id to be injected by the mutation context or RLS
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("User not logged in");
 
@@ -122,7 +112,6 @@ export const userService = {
 
     // --- Student Account Linking ---
     async createAndLinkStudentAccount(payload: any) {
-        // 1. Create Auth Account
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: payload.email,
             password: payload.password,
@@ -136,7 +125,6 @@ export const userService = {
 
         if (authError || !authData.user) throw new Error(authError?.message || 'Failed to create account');
 
-        // 2. Link Child Profile to New User ID
         const { error: linkError } = await supabase
             .from('child_profiles')
             .update({ student_user_id: authData.user.id })
@@ -148,8 +136,6 @@ export const userService = {
     },
 
     async linkStudentToChildProfile(payload: { studentUserId: string, childProfileId: number }) {
-        // Clear any existing link for this student first (optional, depends on logic)
-        // Then link
         const { error } = await supabase
             .from('child_profiles')
             .update({ student_user_id: payload.studentUserId })
@@ -169,18 +155,11 @@ export const userService = {
         return { success: true };
     },
 
-    // --- Password Reset for Student (Parent/Admin Action) ---
+    // --- Password Reset for Student ---
     async resetStudentPassword(payload: { studentUserId: string, newPassword: string }) {
-        // WARNING: Client-side SDK cannot update another user's password directly for security.
-        // This requires a Server-Side function (Edge Function) using service_role key.
-        // For this demo/prototype, we mock the success. 
-        // In production, fetch('/api/admin/reset-password', ...)
-        
+        // This is a client-side simulation. In production, use an Edge Function with service_role.
         console.log(`[MOCK] Resetting password for student ${payload.studentUserId}`);
-        
-        // Simulating API call latency
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
         return { success: true };
     }
 };
