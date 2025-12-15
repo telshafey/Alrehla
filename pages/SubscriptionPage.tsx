@@ -5,11 +5,12 @@ import { useCart } from '../contexts/CartContext';
 import { useToast } from '../contexts/ToastContext';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import { useProduct } from '../contexts/ProductContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Send, Gift, Check, Star, ArrowLeft } from 'lucide-react';
 import ShareButtons from '../components/shared/ShareButtons';
 import { Button } from '../components/ui/Button';
 import PageLoader from '../components/ui/PageLoader';
-import type { SubscriptionPlan } from '../lib/database.types';
+import type { SubscriptionPlan, ChildProfile } from '../lib/database.types';
 import OrderStepper from '../components/order/OrderStepper';
 import SubscriptionSummary from '../components/subscription/SubscriptionSummary';
 import FormField from '../components/ui/FormField';
@@ -19,6 +20,8 @@ import { Textarea } from '../components/ui/Textarea';
 import ImageUpload from '../components/shared/ImageUpload';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import ShippingAddressForm from '../components/shared/ShippingAddressForm';
+import ChildDetailsSection from '../components/order/ChildDetailsSection';
+import ChildProfileModal from '../components/account/ChildProfileModal';
 
 type SubscriptionStep = 'plan' | 'child' | 'customization' | 'images' | 'delivery';
 
@@ -54,8 +57,8 @@ const SubscriptionPage: React.FC = () => {
     const navigate = useNavigate();
     const { addToast } = useToast();
     const { data, isLoading: contentLoading } = usePublicData();
-    // Get shipping costs from context
     const { shippingCosts } = useProduct(); 
+    const { childProfiles, currentUser } = useAuth();
 
     const content = data?.siteContent?.enhaLakPage.subscription;
     const subscriptionPlans = data?.subscriptionPlans || [];
@@ -63,6 +66,9 @@ const SubscriptionPage: React.FC = () => {
     const today = new Date().toISOString().split('T')[0];
 
     const [step, setStep] = useState<SubscriptionStep>('plan');
+    const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
+    const [isChildModalOpen, setIsChildModalOpen] = useState(false);
+    
     const [formData, setFormData] = useState({
         childName: '',
         childBirthDate: '',
@@ -88,7 +94,6 @@ const SubscriptionPage: React.FC = () => {
 
     // Calculate Real-time Shipping Cost
     const countryCosts = shippingCosts?.['مصر'] || {};
-    // Only calculate if we are on delivery step or shipping option is set
     const currentShippingCost = (formData.shippingOption === 'my_address' || formData.shippingOption === 'gift') 
         ? (countryCosts[formData.governorate] || 0) 
         : 0;
@@ -103,6 +108,11 @@ const SubscriptionPage: React.FC = () => {
             [name]: isCheckbox ? checked : value 
         }));
         
+        // If user manually types, clear selected child ID to avoid confusion
+        if (name === 'childName' || name === 'childBirthDate' || name === 'childGender') {
+            setSelectedChildId(null);
+        }
+
         if(errors[name]) setErrors(prev => {
             const newErrors = {...prev};
             delete newErrors[name];
@@ -122,6 +132,35 @@ const SubscriptionPage: React.FC = () => {
             delete newErrors[id];
             return newErrors;
         });
+    };
+    
+    const handleChildSelect = (child: ChildProfile | null) => {
+        if (child) {
+            setSelectedChildId(child.id);
+            setFormData(prev => ({
+                ...prev,
+                childName: child.name,
+                childBirthDate: child.birth_date,
+                childGender: child.gender,
+            }));
+            // Clear errors for these fields
+            setErrors(prev => {
+                const newErrors = {...prev};
+                delete newErrors.childName;
+                delete newErrors.childBirthDate;
+                delete newErrors.childGender;
+                return newErrors;
+            });
+        } else {
+            // Manual selection - clear fields
+            setSelectedChildId(null);
+            setFormData(prev => ({
+                ...prev,
+                childName: '',
+                childBirthDate: '',
+                childGender: '',
+            }));
+        }
     };
     
     const validateStep = () => {
@@ -176,6 +215,9 @@ const SubscriptionPage: React.FC = () => {
         }
 
         setIsSubmitting(true);
+        
+        // Use selected child ID if available, otherwise assume manual entry (id: -1 or similar logic in backend)
+        const childIdToUse = selectedChildId || (formData.childName ? -1 : null);
 
         addItemToCart({
             type: 'subscription',
@@ -183,9 +225,10 @@ const SubscriptionPage: React.FC = () => {
                 formData, 
                 imageFiles,
                 total: selectedPlan!.price,
-                shippingPrice: currentShippingCost, // Add calculated shipping price
+                shippingPrice: currentShippingCost,
                 summary: `صندوق الرحلة (${selectedPlan!.name})`,
                 plan: selectedPlan,
+                childId: childIdToUse
             }
         });
         
@@ -211,21 +254,16 @@ const SubscriptionPage: React.FC = () => {
                 );
             case 'child':
                 return (
-                        <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField label="اسم الطفل*" htmlFor="childName" error={errors.childName}>
-                                <Input type="text" id="childName" name="childName" value={formData.childName} onChange={handleChange} required />
-                            </FormField>
-                            <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={errors.childBirthDate}>
-                                <Input type="date" id="childBirthDate" name="childBirthDate" value={formData.childBirthDate} max={today} onChange={handleChange} required />
-                            </FormField>
-                            <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={errors.childGender}>
-                                <Select id="childGender" name="childGender" value={formData.childGender} onChange={handleChange} required>
-                                    <option value="" disabled>-- اختر الجنس --</option>
-                                    <option value="ذكر">ذكر</option>
-                                    <option value="أنثى">أنثى</option>
-                                </Select>
-                            </FormField>
-                        </div>
+                    <ChildDetailsSection 
+                        childProfiles={childProfiles}
+                        onSelectChild={handleChildSelect}
+                        selectedChildId={selectedChildId}
+                        currentUser={currentUser}
+                        onAddChild={() => setIsChildModalOpen(true)}
+                        formData={formData}
+                        handleChange={handleChange}
+                        errors={errors}
+                    />
                 );
             case 'customization':
                 return (
@@ -270,65 +308,68 @@ const SubscriptionPage: React.FC = () => {
     if (contentLoading) return <PageLoader />;
 
     return (
-        <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-800 leading-tight">
-                        {content?.heroTitle.split(' ')[0]} <span className="text-orange-500">{content?.heroTitle.split(' ').slice(1).join(' ')}</span>
-                    </h1>
-                    <p className="mt-6 max-w-3xl mx-auto text-lg text-gray-600">
-                        {content?.heroSubtitle}
-                    </p>
-                    <div className="mt-8 flex justify-center">
-                        <ShareButtons 
-                            title='اكتشف صندوق الرحلة الشهري - هدية متجددة لطفلك!' 
-                            url={pageUrl} 
-                            label="شارك الاشتراك:"
-                        />
-                    </div>
-                </div>
-                
-                <div className="max-w-6xl mx-auto">
-                    <div className="mb-12">
-                         <OrderStepper steps={stepsConfig} currentStep={step} />
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                        <Card className="lg:col-span-2">
-                           {currentStepTitle && (
-                                <CardHeader>
-                                    <CardTitle className="text-2xl">{currentStepTitle}</CardTitle>
-                                </CardHeader>
-                            )}
-                            <CardContent className="pt-2 space-y-10">
-                                {renderStepContent()}
-                                <div className="flex justify-between pt-6 border-t">
-                                    <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />} disabled={step === 'plan'}>
-                                        السابق
-                                    </Button>
-                                    {step !== 'delivery' ? (
-                                        <Button onClick={handleNext}>التالي <ArrowLeft className="mr-2 h-4 w-4" /></Button>
-                                    ) : (
-                                        <p className="text-sm text-gray-500">أكمل طلبك من الملخص على اليسار.</p>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <div className="lg:col-span-1 sticky top-24">
-                            <SubscriptionSummary
-                                selectedPlan={selectedPlan}
-                                isSubmitting={isSubmitting}
-                                onSubmit={handleSubmit}
-                                step={step}
-                                features={content?.features}
-                                shippingCost={currentShippingCost}
-                                governorate={formData.governorate}
+        <>
+            <ChildProfileModal isOpen={isChildModalOpen} onClose={() => setIsChildModalOpen(false)} childToEdit={null} />
+            <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-12">
+                        <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-800 leading-tight">
+                            {content?.heroTitle.split(' ')[0]} <span className="text-orange-500">{content?.heroTitle.split(' ').slice(1).join(' ')}</span>
+                        </h1>
+                        <p className="mt-6 max-w-3xl mx-auto text-lg text-gray-600">
+                            {content?.heroSubtitle}
+                        </p>
+                        <div className="mt-8 flex justify-center">
+                            <ShareButtons 
+                                title='اكتشف صندوق الرحلة الشهري - هدية متجددة لطفلك!' 
+                                url={pageUrl} 
+                                label="شارك الاشتراك:"
                             />
+                        </div>
+                    </div>
+                    
+                    <div className="max-w-6xl mx-auto">
+                        <div className="mb-12">
+                            <OrderStepper steps={stepsConfig} currentStep={step} />
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                            <Card className="lg:col-span-2">
+                            {currentStepTitle && (
+                                    <CardHeader>
+                                        <CardTitle className="text-2xl">{currentStepTitle}</CardTitle>
+                                    </CardHeader>
+                                )}
+                                <CardContent className="pt-2 space-y-10">
+                                    {renderStepContent()}
+                                    <div className="flex justify-between pt-6 border-t">
+                                        <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />} disabled={step === 'plan'}>
+                                            السابق
+                                        </Button>
+                                        {step !== 'delivery' ? (
+                                            <Button onClick={handleNext}>التالي <ArrowLeft className="mr-2 h-4 w-4" /></Button>
+                                        ) : (
+                                            <p className="text-sm text-gray-500">أكمل طلبك من الملخص على اليسار.</p>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <div className="lg:col-span-1 sticky top-24">
+                                <SubscriptionSummary
+                                    selectedPlan={selectedPlan}
+                                    isSubmitting={isSubmitting}
+                                    onSubmit={handleSubmit}
+                                    step={step}
+                                    features={content?.features}
+                                    shippingCost={currentShippingCost}
+                                    governorate={formData.governorate}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

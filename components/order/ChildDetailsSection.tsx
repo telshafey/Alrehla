@@ -12,9 +12,13 @@ interface ChildDetailsSectionProps {
     childProfiles: ChildProfile[];
     onSelectChild: (child: ChildProfile | null) => void;
     selectedChildId: number | null;
-    onSelectSelf: () => void;
+    onSelectSelf?: () => void;
     currentUser: UserProfile | null;
     onAddChild: () => void;
+    // Optional props for non-Context usage (like SubscriptionPage)
+    formData?: any;
+    handleChange?: (e: React.ChangeEvent<any>) => void;
+    errors?: any;
 }
 
 const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({ 
@@ -22,20 +26,35 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
     onSelectChild, 
     selectedChildId, 
     onSelectSelf,
-    onAddChild
+    onAddChild,
+    formData,
+    handleChange,
+    errors: propErrors
 }) => {
-    const { register, formState: { errors } } = useFormContext();
+    // Try to get context, but don't crash if it's null
+    const context = useFormContext();
+    const isContextMode = !!context;
+    
+    const register = isContextMode ? context.register : null;
+    const contextErrors = isContextMode ? context.formState.errors : {};
+
+    // Unified Accessors
+    const errors = isContextMode ? contextErrors : (propErrors || {});
+    
     const today = new Date().toISOString().split('T')[0];
     
     type SelectionMode = 'profile' | 'self' | 'manual';
     const [mode, setMode] = useState<SelectionMode>(() => {
+        if (selectedChildId) return 'profile';
         if (childProfiles.length > 0) return 'profile';
         return 'manual';
     });
 
     useEffect(() => {
         if (mode === 'profile' && childProfiles.length > 0 && !selectedChildId) {
-            onSelectChild(childProfiles[0]);
+            // Auto-select first child if in profile mode and nothing selected
+            // But only if we haven't selected "manual" explicitly
+             // onSelectChild(childProfiles[0]); // Commented out to prevent auto-select override
         }
     }, [mode, childProfiles, selectedChildId, onSelectChild]);
 
@@ -46,13 +65,30 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
 
     const handleSelfSelect = () => {
         setMode('self');
-        onSelectSelf();
+        if (onSelectSelf) onSelectSelf();
     }
 
     const handleManualSelect = () => {
         setMode('manual');
         onSelectChild(null);
     }
+    
+    // Helper to generate props for inputs
+    const getInputProps = (fieldName: string) => {
+        if (isContextMode && register) {
+            return { ...register(fieldName) };
+        }
+        return {
+            name: fieldName,
+            id: fieldName,
+            value: formData?.[fieldName] || '',
+            onChange: handleChange
+        };
+    };
+    
+    const getError = (fieldName: string) => {
+        return errors[fieldName]?.message || errors[fieldName];
+    };
     
     const hasMultipleOptions = childProfiles.length > 0;
 
@@ -65,20 +101,22 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
                             type="button"
                             key={child.id} 
                             onClick={() => handleProfileSelect(child)} 
-                            className={`p-4 border-2 rounded-2xl text-center transition-all flex flex-col items-center gap-2 hover:shadow-md hover:border-blue-400 ${mode === 'profile' && selectedChildId === child.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
+                            className={`p-4 border-2 rounded-2xl text-center transition-all flex flex-col items-center gap-2 hover:shadow-md hover:border-blue-400 ${mode === 'profile' && selectedChildId === child.id ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-gray-200 bg-white'}`}
                         >
-                            <img src={child.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={child.name} className="w-16 h-16 rounded-full object-cover"/>
+                            <img src={child.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={child.name} className="w-16 h-16 rounded-full object-cover border border-gray-100"/>
                             <span className="font-bold text-gray-800 text-sm">{child.name}</span>
                         </button>
                     ))}
-                     <button 
-                        type="button"
-                        onClick={handleSelfSelect} 
-                        className={`p-4 border-2 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 hover:shadow-md hover:border-blue-400 ${mode === 'self' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
-                    >
-                        <UserIcon className="w-10 h-10 text-gray-400"/>
-                        <span className="font-bold text-gray-800 text-sm">لي شخصيًا</span>
-                     </button>
+                     {onSelectSelf && (
+                         <button 
+                            type="button"
+                            onClick={handleSelfSelect} 
+                            className={`p-4 border-2 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 hover:shadow-md hover:border-blue-400 ${mode === 'self' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
+                        >
+                            <UserIcon className="w-10 h-10 text-gray-400"/>
+                            <span className="font-bold text-gray-800 text-sm">لي شخصيًا</span>
+                         </button>
+                     )}
                      <button 
                         type="button"
                         onClick={handleManualSelect} 
@@ -90,23 +128,28 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
                 </div>
             )}
 
-            {(mode === 'manual' || mode === 'self' || childProfiles.length === 0) && (
-                <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
-                    <FormField label="الاسم*" htmlFor="childName" error={errors.childName?.message as string}>
-                        <Input type="text" id="childName" {...register('childName')} aria-invalid={!!errors.childName} disabled={mode === 'self'} />
-                    </FormField>
-                    <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={errors.childBirthDate?.message as string}>
-                        <Input type="date" id="childBirthDate" max={today} {...register('childBirthDate')} aria-invalid={!!errors.childBirthDate} />
-                    </FormField>
-                    <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={errors.childGender?.message as string}>
-                        <Select id="childGender" {...register('childGender')} aria-invalid={!!errors.childGender}>
-                            <option value="" disabled>-- اختر الجنس --</option>
-                            <option value="ذكر">ذكر</option>
-                            <option value="أنثى">أنثى</option>
-                        </Select>
-                    </FormField>
+            <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
+                <div className="md:col-span-2">
+                    <p className="text-sm text-gray-500 mb-2">
+                        {mode === 'profile' 
+                            ? 'تم ملء البيانات تلقائياً بناءً على الملف المختار.' 
+                            : 'يرجى إدخال بيانات الطفل يدوياً.'}
+                    </p>
                 </div>
-            )}
+                <FormField label="الاسم*" htmlFor="childName" error={getError('childName')}>
+                    <Input type="text" {...getInputProps('childName')} disabled={mode === 'self'} />
+                </FormField>
+                <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={getError('childBirthDate')}>
+                    <Input type="date" max={today} {...getInputProps('childBirthDate')} />
+                </FormField>
+                <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={getError('childGender')}>
+                    <Select {...getInputProps('childGender')}>
+                        <option value="" disabled>-- اختر الجنس --</option>
+                        <option value="ذكر">ذكر</option>
+                        <option value="أنثى">أنثى</option>
+                    </Select>
+                </FormField>
+            </div>
 
              <div className="mt-6 text-center">
                 <Button type="button" variant="link" onClick={onAddChild} icon={<UserPlus size={16}/>}>
