@@ -48,6 +48,7 @@ export const orderService = {
         const { data, error } = await supabase
             .from('personalized_products')
             .select('*')
+            .is('deleted_at', null) // Only fetch active products
             .order('sort_order', { ascending: true });
         if (error) throw new Error(error.message);
         return data as PersonalizedProduct[];
@@ -192,18 +193,13 @@ export const orderService = {
     },
 
     async deletePersonalizedProduct(productId: number) { 
+        // Implement Soft Delete
         const { error } = await supabase
             .from('personalized_products')
-            .delete()
+            .update({ deleted_at: new Date().toISOString() })
             .eq('id', productId);
             
-        if (error) {
-             // Handle Foreign Key Constraint (Product used in orders)
-             if (error.code === '23503') {
-                 throw new Error('لا يمكن حذف هذا المنتج لأنه مرتبط بطلبات موجودة.');
-             }
-             throw new Error(error.message);
-        }
+        if (error) throw new Error(error.message);
         return { success: true }; 
     }
 };

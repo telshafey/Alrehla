@@ -204,6 +204,7 @@ export interface PersonalizedProduct {
     image_slots: ImageSlotConfig[];
     text_fields: TextFieldConfig[];
     component_keys?: string[];
+    deleted_at?: string | null;
 }
 
 export interface CreativeWritingPackage {

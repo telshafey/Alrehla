@@ -22,7 +22,7 @@ export const publicService = {
         ] = await Promise.all([
             supabase.from('instructors').select('*').is('deleted_at', null),
             supabase.from('blog_posts').select('*').eq('status', 'published').is('deleted_at', null),
-            supabase.from('personalized_products').select('*').order('sort_order'),
+            supabase.from('personalized_products').select('*').is('deleted_at', null).order('sort_order'), // Filter deleted products
             supabase.from('creative_writing_packages').select('*'),
             supabase.from('subscription_plans').select('*').order('price'),
             supabase.from('standalone_services').select('*'),
