@@ -158,12 +158,111 @@ export const orderService = {
         return { success: true };
     },
 
-    // --- Placeholders for other mutations ---
-    async updateServiceOrderStatus(orderId: string, newStatus: OrderStatus) { return { success: true }; },
-    async assignInstructorToServiceOrder(orderId: string, instructorId: number | null) { return { success: true }; },
-    async createSubscription(payload: any) { return {} as Subscription; },
-    async updateSubscriptionStatus(subscriptionId: string, action: string) { return { success: true }; },
+    async updateServiceOrderStatus(orderId: string, newStatus: OrderStatus) {
+        const { error } = await supabase
+            .from('service_orders')
+            .update({ status: newStatus })
+            .eq('id', orderId);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    async assignInstructorToServiceOrder(orderId: string, instructorId: number | null) {
+        const { error } = await supabase
+            .from('service_orders')
+            .update({ assigned_instructor_id: instructorId })
+            .eq('id', orderId);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    // --- Subscriptions ---
+    async createSubscription(payload: any) {
+        const subId = `SUB-${Date.now().toString().slice(-6)}`;
+        const orderId = `ORD-${Date.now().toString().slice(-6)}`; // Create an order ID for shipping
+        
+        // Calculate dates
+        const startDate = new Date();
+        const durationMonths = payload.durationMonths || 1; 
+        const renewalDate = new Date(startDate);
+        renewalDate.setMonth(renewalDate.getMonth() + durationMonths); 
+
+        // Fetch user/child names
+        const { data: child } = await supabase.from('child_profiles').select('name').eq('id', payload.childId).single();
+        const { data: user } = await supabase.from('profiles').select('name').eq('id', payload.userId).single();
+
+        const childName = child?.name || payload.shippingDetails?.childName || 'Unknown';
+
+        // 1. Create the Subscription Record (Recurring logic)
+        const { data: subData, error: subError } = await supabase
+            .from('subscriptions')
+            .insert([{
+                id: subId,
+                user_id: payload.userId,
+                child_id: payload.childId,
+                plan_id: payload.planId,
+                plan_name: payload.planName,
+                start_date: startDate.toISOString(),
+                next_renewal_date: renewalDate.toISOString(),
+                status: 'pending_payment',
+                total: payload.total,
+                user_name: user?.name || 'Unknown',
+                child_name: childName,
+                // Store shipping address in subscription too for reference
+                shipping_address: payload.shippingDetails || {},
+                shipping_cost: payload.shippingCost || 0
+            }])
+            .select()
+            .single();
+
+        if (subError) throw new Error(subError.message);
+
+        // 2. Create an initial Order Record (For Shipping/Fulfillment)
+        // This ensures the subscription box appears in the "Orders" list for the admin to ship.
+        const { error: orderError } = await supabase
+            .from('orders')
+            .insert([{
+                id: orderId,
+                user_id: payload.userId,
+                child_id: payload.childId, 
+                item_summary: `اشتراك صندوق الرحلة - ${payload.planName} (الشهر الأول)`,
+                total: payload.total, // Total now includes shipping
+                status: 'بانتظار الدفع',
+                details: {
+                    ...payload.shippingDetails, // Pass address info
+                    subscriptionId: subId,
+                    isSubscriptionOrder: true,
+                    planName: payload.planName,
+                    childName: childName,
+                    shippingCost: payload.shippingCost
+                },
+                receipt_url: payload.receiptUrl || null,
+                order_date: new Date().toISOString()
+            }]);
+
+        if (orderError) {
+             console.error("Failed to create shipping order for subscription:", orderError);
+             // We don't throw here to avoid breaking the subscription creation, but admin should check
+        }
+
+        return subData as Subscription;
+    },
+
+    async updateSubscriptionStatus(subscriptionId: string, action: 'pause' | 'cancel' | 'reactivate') {
+        let status = 'active';
+        if (action === 'pause') status = 'paused';
+        if (action === 'cancel') status = 'cancelled';
+        
+        const { error } = await supabase
+            .from('subscriptions')
+            .update({ status })
+            .eq('id', subscriptionId);
+
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
     
+    // --- Subscription Plans ---
     async createSubscriptionPlan(payload: any) { 
         const { id, ...rest } = payload;
         const { data, error } = await supabase

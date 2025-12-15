@@ -8,7 +8,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useCart, CartItem } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
-import { ArrowLeft, Upload, ShoppingCart, CreditCard, Link as LinkIcon, AlertCircle, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Upload, ShoppingCart, CreditCard, Link as LinkIcon, AlertCircle, Copy, Check, Truck, Trash2 } from 'lucide-react';
 import ReceiptUpload from '../components/shared/ReceiptUpload';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -22,14 +22,22 @@ const CheckoutPage: React.FC = () => {
     const { createOrder } = useOrderMutations();
     const { createBooking } = useBookingMutations();
     const { createSubscription } = useSubscriptionMutations();
-    const { cart, clearCart, getCartTotal } = useCart();
+    const { cart, clearCart, removeItemFromCart, getCartTotal } = useCart();
     const { data: publicData } = usePublicData();
     
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    const cartTotal = useMemo(() => getCartTotal(), [cart, getCartTotal]);
+    // Calculate totals including shipping
+    const cartTotal = useMemo(() => {
+        return cart.reduce((total, item) => {
+            const itemBase = item.payload.total || item.payload.totalPrice || 0;
+            const shipping = item.payload.shippingPrice || 0;
+            return total + itemBase + shipping;
+        }, 0);
+    }, [cart]);
+
     const instapayUrl = publicData?.communicationSettings?.instapay_url || '#';
     const instapayQrUrl = publicData?.communicationSettings?.instapay_qr_url;
     const instapayNumber = publicData?.communicationSettings?.instapay_number;
@@ -54,7 +62,6 @@ const CheckoutPage: React.FC = () => {
     const processCartItem = async (item: CartItem, receiptUrl: string) => {
         if (!currentUser) throw new Error('User not authenticated');
 
-        // Safe check for payload
         if (!item.payload) {
             console.error("Cart item missing payload", item);
             return;
@@ -63,15 +70,12 @@ const CheckoutPage: React.FC = () => {
         // 1. Handle Order (Enha Lak)
         if (item.type === 'order') {
             const { imageFiles, formData, details, shippingPrice } = item.payload;
-            
-            // Defensive coding: Ensure objects exist
             const safeFormData = formData || {};
             const safeDetails = details || {};
             const finalDetails = { ...safeFormData, ...safeDetails };
 
             // Handle Image Uploads
             const filesToUpload = { ...(imageFiles || {}) };
-            
             Object.keys(finalDetails).forEach(key => {
                 if (finalDetails[key] instanceof File) {
                     filesToUpload[key] = finalDetails[key];
@@ -91,7 +95,6 @@ const CheckoutPage: React.FC = () => {
                 }
             }
 
-            // Determine Child ID safely
             let childId = null;
             if (safeDetails.childId && Number(safeDetails.childId) > 0) {
                 childId = Number(safeDetails.childId);
@@ -99,7 +102,6 @@ const CheckoutPage: React.FC = () => {
                  childId = Number(item.payload.childId);
             }
             
-            // Add shipping price to total
             const baseTotal = item.payload.totalPrice || item.payload.total || 0;
             const finalTotal = baseTotal + (shippingPrice || 0);
 
@@ -116,13 +118,41 @@ const CheckoutPage: React.FC = () => {
 
         // 2. Handle Subscription
         if (item.type === 'subscription') {
-            const { plan } = item.payload;
+            const { plan, formData } = item.payload;
+            
+            // Check shipping price - Alert if missing for physical products
+            const shippingPrice = item.payload.shippingPrice || 0;
+            const subTotal = (item.payload.total || 0) + shippingPrice;
+            
+            const imageFiles = item.payload.imageFiles || {};
+             const uploadedImages: Record<string, string> = {};
+            if (Object.keys(imageFiles).length > 0) {
+                 for (const [key, file] of Object.entries(imageFiles)) {
+                    if (file instanceof File) {
+                        try {
+                             uploadedImages[key] = await orderService.uploadOrderFile(file, `subscription-images/${currentUser.id}`);
+                        } catch(e) {
+                            console.error("Failed to upload sub image", e);
+                        }
+                    }
+                 }
+            }
+
+            const shippingDetails = {
+                ...formData,
+                ...uploadedImages
+            };
+
             return createSubscription.mutateAsync({
                 userId: currentUser.id,
-                childId: item.payload.childId || 1, // Fallback ID
+                childId: item.payload.childId || 1, 
                 planId: plan?.id,
                 planName: plan?.name,
-                total: item.payload.total
+                durationMonths: plan?.duration_months || 1,
+                total: subTotal,
+                shippingCost: shippingPrice,
+                shippingDetails: shippingDetails, 
+                receiptUrl
             });
         }
 
@@ -148,16 +178,13 @@ const CheckoutPage: React.FC = () => {
         
         setIsSubmitting(true);
         try {
-            // 1. Upload Payment Receipt Once
             let receiptUrl = '';
             try {
                 receiptUrl = await orderService.uploadOrderFile(receiptFile, `receipts/${currentUser.id}`);
             } catch (uploadErr: any) {
-                // If bucket missing, it throws a specific error we want to show
                 throw new Error(uploadErr.message);
             }
 
-            // 2. Process all items sequentially
             for (const item of cart) {
                 await processCartItem(item, receiptUrl);
             }
@@ -193,21 +220,37 @@ const CheckoutPage: React.FC = () => {
                         </CardHeader>
                         
                         <CardContent className="space-y-6">
-                            <div className="p-4 bg-muted rounded-lg border space-y-3">
-                                <h3 className="font-bold text-lg">ملخص السلة</h3>
+                            <div className="p-4 bg-muted rounded-lg border space-y-4">
+                                <h3 className="font-bold text-lg border-b pb-2">ملخص السلة</h3>
                                 {cart.map(item => {
-                                    const itemTotal = (item.payload.total || item.payload.totalPrice || 0) + (item.payload.shippingPrice || 0);
+                                    const basePrice = item.payload.total || item.payload.totalPrice || 0;
+                                    const shippingPrice = item.payload.shippingPrice || 0;
+                                    const itemTotal = basePrice + shippingPrice;
+                                    
                                     return (
-                                     <div key={item.id} className="flex justify-between items-center text-sm">
-                                        <span className="font-semibold text-foreground flex items-center gap-2">
-                                            {item.payload.formData?.shippingOption === 'gift' && <span title="هدية">🎁</span>}
-                                            {item.payload.summary}
-                                        </span>
-                                        <span className="font-bold text-foreground">{itemTotal} ج.م</span>
+                                     <div key={item.id} className="flex flex-col gap-1 border-b last:border-0 pb-2 last:pb-0">
+                                        <div className="flex justify-between items-center text-sm font-semibold">
+                                            <span className="text-foreground flex items-center gap-2">
+                                                {item.payload.formData?.shippingOption === 'gift' && <span title="هدية">🎁</span>}
+                                                {item.payload.summary}
+                                                <button onClick={() => removeItemFromCart(item.id)} className="text-destructive hover:bg-red-100 p-1 rounded-full"><Trash2 size={14}/></button>
+                                            </span>
+                                            <span className="text-foreground">{itemTotal} ج.م</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-muted-foreground pr-4">
+                                            <span>السعر الأساسي: {basePrice} ج.م</span>
+                                            {shippingPrice > 0 ? (
+                                                <span className="flex items-center gap-1 text-green-700">
+                                                    <Truck size={10} /> الشحن: {shippingPrice} ج.م
+                                                </span>
+                                            ) : (
+                                                <span>الشحن: مجاني/مشمول</span>
+                                            )}
+                                        </div>
                                     </div>
                                 )})}
-                                <div className="border-t pt-3 mt-3 flex justify-between items-center">
-                                     <span className="font-bold text-xl text-foreground">الإجمالي</span>
+                                <div className="border-t pt-3 flex justify-between items-center bg-white p-3 rounded-lg">
+                                     <span className="font-bold text-xl text-foreground">الإجمالي الكلي</span>
                                     <span className="font-extrabold text-2xl text-primary">{cartTotal} ج.م</span>
                                 </div>
                             </div>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '../contexts/ToastContext';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
+import { useProduct } from '../contexts/ProductContext';
 import { Send, Gift, Check, Star, ArrowLeft } from 'lucide-react';
 import ShareButtons from '../components/shared/ShareButtons';
 import { Button } from '../components/ui/Button';
@@ -53,6 +54,9 @@ const SubscriptionPage: React.FC = () => {
     const navigate = useNavigate();
     const { addToast } = useToast();
     const { data, isLoading: contentLoading } = usePublicData();
+    // Get shipping costs from context
+    const { shippingCosts } = useProduct(); 
+
     const content = data?.siteContent?.enhaLakPage.subscription;
     const subscriptionPlans = data?.subscriptionPlans || [];
     const pageUrl = window.location.href;
@@ -82,6 +86,13 @@ const SubscriptionPage: React.FC = () => {
     const bestValuePlan = subscriptionPlans.find((p: SubscriptionPlan) => p.is_best_value) || subscriptionPlans[0];
     const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(bestValuePlan);
 
+    // Calculate Real-time Shipping Cost
+    const countryCosts = shippingCosts?.['مصر'] || {};
+    // Only calculate if we are on delivery step or shipping option is set
+    const currentShippingCost = (formData.shippingOption === 'my_address' || formData.shippingOption === 'gift') 
+        ? (countryCosts[formData.governorate] || 0) 
+        : 0;
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         const isCheckbox = type === 'checkbox';
@@ -97,6 +108,11 @@ const SubscriptionPage: React.FC = () => {
             delete newErrors[name];
             return newErrors;
         });
+    };
+
+    // Helper for non-event based updates (like shipping option buttons)
+    const handleManualSetValue = (name: string, value: any) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleFileChange = (id: string, file: File | null) => {
@@ -160,12 +176,14 @@ const SubscriptionPage: React.FC = () => {
         }
 
         setIsSubmitting(true);
+
         addItemToCart({
             type: 'subscription',
             payload: { 
                 formData, 
                 imageFiles,
                 total: selectedPlan!.price,
+                shippingPrice: currentShippingCost, // Add calculated shipping price
                 summary: `صندوق الرحلة (${selectedPlan!.name})`,
                 plan: selectedPlan,
             }
@@ -240,6 +258,7 @@ const SubscriptionPage: React.FC = () => {
                         <ShippingAddressForm
                             formData={formData}
                             handleChange={handleChange}
+                            setValue={handleManualSetValue}
                             errors={errors}
                         />
                     </div>
@@ -302,6 +321,8 @@ const SubscriptionPage: React.FC = () => {
                                 onSubmit={handleSubmit}
                                 step={step}
                                 features={content?.features}
+                                shippingCost={currentShippingCost}
+                                governorate={formData.governorate}
                             />
                         </div>
                     </div>
