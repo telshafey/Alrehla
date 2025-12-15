@@ -1,14 +1,19 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
 import { Button } from '../components/ui/Button';
-import { CheckCircle, X, ArrowLeft, Star, Clock, User, Video } from 'lucide-react';
+import { CheckCircle, X, ArrowLeft, Star, Clock, User, Video, LayoutGrid, Table as TableIcon, ArrowRight } from 'lucide-react';
 import type { CreativeWritingPackage, Instructor } from '../lib/database.types';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
+import { Card, CardContent, CardFooter, CardHeader } from '../components/ui/card';
+import { IconMap } from '../components/creative-writing/services/IconMap';
 
+// --- Comparison Table Components ---
 const FeatureRow: React.FC<{ label: string; values: (string | boolean)[] }> = ({ label, values }) => (
     <tr className="border-b last:border-b-0">
-        <th scope="row" className="py-4 px-2 sm:px-4 text-right font-semibold text-gray-700 bg-gray-50">{label}</th>
+        <th scope="row" className="py-4 px-2 sm:px-4 text-right font-semibold text-gray-700 bg-gray-50/50">{label}</th>
         {values.map((value, index) => (
             <td key={index} className="py-4 px-2 sm:px-4 text-center">
                 {typeof value === 'boolean' ? (
@@ -20,6 +25,89 @@ const FeatureRow: React.FC<{ label: string; values: (string | boolean)[] }> = ({
         ))}
     </tr>
 );
+
+// --- Detailed Card Component ---
+const PackageDetailCard: React.FC<{ pkg: CreativeWritingPackage; priceRange: { min: number, max: number } }> = ({ pkg, priceRange }) => {
+    const isFree = pkg.price === 0;
+    
+    return (
+        <Card className={`h-full flex flex-col hover:shadow-xl transition-all duration-300 border-2 ${pkg.popular ? 'border-primary ring-4 ring-primary/10' : 'border-transparent'}`}>
+            <CardHeader className={`${pkg.popular ? 'bg-primary/5' : 'bg-gray-50/50'} pb-6`}>
+                <div className="flex justify-between items-start mb-4">
+                    <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-primary border border-gray-100">
+                         {IconMap[pkg.icon_name || 'Rocket'] || IconMap['Rocket']}
+                    </div>
+                    {pkg.popular && (
+                        <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                            <Star size={12} fill="currentColor" /> الأكثر شيوعاً
+                        </span>
+                    )}
+                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-2">{pkg.name}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed min-h-[3rem]">{pkg.description}</p>
+            </CardHeader>
+            
+            <CardContent className="flex-grow pt-6 space-y-6">
+                 {/* Price Section */}
+                <div className="flex items-baseline gap-1">
+                    {isFree ? (
+                         <span className="text-3xl font-extrabold text-green-600">مجانية</span>
+                    ) : (
+                        <>
+                             <span className="text-3xl font-extrabold text-foreground">{priceRange.min}</span>
+                             {priceRange.min !== priceRange.max && <span className="text-xl text-muted-foreground">- {priceRange.max}</span>}
+                             <span className="text-sm font-medium text-muted-foreground">ج.م</span>
+                        </>
+                    )}
+                </div>
+                
+                 {/* Metadata Grid */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                        <span className="block text-xs text-muted-foreground mb-1">عدد الجلسات</span>
+                        <span className="font-semibold text-foreground">{pkg.sessions}</span>
+                    </div>
+                    <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                         <span className="block text-xs text-muted-foreground mb-1">المستوى</span>
+                         <span className="font-semibold text-foreground">{pkg.level || 'غير محدد'}</span>
+                    </div>
+                     <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 col-span-2">
+                         <span className="block text-xs text-muted-foreground mb-1">الفئة العمرية</span>
+                         <span className="font-semibold text-foreground">{pkg.target_age || 'غير محدد'}</span>
+                    </div>
+                </div>
+                
+                {/* Description */}
+                {pkg.detailed_description && (
+                     <div className="text-sm text-gray-600 leading-relaxed bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                        {pkg.detailed_description}
+                    </div>
+                )}
+
+                {/* Features List */}
+                <ul className="space-y-3">
+                    {pkg.features.slice(0, 4).map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-3 text-sm">
+                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-gray-700">{feature}</span>
+                        </li>
+                    ))}
+                    {pkg.features.length > 4 && (
+                        <li className="text-xs text-muted-foreground pt-1 pr-8">+ {pkg.features.length - 4} ميزات أخرى...</li>
+                    )}
+                </ul>
+            </CardContent>
+
+            <CardFooter className="pt-4 pb-6">
+                <Button as={Link} to="/creative-writing/booking" className="w-full" size="lg" variant={isFree ? 'success' : (pkg.popular ? 'default' : 'outline')}>
+                    {isFree ? 'احجز الآن مجاناً' : 'اختيار الباقة'}
+                    <ArrowLeft size={18} className="mr-2 rtl:rotate-180" />
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
 
 const CreativeWritingPackagesPage: React.FC = () => {
     const { data, isLoading } = usePublicData();
@@ -39,122 +127,153 @@ const CreativeWritingPackagesPage: React.FC = () => {
             .filter((price): price is number => price !== undefined && price !== null);
 
         if (prices.length === 0) {
-            return { min: pkg.price, max: pkg.price }; // Fallback to base price
+            return { min: pkg.price, max: pkg.price };
         }
         return { min: Math.min(...prices), max: Math.max(...prices) };
     };
     
-    // Define features to compare
-    const features = [
+    // Define features to compare based on the new boolean fields
+    const comparisonFeatures = [
         { label: 'عدد الجلسات', key: 'sessions' },
+        { label: 'المستوى', key: 'level' },
+        { label: 'الفئة العمرية', key: 'target_age' },
         { label: 'الهدف الأساسي', key: 'description', transform: (pkg: CreativeWritingPackage) => {
-            if (pkg.name === 'الجلسة التعريفية') return 'تقييم وتخطيط';
-            if (pkg.name === 'باقة الانطلاق') return 'تعلم الأساسيات';
-            if (pkg.name === 'الباقة الأساسية') return 'بناء متكامل للمهارات';
-            if (pkg.name === 'باقة التخصص') return 'صقل الأسلوب والتخصص';
-             if (pkg.name === 'باقة التميز') return 'المسار الاحترافي الكامل';
-            return 'N/A';
+            if (pkg.name.includes('التعريفية')) return 'تقييم وتخطيط';
+            if (pkg.name.includes('الانطلاق')) return 'تعلم الأساسيات';
+            if (pkg.name.includes('الأساسية')) return 'بناء متكامل للمهارات';
+            return pkg.description;
         }},
-        { label: 'محفظة رقمية للأعمال', key: 'features', check: 'محفظة رقمية للأعمال' },
-        { label: 'شهادة إتمام', key: 'features', check: 'شهادة إتمام' },
-        { label: 'نشر عمل في المجلة', key: 'features', check: 'نشر عمل في المجلة الإلكترونية' },
-        { label: 'جلسات إرشاد إضافية', key: 'features', check: 'جلسات إرشاد إضافية' },
+        { label: 'محفظة رقمية للأعمال', key: 'includes_digital_portfolio' },
+        { label: 'شهادة إتمام', key: 'includes_certificate' },
+        { label: 'نشر عمل في المجلة', key: 'includes_publication' },
+        { label: 'جلسات إرشاد إضافية', key: 'includes_extra_mentoring' },
     ];
 
 
     return (
         <div className="bg-white py-16 sm:py-20 animate-fadeIn">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-16 max-w-3xl mx-auto">
+                <div className="text-center mb-12 max-w-3xl mx-auto">
                     <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">باقات بداية الرحلة</h1>
                     <p className="mt-4 text-lg text-gray-600">
                         لكل مبدع صغير رحلته الخاصة. اخترنا لكم باقات متنوعة تناسب كل مرحلة من مراحل تطور الكاتب الواعد، من اكتشاف الشغف إلى صقل الموهبة.
                     </p>
                 </div>
-                
-                <div className="overflow-x-auto">
-                    <table className="w-full min-w-[700px] border-collapse text-right">
-                        <thead>
-                            <tr className="border-b-2">
-                                <th className="py-4 px-2 sm:px-4 text-right font-bold text-lg w-1/4">الميزة</th>
-                                {packages.map(pkg => (
-                                    <th key={pkg.id} className="py-4 px-2 sm:px-4 text-center font-bold text-lg w-1/5">
-                                        <div className="flex flex-col items-center">
-                                            <span>{pkg.name}</span>
-                                            {pkg.popular && <span className="text-xs font-bold bg-blue-500 text-white px-2 py-0.5 rounded-full mt-1">الأكثر شيوعاً</span>}
-                                        </div>
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {features.map(feature => (
-                                <FeatureRow 
-                                    key={feature.label}
-                                    label={feature.label}
-                                    values={packages.map(pkg => {
-                                        if (feature.check) {
-                                            return pkg.features.some(f => f.includes(feature.check!));
-                                        }
-                                        if (feature.transform) {
-                                            return feature.transform(pkg);
-                                        }
-                                        return (pkg as any)[feature.key] as string;
-                                    })}
+
+                <Tabs defaultValue="cards" className="w-full">
+                    <div className="flex justify-center mb-10">
+                        <TabsList className="grid w-full max-w-md grid-cols-2 p-1 bg-gray-100/80 backdrop-blur rounded-full">
+                            <TabsTrigger value="cards" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                                <LayoutGrid className="w-4 h-4 mr-2" /> عرض تفصيلي
+                            </TabsTrigger>
+                            <TabsTrigger value="compare" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                                <TableIcon className="w-4 h-4 mr-2" /> مقارنة الباقات
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+
+                    <TabsContent value="cards" className="animate-fadeIn">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {packages.map(pkg => (
+                                <PackageDetailCard 
+                                    key={pkg.id} 
+                                    pkg={pkg} 
+                                    priceRange={getPackagePriceRange(pkg)}
                                 />
                             ))}
-                            <tr className="border-b">
-                                <th scope="row" className="py-4 px-2 sm:px-4 text-right font-semibold text-gray-700 bg-gray-50">السعر</th>
-                                {packages.map(pkg => {
-                                    const priceRange = getPackagePriceRange(pkg);
-                                    return (
-                                        <td key={pkg.id} className="py-4 px-2 sm:px-4 text-center font-extrabold text-gray-800">
-                                            { priceRange.min === 0 && priceRange.max === 0
-                                                ? <span className="text-2xl">مجانية</span>
-                                                : priceRange.min === priceRange.max
-                                                ? <span className="text-2xl">{priceRange.min} ج.م</span>
-                                                : <div className="text-xl">
-                                                    <span>{priceRange.min} - {priceRange.max}</span>
-                                                    <span className="text-base font-medium text-gray-600 ml-1">ج.م</span>
-                                                  </div>
-                                            }
-                                        </td>
-                                    )
-                                })}
-                            </tr>
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td></td>
-                                {packages.map(pkg => (
-                                    <td key={pkg.id} className="py-6 px-2 sm:px-4 text-center">
-                                        <Button as={Link} to="/creative-writing/booking">
-                                            {pkg.price === 0 ? 'ابدأ الآن' : 'اطلب الباقة'}
-                                        </Button>
-                                    </td>
-                                ))}
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+                        </div>
+                    </TabsContent>
 
-                 <section className="mt-20 bg-gray-50 p-8 rounded-2xl border">
-                    <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">ماذا تعني "الجلسة"؟</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center max-w-4xl mx-auto">
-                        <div className="flex flex-col items-center">
-                            <Clock className="w-10 h-10 text-blue-500 mb-2" />
-                            <h3 className="font-bold">45 دقيقة</h3>
-                            <p className="text-sm text-gray-600">من التركيز الكامل والإبداع الموجه.</p>
+                    <TabsContent value="compare" className="animate-fadeIn">
+                        <div className="overflow-x-auto border rounded-2xl shadow-sm">
+                            <table className="w-full min-w-[800px] border-collapse text-right bg-white">
+                                <thead>
+                                    <tr className="border-b-2 border-gray-100">
+                                        <th className="py-6 px-4 text-right font-bold text-lg w-1/4 bg-gray-50/50">الميزة</th>
+                                        {packages.map(pkg => (
+                                            <th key={pkg.id} className={`py-6 px-4 text-center font-bold text-lg w-1/5 ${pkg.popular ? 'bg-primary/5 border-t-4 border-t-primary' : ''}`}>
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <span>{pkg.name}</span>
+                                                    {pkg.popular && <span className="text-[10px] font-bold bg-primary text-white px-2 py-0.5 rounded-full">الأكثر شيوعاً</span>}
+                                                </div>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {comparisonFeatures.map(feature => (
+                                        <FeatureRow 
+                                            key={feature.label}
+                                            label={feature.label}
+                                            values={packages.map(pkg => {
+                                                if (feature.transform) {
+                                                    return feature.transform(pkg);
+                                                }
+                                                // Access the property dynamically
+                                                return (pkg as any)[feature.key];
+                                            })}
+                                        />
+                                    ))}
+                                    <tr className="border-b">
+                                        <th scope="row" className="py-6 px-4 text-right font-semibold text-gray-700 bg-gray-50/50">السعر</th>
+                                        {packages.map(pkg => {
+                                            const priceRange = getPackagePriceRange(pkg);
+                                            return (
+                                                <td key={pkg.id} className={`py-6 px-4 text-center font-extrabold text-gray-800 ${pkg.popular ? 'bg-primary/5' : ''}`}>
+                                                    { priceRange.min === 0 && priceRange.max === 0
+                                                        ? <span className="text-2xl text-green-600">مجانية</span>
+                                                        : priceRange.min === priceRange.max
+                                                        ? <span className="text-2xl">{priceRange.min} ج.م</span>
+                                                        : <div className="text-xl">
+                                                            <span>{priceRange.min} - {priceRange.max}</span>
+                                                            <span className="text-base font-medium text-gray-600 ml-1">ج.م</span>
+                                                          </div>
+                                                    }
+                                                </td>
+                                            )
+                                        })}
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td className="bg-gray-50/50"></td>
+                                        {packages.map(pkg => (
+                                            <td key={pkg.id} className={`py-8 px-4 text-center ${pkg.popular ? 'bg-primary/5' : ''}`}>
+                                                <Button as={Link} to="/creative-writing/booking" variant={pkg.price === 0 ? 'success' : 'default'} size="sm">
+                                                    {pkg.price === 0 ? 'ابدأ الآن' : 'اطلب الباقة'}
+                                                </Button>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
-                        <div className="flex flex-col items-center">
-                            <User className="w-10 h-10 text-blue-500 mb-2" />
-                            <h3 className="font-bold">فردية (1-to-1)</h3>
-                            <p className="text-sm text-gray-600">اهتمام كامل بطفلك لضمان أقصى استفادة.</p>
+                    </TabsContent>
+                </Tabs>
+
+                 <section className="mt-24 bg-gradient-to-r from-blue-50 to-indigo-50 p-8 sm:p-12 rounded-3xl border border-blue-100 text-center">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-8">ماذا تعني "الجلسة" في بداية الرحلة؟</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                        <div className="flex flex-col items-center bg-white p-6 rounded-2xl shadow-sm">
+                            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-4">
+                                <Clock size={32} />
+                            </div>
+                            <h3 className="font-bold text-lg mb-2">45 دقيقة</h3>
+                            <p className="text-sm text-gray-600">من التركيز الكامل والإبداع الموجه في كل لقاء.</p>
                         </div>
-                         <div className="flex flex-col items-center">
-                            <Video className="w-10 h-10 text-blue-500 mb-2" />
-                            <h3 className="font-bold">عبر الإنترنت</h3>
-                            <p className="text-sm text-gray-600">من أي مكان وفي بيئة آمنة ومريحة.</p>
+                        <div className="flex flex-col items-center bg-white p-6 rounded-2xl shadow-sm">
+                             <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mb-4">
+                                <User size={32} />
+                            </div>
+                            <h3 className="font-bold text-lg mb-2">فردية (1-to-1)</h3>
+                            <p className="text-sm text-gray-600">اهتمام كامل بطفلك لضمان أقصى استفادة وتوجيه شخصي.</p>
+                        </div>
+                         <div className="flex flex-col items-center bg-white p-6 rounded-2xl shadow-sm">
+                             <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mb-4">
+                                <Video size={32} />
+                            </div>
+                            <h3 className="font-bold text-lg mb-2">عبر الإنترنت</h3>
+                            <p className="text-sm text-gray-600">من أي مكان وفي بيئة آمنة ومريحة (عبر Jitsi Meet).</p>
                         </div>
                     </div>
                 </section>

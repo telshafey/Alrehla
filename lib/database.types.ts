@@ -215,7 +215,16 @@ export interface CreativeWritingPackage {
     price: number;
     features: string[];
     popular: boolean;
-    description: string;
+    description: string; 
+    // New Fields for Detailed View & Comparison Control
+    detailed_description?: string; 
+    target_age?: string; 
+    level?: string; 
+    icon_name?: string; 
+    includes_digital_portfolio: boolean;
+    includes_certificate: boolean;
+    includes_publication: boolean;
+    includes_extra_mentoring: boolean;
 }
 
 export interface StandaloneService {

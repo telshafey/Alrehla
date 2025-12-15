@@ -16,6 +16,7 @@ import type {
 } from '../lib/database.types';
 import type { Permissions } from '../lib/roles';
 
+// ... (Other data imports/exports remain unchanged)
 export const mockUsers: UserProfile[] = [
     { id: 'usr_parent', created_at: '2023-08-01T10:00:00Z', last_sign_in_at: '2024-08-10T12:00:00Z', name: 'أحمد عبدالله', email: 'parent@alrehlah.com', role: 'user', address: '123 شارع المثال، مدينة نصر', governorate: 'القاهرة', phone: '01234567890' },
     { id: 'usr_user', created_at: '2024-01-02T10:00:00Z', last_sign_in_at: '2024-08-09T11:00:00Z', name: 'سارة خالد', email: 'user@alrehlah.com', role: 'user' },
@@ -145,7 +146,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         sort_order: 1, 
         is_featured: true, 
         is_addon: false, 
-        has_printed_version: true,
+        has_printed_version: true, 
         price_printed: 450,
         price_electronic: 200,
         goal_config: 'predefined_and_custom',
@@ -305,12 +306,61 @@ export const mockInstructors: Instructor[] = [
 ];
 
 export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
-    { id: 1, name: 'الجلسة التعريفية', sessions: 'جلسة واحدة (30 دقيقة)', price: 0, features: ['تقييم المستوى', 'خطة مقترحة'], popular: false, description: 'جلسة مجانية للتعرف على المدرب.' },
-    { id: 2, name: 'باقة الانطلاق', sessions: '4 جلسات', price: 1200, features: ['أساسيات الكتابة', 'قصة قصيرة واحدة'], popular: true, description: 'بداية مثالية للمبتدئين.' },
-    { id: 3, name: 'الباقة الأساسية', sessions: '8 جلسات', price: 2200, features: ['بناء الشخصيات', 'قصتين'], popular: false, description: 'تعمق أكثر في فنون الكتابة.' },
+    { 
+        id: 1, 
+        name: 'الجلسة التعريفية', 
+        sessions: 'جلسة واحدة (30 دقيقة)', 
+        price: 0, 
+        features: ['تقييم المستوى', 'خطة مقترحة'], 
+        popular: false, 
+        description: 'جلسة مجانية للتعرف على المدرب.',
+        detailed_description: 'فرصة رائعة لطفلك وولي الأمر للتعرف على المدرب، مناقشة الأهداف، وتحديد المستوى المناسب قبل البدء.',
+        target_age: '7-14 سنة',
+        level: 'جميع المستويات',
+        icon_name: 'MessageSquare',
+        includes_digital_portfolio: false,
+        includes_certificate: false,
+        includes_publication: false,
+        includes_extra_mentoring: false
+    },
+    { 
+        id: 2, 
+        name: 'باقة الانطلاق', 
+        sessions: '4 جلسات', 
+        price: 1200, 
+        features: ['أساسيات الكتابة', 'قصة قصيرة واحدة', 'متابعة أسبوعية'], 
+        popular: true, 
+        description: 'بداية مثالية للمبتدئين.',
+        detailed_description: 'صممت هذه الباقة لتضع أقدام طفلك على أول طريق الإبداع. سيتعلم أساسيات بناء القصة ورسم الشخصيات من خلال 4 جلسات تفاعلية ممتعة.',
+        target_age: '8-12 سنة',
+        level: 'مبتدئ',
+        icon_name: 'Rocket',
+        includes_digital_portfolio: true,
+        includes_certificate: true,
+        includes_publication: false,
+        includes_extra_mentoring: false
+    },
+    { 
+        id: 3, 
+        name: 'الباقة الأساسية', 
+        sessions: '8 جلسات', 
+        price: 2200, 
+        features: ['بناء الشخصيات', 'قصتين', 'ورشة عمل جماعية'], 
+        popular: false, 
+        description: 'تعمق أكثر في فنون الكتابة.',
+        detailed_description: 'رحلة أعمق في عالم الكتابة. نركز هنا على تطوير الحبكة، وصراع الشخصيات، والوصف الحسي. يخرج الطالب بقصتين مكتملتين.',
+        target_age: '9-14 سنة',
+        level: 'متوسط',
+        icon_name: 'PenTool',
+        includes_digital_portfolio: true,
+        includes_certificate: true,
+        includes_publication: true,
+        includes_extra_mentoring: true
+    },
 ];
 
 export const mockSiteContent: SiteContent = {
+    // ... (All site content)
     portalPage: {
         heroTitle: 'رحلة كل طفل تبدأ بقصة... وقصته تبدأ هنا',
         heroSubtitle: 'منصة تربوية عربية متكاملة تصنع قصصاً مخصصة تجعل طفلك بطلاً، وتطلق مواهبه في الكتابة الإبداعية',
