@@ -12,11 +12,22 @@ import type {
     ChildBadge,
     CommunicationSettings,
     JitsiSettings,
-    UserRole
+    UserRole,
+    ComparisonItem
 } from '../lib/database.types';
 import type { Permissions } from '../lib/roles';
 
-// ... (Other data imports/exports remain unchanged)
+// New Comparison Criteria Data
+export const mockComparisonItems: ComparisonItem[] = [
+    { id: 'num_sessions', label: 'عدد الجلسات', type: 'text', sort_order: 1 },
+    { id: 'level', label: 'المستوى', type: 'text', sort_order: 2 },
+    { id: 'target_age', label: 'الفئة العمرية', type: 'text', sort_order: 3 },
+    { id: 'digital_portfolio', label: 'محفظة رقمية للأعمال', type: 'boolean', sort_order: 4 },
+    { id: 'certificate', label: 'شهادة إتمام', type: 'boolean', sort_order: 5 },
+    { id: 'publication', label: 'نشر عمل في المجلة', type: 'boolean', sort_order: 6 },
+    { id: 'mentoring', label: 'جلسات إرشاد إضافية', type: 'boolean', sort_order: 7 },
+];
+
 export const mockUsers: UserProfile[] = [
     { id: 'usr_parent', created_at: '2023-08-01T10:00:00Z', last_sign_in_at: '2024-08-10T12:00:00Z', name: 'أحمد عبدالله', email: 'parent@alrehlah.com', role: 'user', address: '123 شارع المثال، مدينة نصر', governorate: 'القاهرة', phone: '01234567890' },
     { id: 'usr_user', created_at: '2024-01-02T10:00:00Z', last_sign_in_at: '2024-08-09T11:00:00Z', name: 'سارة خالد', email: 'user@alrehlah.com', role: 'user' },
@@ -32,8 +43,9 @@ export const mockUsers: UserProfile[] = [
 ];
 
 export const mockChildProfiles: ChildProfile[] = [
-    { id: 1, created_at: '2023-01-10T10:00:00Z', user_id: 'usr_parent', name: 'فاطمة أحمد', birth_date: '2016-05-10', gender: 'أنثى', avatar_url: 'https://placehold.co/400x400?text=Fatima', interests: ['الرسم', 'الفضاء'], strengths: ['مبدعة', 'فضولية'], student_user_id: 'usr_student' },
-    { id: 2, created_at: '2023-02-15T10:00:00Z', user_id: 'usr_parent', name: 'عمر أحمد', birth_date: '2018-03-22', gender: 'ذكر', avatar_url: 'https://placehold.co/400x400?text=Omar', interests: ['الديناصورات', 'السيارات'], strengths: ['شجاع'], student_user_id: null },
+    { id: 1, created_at: '2023-01-10T10:00:00Z', user_id: 'usr_parent', name: 'فاطمة أحمد', birth_date: '2016-05-10', gender: 'أنثى', avatar_url: 'https://placehold.co/400x400?text=Fatima', interests: ['الرسم', 'الفضاء'], strengths: ['مبدعة', 'فضولية'], student_user_id: 'usr_student', age: 7 },
+    { id: 2, created_at: '2023-02-15T10:00:00Z', user_id: 'usr_parent', name: 'عمر أحمد', birth_date: '2018-03-22', gender: 'ذكر', avatar_url: 'https://placehold.co/400x400?text=Omar', interests: ['الديناصورات', 'السيارات'], strengths: ['شجاع'], student_user_id: null, age: 5 },
+    { id: 99, created_at: '2024-01-01T10:00:00Z', user_id: 'usr_new_demo', name: 'ياسين ماجد', birth_date: '2019-01-01', gender: 'ذكر', avatar_url: 'https://placehold.co/400x400?text=Yassin', interests: ['القصص', 'الحيوانات'], strengths: ['مستمع جيد'], student_user_id: null, age: 5 },
 ];
 
 export const mockBadges: Badge[] = [
@@ -175,7 +187,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         sort_order: 2, 
         is_featured: false, 
         is_addon: false, 
-        has_printed_version: true,
+        has_printed_version: true, 
         price_printed: 750,
         price_electronic: null,
         goal_config: 'predefined',
@@ -202,7 +214,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         sort_order: 3, 
         is_featured: false, 
         is_addon: false, 
-        has_printed_version: true,
+        has_printed_version: true, 
         price_printed: 150,
         price_electronic: 60,
         goal_config: 'predefined',
@@ -224,7 +236,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         sort_order: 5, 
         is_featured: false, 
         is_addon: true, 
-        has_printed_version: true,
+        has_printed_version: true, 
         price_printed: 100,
         price_electronic: 40,
         goal_config: 'none',
@@ -243,7 +255,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
         sort_order: 6, 
         is_featured: false, 
         is_addon: true, 
-        has_printed_version: true,
+        has_printed_version: true, 
         price_printed: 120,
         price_electronic: 50,
         goal_config: 'none',
@@ -318,10 +330,15 @@ export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
         target_age: '7-14 سنة',
         level: 'جميع المستويات',
         icon_name: 'MessageSquare',
-        includes_digital_portfolio: false,
-        includes_certificate: false,
-        includes_publication: false,
-        includes_extra_mentoring: false
+        comparison_values: {
+            'num_sessions': '1',
+            'level': 'عام',
+            'target_age': '7-14',
+            'digital_portfolio': false,
+            'certificate': false,
+            'publication': false,
+            'mentoring': false
+        }
     },
     { 
         id: 2, 
@@ -335,10 +352,15 @@ export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
         target_age: '8-12 سنة',
         level: 'مبتدئ',
         icon_name: 'Rocket',
-        includes_digital_portfolio: true,
-        includes_certificate: true,
-        includes_publication: false,
-        includes_extra_mentoring: false
+        comparison_values: {
+            'num_sessions': '4',
+            'level': 'مبتدئ',
+            'target_age': '8-12',
+            'digital_portfolio': true,
+            'certificate': true,
+            'publication': false,
+            'mentoring': false
+        }
     },
     { 
         id: 3, 
@@ -352,15 +374,19 @@ export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
         target_age: '9-14 سنة',
         level: 'متوسط',
         icon_name: 'PenTool',
-        includes_digital_portfolio: true,
-        includes_certificate: true,
-        includes_publication: true,
-        includes_extra_mentoring: true
+        comparison_values: {
+            'num_sessions': '8',
+            'level': 'متوسط',
+            'target_age': '9-14',
+            'digital_portfolio': true,
+            'certificate': true,
+            'publication': true,
+            'mentoring': true
+        }
     },
 ];
 
 export const mockSiteContent: SiteContent = {
-    // ... (All site content)
     portalPage: {
         heroTitle: 'رحلة كل طفل تبدأ بقصة... وقصته تبدأ هنا',
         heroSubtitle: 'منصة تربوية عربية متكاملة تصنع قصصاً مخصصة تجعل طفلك بطلاً، وتطلق مواهبه في الكتابة الإبداعية',
@@ -484,100 +510,87 @@ export const mockSiteContent: SiteContent = {
     }
 };
 
+export const mockStandaloneServices: StandaloneService[] = [
+    { id: 1, name: 'مراجعة قصة قصيرة', price: 150, description: 'مراجعة لغوية وفنية لقصة من تأليف الطفل.', category: 'مراجعات', icon_name: 'FileCheck2', requires_file_upload: true, provider_type: 'instructor' },
+    { id: 2, name: 'جلسة توجيه إضافية', price: 200, description: 'جلسة خاصة لتقديم النصح والإرشاد للطفل الموهوب.', category: 'استشارات', icon_name: 'Users', requires_file_upload: false, provider_type: 'instructor' },
+    { id: 3, name: 'نشر عمل في المجلة', price: 300, description: 'تنسيق ونشر عمل الطفل في مجلة المنصة الشهرية.', category: 'نشر', icon_name: 'BookUp', requires_file_upload: true, provider_type: 'company' }
+];
+
 export const mockSocialLinks: SocialLinks = {
-    id: 1, facebook_url: 'https://facebook.com', twitter_url: 'https://twitter.com', instagram_url: 'https://instagram.com'
+    id: 1,
+    facebook_url: 'https://facebook.com',
+    twitter_url: 'https://twitter.com',
+    instagram_url: 'https://instagram.com'
 };
 
-export const mockPublicHolidays: string[] = ['2024-01-01', '2024-04-10'];
+export const mockPricingSettings: PricingSettings = {
+    id: 1,
+    company_percentage: 1.2, // 20% markup
+    fixed_fee: 50 // 50 EGP fixed fee
+};
 
-export const mockStandaloneServices: StandaloneService[] = [
-    { id: 1, name: 'مراجعة نص', price: 200, description: 'مراجعة لغوية وفنية لقصة الطفل.', category: 'مراجعات', icon_name: 'FileCheck2', requires_file_upload: true, provider_type: 'instructor' },
-    { id: 2, name: 'استشارة تربوية', price: 300, description: 'جلسة استشارة لولي الأمر.', category: 'استشارات', icon_name: 'MessageSquare', requires_file_upload: false, provider_type: 'company' }
-];
+// Usually permissions are not dynamic in mock, but for the sake of completeness
+export const mockRolePermissions: any = {}; 
 
 export const mockCommunicationSettings: CommunicationSettings = {
     support_email: 'support@alrehlah.com',
-    join_us_email: 'join@alrehlah.com',
-    whatsapp_number: '201000000000',
-    whatsapp_default_message: 'السلام عليكم، استفسار بخصوص...',
-    instapay_url: 'https://ipn.eg/S/123456',
-    instapay_qr_url: '',
-    instapay_number: ''
+    join_us_email: 'careers@alrehlah.com',
+    whatsapp_number: '+201000000000',
+    whatsapp_default_message: 'مرحباً، لدي استفسار بخصوص...',
+    instapay_url: 'https://ipn.eg/S/123',
+    instapay_qr_url: 'https://placehold.co/400x400?text=QR+Code',
+    instapay_number: '01000000000'
 };
 
-export const mockPrices: Prices = { base_session: 150 };
+export const mockJitsiSettings: JitsiSettings = {
+    id: 1,
+    domain: 'meet.jit.si',
+    room_prefix: 'AlRehlah-Session-',
+    join_minutes_before: 10,
+    expire_minutes_after: 120,
+    start_with_audio_muted: true,
+    start_with_video_muted: false
+};
+
+export const mockAdditionalServices: AdditionalService[] = [
+    { id: 1, name: 'طباعة فاخرة', price: 100, description: 'ورق مقوى وغلاف سميك.' },
+    { id: 2, name: 'تغليف هدايا', price: 50, description: 'تغليف مميز مع بطاقة إهداء.' }
+];
+
+export const mockPrices: Prices = {
+    'custom_story_base': 450,
+    'subscription_monthly': 250
+};
 
 export const mockShippingCosts: ShippingCosts = {
     'مصر': {
         'القاهرة': 50,
         'الجيزة': 50,
         'الإسكندرية': 60,
-        'الدقهلية': 65,
-        'البحر الأحمر': 80,
-        'البحيرة': 65,
-        'الفيوم': 65,
-        'الغربية': 60,
-        'الإسماعيلية': 60,
-        'المنوفية': 60,
-        'المنيا': 70,
-        'القليوبية': 55,
-        'الوادي الجديد': 100,
-        'السويس': 60,
-        'اسوان': 100,
-        'اسيوط': 80,
-        'بني سويف': 65,
-        'بورسعيد': 60,
-        'دمياط': 65,
-        'الشرقية': 60,
-        'جنوب سيناء': 90,
-        'كفر الشيخ': 65,
-        'مطروح': 85,
-        'الأقصر': 100,
-        'قنا': 90,
-        'شمال سيناء': 90,
-        'سوهاج': 80
+        'أسوان': 100,
+        'باقي المحافظات': 75
     }
 };
 
-export const mockBlogPosts: BlogPost[] = [
-    { id: 1, created_at: '2023-08-01', published_at: '2023-08-02', title: 'أهمية القراءة للطفل', slug: 'reading-importance', content: 'محتوى المقال...', author_name: 'سارة', status: 'published', image_url: 'https://placehold.co/1200x630?text=Blog+Post' }
-];
-
-export const mockSupportTickets: SupportTicket[] = [
-    { id: 't1', created_at: '2023-08-20', name: 'محمد', email: 'm@test.com', subject: 'استفسار', message: 'كيف اشترك؟', status: 'جديدة' }
-];
-
-export const mockJoinRequests: JoinRequest[] = [
-    { id: 'r1', created_at: '2023-08-21', name: 'سعاد', email: 's@test.com', phone: '010...', role: 'مدرب', message: 'أرغب بالانضمام', status: 'جديد' }
-];
-
-export const mockSupportSessionRequests: SupportSessionRequest[] = [];
-
 export const mockScheduledSessions: ScheduledSession[] = [
-    { id: 'ses_2', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: '2023-08-10T17:00:00Z', status: 'completed' },
-    { id: 'ses_6', booking_id: 'bk_def', subscription_id: null, child_id: 2, instructor_id: 1, session_date: '2023-08-15T14:00:00Z', status: 'upcoming' }
+    { id: 'ses_1', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(Date.now() + 86400000).toISOString(), status: 'upcoming' },
+    { id: 'ses_2', booking_id: 'bk_abc', subscription_id: null, child_id: 1, instructor_id: 1, session_date: new Date(Date.now() - 86400000).toISOString(), status: 'completed' },
+    { id: 'ses_3', booking_id: 'bk_def', subscription_id: null, child_id: 2, instructor_id: 1, session_date: new Date(Date.now() + 172800000).toISOString(), status: 'upcoming' }
 ];
 
-export const mockSessionMessages: SessionMessage[] = [];
+export const mockSessionMessages: SessionMessage[] = [
+    { id: 'msg_1', booking_id: 'bk_abc', sender_id: 'usr_instructor_1', sender_role: 'instructor', message_text: 'أهلاً بك فاطمة، هل أنتِ جاهزة لدرس اليوم؟', created_at: new Date(Date.now() - 3600000).toISOString() },
+    { id: 'msg_2', booking_id: 'bk_abc', sender_id: 'usr_parent', sender_role: 'user', message_text: 'نعم، نحن مستعدون!', created_at: new Date(Date.now() - 3500000).toISOString() }
+];
 
-export const mockSessionAttachments: SessionAttachment[] = [];
+export const mockSessionAttachments: SessionAttachment[] = [
+    { id: 'att_1', booking_id: 'bk_abc', uploader_id: 'usr_parent', uploader_role: 'student', file_name: 'قصة_فاطمة_الأولى.docx', file_url: '#', created_at: new Date(Date.now() - 86400000).toISOString() }
+];
 
-export const mockServiceOrders: ServiceOrder[] = [];
+export const mockSupportSessionRequests: SupportSessionRequest[] = [
+    { id: 'req_1', instructor_id: 1, child_id: 1, reason: 'تغيير موعد الجلسة لظروف طارئة', status: 'pending', requested_at: new Date().toISOString() }
+];
 
-export const mockInstructorPayouts: InstructorPayout[] = [];
-
-export const mockAdditionalServices: AdditionalService[] = [];
-
-export const mockPricingSettings: PricingSettings = {
-    id: 1, company_percentage: 1.2, fixed_fee: 50
-};
-
-export const mockRolePermissions: Record<UserRole, Permissions> = {} as any;
-
-export const mockJitsiSettings: JitsiSettings = {
-    id: 1, domain: 'meet.jit.si', room_prefix: 'AlRehlah-', join_minutes_before: 10, expire_minutes_after: 120, start_with_audio_muted: true, start_with_video_muted: false
-};
-
-export const mockAuditLogs = [
-    { id: 1, action: 'UPDATE_ORDER_STATUS', user_id: 'usr_admin', target_description: 'Order #123', details: 'Changed to Completed', timestamp: '2023-08-25T10:00:00Z' }
+export const mockPublicHolidays: string[] = [
+    '2024-01-01', '2024-01-07', '2024-01-25', '2024-04-10', '2024-04-11', '2024-04-25', '2024-05-01', '2024-06-16', '2024-06-17', '2024-06-30', '2024-07-08', '2024-07-23', '2024-09-16', '2024-10-06'
 ];

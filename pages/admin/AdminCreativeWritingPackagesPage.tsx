@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Package, Plus, Edit, Trash2 } from 'lucide-react';
+import { Package, Plus, Edit, Trash2, Table as TableIcon, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminCWSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useCreativeWritingSettingsMutations } from '../../hooks/mutations/useCreativeWritingSettingsMutations';
@@ -11,12 +11,15 @@ import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import SortableTableHead from '../../components/admin/ui/SortableTableHead';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
+import ComparisonCriteriaManager from '../../components/admin/ComparisonCriteriaManager';
 
 const AdminCreativeWritingPackagesPage: React.FC = () => {
     const navigate = useNavigate();
     const { data, isLoading, error, refetch } = useAdminCWSettings();
     const { deletePackage } = useCreativeWritingSettingsMutations();
 
+    const [activeTab, setActiveTab] = useState('packages');
     const [sortConfig, setSortConfig] = useState<{ key: keyof CreativeWritingPackage; direction: 'asc' | 'desc' } | null>({ key: 'price', direction: 'asc' });
 
     const packages = useMemo(() => {
@@ -50,45 +53,60 @@ const AdminCreativeWritingPackagesPage: React.FC = () => {
 
     return (
         <div className="animate-fadeIn space-y-8">
-                <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold text-foreground">إدارة باقات بداية الرحلة</h1>
-                <Button onClick={() => navigate('/admin/creative-writing-packages/new')} icon={<Plus size={18} />}>
-                    إضافة باقة
-                </Button>
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-extrabold text-foreground">إعدادات باقات بداية الرحلة</h1>
             </div>
             
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Package /> قائمة الباقات</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <SortableTableHead<CreativeWritingPackage> sortKey="name" label="الباقة" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableTableHead<CreativeWritingPackage> sortKey="sessions" label="الجلسات" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableTableHead<CreativeWritingPackage> sortKey="price" label="السعر" sortConfig={sortConfig} onSort={handleSort} />
-                                    <TableHead>إجراءات</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {packages.map((pkg: CreativeWritingPackage) => (
-                                    <TableRow key={pkg.id}>
-                                        <TableCell className="font-semibold">{pkg.name} {pkg.popular && <span className="text-xs text-primary">(الأكثر شيوعاً)</span>}</TableCell>
-                                        <TableCell>{pkg.sessions}</TableCell>
-                                        <TableCell className="font-bold">{pkg.price === 0 ? 'مجانية' : `${pkg.price} ج.م`}</TableCell>
-                                        <TableCell className="flex items-center gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/creative-writing-packages/${pkg.id}`)} title="تعديل"><Edit size={20} /></Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeletePackage(pkg.id)} title="حذف"><Trash2 size={20} /></Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                    <TabsTrigger value="packages"><Package className="ml-2" size={16}/> الباقات</TabsTrigger>
+                    <TabsTrigger value="criteria"><TableIcon className="ml-2" size={16}/> معايير المقارنة</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="packages">
+                    <div className="flex justify-end mb-4">
+                         <Button onClick={() => navigate('/admin/creative-writing-packages/new')} icon={<Plus size={18} />}>
+                            إضافة باقة
+                        </Button>
                     </div>
-                </CardContent>
-            </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><List /> قائمة الباقات الحالية</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <SortableTableHead<CreativeWritingPackage> sortKey="name" label="الباقة" sortConfig={sortConfig} onSort={handleSort} />
+                                            <SortableTableHead<CreativeWritingPackage> sortKey="sessions" label="الجلسات" sortConfig={sortConfig} onSort={handleSort} />
+                                            <SortableTableHead<CreativeWritingPackage> sortKey="price" label="السعر" sortConfig={sortConfig} onSort={handleSort} />
+                                            <TableHead>إجراءات</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {packages.map((pkg: CreativeWritingPackage) => (
+                                            <TableRow key={pkg.id}>
+                                                <TableCell className="font-semibold">{pkg.name} {pkg.popular && <span className="text-xs text-primary">(الأكثر شيوعاً)</span>}</TableCell>
+                                                <TableCell>{pkg.sessions}</TableCell>
+                                                <TableCell className="font-bold">{pkg.price === 0 ? 'مجانية' : `${pkg.price} ج.م`}</TableCell>
+                                                <TableCell className="flex items-center gap-2">
+                                                    <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/creative-writing-packages/${pkg.id}`)} title="تعديل"><Edit size={20} /></Button>
+                                                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeletePackage(pkg.id)} title="حذف"><Trash2 size={20} /></Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="criteria">
+                     <ComparisonCriteriaManager items={data?.comparisonItems || []} />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 };

@@ -208,6 +208,14 @@ export interface PersonalizedProduct {
     deleted_at?: string | null;
 }
 
+// New Interface for Comparison Criteria
+export interface ComparisonItem {
+    id: string;
+    label: string;
+    type: 'boolean' | 'text'; // boolean = Check/X, text = Custom text
+    sort_order: number;
+}
+
 export interface CreativeWritingPackage {
     id: number;
     name: string;
@@ -216,15 +224,13 @@ export interface CreativeWritingPackage {
     features: string[];
     popular: boolean;
     description: string; 
-    // New Fields for Detailed View & Comparison Control
     detailed_description?: string; 
     target_age?: string; 
     level?: string; 
     icon_name?: string; 
-    includes_digital_portfolio: boolean;
-    includes_certificate: boolean;
-    includes_publication: boolean;
-    includes_extra_mentoring: boolean;
+    // Dynamic values for the comparison table
+    // Key is ComparisonItem.id, value is boolean (for check/x) or string (for text)
+    comparison_values: Record<string, boolean | string>;
 }
 
 export interface StandaloneService {
@@ -544,7 +550,6 @@ export interface JitsiSettings {
     start_with_video_muted: boolean;
 }
 
-// Ensure badges are included in the Public Data response type
 export interface PublicData {
     instructors: Instructor[];
     blogPosts: BlogPost[];
@@ -556,5 +561,7 @@ export interface PublicData {
     subscriptionPlans: SubscriptionPlan[];
     standaloneServices: StandaloneService[];
     communicationSettings: CommunicationSettings;
-    badges: Badge[]; // Added this
+    badges: Badge[];
+    // Added comparison items to public data
+    comparisonItems: ComparisonItem[];
 }

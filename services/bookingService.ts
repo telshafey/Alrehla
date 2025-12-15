@@ -1,6 +1,7 @@
 
 import { supabase } from '../lib/supabaseClient';
 import { cloudinaryService } from './cloudinaryService';
+import { mockComparisonItems } from '../data/mockData';
 import type { 
     CreativeWritingBooking, 
     ScheduledSession, 
@@ -8,7 +9,8 @@ import type {
     BookingStatus,
     CreativeWritingPackage,
     StandaloneService,
-    SessionAttachment
+    SessionAttachment,
+    ComparisonItem
 } from '../lib/database.types';
 
 export const bookingService = {
@@ -95,6 +97,56 @@ export const bookingService = {
         if (error) throw new Error(error.message);
         return data as StandaloneService[];
     },
+
+    async getAllComparisonItems() {
+        const { data, error } = await supabase
+            .from('comparison_items')
+            .select('*')
+            .order('sort_order', { ascending: true });
+        
+        // Return mock data if table doesn't exist yet
+        if (error) {
+            console.warn("Could not fetch comparison items, returning mock data.");
+            return mockComparisonItems;
+        }
+        return data as ComparisonItem[];
+    },
+
+    // --- Mutations: Comparison Items ---
+    async createComparisonItem(payload: any) {
+         const { id, ...rest } = payload;
+         const { data, error } = await supabase
+            .from('comparison_items')
+            .insert([rest])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as ComparisonItem;
+    },
+
+    async updateComparisonItem(payload: any) {
+        const { id, ...updates } = payload;
+        const { data, error } = await supabase
+            .from('comparison_items')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as ComparisonItem;
+    },
+
+    async deleteComparisonItem(itemId: string) {
+        const { error } = await supabase
+            .from('comparison_items')
+            .delete()
+            .eq('id', itemId);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
 
     // --- Mutations: Instructors ---
     async createInstructor(payload: any) {

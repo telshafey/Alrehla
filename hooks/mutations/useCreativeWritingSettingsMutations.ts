@@ -34,6 +34,35 @@ export const useCreativeWritingSettingsMutations = () => {
         },
         onError: (err: Error) => addToast(`فشل حذف الباقة: ${err.message}`, 'error'),
     });
+    
+    // Mutations for Comparison Items
+    const createComparisonItem = useMutation({
+        mutationFn: bookingService.createComparisonItem,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
+            addToast('تمت إضافة البند بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل إضافة البند: ${err.message}`, 'error'),
+    });
+
+    const updateComparisonItem = useMutation({
+        mutationFn: bookingService.updateComparisonItem,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
+            addToast('تم تحديث البند بنجاح.', 'success');
+        },
+        onError: (err: Error) => addToast(`فشل تحديث البند: ${err.message}`, 'error'),
+    });
+
+    const deleteComparisonItem = useMutation({
+        mutationFn: ({ itemId }: { itemId: string }) => bookingService.deleteComparisonItem(itemId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminCWSettings'] });
+            addToast('تم حذف البند بنجاح.', 'info');
+        },
+        onError: (err: Error) => addToast(`فشل حذف البند: ${err.message}`, 'error'),
+    });
+
 
     // Mutations for Standalone Services
     const createStandaloneService = useMutation({
@@ -70,5 +99,8 @@ export const useCreativeWritingSettingsMutations = () => {
         createStandaloneService,
         updateStandaloneService,
         deleteStandaloneService,
+        createComparisonItem,
+        updateComparisonItem,
+        deleteComparisonItem
     };
 };

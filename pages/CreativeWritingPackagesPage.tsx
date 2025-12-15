@@ -5,13 +5,13 @@ import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
 import { Button } from '../components/ui/Button';
 import { CheckCircle, X, ArrowLeft, Star, Clock, User, Video, LayoutGrid, Table as TableIcon, ArrowRight } from 'lucide-react';
-import type { CreativeWritingPackage, Instructor } from '../lib/database.types';
+import type { CreativeWritingPackage, Instructor, ComparisonItem } from '../lib/database.types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 import { Card, CardContent, CardFooter, CardHeader } from '../components/ui/card';
 import { IconMap } from '../components/creative-writing/services/IconMap';
 
 // --- Comparison Table Components ---
-const FeatureRow: React.FC<{ label: string; values: (string | boolean)[] }> = ({ label, values }) => (
+const FeatureRow: React.FC<{ label: string; values: (string | boolean | undefined)[] }> = ({ label, values }) => (
     <tr className="border-b last:border-b-0">
         <th scope="row" className="py-4 px-2 sm:px-4 text-right font-semibold text-gray-700 bg-gray-50/50">{label}</th>
         {values.map((value, index) => (
@@ -19,7 +19,7 @@ const FeatureRow: React.FC<{ label: string; values: (string | boolean)[] }> = ({
                 {typeof value === 'boolean' ? (
                     value ? <CheckCircle className="w-6 h-6 text-green-500 mx-auto" /> : <X className="w-6 h-6 text-gray-400 mx-auto" />
                 ) : (
-                    <span className="text-gray-600 text-sm sm:text-base">{value}</span>
+                    <span className="text-gray-600 text-sm sm:text-base">{value || '-'}</span>
                 )}
             </td>
         ))}
@@ -118,6 +118,7 @@ const CreativeWritingPackagesPage: React.FC = () => {
 
     const packages = (data?.creativeWritingPackages || []) as CreativeWritingPackage[];
     const instructors = (data?.instructors || []) as Instructor[];
+    const comparisonItems = (data?.comparisonItems || []) as ComparisonItem[];
     
     const getPackagePriceRange = (pkg: CreativeWritingPackage) => {
         if (pkg.price === 0) return { min: 0, max: 0 };
@@ -132,24 +133,6 @@ const CreativeWritingPackagesPage: React.FC = () => {
         return { min: Math.min(...prices), max: Math.max(...prices) };
     };
     
-    // Define features to compare based on the new boolean fields
-    const comparisonFeatures = [
-        { label: 'عدد الجلسات', key: 'sessions' },
-        { label: 'المستوى', key: 'level' },
-        { label: 'الفئة العمرية', key: 'target_age' },
-        { label: 'الهدف الأساسي', key: 'description', transform: (pkg: CreativeWritingPackage) => {
-            if (pkg.name.includes('التعريفية')) return 'تقييم وتخطيط';
-            if (pkg.name.includes('الانطلاق')) return 'تعلم الأساسيات';
-            if (pkg.name.includes('الأساسية')) return 'بناء متكامل للمهارات';
-            return pkg.description;
-        }},
-        { label: 'محفظة رقمية للأعمال', key: 'includes_digital_portfolio' },
-        { label: 'شهادة إتمام', key: 'includes_certificate' },
-        { label: 'نشر عمل في المجلة', key: 'includes_publication' },
-        { label: 'جلسات إرشاد إضافية', key: 'includes_extra_mentoring' },
-    ];
-
-
     return (
         <div className="bg-white py-16 sm:py-20 animate-fadeIn">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -201,19 +184,17 @@ const CreativeWritingPackagesPage: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {comparisonFeatures.map(feature => (
+                                    {comparisonItems.map(item => (
                                         <FeatureRow 
-                                            key={feature.label}
-                                            label={feature.label}
+                                            key={item.id}
+                                            label={item.label}
                                             values={packages.map(pkg => {
-                                                if (feature.transform) {
-                                                    return feature.transform(pkg);
-                                                }
-                                                // Access the property dynamically
-                                                return (pkg as any)[feature.key];
+                                                // Access the dynamic value from the map
+                                                return pkg.comparison_values?.[item.id];
                                             })}
                                         />
                                     ))}
+                                    
                                     <tr className="border-b">
                                         <th scope="row" className="py-6 px-4 text-right font-semibold text-gray-700 bg-gray-50/50">السعر</th>
                                         {packages.map(pkg => {

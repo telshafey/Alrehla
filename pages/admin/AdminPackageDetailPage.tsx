@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Package, Star, Info, List, FileText, CheckSquare } from 'lucide-react';
+import { ArrowLeft, Save, Package, Star, Info, List, FileText, CheckSquare, Table as TableIcon } from 'lucide-react';
 import { useAdminCWSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useCreativeWritingSettingsMutations } from '../../hooks/mutations/useCreativeWritingSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -34,10 +34,7 @@ const AdminPackageDetailPage: React.FC = () => {
         level: '',
         icon_name: 'Rocket',
         popular: false,
-        includes_digital_portfolio: false,
-        includes_certificate: false,
-        includes_publication: false,
-        includes_extra_mentoring: false
+        comparison_values: {}, // Dynamic values map
     });
 
     const [featuresString, setFeaturesString] = useState('');
@@ -64,8 +61,15 @@ const AdminPackageDetailPage: React.FC = () => {
         }));
     };
     
-    const handleCheckboxChange = (name: string, checked: boolean) => {
-        setPkg(prev => ({ ...prev, [name]: checked }));
+    // Dynamic handler for comparison values
+    const handleComparisonValueChange = (itemId: string, value: any) => {
+        setPkg(prev => ({
+            ...prev,
+            comparison_values: {
+                ...prev.comparison_values,
+                [itemId]: value
+            }
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -90,6 +94,9 @@ const AdminPackageDetailPage: React.FC = () => {
     };
 
     if (settingsLoading && !isNew) return <PageLoader text="جاري تحميل بيانات الباقة..." />;
+
+    // Helper to get comparison items
+    const comparisonItems = data?.comparisonItems || [];
 
     return (
         <div className="animate-fadeIn space-y-8 pb-20">
@@ -157,45 +164,43 @@ const AdminPackageDetailPage: React.FC = () => {
                             </CardContent>
                         </Card>
                         
+                        {/* Dynamic Comparison Table Settings */}
                         <Card className="border-blue-200 bg-blue-50/20">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-blue-800"><CheckSquare /> إعدادات جدول المقارنة</CardTitle>
-                                <CardDescription>حدد الميزات التي ستظهر بعلامة (صح) في جدول مقارنة الباقات.</CardDescription>
+                                <CardTitle className="flex items-center gap-2 text-blue-800"><TableIcon /> قيم جدول المقارنة</CardTitle>
+                                <CardDescription>
+                                    حدد القيم التي ستظهر لهذه الباقة في كل صف من صفوف المقارنة.
+                                    <br/>
+                                    <span className="text-xs text-muted-foreground">(يمكنك إدارة هذه الصفوف من تبويب "معايير المقارنة" في الصفحة السابقة)</span>
+                                </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <label className="flex items-center gap-3 p-3 border rounded-lg bg-white cursor-pointer hover:border-blue-300 transition-colors">
-                                        <Checkbox
-                                            checked={pkg.includes_digital_portfolio}
-                                            onCheckedChange={(checked) => handleCheckboxChange('includes_digital_portfolio', checked)}
-                                        />
-                                        <span className="font-semibold text-sm">محفظة رقمية للأعمال</span>
-                                    </label>
-                                    
-                                     <label className="flex items-center gap-3 p-3 border rounded-lg bg-white cursor-pointer hover:border-blue-300 transition-colors">
-                                        <Checkbox
-                                            checked={pkg.includes_certificate}
-                                            onCheckedChange={(checked) => handleCheckboxChange('includes_certificate', checked)}
-                                        />
-                                        <span className="font-semibold text-sm">شهادة إتمام</span>
-                                    </label>
-                                    
-                                    <label className="flex items-center gap-3 p-3 border rounded-lg bg-white cursor-pointer hover:border-blue-300 transition-colors">
-                                        <Checkbox
-                                            checked={pkg.includes_publication}
-                                            onCheckedChange={(checked) => handleCheckboxChange('includes_publication', checked)}
-                                        />
-                                        <span className="font-semibold text-sm">نشر عمل في المجلة</span>
-                                    </label>
-                                    
-                                    <label className="flex items-center gap-3 p-3 border rounded-lg bg-white cursor-pointer hover:border-blue-300 transition-colors">
-                                        <Checkbox
-                                            checked={pkg.includes_extra_mentoring}
-                                            onCheckedChange={(checked) => handleCheckboxChange('includes_extra_mentoring', checked)}
-                                        />
-                                        <span className="font-semibold text-sm">جلسات إرشاد إضافية</span>
-                                    </label>
-                                </div>
+                                {comparisonItems.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {comparisonItems.map(item => (
+                                            <div key={item.id} className="bg-white p-3 rounded border shadow-sm">
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">{item.label}</label>
+                                                {item.type === 'boolean' ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <Checkbox 
+                                                            checked={!!pkg.comparison_values?.[item.id]} 
+                                                            onCheckedChange={(checked) => handleComparisonValueChange(item.id, checked)}
+                                                        />
+                                                        <span className="text-sm">{!!pkg.comparison_values?.[item.id] ? 'متوفر (✔️)' : 'غير متوفر (❌)'}</span>
+                                                    </div>
+                                                ) : (
+                                                    <Input 
+                                                        value={(pkg.comparison_values?.[item.id] as string) || ''} 
+                                                        onChange={(e) => handleComparisonValueChange(item.id, e.target.value)}
+                                                        placeholder="اكتب القيمة هنا..."
+                                                    />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-center text-muted-foreground py-4">لم تقم بإضافة أي معايير للمقارنة بعد.</p>
+                                )}
                             </CardContent>
                         </Card>
 

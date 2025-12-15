@@ -20,12 +20,13 @@ const fetchSetting = async (key: string, fallback: any) => {
 export const useAdminCWSettings = () => useQuery({
     queryKey: ['adminCWSettings'],
     queryFn: async () => {
-        const [packages, standaloneServices, services] = await Promise.all([
+        const [packages, standaloneServices, services, comparisonItems] = await Promise.all([
             bookingService.getAllPackages(),
             bookingService.getAllStandaloneServices(),
             fetchSetting('additional_services', mockAdditionalServices),
+            bookingService.getAllComparisonItems(),
         ]);
-        return { packages, services, standaloneServices };
+        return { packages, services, standaloneServices, comparisonItems };
     },
 });
 
