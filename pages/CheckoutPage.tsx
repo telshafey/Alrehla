@@ -8,12 +8,13 @@ import { useToast } from '../contexts/ToastContext';
 import { useCart, CartItem } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
-import { ArrowLeft, Upload, ShoppingCart, CreditCard, Link as LinkIcon, AlertCircle, Copy, Check, Truck, Trash2 } from 'lucide-react';
+import { ArrowLeft, Upload, ShoppingCart, CreditCard, Link as LinkIcon, AlertCircle, Copy, Check, Truck, Trash2, Loader2 } from 'lucide-react';
 import ReceiptUpload from '../components/shared/ReceiptUpload';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import Image from '../components/ui/Image';
 import { orderService } from '../services/orderService';
+import { userService } from '../services/userService';
 
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
@@ -58,6 +59,39 @@ const CheckoutPage: React.FC = () => {
             </div>
         );
     }
+
+    /**
+     * دالة مساعدة للتأكد من وجود معرف طفل صالح في قاعدة البيانات.
+     * إذا كان المعرف هو -1، يتم إنشاء بروفايل جديد وحفظه.
+     */
+    const ensureChildId = async (childPayload: any): Promise<number | null> => {
+        // إذا كان المعرف صالحاً (أكبر من 0)، نستخدمه مباشرة
+        if (childPayload.id && childPayload.id > 0) {
+            return childPayload.id;
+        }
+
+        // إذا كانت البيانات ناقصة والتعريف غير موجود، قد يكون الطلب لنفس المستخدم
+        if (!childPayload.name && !childPayload.childName) {
+            return null;
+        }
+
+        // إنشاء بروفايل جديد للطفل في قاعدة البيانات
+        try {
+            console.log("Creating shadow child profile for manual entry...");
+            const newChild = await userService.createChildProfile({
+                name: childPayload.name || childPayload.childName,
+                birth_date: childPayload.birth_date || childPayload.childBirthDate || new Date().toISOString().split('T')[0],
+                gender: childPayload.gender || childPayload.childGender || 'ذكر',
+                avatar_url: null,
+                interests: null,
+                strengths: null
+            });
+            return newChild.id;
+        } catch (error) {
+            console.error("Failed to create on-the-fly child profile:", error);
+            throw new Error("فشل إنشاء ملف الطفل، يرجى المحاولة لاحقاً.");
+        }
+    };
     
     const processCartItem = async (item: CartItem, receiptUrl: string) => {
         if (!currentUser) throw new Error('User not authenticated');
@@ -73,6 +107,14 @@ const CheckoutPage: React.FC = () => {
             const safeFormData = formData || {};
             const safeDetails = details || {};
             const finalDetails = { ...safeFormData, ...safeDetails };
+
+            // التأكد من معرف الطفل (Fix for Foreign Key Constraint)
+            const childId = await ensureChildId({
+                id: item.payload.childId || safeDetails.childId,
+                name: safeFormData.childName || safeDetails.childName,
+                birth_date: safeFormData.childBirthDate || safeDetails.childBirthDate,
+                gender: safeFormData.childGender || safeDetails.childGender
+            });
 
             // Handle Image Uploads
             const filesToUpload = { ...(imageFiles || {}) };
@@ -94,13 +136,6 @@ const CheckoutPage: React.FC = () => {
                     }
                 }
             }
-
-            let childId = null;
-            if (safeDetails.childId && Number(safeDetails.childId) > 0) {
-                childId = Number(safeDetails.childId);
-            } else if (item.payload.childId && Number(item.payload.childId) > 0) {
-                 childId = Number(item.payload.childId);
-            }
             
             const baseTotal = item.payload.totalPrice || item.payload.total || 0;
             const finalTotal = baseTotal + (shippingPrice || 0);
@@ -120,7 +155,9 @@ const CheckoutPage: React.FC = () => {
         if (item.type === 'subscription') {
             const { plan, formData } = item.payload;
             
-            // Check shipping price - Alert if missing for physical products
+            // التأكد من معرف الطفل
+            const childId = await ensureChildId(formData);
+
             const shippingPrice = item.payload.shippingPrice || 0;
             const subTotal = (item.payload.total || 0) + shippingPrice;
             
@@ -145,7 +182,7 @@ const CheckoutPage: React.FC = () => {
 
             return createSubscription.mutateAsync({
                 userId: currentUser.id,
-                childId: item.payload.childId || 1, 
+                childId: childId, 
                 planId: plan?.id,
                 planName: plan?.name,
                 durationMonths: plan?.duration_months || 1,
@@ -158,9 +195,21 @@ const CheckoutPage: React.FC = () => {
 
         // 3. Handle Booking
         if (item.type === 'booking') {
+            // التأكد من معرف الطفل (Fix for Foreign Key Constraint)
+            const childId = await ensureChildId(item.payload.child);
+            
+            // تحديث المعرف في الـ payload قبل الإرسال
+            const updatedPayload = {
+                ...item.payload,
+                child: {
+                    ...item.payload.child,
+                    id: childId
+                }
+            };
+
             return createBooking.mutateAsync({
                 userId: currentUser.id,
-                payload: item.payload,
+                payload: updatedPayload,
                 receiptUrl 
             });
         }
@@ -182,9 +231,10 @@ const CheckoutPage: React.FC = () => {
             try {
                 receiptUrl = await orderService.uploadOrderFile(receiptFile, `receipts/${currentUser.id}`);
             } catch (uploadErr: any) {
-                throw new Error(uploadErr.message);
+                throw new Error("فشل رفع صورة الإيصال. يرجى التحقق من حجم الملف.");
             }
 
+            // تنفيذ معالجة عناصر السلة تتابعياً لضمان عدم حدوث تضارب في قاعدة البيانات
             for (const item of cart) {
                 await processCartItem(item, receiptUrl);
             }
@@ -193,7 +243,12 @@ const CheckoutPage: React.FC = () => {
             navigate('/payment-status?status=success_review');
         } catch (error: any) {
             console.error("Checkout Error:", error);
-            addToast(`${error.message}`, 'error');
+            // تحسين رسالة الخطأ للمستخدم
+            let userFriendlyMsg = error.message;
+            if (userFriendlyMsg.includes('violates foreign key constraint')) {
+                userFriendlyMsg = "عذراً، حدث خطأ في ربط بيانات الطفل. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.";
+            }
+            addToast(userFriendlyMsg, 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -233,7 +288,7 @@ const CheckoutPage: React.FC = () => {
                                             <span className="text-foreground flex items-center gap-2">
                                                 {item.payload.formData?.shippingOption === 'gift' && <span title="هدية">🎁</span>}
                                                 {item.payload.summary}
-                                                <button onClick={() => removeItemFromCart(item.id)} className="text-destructive hover:bg-red-100 p-1 rounded-full"><Trash2 size={14}/></button>
+                                                <button onClick={() => removeItemFromCart(item.id)} className="text-destructive hover:bg-red-100 p-1 rounded-full" disabled={isSubmitting}><Trash2 size={14}/></button>
                                             </span>
                                             <span className="text-foreground">{itemTotal} ج.م</span>
                                         </div>
@@ -272,14 +327,14 @@ const CheckoutPage: React.FC = () => {
                                             <span className="text-sm text-gray-500">رقم التحويل:</span>
                                             <div className="flex items-center gap-3">
                                                 <span className="font-mono font-bold text-lg dir-ltr">{instapayNumber}</span>
-                                                <Button size="sm" variant="ghost" onClick={handleCopyNumber} className="h-8 w-8 p-0">
+                                                <Button size="sm" variant="ghost" onClick={handleCopyNumber} className="h-8 w-8 p-0" disabled={isSubmitting}>
                                                     {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
                                                 </Button>
                                             </div>
                                         </div>
                                     )}
 
-                                    <a href={instapayUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-full hover:bg-primary/90 transition-colors">
+                                    <a href={instapayUrl} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-full hover:bg-primary/90 transition-colors ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}>
                                         <LinkIcon size={18} />
                                         <span>فتح التطبيق / رابط الدفع</span>
                                     </a>
@@ -299,15 +354,15 @@ const CheckoutPage: React.FC = () => {
                              <Button 
                                 onClick={handleConfirmPayment}
                                 loading={isSubmitting}
-                                disabled={!receiptFile}
+                                disabled={!receiptFile || isSubmitting}
                                 variant="success"
-                                icon={<Upload />}
+                                icon={isSubmitting ? <Loader2 className="animate-spin" /> : <Upload />}
                                 className="w-full"
                                 size="lg"
                             >
-                                {isSubmitting ? 'جاري معالجة الطلب...' : 'تأكيد ورفع الإيصال'}
+                                {isSubmitting ? 'جاري معالجة الطلب وإنشاء البيانات...' : 'تأكيد ورفع الإيصال'}
                             </Button>
-                             <Button as={Link} to="/cart" variant="link" size="sm" className="text-muted-foreground">
+                             <Button as={Link} to="/cart" variant="link" size="sm" className="text-muted-foreground" disabled={isSubmitting}>
                                 <ArrowLeft size={16} className="transform rotate-180 ml-1"/>
                                 <span>العودة إلى السلة</span>
                             </Button>

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, Clock } from 'lucide-react';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import type { Instructor, WeeklySchedule } from '../../lib/database.types';
 import { useToast } from '../../contexts/ToastContext';
@@ -11,10 +12,10 @@ const dayNames: { [key: string]: string } = {
     thursday: 'الخميس', friday: 'الجمعة'
 };
 
-const timeSlots = Array.from({ length: 48 }, (_, i) => {
-    const hour = Math.floor(i / 2);
-    const minute = i % 2 === 0 ? '00' : '30';
-    return `${hour.toString().padStart(2, '0')}:${minute}`;
+// تم التعديل ليكون الفارق 60 دقيقة بدلاً من 30
+const timeSlots = Array.from({ length: 24 }, (_, i) => {
+    const hour = i.toString().padStart(2, '0');
+    return `${hour}:00`;
 });
 
 
@@ -55,19 +56,33 @@ export const WeeklyScheduleManager: React.FC<{ instructor: Instructor }> = ({ in
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start gap-3">
+                <Clock className="text-blue-600 mt-1" />
+                <div>
+                    <p className="text-sm font-bold text-blue-800">نظام المواعيد: 60 دقيقة</p>
+                    <p className="text-xs text-blue-700">يرجى اختيار ساعات التوفر الثابتة. الموعد المختار (مثلاً 09:00) يعني توفرك للجلسة من 09:00 إلى 10:00.</p>
+                </div>
+            </div>
+
             {daysOfWeek.map(day => (
-                <div key={day}>
-                    <h4 className="font-bold mb-3">{dayNames[day]}</h4>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                <div key={day} className="bg-white p-4 rounded-xl border shadow-sm">
+                    <h4 className="font-bold mb-4 text-gray-700 border-b pb-2 flex justify-between items-center">
+                        {dayNames[day]}
+                        <span className="text-xs font-normal text-muted-foreground">{(schedule[day] || []).length} مواعيد</span>
+                    </h4>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
                         {timeSlots.map(time => {
                             const isSelected = (schedule[day as keyof WeeklySchedule] || []).includes(time);
                             return (
                                 <button
                                     key={time}
+                                    type="button"
                                     onClick={() => handleTimeToggle(day, time)}
-                                    className={`p-2 border rounded-lg text-sm transition-colors ${
-                                        isSelected ? 'bg-blue-600 text-white' : 'bg-white hover:bg-blue-100'
+                                    className={`p-2 border rounded-lg text-xs font-mono font-bold transition-all ${
+                                        isSelected 
+                                        ? 'bg-blue-600 text-white border-blue-600 shadow-md transform scale-105' 
+                                        : 'bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600'
                                     }`}
                                 >
                                     {time}
@@ -77,9 +92,9 @@ export const WeeklyScheduleManager: React.FC<{ instructor: Instructor }> = ({ in
                     </div>
                 </div>
             ))}
-             <div className="flex justify-end mt-6">
-                <Button onClick={handleSubmit} loading={requestScheduleChange.isPending} icon={<Send />}>
-                    إرسال طلب التعديل
+             <div className="flex justify-end mt-6 sticky bottom-4 z-10">
+                <Button onClick={handleSubmit} loading={requestScheduleChange.isPending} icon={<Send />} size="lg" className="shadow-xl">
+                    إرسال طلب التعديل للمراجعة
                 </Button>
             </div>
         </div>
