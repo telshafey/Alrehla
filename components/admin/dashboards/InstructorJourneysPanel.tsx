@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { BookOpen } from 'lucide-react';
 import AdminSection from '../AdminSection';
@@ -36,9 +37,9 @@ const InstructorJourneysPanel: React.FC<InstructorJourneysPanelProps> = ({ instr
     }, [instructorBookings]);
 
     return (
-        <AdminSection title="رحلات الطلاب" icon={<BookOpen />}>
+        <AdminSection title="طلابك ورحلاتهم النشطة" icon={<BookOpen />}>
             {students.length > 0 ? (
-                <div className="space-y-8">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     {students.map(({ studentProfile, journeys }) => (
                         <InstructorStudentCard 
                             key={studentProfile.id} 
@@ -48,7 +49,9 @@ const InstructorJourneysPanel: React.FC<InstructorJourneysPanelProps> = ({ instr
                     ))}
                 </div>
             ) : (
-                <p className="text-center text-gray-500 py-8">لم يتم تعيين أي طلاب لك بعد.</p>
+                <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed">
+                    <p className="text-gray-500">لم يتم تعيين أي طلاب لك في رحلات تدريبية نشطة بعد.</p>
+                </div>
             )}
         </AdminSection>
     );

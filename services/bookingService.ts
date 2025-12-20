@@ -47,7 +47,7 @@ export const bookingService = {
         const { data, error } = await supabase
             .from('instructors')
             .select('*')
-            .is('deleted_at', null) // Filter active instructors only
+            .is('deleted_at', null)
             .order('name', { ascending: true });
         if (error) throw new Error(error.message);
         return data as Instructor[];
@@ -62,7 +62,6 @@ export const bookingService = {
             .single();
         
         if (error) {
-            // PGRST116 means "Results contain 0 rows" for single(), which is valid if not an instructor
             if (error.code !== 'PGRST116') {
                 throw new Error(error.message);
             }
@@ -99,17 +98,18 @@ export const bookingService = {
     },
 
     async getAllComparisonItems() {
-        const { data, error } = await supabase
-            .from('comparison_items')
-            .select('*')
-            .order('sort_order', { ascending: true });
-        
-        // Return mock data if table doesn't exist yet
-        if (error) {
-            console.warn("Could not fetch comparison items, returning mock data.");
+        try {
+            const { data, error } = await supabase
+                .from('comparison_items')
+                .select('*')
+                .order('sort_order', { ascending: true });
+            
+            if (error) throw error;
+            return data as ComparisonItem[];
+        } catch (e) {
+            // Fallback to mock data silently to prevent LCP errors
             return mockComparisonItems;
         }
-        return data as ComparisonItem[];
     },
 
     // --- Mutations: Comparison Items ---
@@ -117,7 +117,7 @@ export const bookingService = {
          const { id, ...rest } = payload;
          const { data, error } = await supabase
             .from('comparison_items')
-            .insert([rest])
+            .insert([{ ...rest, id: payload.id }])
             .select()
             .single();
 
@@ -150,13 +150,12 @@ export const bookingService = {
 
     // --- Mutations: Instructors ---
     async createInstructor(payload: any) {
-        // Handle Avatar Upload via Cloudinary
         let avatarUrl = payload.avatar_url;
         if (payload.avatarFile) {
             try {
                 avatarUrl = await cloudinaryService.uploadImage(payload.avatarFile, 'alrehla_instructors');
             } catch (err) {
-                console.error("Avatar upload failed, falling back to existing/placeholder", err);
+                console.error("Avatar upload failed", err);
             }
         }
 
@@ -283,9 +282,8 @@ export const bookingService = {
 
         if (error) throw new Error(error.message);
         
-        // Ensure data was returned
         if (!data || data.length === 0) {
-             throw new Error(`فشل تحديث الباقة رقم ${id}. ربما تم حذفها أو لا تملك الصلاحية.`);
+             throw new Error(`فشل تحديث الباقة رقم ${id}.`);
         }
         
         return data[0] as CreativeWritingPackage;

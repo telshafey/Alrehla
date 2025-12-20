@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useAdminCWSettings, useAdminPricingSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
@@ -59,12 +60,8 @@ const AdminPriceReviewPage: React.FC = () => {
     const isSaving = updateInstructor.isPending || updateStandaloneService.isPending || updatePackage.isPending;
     const error = instructorsError || settingsError || pricingError;
 
-    if (isLoading || !pricingSettings || Object.keys(editableRates).length === 0 && instructors.length > 0) {
-        return <PageLoader text="جاري تحميل بيانات التسعير..." />;
-    }
-
-    if (error) {
-        return <ErrorState message={(error as Error).message} onRetry={() => { refetchInstructors(); refetchSettings(); refetchPricing(); }} />;
+    if (isLoading || !pricingSettings || (Object.keys(editableRates).length === 0 && instructors.length > 0)) {
+        return <PageLoader text="جاري تحميل مصفوفة الأسعار..." />;
     }
 
     const { standaloneServices = [], packages = [] } = settings || {};
@@ -86,69 +83,43 @@ const AdminPriceReviewPage: React.FC = () => {
         }));
     };
     
-    const handleServiceBasePriceChange = (serviceId: number, value: string) => {
-        setEditableServices(prev => prev.map(s => s.id === serviceId ? { ...s, price: parseFloat(value) || 0 } : s));
-    };
-
-    const handlePackageBasePriceChange = (packageId: number, value: string) => {
-        setEditablePackages(prev => prev.map(p => p.id === packageId ? { ...p, price: parseFloat(value) || 0 } : p));
-    };
-
-
     const handleSave = async () => {
         const updatePromises: Promise<any>[] = [];
         
-        // Save instructor-specific rates
         instructors.forEach(instructor => {
-            const originalServiceRates = instructor.service_rates || {};
-            const originalPackageRates = instructor.package_rates || {};
             const newServiceRates = editableRates[instructor.id]?.service_rates || {};
             const newPackageRates = editableRates[instructor.id]?.package_rates || {};
 
-            if (JSON.stringify(originalServiceRates) !== JSON.stringify(newServiceRates) || JSON.stringify(originalPackageRates) !== JSON.stringify(newPackageRates)) {
-                updatePromises.push(updateInstructor.mutateAsync({ id: instructor.id, service_rates: newServiceRates, package_rates: newPackageRates }));
-            }
-        });
-
-        // Save service base prices
-        (settings?.standaloneServices || []).forEach((originalService: StandaloneService) => {
-            const editedService = editableServices.find(s => s.id === originalService.id);
-            if (editedService && editedService.price !== originalService.price) {
-                updatePromises.push(updateStandaloneService.mutateAsync(editedService));
-            }
-        });
-
-        // Save package base prices
-        (settings?.packages || []).forEach((originalPackage: CreativeWritingPackage) => {
-            const editedPackage = editablePackages.find(p => p.id === originalPackage.id);
-            if (editedPackage && editedPackage.price !== originalPackage.price) {
-                updatePromises.push(updatePackage.mutateAsync(editedPackage));
+            if (JSON.stringify(instructor.service_rates) !== JSON.stringify(newServiceRates) || 
+                JSON.stringify(instructor.package_rates) !== JSON.stringify(newPackageRates)) {
+                updatePromises.push(updateInstructor.mutateAsync({ 
+                    id: instructor.id, 
+                    service_rates: newServiceRates, 
+                    package_rates: newPackageRates 
+                }));
             }
         });
 
         if (updatePromises.length > 0) {
             await Promise.all(updatePromises);
-            addToast(`تم حفظ ${updatePromises.length} تحديثات بنجاح.`, 'success');
+            addToast(`تم حفظ تعديلات الأسعار بنجاح.`, 'success');
         } else {
             addToast('لا توجد تغييرات لحفظها.', 'info');
         }
     };
 
-
     return (
         <div className="animate-fadeIn space-y-8">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-extrabold text-foreground">مراجعة تسعير المدربين</h1>
-                <Button onClick={handleSave} loading={isSaving} icon={<Save />}>
-                    حفظ التغييرات
-                </Button>
+                <Button onClick={handleSave} loading={isSaving} icon={<Save />}>حفظ كل التغييرات</Button>
             </div>
             
              <Card className="bg-blue-50 border-blue-200">
                 <CardContent className="pt-6">
-                    <p className="text-sm font-bold text-blue-800">المعادلة الحالية للتسعير النهائي:</p>
+                    <p className="text-sm font-bold text-blue-800">قاعدة احتساب السعر للعميل:</p>
                     <p className="text-lg font-mono text-center mt-2">
-                        السعر النهائي = (سعر المدرب * {pricingSettings.company_percentage}) + {pricingSettings.fixed_fee} ج.م
+                        السعر النهائي = (سعر المدرب المختار * {pricingSettings.company_percentage}) + {pricingSettings.fixed_fee} ج.م
                     </p>
                 </CardContent>
             </Card>
@@ -161,59 +132,43 @@ const AdminPriceReviewPage: React.FC = () => {
                 
                 <TabsContent value="services">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>مصفوفة أسعار الخدمات</CardTitle>
-                        </CardHeader>
+                        <CardHeader><CardTitle>مصفوفة خدمات المدربين</CardTitle></CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="sticky left-0 bg-background z-10 min-w-[200px]">الخدمة</TableHead>
-                                            <TableHead>السعر الأساسي</TableHead>
-                                            {instructors.map(instructor => <TableHead key={instructor.id} className="text-center min-w-[150px]">{instructor.name}</TableHead>)}
+                                            <TableHead className="sticky right-0 bg-background z-10 min-w-[200px]">الخدمة</TableHead>
+                                            {instructors.map(inst => <TableHead key={inst.id} className="text-center min-w-[120px]">{inst.name}</TableHead>)}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {instructorServices.map((service: any) => {
-                                            const currentService = editableServices.find(s => s.id === service.id);
-                                            return (
+                                        {instructorServices.map((service: any) => (
                                             <TableRow key={service.id}>
-                                                <TableCell className="font-semibold sticky left-0 bg-background z-10">{service.name}</TableCell>
-                                                <TableCell>
-                                                    <Input
-                                                        type="number"
-                                                        className="w-24 h-8 text-center"
-                                                        value={currentService?.price || ''}
-                                                        onChange={(e) => handleServiceBasePriceChange(service.id, e.target.value)}
-                                                    />
-                                                </TableCell>
+                                                <TableCell className="font-semibold sticky right-0 bg-background z-10 border-l shadow-sm">{service.name}</TableCell>
                                                 {instructors.map(instructor => {
-                                                    const instructorPrice = editableRates[instructor.id]?.service_rates?.[service.id];
-                                                    const hasPrice = instructorPrice !== undefined && instructorPrice !== null;
-                                                    const finalPrice = hasPrice ? (instructorPrice * pricingSettings.company_percentage) + pricingSettings.fixed_fee : null;
-
+                                                    const instrPrice = editableRates[instructor.id]?.service_rates?.[service.id];
                                                     return (
                                                         <TableCell key={instructor.id} className="text-center">
-                                                            <div>
-                                                                <p className="font-bold">{finalPrice ? `${finalPrice.toFixed(0)} ج.م` : '-'}</p>
-                                                                <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-1">
-                                                                    <span>(</span>
-                                                                    <Input
-                                                                        type="number"
-                                                                        className="w-20 h-6 text-center text-xs p-1"
-                                                                        placeholder="-"
-                                                                        value={hasPrice ? instructorPrice : ''}
-                                                                        onChange={(e) => handleRateChange(instructor.id, 'service', service.id, e.target.value)}
-                                                                    />
-                                                                    <span>)</span>
-                                                                </div>
+                                                            <div className="flex flex-col items-center gap-1">
+                                                                <Input
+                                                                    type="number"
+                                                                    className="w-24 h-8 text-center text-xs"
+                                                                    placeholder="-"
+                                                                    value={instrPrice || ''}
+                                                                    onChange={(e) => handleRateChange(instructor.id, 'service', service.id, e.target.value)}
+                                                                />
+                                                                {instrPrice && (
+                                                                    <span className="text-[10px] text-green-600 font-bold">
+                                                                        ={(instrPrice * pricingSettings.company_percentage + pricingSettings.fixed_fee).toFixed(0)} للعميل
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </TableCell>
                                                     );
                                                 })}
                                             </TableRow>
-                                        )})}
+                                        ))}
                                     </TableBody>
                                 </Table>
                             </div>
@@ -222,64 +177,44 @@ const AdminPriceReviewPage: React.FC = () => {
                 </TabsContent>
                 
                 <TabsContent value="packages">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>مصفوفة أسعار الباقات</CardTitle>
-                        </CardHeader>
+                     <Card>
+                        <CardHeader><CardTitle>مصفوفة باقات المدربين</CardTitle></CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="sticky left-0 bg-background z-10 min-w-[200px]">الباقة</TableHead>
-                                            <TableHead>السعر الأساسي</TableHead>
-                                            {instructors.map(instructor => <TableHead key={instructor.id} className="text-center min-w-[150px]">{instructor.name}</TableHead>)}
+                                            <TableHead className="sticky right-0 bg-background z-10 min-w-[200px]">الباقة</TableHead>
+                                            {instructors.map(inst => <TableHead key={inst.id} className="text-center min-w-[120px]">{inst.name}</TableHead>)}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {packages.map((pkg: any) => {
-                                             const currentPackage = editablePackages.find(p => p.id === pkg.id);
-                                             return (
+                                        {packages.filter((p: any) => p.price > 0).map((pkg: any) => (
                                             <TableRow key={pkg.id}>
-                                                <TableCell className="font-semibold sticky left-0 bg-background z-10">{pkg.name}</TableCell>
-                                                <TableCell>
-                                                    {pkg.price === 0 ? <span className="text-muted-foreground">مجانية</span> : (
-                                                        <Input
-                                                            type="number"
-                                                            className="w-24 h-8 text-center"
-                                                            value={currentPackage?.price || ''}
-                                                            onChange={(e) => handlePackageBasePriceChange(pkg.id, e.target.value)}
-                                                        />
-                                                    )}
-                                                </TableCell>
+                                                <TableCell className="font-semibold sticky right-0 bg-background z-10 border-l shadow-sm">{pkg.name}</TableCell>
                                                 {instructors.map(instructor => {
-                                                    const instructorPrice = editableRates[instructor.id]?.package_rates?.[pkg.id];
-                                                    const hasPrice = instructorPrice !== undefined && instructorPrice !== null;
-                                                    const finalPrice = hasPrice ? (instructorPrice * pricingSettings.company_percentage) + pricingSettings.fixed_fee : null;
-
+                                                    const instrPrice = editableRates[instructor.id]?.package_rates?.[pkg.id];
                                                     return (
-                                                         <TableCell key={instructor.id} className="text-center">
-                                                            {pkg.price === 0 ? <span className="text-muted-foreground">-</span> : (
-                                                                <div>
-                                                                    <p className="font-bold">{finalPrice ? `${finalPrice.toFixed(0)} ج.م` : '-'}</p>
-                                                                    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-1">
-                                                                        <span>(</span>
-                                                                        <Input
-                                                                            type="number"
-                                                                            className="w-20 h-6 text-center text-xs p-1"
-                                                                            placeholder="-"
-                                                                            value={hasPrice ? instructorPrice : ''}
-                                                                            onChange={(e) => handleRateChange(instructor.id, 'package', pkg.id, e.target.value)}
-                                                                        />
-                                                                        <span>)</span>
-                                                                    </div>
-                                                                </div>
-                                                            )}
+                                                        <TableCell key={instructor.id} className="text-center">
+                                                            <div className="flex flex-col items-center gap-1">
+                                                                <Input
+                                                                    type="number"
+                                                                    className="w-24 h-8 text-center text-xs"
+                                                                    placeholder="-"
+                                                                    value={instrPrice || ''}
+                                                                    onChange={(e) => handleRateChange(instructor.id, 'package', pkg.id, e.target.value)}
+                                                                />
+                                                                {instrPrice && (
+                                                                    <span className="text-[10px] text-green-600 font-bold">
+                                                                        ={(instrPrice * pricingSettings.company_percentage + pricingSettings.fixed_fee).toFixed(0)} للعميل
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </TableCell>
                                                     );
                                                 })}
                                             </TableRow>
-                                        )})}
+                                        ))}
                                     </TableBody>
                                 </Table>
                             </div>

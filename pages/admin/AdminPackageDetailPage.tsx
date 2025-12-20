@@ -34,7 +34,7 @@ const AdminPackageDetailPage: React.FC = () => {
         level: '',
         icon_name: 'Rocket',
         popular: false,
-        comparison_values: {}, // Dynamic values map
+        comparison_values: {}, 
     });
 
     const [featuresString, setFeaturesString] = useState('');
@@ -43,7 +43,10 @@ const AdminPackageDetailPage: React.FC = () => {
         if (!isNew && data?.packages) {
             const foundPkg = data.packages.find(p => p.id === Number(id));
             if (foundPkg) {
-                setPkg(foundPkg);
+                setPkg({
+                    ...foundPkg,
+                    comparison_values: foundPkg.comparison_values || {}
+                });
                 setFeaturesString(foundPkg.features.join('\n'));
             } else if (!settingsLoading) {
                 navigate('/admin/creative-writing-packages');
@@ -61,12 +64,11 @@ const AdminPackageDetailPage: React.FC = () => {
         }));
     };
     
-    // Dynamic handler for comparison values
     const handleComparisonValueChange = (itemId: string, value: any) => {
         setPkg(prev => ({
             ...prev,
             comparison_values: {
-                ...prev.comparison_values,
+                ...(prev.comparison_values || {}),
                 [itemId]: value
             }
         }));
@@ -79,6 +81,8 @@ const AdminPackageDetailPage: React.FC = () => {
             ...pkg,
             id: isNew ? undefined : Number(id), 
             features: featuresString.split('\n').filter(f => f.trim() !== ''),
+            // Ensure comparison_values is a clean object
+            comparison_values: pkg.comparison_values || {}
         };
 
         try {
@@ -95,7 +99,6 @@ const AdminPackageDetailPage: React.FC = () => {
 
     if (settingsLoading && !isNew) return <PageLoader text="جاري تحميل بيانات الباقة..." />;
 
-    // Helper to get comparison items
     const comparisonItems = data?.comparisonItems || [];
 
     return (
@@ -115,7 +118,6 @@ const AdminPackageDetailPage: React.FC = () => {
 
             <form id="package-form" onSubmit={handleSubmit} className="space-y-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                    {/* Column 1: Main Info */}
                     <div className="lg:col-span-2 space-y-8">
                         <Card>
                             <CardHeader>
@@ -139,8 +141,8 @@ const AdminPackageDetailPage: React.FC = () => {
 
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><FileText /> المحتوى التفصيلي (للبطاقة الكبيرة)</CardTitle>
-                                <CardDescription>يظهر هذا المحتوى في عرض "تفاصيل الباقة".</CardDescription>
+                                <CardTitle className="flex items-center gap-2"><FileText /> المحتوى التفصيلي</CardTitle>
+                                <CardDescription>يظهر هذا المحتوى في عرض "تفاصيل الباقة" الكاملة.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -152,7 +154,7 @@ const AdminPackageDetailPage: React.FC = () => {
                                     </FormField>
                                 </div>
                                 <FormField label="الوصف التفصيلي (الفوائد والمخرجات)" htmlFor="detailed_description">
-                                    <Textarea id="detailed_description" name="detailed_description" value={pkg.detailed_description || ''} onChange={handleChange} rows={6} placeholder="اكتب هنا شرحاً وافياً عن محتوى الباقة وما سيتعلمه الطفل..." />
+                                    <Textarea id="detailed_description" name="detailed_description" value={pkg.detailed_description || ''} onChange={handleChange} rows={6} placeholder="اكتب هنا شرحاً وافياً عن محتوى الباقة..." />
                                 </FormField>
                                  <FormField label="أيقونة الباقة" htmlFor="icon_name">
                                     <Select id="icon_name" name="icon_name" value={pkg.icon_name || 'Rocket'} onChange={handleChange}>
@@ -164,15 +166,10 @@ const AdminPackageDetailPage: React.FC = () => {
                             </CardContent>
                         </Card>
                         
-                        {/* Dynamic Comparison Table Settings */}
                         <Card className="border-blue-200 bg-blue-50/20">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-blue-800"><TableIcon /> قيم جدول المقارنة</CardTitle>
-                                <CardDescription>
-                                    حدد القيم التي ستظهر لهذه الباقة في كل صف من صفوف المقارنة.
-                                    <br/>
-                                    <span className="text-xs text-muted-foreground">(يمكنك إدارة هذه الصفوف من تبويب "معايير المقارنة" في الصفحة السابقة)</span>
-                                </CardDescription>
+                                <CardDescription>حدد القيم التي ستظهر لهذه الباقة في كل صف من صفوف المقارنة.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {comparisonItems.length > 0 ? (
@@ -199,7 +196,10 @@ const AdminPackageDetailPage: React.FC = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="text-center text-muted-foreground py-4">لم تقم بإضافة أي معايير للمقارنة بعد.</p>
+                                    <div className="text-center py-6">
+                                        <p className="text-muted-foreground">لم يتم تعريف معايير مقارنة بعد في قاعدة البيانات.</p>
+                                        <Link to="/admin/creative-writing-packages" className="text-blue-600 font-bold hover:underline mt-2 inline-block">اذهب لتبويب معايير المقارنة لإضافتها</Link>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
@@ -207,7 +207,6 @@ const AdminPackageDetailPage: React.FC = () => {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><List /> قائمة الميزات (نصية)</CardTitle>
-                                <CardDescription>تظهر كنقاط في بطاقة الباقة المختصرة.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <FormField label="الميزات (كل ميزة في سطر منفصل)" htmlFor="features">
@@ -224,7 +223,6 @@ const AdminPackageDetailPage: React.FC = () => {
                         </Card>
                     </div>
 
-                    {/* Column 2: Settings & Pricing */}
                     <div className="lg:col-span-1 space-y-8 sticky top-24">
                         <Card>
                             <CardHeader>
@@ -236,7 +234,6 @@ const AdminPackageDetailPage: React.FC = () => {
                                         <Input type="number" id="price" name="price" value={pkg.price} onChange={handleChange} required className="pl-12" />
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">ج.م</span>
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-1">أدخل 0 إذا كانت الباقة مجانية.</p>
                                 </FormField>
                                 
                                 <div className="pt-4 border-t">
@@ -247,7 +244,6 @@ const AdminPackageDetailPage: React.FC = () => {
                                         />
                                         <div>
                                             <span className="font-semibold text-sm">علامة "الأكثر شيوعاً"</span>
-                                            <p className="text-xs text-muted-foreground">تمييز الباقة بشريط خاص.</p>
                                         </div>
                                     </label>
                                 </div>

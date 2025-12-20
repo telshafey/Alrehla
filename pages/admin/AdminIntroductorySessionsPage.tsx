@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Star, Calendar, CheckCircle, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
@@ -17,21 +18,16 @@ const AdminIntroductorySessionsPage: React.FC = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
-    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'instructorName', direction: 'asc' });
 
     const isLoading = instructorsLoading || sessionsLoading;
     const error = instructorsError || sessionsError;
-    const refetch = () => {
-        if (instructorsError) refetchInstructors();
-        if (sessionsError) refetchSessions();
-    };
 
-    const sortedInstructorSessionStatus = useMemo(() => {
+    const instructorSessionStatus = useMemo(() => {
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
 
-        let data = instructors.map(instructor => {
+        return instructors.map(instructor => {
             const introSessionThisMonth = (sessions as any[]).find(s =>
                 s.instructor_id === instructor.id &&
                 s.package_name === 'الجلسة التعريفية' &&
@@ -39,54 +35,20 @@ const AdminIntroductorySessionsPage: React.FC = () => {
                 new Date(s.session_date).getFullYear() === currentYear
             );
             return {
-                instructorName: instructor.name,
-                instructorId: instructor.id,
                 instructor,
                 hasScheduled: !!introSessionThisMonth,
                 sessionDate: introSessionThisMonth ? introSessionThisMonth.session_date : null,
             };
         });
-
-        if (sortConfig !== null) {
-            data.sort((a, b) => {
-                const aVal = a[sortConfig.key as keyof typeof a];
-                const bVal = b[sortConfig.key as keyof typeof b];
-                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
-        }
-        return data;
-    }, [instructors, sessions, sortConfig]);
+    }, [instructors, sessions]);
     
     const handleOpenScheduler = (instructor: Instructor) => {
         setSelectedInstructor(instructor);
         setIsModalOpen(true);
     };
 
-    const handleSort = (key: string) => {
-        let direction: 'asc' | 'desc' = 'asc';
-        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
-        }
-        setSortConfig({ key, direction });
-    };
-
-    const SortableTh: React.FC<{ sortKey: string; label: string }> = ({ sortKey, label }) => (
-        <TableHead>
-            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
-                <div className="flex items-center">
-                   <span>{label}</span>
-                    {sortConfig?.key === sortKey && (
-                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
-                    )}
-                </div>
-            </Button>
-        </TableHead>
-    );
-
     if (isLoading) return <PageLoader text="جاري تحميل بيانات الجلسات..." />;
-    if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
+    if (error) return <ErrorState message={(error as Error).message} onRetry={() => { refetchInstructors(); refetchSessions(); }} />;
 
     return (
         <>
@@ -96,15 +58,28 @@ const AdminIntroductorySessionsPage: React.FC = () => {
                 instructor={selectedInstructor}
             />
             <div className="animate-fadeIn space-y-8">
-                <h1 className="text-3xl font-extrabold text-foreground">إدارة الجلسات التعريفية الشهرية</h1>
-                <p className="text-muted-foreground -mt-6">
-                    تابع وجدولة الجلسات التعريفية المجانية التي يقدمها المدربون لضمان التزام الجميع بتقديم جلسة واحدة على الأقل شهريًا.
-                </p>
+                <div>
+                    <h1 className="text-3xl font-extrabold text-foreground">الجلسات التعريفية الشهرية</h1>
+                    <p className="text-muted-foreground mt-1">
+                        متابعة التزام المدربين بتقديم جلسة تعريفية مجانية واحدة على الأقل شهرياً لخدمة العملاء الجدد.
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Card className="bg-green-50 border-green-200">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm font-bold text-green-800">مدربون ملتزمون هذا الشهر</CardTitle></CardHeader>
+                        <CardContent><p className="text-3xl font-bold text-green-600">{instructorSessionStatus.filter(s => s.hasScheduled).length}</p></CardContent>
+                    </Card>
+                    <Card className="bg-yellow-50 border-yellow-200">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm font-bold text-yellow-800">مدربون لم يجدولوا بعد</CardTitle></CardHeader>
+                        <CardContent><p className="text-3xl font-bold text-yellow-600">{instructorSessionStatus.filter(s => !s.hasScheduled).length}</p></CardContent>
+                    </Card>
+                </div>
 
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Star className="text-yellow-500" /> حالة المدربين للشهر الحالي
+                            <Star className="text-yellow-500" /> قائمة المدربين وحالة الالتزام
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -112,38 +87,41 @@ const AdminIntroductorySessionsPage: React.FC = () => {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <SortableTh sortKey="instructorName" label="المدرب" />
-                                        <SortableTh sortKey="hasScheduled" label="الحالة" />
+                                        <TableHead>المدرب</TableHead>
+                                        <TableHead>الحالة</TableHead>
+                                        <TableHead>تاريخ الجلسة</TableHead>
                                         <TableHead>إجراء</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {sortedInstructorSessionStatus.map(({ instructor, hasScheduled, sessionDate }) => (
+                                    {instructorSessionStatus.map(({ instructor, hasScheduled, sessionDate }) => (
                                         <TableRow key={instructor.id}>
                                             <TableCell className="font-semibold">{instructor.name}</TableCell>
                                             <TableCell>
                                                 {hasScheduled ? (
                                                     <span className="flex items-center gap-2 text-sm font-semibold text-green-600">
-                                                        <CheckCircle size={16} />
-                                                        تمت الجدولة في {formatDate(sessionDate)}
+                                                        <CheckCircle size={16} /> ملتزم
                                                     </span>
                                                 ) : (
                                                     <span className="flex items-center gap-2 text-sm font-semibold text-yellow-600">
-                                                        <AlertCircle size={16} />
-                                                        بانتظار الجدولة
+                                                        <AlertCircle size={16} /> بانتظار الجدولة
                                                     </span>
                                                 )}
                                             </TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">
+                                                {sessionDate ? formatDate(sessionDate) : '-'}
+                                            </TableCell>
                                             <TableCell>
-                                                <Button 
-                                                    onClick={() => handleOpenScheduler(instructor)} 
-                                                    size="sm" 
-                                                    variant="outline"
-                                                    icon={<Calendar size={16} />}
-                                                    disabled={hasScheduled}
-                                                >
-                                                    جدولة
-                                                </Button>
+                                                {!hasScheduled && (
+                                                    <Button 
+                                                        onClick={() => handleOpenScheduler(instructor)} 
+                                                        size="sm" 
+                                                        variant="outline"
+                                                        icon={<Calendar size={16} />}
+                                                    >
+                                                        جدولة جلسة له
+                                                    </Button>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}

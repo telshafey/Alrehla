@@ -184,12 +184,18 @@ const CreativeWritingPackagesPage: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {/* Static Row: Number of Sessions (Always First) */}
+                                    <FeatureRow 
+                                        label="عدد الجلسات"
+                                        values={packages.map(pkg => pkg.sessions)}
+                                    />
+                                    
+                                    {/* Dynamic Rows from comparisonItems */}
                                     {comparisonItems.map(item => (
                                         <FeatureRow 
                                             key={item.id}
                                             label={item.label}
                                             values={packages.map(pkg => {
-                                                // Access the dynamic value from the map
                                                 return pkg.comparison_values?.[item.id];
                                             })}
                                         />

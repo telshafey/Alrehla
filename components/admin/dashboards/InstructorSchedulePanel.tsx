@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { Calendar, Clock, CheckCircle, BookOpen } from 'lucide-react';
 import AdminSection from '../AdminSection';
@@ -33,11 +34,11 @@ const parseTotalSessions = (sessionString: string | undefined): number => {
 const JourneyScheduleCard: React.FC<{ journey: EnrichedInstructorBooking; onSessionChangeRequest: (session: ScheduledSession) => void; }> = ({ journey, onSessionChangeRequest }) => {
     
     const sortedSessions = useMemo(() => 
-        [...(journey.sessions || [])].sort((a,b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime()),
+        [...(journey.sessions || [])].sort((a:any, b:any) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime()),
     [journey.sessions]);
     
     const totalSessions = parseTotalSessions(journey.packageDetails?.sessions);
-    const completedSessionsCount = sortedSessions.filter(s => s.status === 'completed').length;
+    const completedSessionsCount = sortedSessions.filter((s:any) => s.status === 'completed').length;
 
     return (
         <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border">
@@ -52,7 +53,7 @@ const JourneyScheduleCard: React.FC<{ journey: EnrichedInstructorBooking; onSess
                 </div>
             </div>
              <div className="space-y-3">
-                {sortedSessions.map((session, index) => {
+                {sortedSessions.map((session: any, index: number) => {
                     const statusInfo = getStatusInfo(session.status);
                     return (
                         <div key={session.id} className="p-3 bg-gray-50 rounded-lg flex flex-col sm:flex-row justify-between items-start gap-3">
@@ -100,12 +101,12 @@ const InstructorSchedulePanel: React.FC<InstructorSchedulePanelProps> = ({ instr
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 session={selectedSession}
-                childName={bookings.find(b => b.id === (selectedSession as any)?.bookingId)?.child_profiles?.name}
+                childName={bookings.find(b => b.id === (selectedSession as any)?.booking_id)?.child_profiles?.name}
             />
             <div className="space-y-8">
-                <AdminSection title="جدول جلساتك" icon={<Calendar />}>
+                <AdminSection title="إدارة الجلسات الحالية" icon={<Calendar />}>
                     <p className="text-sm text-gray-600 mb-6 -mt-2">
-                        هنا يمكنك رؤية جميع جلساتك القادمة والسابقة، مجمعة حسب كل رحلة تدريبية.
+                        هنا يمكنك متابعة جلسات طلابك المجدولة وطلب تغييرها إذا لزم الأمر.
                     </p>
                     <div className="space-y-6">
                         {activeJourneys.length > 0 ? activeJourneys.map(journey => (
@@ -118,19 +119,19 @@ const InstructorSchedulePanel: React.FC<InstructorSchedulePanelProps> = ({ instr
                     </div>
                 </AdminSection>
                 
-                 <Accordion title="إدارة جدول التوافر الأسبوعي (القالب)">
+                 <Accordion title="تعديل قالب التوافر الأسبوعي الثابت">
                     <div className="p-6 border-t">
                         <p className="text-sm text-gray-600 mb-4">
-                           هنا تحدد قالب توافرك الأسبوعي الثابت. بعد موافقة الإدارة، سيقوم النظام تلقائيًا بفتح هذه المواعيد في صفحتك الشخصية للحجوزات الجديدة، مما يقلل من التدخل الإداري.
+                           حدد الأيام والأوقات التي تكون فيها متاحاً "بشكل عام" أسبوعياً. سيتم استخدام هذا القالب لجدولة الاشتراكات الجديدة تلقائياً.
                         </p>
                         <WeeklyScheduleManager instructor={instructor} />
                     </div>
                 </Accordion>
 
-                 <Accordion title="إدارة التوافر للجلسات التعريفية المجانية">
+                 <Accordion title="مواعيد الجلسات التعريفية المجانية">
                     <div className="p-6 border-t">
                         <p className="text-sm text-gray-600 mb-4">
-                            حدد الأيام والأوقات التي ترغب في تخصيصها للجلسات التعريفية المجانية.
+                            هذه المواعيد تظهر للعملاء الجدد الراغبين في التعرف عليك قبل الاشتراك.
                         </p>
                         <IntroductoryAvailabilityManager instructor={instructor} />
                     </div>

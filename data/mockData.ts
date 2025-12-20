@@ -17,15 +17,14 @@ import type {
 } from '../lib/database.types';
 import type { Permissions } from '../lib/roles';
 
-// New Comparison Criteria Data
+// New Comparison Criteria Data (Removed num_sessions)
 export const mockComparisonItems: ComparisonItem[] = [
-    { id: 'num_sessions', label: 'عدد الجلسات', type: 'text', sort_order: 1 },
-    { id: 'level', label: 'المستوى', type: 'text', sort_order: 2 },
-    { id: 'target_age', label: 'الفئة العمرية', type: 'text', sort_order: 3 },
-    { id: 'digital_portfolio', label: 'محفظة رقمية للأعمال', type: 'boolean', sort_order: 4 },
-    { id: 'certificate', label: 'شهادة إتمام', type: 'boolean', sort_order: 5 },
-    { id: 'publication', label: 'نشر عمل في المجلة', type: 'boolean', sort_order: 6 },
-    { id: 'mentoring', label: 'جلسات إرشاد إضافية', type: 'boolean', sort_order: 7 },
+    { id: 'level_compare', label: 'المستوى التعليمي', type: 'text', sort_order: 1 },
+    { id: 'target_age_compare', label: 'الفئة العمرية', type: 'text', sort_order: 2 },
+    { id: 'digital_portfolio', label: 'محفظة رقمية للأعمال', type: 'boolean', sort_order: 3 },
+    { id: 'certificate', label: 'شهادة إتمام', type: 'boolean', sort_order: 4 },
+    { id: 'publication', label: 'نشر عمل في المجلة', type: 'boolean', sort_order: 5 },
+    { id: 'mentoring', label: 'جلسات إرشاد إضافية', type: 'boolean', sort_order: 6 },
 ];
 
 export const mockUsers: UserProfile[] = [
@@ -331,9 +330,8 @@ export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
         level: 'جميع المستويات',
         icon_name: 'MessageSquare',
         comparison_values: {
-            'num_sessions': '1',
-            'level': 'عام',
-            'target_age': '7-14',
+            'level_compare': 'عام',
+            'target_age_compare': '7-14',
             'digital_portfolio': false,
             'certificate': false,
             'publication': false,
@@ -353,9 +351,8 @@ export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
         level: 'مبتدئ',
         icon_name: 'Rocket',
         comparison_values: {
-            'num_sessions': '4',
-            'level': 'مبتدئ',
-            'target_age': '8-12',
+            'level_compare': 'مبتدئ',
+            'target_age_compare': '8-12',
             'digital_portfolio': true,
             'certificate': true,
             'publication': false,
@@ -375,9 +372,8 @@ export const mockCreativeWritingPackages: CreativeWritingPackage[] = [
         level: 'متوسط',
         icon_name: 'PenTool',
         comparison_values: {
-            'num_sessions': '8',
-            'level': 'متوسط',
-            'target_age': '9-14',
+            'level_compare': 'متوسط',
+            'target_age_compare': '9-14',
             'digital_portfolio': true,
             'certificate': true,
             'publication': true,
