@@ -12,7 +12,6 @@ export const useInstructorMutations = () => {
     // دالة مساعدة لإرسال إشعار للمسؤولين
     const notifyAdmins = async (message: string, link: string) => {
         try {
-            // جلب قائمة المسؤولين
             const { data: admins } = await supabase
                 .from('profiles')
                 .select('id')
@@ -118,8 +117,9 @@ export const useInstructorMutations = () => {
         }
     });
 
+    // تحديث دالة الاعتماد لتقبل بيانات معدلة من قبل المدير (modifiedUpdates)
     const approveInstructorProfileUpdate = useMutation({
-        mutationFn: async ({ instructorId }: { instructorId: number }) => {
+        mutationFn: async ({ instructorId, modifiedUpdates }: { instructorId: number, modifiedUpdates?: any }) => {
              const { data: instructor, error: fetchError } = await supabase
                 .from('instructors')
                 .select('*')
@@ -127,13 +127,16 @@ export const useInstructorMutations = () => {
                 .single();
             
             if (fetchError) throw fetchError;
-            const updates = instructor.pending_profile_data?.updates;
-            if (!updates) throw new Error("لا توجد تحديثات بانتظار الموافقة.");
+            
+            // نستخدم البيانات المعدلة من المدير إذا وجدت، وإلا نستخدم بيانات الطلب الأصلي
+            const finalUpdates = modifiedUpdates || instructor.pending_profile_data?.updates;
+            
+            if (!finalUpdates) throw new Error("لا توجد تحديثات بانتظار الموافقة.");
 
             const { error: updateError } = await supabase
                 .from('instructors')
                 .update({
-                    ...updates,
+                    ...finalUpdates,
                     profile_update_status: 'approved',
                     pending_profile_data: null
                 })
@@ -145,7 +148,7 @@ export const useInstructorMutations = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
             queryClient.invalidateQueries({ queryKey: ['publicData'] });
-            addToast('تم اعتماد التعديلات بنجاح.', 'success');
+            addToast('تم اعتماد التعديلات (مع أي تعديلات إدارية) بنجاح.', 'success');
         }
     });
 
@@ -179,7 +182,6 @@ export const useInstructorMutations = () => {
 
             if (error) throw error;
             
-            // إرسال إشعار للمسؤولين
             await notifyAdmins(
                 `قام المدرب ${instructor?.name || ''} بطلب تحديث بياناته وأسعاره.`,
                 `/admin/instructors/${payload.instructorId}`
@@ -213,7 +215,6 @@ export const useInstructorMutations = () => {
 
             if (error) throw error;
 
-            // إرسال إشعار للمسؤولين
             await notifyAdmins(
                 `قام المدرب ${instructor?.name || ''} بطلب تعديل جدوله الأسبوعي.`,
                 `/admin/instructors/${instructorId}`
@@ -240,7 +241,6 @@ export const useInstructorMutations = () => {
         }
     });
 
-    // Fix: Added approveSupportSessionRequest mutation
     const approveSupportSessionRequest = useMutation({
         mutationFn: async ({ requestId }: { requestId: string }) => {
             const { error } = await supabase.from('support_session_requests').update({ status: 'approved' }).eq('id', requestId);
@@ -253,7 +253,6 @@ export const useInstructorMutations = () => {
         }
     });
 
-    // Fix: Added rejectSupportSessionRequest mutation
     const rejectSupportSessionRequest = useMutation({
         mutationFn: async ({ requestId }: { requestId: string }) => {
             const { error } = await supabase.from('support_session_requests').update({ status: 'rejected' }).eq('id', requestId);
@@ -266,7 +265,6 @@ export const useInstructorMutations = () => {
         }
     });
 
-    // Fix: Added createSupportSessionRequest mutation
     const createSupportSessionRequest = useMutation({
         mutationFn: async (payload: { instructorId: number, childId: number, reason: string }) => {
             const { error } = await supabase.from('support_session_requests').insert([{
@@ -284,7 +282,6 @@ export const useInstructorMutations = () => {
         }
     });
 
-    // Fix: Added requestIntroAvailabilityChange mutation
     const requestIntroAvailabilityChange = useMutation({
         mutationFn: async ({ instructorId, availability }: { instructorId: number, availability: AvailableSlots }) => {
             const { error } = await supabase.from('instructors').update({ intro_availability: availability }).eq('id', instructorId);

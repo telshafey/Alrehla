@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Loader2, Save } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
@@ -6,11 +7,11 @@ import type { Instructor, AvailableSlots } from '../../lib/database.types';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 
-const timeSlots = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30',
-    '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-    '17:00', '17:30', '18:00', '18:30', '19:00'
-];
+// تعديل المواعيد لتكون كل ساعة بدلاً من كل نصف ساعة
+const timeSlots = Array.from({ length: 15 }, (_, i) => {
+    const hour = (i + 8).toString().padStart(2, '0'); // من 08:00 صباحاً إلى 22:00 مساءً
+    return `${hour}:00`;
+});
 
 const AvailabilityManager: React.FC = () => {
     const { data: instructors = [], isLoading: instructorsLoading } = useAdminInstructors();
@@ -63,7 +64,7 @@ const AvailabilityManager: React.FC = () => {
 
             {selectedInstructorId && (
                 <div>
-                    <h4 className="font-bold mb-3">المواعيد المتاحة لـ {instructor?.name} في يوم {selectedDate}</h4>
+                    <h4 className="font-bold mb-3">المواعيد المتاحة لـ {instructor?.name} في يوم {selectedDate} (نظام 60 دقيقة)</h4>
                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
                          {timeSlots.map(time => {
                              const isSelected = currentDaySlots.includes(time);
@@ -71,7 +72,7 @@ const AvailabilityManager: React.FC = () => {
                                 <button
                                     key={time}
                                     onClick={() => handleTimeToggle(time)}
-                                    className={`p-2 border rounded-lg text-sm transition-colors ${
+                                    className={`p-2 border rounded-lg text-xs font-mono font-bold transition-colors ${
                                         isSelected ? 'bg-blue-600 text-white' : 'bg-white hover:bg-blue-100'
                                     }`}
                                 >
@@ -82,7 +83,7 @@ const AvailabilityManager: React.FC = () => {
                     </div>
                     <div className="flex justify-end mt-6">
                         <Button onClick={handleSave} loading={updateInstructorAvailability.isPending} icon={<Save />}>
-                            حفظ التغييرات
+                            حفظ المواعيد المعدلة
                         </Button>
                     </div>
                 </div>
