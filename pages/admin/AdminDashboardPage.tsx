@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAdminDashboardData } from '../../hooks/queries/admin/useAdminDashboardDataQuery';
@@ -44,7 +45,7 @@ const AdminDashboardPage: React.FC = () => {
     const hasAnyActions = data.orders.some((o: any) => o.status === 'بانتظار المراجعة') ||
         data.serviceOrders.some((o: any) => o.status === 'بانتظار المراجعة') ||
         data.bookings.some((b: any) => b.status === 'بانتظار الدفع') ||
-        data.instructors.some((i: any) => i.schedule_status === 'pending') ||
+        data.instructors.some((i: any) => i.schedule_status === 'pending' || i.profile_update_status === 'pending') || // Added profile_update_status check
         data.supportTickets.some((t: any) => t.status === 'جديدة') ||
         data.joinRequests.some((r: any) => r.status === 'جديد');
     

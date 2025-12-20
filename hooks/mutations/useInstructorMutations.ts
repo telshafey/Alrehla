@@ -9,6 +9,32 @@ export const useInstructorMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
 
+    // دالة مساعدة لإرسال إشعار للمسؤولين
+    const notifyAdmins = async (message: string, link: string) => {
+        try {
+            // جلب قائمة المسؤولين
+            const { data: admins } = await supabase
+                .from('profiles')
+                .select('id')
+                .in('role', ['super_admin', 'general_supervisor', 'creative_writing_supervisor']);
+
+            if (admins && admins.length > 0) {
+                const notifications = admins.map(admin => ({
+                    user_id: admin.id,
+                    message,
+                    link,
+                    type: 'instructor_update',
+                    created_at: new Date().toISOString(),
+                    read: false
+                }));
+
+                await supabase.from('notifications').insert(notifications);
+            }
+        } catch (e) {
+            console.error("Failed to notify admins", e);
+        }
+    };
+
     const createInstructor = useMutation({
         mutationFn: bookingService.createInstructor,
         onSuccess: () => {
@@ -18,7 +44,7 @@ export const useInstructorMutations = () => {
         },
         onError: (err: Error) => {
             if (err.message.includes('instructors_slug_key') || err.message.includes('duplicate key')) {
-                addToast('فشل الإضافة: معرّف الرابط (Slug) مستخدم بالفعل. يرجى اختيار معرف آخر.', 'error');
+                addToast('فشل الإضافة: معرّف الرابط (Slug) مستخدم بالفعل.', 'error');
             } else {
                 addToast(`فشل إضافة المدرب: ${err.message}`, 'error');
             }
@@ -47,11 +73,8 @@ export const useInstructorMutations = () => {
         onError: (err: Error) => addToast(`فشل حذف المدرب: ${err.message}`, 'error'),
     });
 
-    // --- Approval Logic ---
-
     const approveInstructorSchedule = useMutation({
         mutationFn: async ({ instructorId }: { instructorId: number }) => {
-            // 1. Get the pending schedule from pending_profile_data
             const { data: instructor, error: fetchError } = await supabase
                 .from('instructors')
                 .select('pending_profile_data')
@@ -60,15 +83,13 @@ export const useInstructorMutations = () => {
             
             if (fetchError) throw fetchError;
             const pendingSchedule = instructor.pending_profile_data?.proposed_schedule;
-            if (!pendingSchedule) throw new Error("لم يتم العثور على جدول مقترح للموافقة عليه.");
+            if (!pendingSchedule) throw new Error("لا يوجد جدول مقترح.");
 
-            // 2. Apply it to the main weekly_schedule and reset status
             const { error: updateError } = await supabase
                 .from('instructors')
                 .update({
                     weekly_schedule: pendingSchedule,
                     schedule_status: 'approved',
-                    // Clean up specific key in JSONB or just reset entire data if it was only schedule
                     pending_profile_data: { 
                         ...instructor.pending_profile_data, 
                         proposed_schedule: null 
@@ -81,33 +102,24 @@ export const useInstructorMutations = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
-            addToast('تمت الموافقة على الجدول الجديد وتفعيله بنجاح.', 'success');
-        },
-        onError: (err: Error) => addToast(`فشل الموافقة: ${err.message}`, 'error'),
+            addToast('تم اعتماد الجدول الجديد بنجاح.', 'success');
+        }
     });
     
     const rejectInstructorSchedule = useMutation({
         mutationFn: async ({ instructorId }: { instructorId: number }) => {
-            const { error } = await supabase
-                .from('instructors')
-                .update({ 
-                    schedule_status: 'rejected',
-                    // We keep the pending data for reference but reset the status
-                })
-                .eq('id', instructorId);
+            const { error } = await supabase.from('instructors').update({ schedule_status: 'rejected' }).eq('id', instructorId);
             if (error) throw error;
             return { success: true };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
             addToast('تم رفض طلب تحديث الجدول.', 'info');
-        },
-        onError: (err: Error) => addToast(`فشل الرفض: ${err.message}`, 'error'),
+        }
     });
 
     const approveInstructorProfileUpdate = useMutation({
-        mutationFn: async ({ instructorId }: { instructorId: number }) => {
-             // 1. Get the pending updates
+        mutationFn: async ({ instructorId, modifiedUpdates }: { instructorId: number, modifiedUpdates?: any }) => {
              const { data: instructor, error: fetchError } = await supabase
                 .from('instructors')
                 .select('*')
@@ -115,16 +127,18 @@ export const useInstructorMutations = () => {
                 .single();
             
             if (fetchError) throw fetchError;
-            const updates = instructor.pending_profile_data?.updates;
-            if (!updates) throw new Error("لا توجد تحديثات بيانات بانتظار الموافقة.");
+            
+            // Use modifiedUpdates if provided by admin, otherwise use original pending updates
+            const finalUpdates = modifiedUpdates || instructor.pending_profile_data?.updates;
+            
+            if (!finalUpdates) throw new Error("لا توجد تحديثات بانتظار الموافقة.");
 
-            // 2. Apply all updates and reset status
             const { error: updateError } = await supabase
                 .from('instructors')
                 .update({
-                    ...updates,
+                    ...finalUpdates,
                     profile_update_status: 'approved',
-                    pending_profile_data: null // Clear the bucket
+                    pending_profile_data: null
                 })
                 .eq('id', instructorId);
 
@@ -134,31 +148,26 @@ export const useInstructorMutations = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
             queryClient.invalidateQueries({ queryKey: ['publicData'] });
-            addToast('تم اعتماد التعديلات الجديدة بنجاح.', 'success');
-        },
-        onError: (err: Error) => addToast(`فشل الاعتماد: ${err.message}`, 'error'),
+            addToast('تم اعتماد التعديلات بنجاح.', 'success');
+        }
     });
 
     const rejectInstructorProfileUpdate = useMutation({
         mutationFn: async ({ instructorId }: { instructorId: number }) => {
-             const { error } = await supabase
-                .from('instructors')
-                .update({ profile_update_status: 'rejected' })
-                .eq('id', instructorId);
+             const { error } = await supabase.from('instructors').update({ profile_update_status: 'rejected' }).eq('id', instructorId);
             if (error) throw error;
             return { success: true };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
-            addToast('تم رفض طلب تحديث البيانات.', 'info');
-        },
-        onError: (err: Error) => addToast(`فشل الرفض: ${err.message}`, 'error'),
+            addToast('تم رفض طلب التحديث.', 'info');
+        }
     });
     
-    // --- Instructor Requests Logic ---
-
     const requestProfileUpdate = useMutation({
         mutationFn: async (payload: { instructorId: number, updates: any, justification: string }) => {
+            const { data: instructor } = await supabase.from('instructors').select('name').eq('id', payload.instructorId).single();
+            
             const { error } = await supabase
                 .from('instructors')
                 .update({
@@ -172,19 +181,25 @@ export const useInstructorMutations = () => {
                 .eq('id', payload.instructorId);
 
             if (error) throw error;
+            
+            // إرسال إشعار للمسؤولين
+            await notifyAdmins(
+                `قام المدرب ${instructor?.name || ''} بطلب تحديث بياناته وأسعاره.`,
+                `/admin/instructors/${payload.instructorId}`
+            );
+
             return { success: true };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
             queryClient.invalidateQueries({ queryKey: ['instructorData'] });
-            addToast('تم إرسال طلب تحديث ملفك بنجاح. سيقوم المسؤول بمراجعته قريباً.', 'success');
-        },
-        onError: (err: Error) => addToast(`فشل إرسال الطلب: ${err.message}`, 'error'),
+            addToast('تم إرسال طلبك بنجاح.', 'success');
+        }
     });
 
     const requestScheduleChange = useMutation({
         mutationFn: async ({ instructorId, schedule }: { instructorId: number, schedule: WeeklySchedule }) => {
-            // We get the current pending_profile_data to not overwrite other things like justification
+            const { data: instructor } = await supabase.from('instructors').select('name').eq('id', instructorId).single();
             const { data: current } = await supabase.from('instructors').select('pending_profile_data').eq('id', instructorId).single();
             
             const { error } = await supabase
@@ -200,19 +215,25 @@ export const useInstructorMutations = () => {
                 .eq('id', instructorId);
 
             if (error) throw error;
+
+            // إرسال إشعار للمسؤولين
+            await notifyAdmins(
+                `قام المدرب ${instructor?.name || ''} بطلب تعديل جدوله الأسبوعي.`,
+                `/admin/instructors/${instructorId}`
+            );
+
             return { success: true };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
             queryClient.invalidateQueries({ queryKey: ['instructorData'] });
-            addToast('تم إرسال طلب تعديل الجدول بنجاح للمراجعة.', 'success');
-        },
-        onError: (err: Error) => addToast(`فشل إرسال طلب الجدول: ${err.message}`, 'error'),
+            addToast('تم إرسال طلب تعديل الجدول.', 'success');
+        }
     });
 
-    // Added mutation for introductory availability requests
     const requestIntroAvailabilityChange = useMutation({
         mutationFn: async ({ instructorId, availability }: { instructorId: number, availability: AvailableSlots }) => {
+            const { data: instructor } = await supabase.from('instructors').select('name').eq('id', instructorId).single();
             const { data: current } = await supabase.from('instructors').select('pending_profile_data').eq('id', instructorId).single();
             
             const { error } = await supabase
@@ -227,35 +248,60 @@ export const useInstructorMutations = () => {
                 .eq('id', instructorId);
 
             if (error) throw error;
+
+            await notifyAdmins(
+                `حدث المدرب ${instructor?.name || ''} مواعيد الجلسات التعريفية.`,
+                `/admin/introductory-sessions`
+            );
+
             return { success: true };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
             queryClient.invalidateQueries({ queryKey: ['instructorData'] });
-            addToast('تم إرسال طلب تحديث مواعيد الجلسات التعريفية بنجاح.', 'success');
-        },
-        onError: (err: Error) => addToast(`فشل إرسال طلب الجلسات التعريفية: ${err.message}`, 'error'),
+            addToast('تم تحديث مواعيدك التعريفية.', 'success');
+        }
     });
 
     const updateInstructorAvailability = useMutation({
         mutationFn: async ({ instructorId, availability }: { instructorId: number, availability: AvailableSlots }) => {
-            const { error } = await supabase
-                .from('instructors')
-                .update({ availability })
-                .eq('id', instructorId);
+            const { error } = await supabase.from('instructors').update({ availability }).eq('id', instructorId);
             if (error) throw error;
             return { success: true };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
-            addToast('تم تحديث المواعيد المتاحة بنجاح.', 'success');
+            addToast('تم تحديث المواعيد.', 'success');
+        }
+    });
+
+    const approveSupportSessionRequest = useMutation({
+        mutationFn: async ({ requestId }: { requestId: string }) => {
+            const { error } = await supabase.from('support_session_requests').update({ status: 'approved' }).eq('id', requestId);
+            if (error) throw error;
+            return { success: true };
         },
-        onError: (err: Error) => addToast(`فشل التحديث: ${err.message}`, 'error'),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSupportSessionRequests'] });
+            addToast('تمت الموافقة على طلب الجلسة.', 'success');
+        }
+    });
+    
+    const rejectSupportSessionRequest = useMutation({
+        mutationFn: async ({ requestId }: { requestId: string }) => {
+            const { error } = await supabase.from('support_session_requests').update({ status: 'rejected' }).eq('id', requestId);
+            if (error) throw error;
+            return { success: true };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSupportSessionRequests'] });
+            addToast('تم رفض طلب الجلسة.', 'info');
+        }
     });
 
     const createSupportSessionRequest = useMutation({
         mutationFn: async (payload: { instructorId: number, childId: number, reason: string }) => {
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('support_session_requests')
                 .insert([{
                     instructor_id: payload.instructorId,
@@ -263,66 +309,22 @@ export const useInstructorMutations = () => {
                     reason: payload.reason,
                     status: 'pending',
                     requested_at: new Date().toISOString()
-                }])
-                .select()
-                .single();
+                }]);
 
-            if (error) throw error;
-            return data;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminSupportSessionRequests'] });
-            addToast('تم إرسال طلبك للإدارة بنجاح.', 'success');
-        },
-        onError: (err: Error) => addToast(`فشل إرسال الطلب: ${err.message}`, 'error'),
-    });
-
-    const approveSupportSessionRequest = useMutation({
-        mutationFn: async ({ requestId }: { requestId: string }) => {
-            const { error } = await supabase
-                .from('support_session_requests')
-                .update({ status: 'approved' })
-                .eq('id', requestId);
             if (error) throw error;
             return { success: true };
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminSupportSessionRequests'] });
-            addToast('تمت الموافقة على طلب الدعم.', 'success');
-        },
-        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
-    });
-    
-    const rejectSupportSessionRequest = useMutation({
-        mutationFn: async ({ requestId }: { requestId: string }) => {
-            const { error } = await supabase
-                .from('support_session_requests')
-                .update({ status: 'rejected' })
-                .eq('id', requestId);
-            if (error) throw error;
-            return { success: true };
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminSupportSessionRequests'] });
-            addToast('تم رفض طلب الدعم.', 'info');
-        },
-        onError: (err: Error) => addToast(`فشل: ${err.message}`, 'error'),
+            addToast('تم إرسال طلب جلسة الدعم بنجاح.', 'success');
+        }
     });
 
     return { 
-        createInstructor, 
-        updateInstructor, 
-        deleteInstructor,
-        approveInstructorSchedule, 
-        rejectInstructorSchedule, 
-        updateInstructorAvailability, 
-        requestScheduleChange, 
-        requestProfileUpdate, 
-        approveSupportSessionRequest, 
-        rejectSupportSessionRequest, 
-        createSupportSessionRequest, 
-        approveInstructorProfileUpdate, 
-        rejectInstructorProfileUpdate,
-        requestIntroAvailabilityChange
+        createInstructor, updateInstructor, deleteInstructor,
+        approveInstructorSchedule, rejectInstructorSchedule, updateInstructorAvailability, 
+        requestScheduleChange, requestProfileUpdate, 
+        approveInstructorProfileUpdate, rejectInstructorProfileUpdate,
+        requestIntroAvailabilityChange,
+        approveSupportSessionRequest, rejectSupportSessionRequest, createSupportSessionRequest
     };
 }
