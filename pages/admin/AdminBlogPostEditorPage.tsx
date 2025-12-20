@@ -43,18 +43,32 @@ const AdminBlogPostEditorPage: React.FC = () => {
         }
     }, [id, isNew, posts, postsLoading, navigate]);
 
+    // تحسين دالة توليد الروابط لدعم العربية ومنع التكرار
     const generateSlug = (text: string) => {
-        return text.toLowerCase()
-            .replace(/[^\w\s-]/g, '') 
-            .replace(/\s+/g, '-')     
-            .replace(/\-\-+/g, '-')   
-            .trim();
+        const baseSlug = text
+            .toString()
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')     // استبدال المسافات بشرطات
+            .replace(/[^\u0600-\u06FF\w\-]+/g, '') // الحفاظ على الحروف العربية والانجليزية والشرطات فقط
+            .replace(/\-\-+/g, '-')   // منع تكرار الشرطات
+            .replace(/^-+/, '')       // حذف الشرطات من البداية
+            .replace(/-+$/, '');      // حذف الشرطات من النهاية
+            
+        // إضافة بصمة زمنية عشوائية للمقالات الجديدة لضمان التفرد
+        if (isNew && baseSlug) {
+            const randomSuffix = Math.floor(Math.random() * 10000).toString();
+            return `${baseSlug}-${randomSuffix}`;
+        }
+        
+        return baseSlug;
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setPost(prev => {
             const newState = { ...prev, [name]: value };
+            // توليد الرابط تلقائياً فقط عند كتابة العنوان في مقال جديد ولم يقم المستخدم بتعديل الرابط يدوياً بعد
             if (name === 'title' && isNew) {
                 newState.slug = generateSlug(value);
             }
@@ -81,8 +95,9 @@ const AdminBlogPostEditorPage: React.FC = () => {
                 await updateBlogPost.mutateAsync(finalPost);
             }
             navigate('/admin/blog');
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to save post", error);
+            // سيتم عرض الخطأ تلقائياً عبر الـ Toast المرتبط بالـ Mutation
         }
     };
 
@@ -143,7 +158,7 @@ const AdminBlogPostEditorPage: React.FC = () => {
                                         onChange={handleChange} 
                                         rows={20} 
                                         required 
-                                        placeholder="اكتب محتوى المقال هنا... يمكنك استخدام Markdown بسيط." 
+                                        placeholder="اكتب محتوى المقال هنا..." 
                                         className="font-serif text-lg leading-relaxed min-h-[500px] p-6"
                                     />
                                     <div className="absolute bottom-4 left-4 text-xs text-muted-foreground bg-background/80 px-2 rounded">
@@ -208,7 +223,7 @@ const AdminBlogPostEditorPage: React.FC = () => {
                              <FormField label="الرابط الدائم (Slug)" htmlFor="slug">
                                 <Input id="slug" name="slug" value={post.slug} onChange={handleChange} dir="ltr" className="font-mono text-sm" />
                                 <p className="text-[10px] text-muted-foreground mt-1 truncate" dir="ltr">
-                                    .../blog/{post.slug}
+                                    alrehla.com/blog/{post.slug}
                                 </p>
                             </FormField>
                             <div className="p-3 bg-blue-50 rounded text-xs text-blue-700">

@@ -33,7 +33,13 @@ export const useContentMutations = () => {
             queryClient.invalidateQueries({ queryKey: ['adminBlogPosts'] });
             addToast('تم إنشاء المقال بنجاح.', 'success');
         },
-        onError: (err: Error) => addToast(`فشل إنشاء المقال: ${err.message}`, 'error'),
+        onError: (err: Error) => {
+            let errorMessage = err.message;
+            if (errorMessage.includes('blog_posts_slug_key')) {
+                errorMessage = "عذراً، هذا العنوان أو الرابط مستخدم بالفعل في مقال آخر. يرجى تغيير العنوان قليلاً.";
+            }
+            addToast(`فشل إنشاء المقال: ${errorMessage}`, 'error');
+        },
     });
     
     const updateBlogPost = useMutation({
@@ -42,7 +48,13 @@ export const useContentMutations = () => {
             queryClient.invalidateQueries({ queryKey: ['adminBlogPosts'] });
             addToast('تم تحديث المقال بنجاح.', 'success');
         },
-        onError: (err: Error) => addToast(`فشل تحديث المقال: ${err.message}`, 'error'),
+        onError: (err: Error) => {
+            let errorMessage = err.message;
+            if (errorMessage.includes('blog_posts_slug_key')) {
+                errorMessage = "عذراً، الرابط الجديد مستخدم في مقال آخر. يرجى اختيار رابط مختلف.";
+            }
+            addToast(`فشل تحديث المقال: ${errorMessage}`, 'error');
+        },
     });
 
     const deleteBlogPost = useMutation({
