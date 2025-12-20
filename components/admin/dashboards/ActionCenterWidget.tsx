@@ -1,20 +1,20 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldQuestion, ShoppingBag, BookOpen, CalendarCheck, UserCog, MessageSquare, UserPlus, ArrowLeft, FileEdit, Clock, CheckCircle } from 'lucide-react';
+import { ShieldQuestion, ShoppingBag, BookOpen, CalendarCheck, MessageSquare, UserPlus, ArrowLeft, FileEdit, Clock, CheckCircle } from 'lucide-react';
 import AdminSection from '../AdminSection';
 import { Button } from '../../ui/Button';
 import { formatDate } from '../../../utils/helpers';
 
 const ActionItem: React.FC<{ title: string; subtitle?: string; border?: string; to: string; state?: any; }> = ({ title, subtitle, border, to, state }) => (
-    <div className={`flex items-center justify-between p-3 bg-background hover:bg-muted/50 rounded-lg border-l-4 ${border || 'border-l-primary/30'} border-t border-b border-r`}>
-        <div>
-            <p className="font-semibold text-sm">{title}</p>
-            {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+    <div className={`flex items-center justify-between p-3 bg-background hover:bg-muted/50 rounded-lg border-l-4 ${border || 'border-l-primary/30'} border-t border-b border-r shadow-sm transition-all`}>
+        <div className="min-w-0 flex-1">
+            <p className="font-semibold text-sm truncate">{title}</p>
+            {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
         </div>
-        <Button as={Link} to={to} state={state} variant="ghost" size="sm">
+        <Button as={Link} to={to} state={state} variant="ghost" size="sm" className="ml-2 flex-shrink-0">
             <span className="hidden sm:inline">عرض</span>
-            <ArrowLeft size={16} className="sm:mr-1" />
+            <ArrowLeft size={14} className="sm:mr-1 transform rotate-180" />
         </Button>
     </div>
 );
@@ -24,41 +24,13 @@ const ActionCenterWidget = React.forwardRef<HTMLElement, { data: any; permission
     
     const actionGroups = [
         {
-            title: 'طلبات جديدة بانتظار المراجعة',
+            title: 'طلبات "إنها لك" للمراجعة',
             items: data.orders?.filter((o: any) => o.status === 'بانتظار المراجعة') || [],
             render: (item: any) => `طلب #${item.id.substring(0,6)} لـ ${item.child_profiles?.name || 'طفل'}`,
             permission: permissions.canManageEnhaLakOrders,
             to: '/admin/orders',
             icon: <ShoppingBag className="text-pink-500" />,
             border: 'border-l-pink-500'
-        },
-        {
-            title: 'طلبات تحديث بيانات المدربين',
-            items: data.instructors?.filter((i: any) => i.profile_update_status === 'pending') || [],
-            render: (item: any) => `تحديث بيانات/أسعار: ${item.name}`,
-            permission: permissions.canManageInstructorUpdates,
-            to: '/admin/instructors',
-            icon: <FileEdit className="text-orange-500" />,
-            border: 'border-l-orange-500'
-        },
-        {
-            title: 'طلبات تعديل جداول المدربين',
-            items: data.instructors?.filter((i: any) => i.schedule_status === 'pending') || [],
-            render: (item: any) => `تعديل جدول: ${item.name}`,
-            permission: permissions.canManageInstructorUpdates,
-            to: '/admin/instructors',
-            icon: <Clock className="text-blue-500" />,
-            border: 'border-l-blue-500'
-        },
-        {
-            title: 'حجوزات بانتظار تأكيد الدفع',
-            items: data.bookings?.filter((b: any) => b.status === 'بانتظار الدفع') || [],
-            render: (item: any) => `حجز ${item.package_name} لـ ${item.child_profiles?.name}`,
-            permission: permissions.canManageCreativeWritingBookings,
-            to: '/admin/creative-writing',
-            state: { statusFilter: 'بانتظار الدفع' },
-            icon: <CalendarCheck className="text-purple-500" />,
-            border: 'border-l-purple-500'
         },
         {
             title: 'رسائل دعم جديدة',
@@ -68,6 +40,34 @@ const ActionCenterWidget = React.forwardRef<HTMLElement, { data: any; permission
             to: '/admin/support',
             icon: <MessageSquare className="text-cyan-500" />,
             border: 'border-l-cyan-500'
+        },
+        {
+            title: 'طلبات انضمام جديدة',
+            items: data.joinRequests?.filter((r: any) => r.status === 'جديد') || [],
+            render: (item: any) => `طلب من ${item.name} (${item.role})`,
+            permission: permissions.canManageJoinRequests,
+            to: '/admin/join-requests',
+            icon: <UserPlus className="text-blue-500" />,
+            border: 'border-l-blue-500'
+        },
+        {
+            title: 'تحديثات المدربين',
+            items: data.instructors?.filter((i: any) => i.profile_update_status === 'pending' || i.schedule_status === 'pending') || [],
+            render: (item: any) => `تحديث ملف: ${item.name}`,
+            permission: permissions.canManageInstructorUpdates,
+            to: '/admin/instructors',
+            icon: <FileEdit className="text-orange-500" />,
+            border: 'border-l-orange-500'
+        },
+        {
+            title: 'حجوزات باقات بانتظار الدفع',
+            items: data.bookings?.filter((b: any) => b.status === 'بانتظار الدفع') || [],
+            render: (item: any) => `حجز ${item.package_name} لـ ${item.child_profiles?.name}`,
+            permission: permissions.canManageCreativeWritingBookings,
+            to: '/admin/creative-writing',
+            state: { statusFilter: 'بانتظار الدفع' },
+            icon: <CalendarCheck className="text-purple-500" />,
+            border: 'border-l-purple-500'
         }
     ].filter(group => group.permission && group.items.length > 0);
 
@@ -89,27 +89,20 @@ const ActionCenterWidget = React.forwardRef<HTMLElement, { data: any; permission
                                     <ActionItem 
                                         key={item.id}
                                         title={group.render(item)}
-                                        subtitle={formatDate(item.order_date || item.created_at || (item.pending_profile_data?.requested_at))}
+                                        subtitle={formatDate(item.order_date || item.created_at || item.pending_profile_data?.requested_at)}
                                         border={group.border}
                                         to={group.to}
                                         state={group.state}
                                     />
                                 ))}
                             </div>
-                            {group.items.length > 4 && (
-                                <div className="mt-2 text-left">
-                                     <Link to={group.to} state={group.state} className="text-xs font-bold text-primary hover:underline">
-                                        + عرض {group.items.length - 4} طلبات إضافية
-                                    </Link>
-                                </div>
-                            )}
                         </div>
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-10">
-                    <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4 opacity-20" />
-                    <p className="text-muted-foreground">لا توجد مهام بانتظار المراجعة حالياً.</p>
+                <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed">
+                    <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4 opacity-30" />
+                    <p className="text-muted-foreground font-semibold">كل شيء على ما يرام! لا توجد مهام عاجلة.</p>
                 </div>
             )}
         </AdminSection>

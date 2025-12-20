@@ -43,7 +43,6 @@ const AdminIntroductorySessionsPage = lazy(() => import('../../pages/admin/Admin
 const AdminPriceReviewPage = lazy(() => import('../../pages/admin/AdminPriceReviewPage'));
 const AdminReportsPage = lazy(() => import('../../pages/admin/AdminReportsPage'));
 const AdminAuditLogPage = lazy(() => import('../../pages/admin/AdminAuditLogPage'));
-const AdminMigrationPage = lazy(() => import('../../pages/admin/AdminMigrationPage'));
 
 // Financials
 const AdminFinancialsLayout = lazy(() => import('../../pages/admin/financials/AdminFinancialsLayout'));
@@ -96,7 +95,6 @@ const AdminLayout: React.FC = () => {
                 
                 {/* Scrollable Page Content Container */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth relative">
-                    {/* Inner Flex Wrapper to handle Sticky Footer correctly within ScrollView */}
                     <div className="flex flex-col min-h-full">
                          <div className="flex-1 p-4 sm:p-6 lg:p-8">
                             <Suspense fallback={<PageLoader />}>
@@ -159,8 +157,6 @@ const AdminLayout: React.FC = () => {
                                             <Route path="reports" element={<PermissionBasedRoute permission="canManageFinancials"><AdminReportsPage /></PermissionBasedRoute>} />
                                             <Route path="audit-log" element={<PermissionBasedRoute permission="canViewAuditLog"><AdminAuditLogPage /></PermissionBasedRoute>} />
                                             
-                                            <Route path="migration" element={<PermissionBasedRoute permission="canManageSettings"><AdminMigrationPage /></PermissionBasedRoute>} />
-
                                             <Route path="financials" element={<PermissionBasedRoute permission="canManageFinancials"><AdminFinancialsLayout /></PermissionBasedRoute>}>
                                                 <Route index element={<FinancialOverviewPage />} />
                                                 <Route path="instructor-payouts" element={<InstructorPayoutsPage />} />

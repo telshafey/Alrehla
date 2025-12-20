@@ -46,13 +46,11 @@ interface AdminSidebarProps {
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, onMobileClose }) => {
     const { permissions } = useAuth();
     
-    // This is the key logic: Is the user ONLY an instructor and not a higher-level admin?
     const isInstructorOnly = permissions.isInstructor && !permissions.canViewGlobalStats;
 
     const renderNavContent = (navItems: any[]) => (
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
              {navItems.map((group: any, index: number) => {
-                // Handle both grouped and flat structures
                 if (group.to) {
                      return <NavItem key={group.to} {...group} isCollapsed={isCollapsed} onClick={onMobileClose} />;
                 }
@@ -87,22 +85,21 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
         
         navigationContent = renderNavContent(instructorNav);
     } else {
-        // Admin/Supervisor sidebar
         const adminNavGroups = [
             {
                 items: [
                     { to: '/admin', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: permissions.canViewDashboard },
                 ]
             },
-            // Management
             {
-                title: 'الإدارة',
+                title: 'الإدارة والطلبات',
                 items: [
                     { to: '/admin/users', icon: <Users size={20} />, label: 'المستخدمون', permission: permissions.canManageUsers },
                     { to: '/admin/instructors', icon: <UserCog size={20} />, label: 'المدربون', permission: permissions.canManageInstructors },
+                    { to: '/admin/support', icon: <MessageSquare size={20} />, label: 'رسائل الدعم', permission: permissions.canManageSupportTickets },
+                    { to: '/admin/join-requests', icon: <UserPlus size={20} />, label: 'طلبات الانضمام', permission: permissions.canManageJoinRequests },
                 ]
             },
-            // Financials & Reports
             {
                 title: 'الماليات والتقارير',
                 items: [
@@ -110,7 +107,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                      { to: '/admin/reports', icon: <BarChart size={20} />, label: 'التقارير', permission: permissions.canManageFinancials },
                 ]
             },
-            // Enha Lak
             {
                 title: 'إنها لك',
                 items: [
@@ -119,44 +115,27 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                     { to: '/admin/subscriptions', icon: <Star size={20} />, label: 'الاشتراكات', permission: permissions.canManageEnhaLakOrders },
                 ]
             },
-             // Creative Writing
             {
                 title: 'بداية الرحلة',
                 items: [
                     { to: '/admin/creative-writing', icon: <BookOpen size={20} />, label: 'الحجوزات', permission: permissions.canManageCreativeWritingBookings },
                     { to: '/admin/service-orders', icon: <Sparkles size={20} />, label: 'طلبات الخدمات', permission: permissions.canManageCreativeWritingBookings },
                     { to: '/admin/scheduled-sessions', icon: <CalendarCheck size={20} />, label: 'الجلسات المجدولة', permission: permissions.canManageCreativeWritingBookings },
-                    { to: '/admin/introductory-sessions', icon: <Star size={20} />, label: 'الجلسات التعريفية', permission: permissions.canManageInstructors },
-                    { to: '/admin/price-review', icon: <DollarSign size={20} />, label: 'تسعير المدربين', permission: permissions.canManageInstructors },
-                    { to: '/admin/creative-writing-packages', icon: <Package size={20} />, label: 'إعدادات الباقات', permission: permissions.canManageCreativeWritingSettings },
-                    { to: '/admin/creative-writing-services', icon: <Sparkles size={20} />, label: 'إعدادات الخدمات', permission: permissions.canManageCreativeWritingSettings },
                 ]
             },
-             // Content Management (Expanded)
             {
-                title: 'إدارة الصفحات والمحتوى',
+                title: 'إدارة المحتوى',
                 items: [
-                     { to: '/admin/content/global', icon: <Palette size={20} />, label: 'الهوية والفوتر', permission: permissions.canManageSiteContent },
-                     { to: '/admin/content/portalPage', icon: <Home size={20} />, label: 'الصفحة الرئيسية', permission: permissions.canManageSiteContent },
-                     { to: '/admin/content/aboutPage', icon: <Info size={20} />, label: 'من نحن', permission: permissions.canManageSiteContent },
-                     { to: '/admin/content/enhaLakPage', icon: <ShoppingBag size={20} />, label: 'صفحات "إنها لك"', permission: permissions.canManageSiteContent },
-                     { to: '/admin/content/creativeWritingPage', icon: <BookOpen size={20} />, label: 'صفحات "بداية الرحلة"', permission: permissions.canManageSiteContent },
-                     { to: '/admin/content/supportPage', icon: <Phone size={20} />, label: 'الدعم والأسئلة', permission: permissions.canManageSiteContent },
-                     { to: '/admin/content/joinUsPage', icon: <Globe size={20} />, label: 'انضم إلينا', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/portalPage', icon: <Home size={20} />, label: 'تعديل الصفحات', permission: permissions.canManageSiteContent },
                      { to: '/admin/blog', icon: <FileText size={20} />, label: 'المدونة', permission: permissions.canManageBlog },
-                     { to: '/admin/support', icon: <MessageSquare size={20} />, label: 'رسائل الدعم', permission: permissions.canManageSupportTickets },
-                     { to: '/admin/join-requests', icon: <UserPlus size={20} />, label: 'طلبات الانضمام', permission: permissions.canManageJoinRequests },
                 ]
             },
-            // Settings
             {
                 title: 'الإعدادات',
                 items: [
                      { to: '/admin/settings', icon: <Settings size={20} />, label: 'الإعدادات العامة', permission: permissions.canManageSettings },
-                     { to: '/admin/shipping', icon: <Settings size={20} />, label: 'إعدادات الشحن', permission: permissions.canManageSettings },
-                     { to: '/admin/integrations', icon: <Plug size={20} />, label: 'التكاملات', permission: permissions.canManageSettings },
                      { to: '/admin/audit-log', icon: <History size={20} />, label: 'سجل النشاطات', permission: permissions.canViewAuditLog },
-                     { to: '/admin/migration', icon: <Database size={20} />, label: 'ترحيل الصور', permission: permissions.canManageSettings }, // Added migration link
+                     { to: '/admin/integrations', icon: <Plug size={20} />, label: 'التكاملات', permission: permissions.canManageSettings },
                 ]
             },
         ];
@@ -166,11 +145,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
     return (
         <aside className={cn(
             "bg-background border-l rtl:border-l-0 rtl:border-r transition-all duration-300 flex flex-col",
-            // Mobile Styles: Fixed overlay
             "fixed inset-y-0 right-0 z-[60] h-full w-64 shadow-2xl transform",
             !isMobileOpen && "translate-x-full", 
-            
-            // Desktop Styles: Static layout
             "md:translate-x-0 md:static md:h-auto md:shadow-none md:z-0",
             isCollapsed ? "md:w-20" : "md:w-64"
         )}>
@@ -186,12 +162,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                     </div>
                     {!isCollapsed && <span className="font-bold text-lg">منصة الرحلة</span>}
                 </Link>
-                {/* Close button for mobile only */}
                 <Button variant="ghost" size="icon" onClick={onMobileClose} className="md:hidden">
                     <X size={20} />
                 </Button>
             </div>
-
             {navigationContent}
         </aside>
     );
