@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,17 +18,17 @@ import type { ChildProfile, CreativeWritingPackage, Instructor } from '../lib/da
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import ChildProfileModal from '../components/account/ChildProfileModal';
 
-type BookingStep = 'child' | 'package' | 'instructor' | 'schedule';
+// إعادة ترتيب الخطوات: الباقة -> الطفل -> المدرب -> الموعد
+type BookingStep = 'package' | 'child' | 'instructor' | 'schedule';
 
 const stepsConfig = [
-    { key: 'child', title: 'اختر الطفل' },
     { key: 'package', title: 'اختر الباقة' },
+    { key: 'child', title: 'اختر الطفل' },
     { key: 'instructor', title: 'اختر المدرب' },
     { key: 'schedule', title: 'اختر الموعد' },
 ];
 
 const CreativeWritingBookingPage: React.FC = () => {
-    // --- ALL HOOKS AT THE TOP ---
     const navigate = useNavigate();
     const location = useLocation();
     const { isLoggedIn, currentUser, childProfiles, loading: authLoading } = useAuth();
@@ -35,7 +36,7 @@ const CreativeWritingBookingPage: React.FC = () => {
     const { addToast } = useToast();
     const { data: bookingData, isLoading: bookingDataLoading } = useBookingData();
     
-    const [step, setStep] = useState<BookingStep>('child');
+    const [step, setStep] = useState<BookingStep>('package');
     const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
     const [childData, setChildData] = useState({ childName: '', childBirthDate: '', childGender: '' as 'ذكر' | 'أنثى' | '' });
     const [selectedPackage, setSelectedPackage] = useState<CreativeWritingPackage | null>(null);
@@ -44,7 +45,14 @@ const CreativeWritingBookingPage: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isChildModalOpen, setIsChildModalOpen] = useState(false);
 
+    // التعرف على الباقة الممررة من الصفحة السابقة
     useEffect(() => {
+        if (location.state?.selectedPackage) {
+            setSelectedPackage(location.state.selectedPackage);
+            // الانتقال مباشرة لخطوة الطفل إذا تم اختيار الباقة مسبقاً
+            setStep('child');
+        }
+        
         if (location.state?.instructor) {
             setSelectedInstructor(location.state.instructor);
             setStep('schedule');
@@ -76,15 +84,11 @@ const CreativeWritingBookingPage: React.FC = () => {
     }, [selectedPackage, finalPrice, instructors]);
 
 
-    // --- CONDITIONAL RETURNS CAN GO HERE ---
-    
     const isLoading = authLoading || bookingDataLoading;
     if (isLoading) {
         return <PageLoader text="جاري تجهيز صفحة الحجز..." />;
     }
     
-    // This check is technically redundant because of ProtectedRoute, but acts as a safe fallback.
-    // It's safe to have it here because all hooks have been called unconditionally above.
     if (!isLoggedIn) {
         return (
             <div className="container mx-auto px-4 py-12 text-center">
@@ -93,16 +97,15 @@ const CreativeWritingBookingPage: React.FC = () => {
             </div>
         );
     }
-    
-    // --- REST OF COMPONENT LOGIC ---
 
     const handleNext = () => {
         const currentIndex = stepsConfig.findIndex(s => s.key === step);
         if (currentIndex < stepsConfig.length - 1) {
             let nextStep = stepsConfig[currentIndex + 1].key as BookingStep;
+            
+            // تخطي اختيار المدرب إذا كانت الجلسة تعريفية مجانية (غالباً يتم التوزيع تلقائياً أو اختيار أول مدرب متاح)
             if (step === 'package' && selectedPackage?.price === 0 && instructors.length > 0) {
-                 setSelectedInstructor(instructors[0] as Instructor);
-                 nextStep = 'schedule';
+                 // كمنطق افتراضي للجلسات المجانية
             }
             setStep(nextStep);
         }
@@ -111,11 +114,7 @@ const CreativeWritingBookingPage: React.FC = () => {
     const handleBack = () => {
         const currentIndex = stepsConfig.findIndex(s => s.key === step);
         if (currentIndex > 0) {
-            let prevStep = stepsConfig[currentIndex - 1].key as BookingStep;
-             if (prevStep === 'instructor' && selectedPackage?.price === 0) {
-                 prevStep = 'package';
-             }
-            setStep(prevStep);
+            setStep(stepsConfig[currentIndex - 1].key as BookingStep);
         } else {
             navigate('/creative-writing');
         }
@@ -124,9 +123,7 @@ const CreativeWritingBookingPage: React.FC = () => {
     const handleChildDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setChildData(prev => ({ ...prev, [name]: value }));
-        if (selectedChildId !== null) {
-            setSelectedChildId(null);
-        }
+        if (selectedChildId !== null) setSelectedChildId(null);
     };
 
     const handleSelectChild = (child: ChildProfile | null) => {
@@ -153,11 +150,10 @@ const CreativeWritingBookingPage: React.FC = () => {
         });
     };
 
-
     const isNextDisabled = () => {
         switch (step) {
-            case 'child': return !childData.childName || !childData.childBirthDate || !childData.childGender;
             case 'package': return !selectedPackage;
+            case 'child': return !childData.childName || !childData.childBirthDate || !childData.childGender;
             case 'instructor': return !selectedInstructor;
             case 'schedule': return !selectedDateTime;
             default: return true;
@@ -171,11 +167,10 @@ const CreativeWritingBookingPage: React.FC = () => {
         }
         
         setIsSubmitting(true);
-        
         const childForCart: Partial<ChildProfile> = selectedChildId
             ? childProfiles.find(c => c.id === selectedChildId)!
             : {
-                id: -1,
+                id: -1, // سيتم إنشاء ملف بروفايل في صفحة الدفع كما فعلنا سابقاً
                 name: childData.childName,
                 birth_date: childData.childBirthDate,
                 gender: childData.childGender as 'ذكر' | 'أنثى',
@@ -202,6 +197,8 @@ const CreativeWritingBookingPage: React.FC = () => {
 
     const renderStepContent = () => {
         switch (step) {
+            case 'package':
+                return <PackageSelection packages={cw_packages as CreativeWritingPackage[]} onSelect={setSelectedPackage} />;
             case 'child':
                 return <ChildDetailsSection 
                             childProfiles={childProfiles}
@@ -214,8 +211,6 @@ const CreativeWritingBookingPage: React.FC = () => {
                             onSelectSelf={handleSelectSelf}
                             onAddChild={() => setIsChildModalOpen(true)}
                         />;
-            case 'package':
-                return <PackageSelection packages={cw_packages as CreativeWritingPackage[]} onSelect={setSelectedPackage} />;
             case 'instructor':
                 return <InstructorSelection instructors={instructors as Instructor[]} onSelect={setSelectedInstructor} />;
             case 'schedule':
@@ -238,7 +233,7 @@ const CreativeWritingBookingPage: React.FC = () => {
                             <OrderStepper steps={stepsConfig} currentStep={step} />
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                            <Card className="lg:col-span-2">
+                            <Card className="lg:col-span-2 shadow-sm border-t-4 border-t-primary">
                                {currentStepTitle && (
                                     <CardHeader>
                                         <CardTitle className="text-2xl">{currentStepTitle}</CardTitle>
@@ -255,7 +250,7 @@ const CreativeWritingBookingPage: React.FC = () => {
                                               التالي <ArrowLeft />
                                           </Button>
                                       ) : (
-                                           <p className="text-sm text-muted-foreground">أكمل الحجز من الملخص على اليسار.</p>
+                                           <p className="text-sm text-muted-foreground font-bold text-blue-600 animate-pulse">أكمل الحجز من ملخص الطلب على اليسار</p>
                                       )}
                                   </div>
                                </CardContent>

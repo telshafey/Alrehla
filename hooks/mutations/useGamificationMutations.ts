@@ -4,6 +4,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { gamificationService } from '../../services/gamificationService';
 
 export const useGamificationMutations = () => {
+    // Fix: Added missing 'const' keyword to correctly initialize queryClient using useQueryClient hook
     const queryClient = useQueryClient();
     const { addToast } = useToast();
 

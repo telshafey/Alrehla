@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
 import { Button } from '../components/ui/Button';
@@ -99,7 +99,7 @@ const PackageDetailCard: React.FC<{ pkg: CreativeWritingPackage; priceRange: { m
             </CardContent>
 
             <CardFooter className="pt-4 pb-6">
-                <Button as={Link} to="/creative-writing/booking" className="w-full" size="lg" variant={isFree ? 'success' : (pkg.popular ? 'default' : 'outline')}>
+                <Button as={Link} to="/creative-writing/booking" state={{ selectedPackage: pkg }} className="w-full" size="lg" variant={isFree ? 'success' : (pkg.popular ? 'default' : 'outline')}>
                     {isFree ? 'احجز الآن مجاناً' : 'اختيار الباقة'}
                     <ArrowLeft size={18} className="mr-2 rtl:rotate-180" />
                 </Button>
@@ -226,7 +226,7 @@ const CreativeWritingPackagesPage: React.FC = () => {
                                         <td className="bg-gray-50/50"></td>
                                         {packages.map(pkg => (
                                             <td key={pkg.id} className={`py-8 px-4 text-center ${pkg.popular ? 'bg-primary/5' : ''}`}>
-                                                <Button as={Link} to="/creative-writing/booking" variant={pkg.price === 0 ? 'success' : 'default'} size="sm">
+                                                <Button as={Link} to="/creative-writing/booking" state={{ selectedPackage: pkg }} variant={pkg.price === 0 ? 'success' : 'default'} size="sm">
                                                     {pkg.price === 0 ? 'ابدأ الآن' : 'اطلب الباقة'}
                                                 </Button>
                                             </td>
