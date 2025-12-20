@@ -10,7 +10,7 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
 import { Select } from '../../components/ui/Select';
-import { ArrowLeft, Save, User, AlertCircle, Check, XCircle, FileEdit, Calendar, DollarSign, Clock } from 'lucide-react';
+import { ArrowLeft, Save, User, AlertCircle, Check, XCircle, FileEdit, Calendar, DollarSign, Clock, Star } from 'lucide-react';
 import type { Instructor, WeeklySchedule } from '../../lib/database.types';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -52,7 +52,14 @@ const AdminInstructorDetailPage: React.FC = () => {
 
     const { data: instructors = [], isLoading: instructorsLoading, error: instructorsError, refetch: refetchInstructors } = useAdminInstructors();
     const { data: settingsData, isLoading: settingsLoading, error: settingsError, refetch: refetchSettings } = useAdminCWSettings();
-    const { createInstructor, updateInstructor, approveInstructorProfileUpdate, rejectInstructorProfileUpdate, approveInstructorSchedule, rejectInstructorSchedule } = useInstructorMutations();
+    const { 
+        createInstructor, 
+        updateInstructor, 
+        approveInstructorProfileUpdate, 
+        rejectInstructorProfileUpdate, 
+        approveInstructorSchedule, 
+        rejectInstructorSchedule 
+    } = useInstructorMutations();
     
     const [profile, setProfile] = useState<Partial<Instructor>>({ name: '', specialty: '', slug: '', bio: '' });
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
