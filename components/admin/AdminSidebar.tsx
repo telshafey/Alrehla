@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
     LayoutDashboard, Users, ShoppingBag, BookOpen, UserCog, MessageSquare, UserPlus,
     FileText, Settings, Star, Package, Sparkles, CalendarCheck, Plug, DollarSign, BarChart, History, X,
-    Globe, Home, Info, Phone, Palette, Database
+    Globe, Home, Info, Phone, Palette, Database, Layout
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Image from '../ui/Image';
@@ -126,7 +126,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
             {
                 title: 'إدارة المحتوى',
                 items: [
-                     { to: '/admin/content/portalPage', icon: <Home size={20} />, label: 'تعديل الصفحات', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/portalPage', icon: <Home size={20} />, label: 'الصفحة الرئيسية', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/aboutPage', icon: <Info size={20} />, label: 'صفحة رحلتنا', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/enhaLakPage', icon: <ShoppingBag size={20} />, label: 'صفحات إنها لك', permission: permissions.canManageSiteContent },
+                     { to: '/admin/content/creativeWritingPage', icon: <BookOpen size={20} />, label: 'صفحات بداية الرحلة', permission: permissions.canManageSiteContent },
                      { to: '/admin/blog', icon: <FileText size={20} />, label: 'المدونة', permission: permissions.canManageBlog },
                 ]
             },

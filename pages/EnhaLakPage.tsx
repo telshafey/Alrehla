@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { BookHeart, Gift, Star, ArrowLeft, CheckCircle, Send, Mic, User, Sparkles } from 'lucide-react';
 import TestimonialCard from '../components/shared/TestimonialCard';
@@ -51,6 +51,11 @@ const EnhaLakPage: React.FC = () => {
     const pageUrl = window.location.href;
     const { data, isLoading } = usePublicData();
     const content = data?.siteContent?.enhaLakPage.main;
+    
+    // جلب بيانات المنتجات لربط الصور
+    const products = data?.personalizedProducts || [];
+    const subBoxProduct = useMemo(() => products.find(p => p.key === 'subscription_box'), [products]);
+    const customStoryProduct = useMemo(() => products.find(p => p.key === 'custom_story'), [products]);
 
     if (isLoading) return <PageLoader />;
 
@@ -72,7 +77,7 @@ const EnhaLakPage: React.FC = () => {
                     </div>
                      <div className="mt-8 flex justify-center">
                         <ShareButtons 
-                          title='اكتشف قصص "إنها لك" المخصصة التي تجعل طفلك بطل حكايته'
+                          title='اكتشف قصص "إنها لك" المخصصة التي تجعل طفلك بطلاً حكايته'
                           url={pageUrl} 
                           label="شارك المشروع:"
                         />
@@ -106,7 +111,7 @@ const EnhaLakPage: React.FC = () => {
                             title="القصة المخصصة"
                             description="جوهر 'إنها لك'، قصة فريدة منسوجة حول شخصية طفلك واهتماماته، تهدف لغرس قيمة تربوية مختارة بعناية."
                             features={["تخصيص كامل للبطل: اسم، صورة، وصف", "اختيار الهدف التربوي من قائمة متنوعة", "متوفرة بنسخ مطبوعة فاخرة وإلكترونية"]}
-                            imageUrl={content?.customStoryImageUrl || "https://i.ibb.co/RzJzQhL/hero-image-new.jpg"}
+                            imageUrl={customStoryProduct?.image_url || content?.customStoryImageUrl || "https://i.ibb.co/RzJzQhL/hero-image-new.jpg"}
                             ctaLink="/enha-lak/store"
                             ctaText="اكتشف القصص"
                         />
@@ -114,7 +119,7 @@ const EnhaLakPage: React.FC = () => {
                             title="صندوق الرحلة الشهري"
                             description="هدية متجددة تفتح لطفلك أبواباً جديدة من الخيال والمعرفة كل شهر، مع محتوى حصري ومفاجآت ممتعة."
                             features={["قصة مخصصة جديدة كل شهر", "أنشطة تفاعلية وألعاب تعليمية مبتكرة", "هدية إضافية مختارة بعناية لتناسب عمر الطفل"]}
-                            imageUrl={content?.subscriptionBoxImageUrl || "https://i.ibb.co/L8DDd6V/gift-box-sub.png"}
+                            imageUrl={subBoxProduct?.image_url || content?.subscriptionBoxImageUrl || "https://i.ibb.co/L8DDd6V/gift-box-sub.png"}
                             ctaLink="/enha-lak/subscription"
                             ctaText="اعرف المزيد واشترك"
                             isReversed

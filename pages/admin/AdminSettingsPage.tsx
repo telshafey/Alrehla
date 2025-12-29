@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Database } from 'lucide-react';
+import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Database, Info } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
 import { useAdminSocialLinks, useAdminPricingSettings, useAdminCommunicationSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
@@ -31,8 +31,6 @@ const AdminSettingsPage: React.FC = () => {
     const { data: siteContent, isLoading: contentLoading } = useAdminSiteContent();
     const { updateSiteContent } = useContentMutations();
     const [contentImages, setContentImages] = useState({
-        customStory: '',
-        subscriptionBox: '',
         cwPhilosophy: ''
     });
 
@@ -58,8 +56,6 @@ const AdminSettingsPage: React.FC = () => {
     useEffect(() => {
         if (siteContent) {
             setContentImages({
-                customStory: siteContent.enhaLakPage?.main?.customStoryImageUrl || '',
-                subscriptionBox: siteContent.enhaLakPage?.main?.subscriptionBoxImageUrl || '',
                 cwPhilosophy: siteContent.creativeWritingPage?.about?.heroImageUrl || ''
             });
         }
@@ -115,13 +111,6 @@ const AdminSettingsPage: React.FC = () => {
             if (siteContent) {
                 const newContent = JSON.parse(JSON.stringify(siteContent));
                 
-                // Safely update deeply nested keys
-                if (!newContent.enhaLakPage) newContent.enhaLakPage = { main: {} };
-                if (!newContent.enhaLakPage.main) newContent.enhaLakPage.main = {};
-                
-                newContent.enhaLakPage.main.customStoryImageUrl = contentImages.customStory;
-                newContent.enhaLakPage.main.subscriptionBoxImageUrl = contentImages.subscriptionBox;
-
                 if (!newContent.creativeWritingPage) newContent.creativeWritingPage = { about: {} };
                 if (!newContent.creativeWritingPage.about) newContent.creativeWritingPage.about = {};
                 
@@ -232,23 +221,23 @@ const AdminSettingsPage: React.FC = () => {
 
                         <Card>
                             <CardHeader>
-                                <CardTitle>صور بطاقات المشاريع</CardTitle>
-                                <CardDescription>الصور التي تظهر في البطاقات التعريفية للمشاريع في الصفحة الرئيسية.</CardDescription>
+                                <CardTitle>صور الأقسام (الخلفيات)</CardTitle>
+                                <CardDescription>صور خلفية البطاقات التعريفية في الصفحة الرئيسية.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <ImageUploadField 
-                                        label="صورة بطاقة 'إنها لك'" 
+                                        label="خلفية بطاقة 'إنها لك' (Portal)" 
                                         fieldKey="enhaLakPortalImageUrl"
                                         currentUrl={branding.enhaLakPortalImageUrl} 
                                         onUrlChange={handleBrandingChange}
                                         recommendedSize="600x400px"
                                     />
                                     <ImageUploadField 
-                                        label="صورة بطاقة 'بداية الرحلة'" 
+                                        label="خلفية بطاقة 'بداية الرحلة' (Portal)" 
                                         fieldKey="creativeWritingPortalImageUrl"
                                         currentUrl={branding.creativeWritingPortalImageUrl} 
-                                        onUrlChange={handleBrandingChange} 
+                                        onUrlChange={handleBrandingChange}
                                         recommendedSize="600x400px"
                                     />
                                 </div>
@@ -257,68 +246,44 @@ const AdminSettingsPage: React.FC = () => {
 
                         <Card>
                             <CardHeader>
-                                <CardTitle>صور صفحة "رحلتنا" (من نحن)</CardTitle>
+                                <CardTitle>صور الصفحات الأخرى</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <ImageUploadField 
-                                        label="صورة الهيرو في صفحة 'رحلتنا'" 
+                                        label="صورة هيرو 'رحلتنا'" 
                                         fieldKey="aboutHeroImageUrl"
                                         currentUrl={branding.aboutHeroImageUrl} 
                                         onUrlChange={handleBrandingChange}
                                         recommendedSize="1920x600px"
                                     />
-                                    <ImageUploadField 
-                                        label="صورة بطاقة 'رحلتنا' (في الرئيسية)" 
-                                        fieldKey="aboutPortalImageUrl"
-                                        currentUrl={branding.aboutPortalImageUrl} 
-                                        onUrlChange={handleBrandingChange}
-                                        recommendedSize="600x600px"
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>صور صفحات المشاريع الداخلية</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <ImageUploadField 
-                                        label="صورة 'القصة المخصصة' (إنها لك)" 
-                                        fieldKey="customStory"
-                                        currentUrl={contentImages.customStory} 
-                                        onUrlChange={(k, v) => handleContentImageChange('customStory', v)}
-                                        recommendedSize="800x800px"
-                                    />
-                                    <ImageUploadField 
-                                        label="صورة 'صندوق الرحلة' (إنها لك)" 
-                                        fieldKey="subscriptionBox"
-                                        currentUrl={contentImages.subscriptionBox} 
-                                        onUrlChange={(k, v) => handleContentImageChange('subscriptionBox', v)}
-                                        recommendedSize="800x800px"
-                                    />
-                                    <ImageUploadField 
+                                     <ImageUploadField 
                                         label="صورة 'فلسفة البرنامج' (بداية الرحلة)" 
                                         fieldKey="cwPhilosophy"
                                         currentUrl={contentImages.cwPhilosophy} 
                                         onUrlChange={(k, v) => handleContentImageChange('cwPhilosophy', v)}
                                         recommendedSize="800x800px"
                                     />
-                                     <ImageUploadField 
-                                        label="صورة صفحة 'انضم إلينا'" 
-                                        fieldKey="joinUsImageUrl"
-                                        currentUrl={branding.joinUsImageUrl} 
-                                        onUrlChange={handleBrandingChange}
-                                        recommendedSize="1920x600px"
-                                    />
+                                </div>
+                                
+                                <div className="p-4 bg-orange-50 border-2 border-dashed border-orange-200 rounded-lg flex items-start gap-4">
+                                    <div className="bg-orange-500 p-2 rounded-full text-white shrink-0">
+                                        <Info size={24} />
+                                    </div>
+                                    <div className="text-sm text-orange-900">
+                                        <p className="font-bold text-lg mb-1">أين صور المنتجات؟</p>
+                                        <p className="leading-relaxed">لقد قمنا بفصل صور عرض المنتجات (مثل صورة صندوق الرحلة وصورة القصة المخصصة) عن إعدادات الصفحات. لتعديلها، يرجى الذهاب إلى <strong>إدارة المنتجات المخصصة</strong> أو صفحة <strong>إدارة الصندوق</strong>. هذا يضمن بقاء صورك متزامنة دائماً في المتجر والصفحات التعريفية.</p>
+                                        <div className="mt-4 flex gap-4">
+                                            <Button as="a" href="#/admin/personalized-products" size="sm" variant="special">إدارة المنتجات</Button>
+                                            <Button as="a" href="#/admin/subscription-box" size="sm" variant="outline" className="bg-white">إدارة الصندوق</Button>
+                                        </div>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
 
                         <div className="flex justify-end">
-                            <Button onClick={handleImagesSubmit} loading={useProduct().loading || updateSiteContent.isPending} icon={<Save />}>حفظ الصور</Button>
+                            <Button onClick={handleImagesSubmit} loading={useProduct().loading || updateSiteContent.isPending} icon={<Save />}>حفظ صور الموقع</Button>
                         </div>
                     </div>
                 </TabsContent>

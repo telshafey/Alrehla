@@ -108,8 +108,8 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                                     sortedProducts.map(product => (
                                         <TableRow key={product.id}>
                                             <TableCell className="flex items-center gap-4">
-                                                <div className="w-12 h-12 flex-shrink-0 rounded-md overflow-hidden bg-muted">
-                                                    <Image src={product.image_url || 'https://i.ibb.co/C0bSJJT/favicon.png'} alt={product.title} className="w-full h-full" objectFit="contain" />
+                                                <div className="w-12 h-12 flex-shrink-0 rounded-md overflow-hidden bg-muted border">
+                                                    <Image src={product.image_url || ''} alt={product.title} className="w-full h-full" objectFit="contain" />
                                                 </div>
                                                 <span className="font-semibold">{product.title}</span>
                                             </TableCell>
@@ -126,8 +126,10 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                                             <TableCell className="flex items-center gap-1">
                                                 {product.key === 'subscription_box' ? (
                                                     <>
-                                                        <Button onClick={() => navigate(`/admin/subscription-box`)} variant="ghost" size="icon" title="إدارة الصندوق"><Settings size={20} /></Button>
-                                                        <Button disabled variant="ghost" size="icon" className="cursor-not-allowed" title="لا يمكن حذف المنتج الأساسي"><Trash2 size={20} /></Button>
+                                                        <Button onClick={() => navigate(`/admin/subscription-box`)} variant="ghost" size="icon" title="إدارة الصندوق والصورة" className="text-primary hover:bg-primary/10">
+                                                            <Settings size={20} />
+                                                        </Button>
+                                                        <Button disabled variant="ghost" size="icon" className="opacity-30 cursor-not-allowed" title="لا يمكن حذف المنتج الأساسي"><Trash2 size={20} /></Button>
                                                     </>
                                                 ) : (
                                                     <>

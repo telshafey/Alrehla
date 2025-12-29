@@ -1,35 +1,43 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, FileText, Package, Plus, Edit, Trash2, Save, ArrowUp, ArrowDown } from 'lucide-react';
-import { useAdminSubscriptionPlans } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
+import { Star, FileText, Package, Plus, Edit, Trash2, Save, ArrowUp, ArrowDown, ImageIcon } from 'lucide-react';
+import { useAdminPersonalizedProducts, useAdminSubscriptionPlans } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useSubscriptionMutations } from '../../hooks/mutations/useSubscriptionMutations';
 import { useContentMutations } from '../../hooks/mutations/useContentMutations';
+import { useProductMutations } from '../../hooks/mutations/useProductMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import { SubscriptionPlanModal } from '../../components/admin/SubscriptionPlanModal';
 import { Button } from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
-import type { SubscriptionPlan, SiteContent } from '../../lib/database.types';
+import type { SubscriptionPlan, SiteContent, PersonalizedProduct } from '../../lib/database.types';
 import ErrorState from '../../components/ui/ErrorState';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 
 const AdminSubscriptionBoxPage: React.FC = () => {
     // Queries
     const { data: rawPlans = [], isLoading: plansLoading, error: plansError, refetch: refetchPlans } = useAdminSubscriptionPlans();
     const { data: siteContentData, isLoading: contentLoading, error: contentError, refetch: refetchContent } = useAdminSiteContent();
+    const { data: products = [] } = useAdminPersonalizedProducts();
     
     // Mutations
     const { createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan } = useSubscriptionMutations();
     const { updateSiteContent } = useContentMutations();
+    const { updatePersonalizedProduct } = useProductMutations();
 
     // State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [planToEdit, setPlanToEdit] = useState<SubscriptionPlan | null>(null);
     const [content, setContent] = useState<SiteContent['enhaLakPage']['subscription'] | null>(null);
+    const [boxImage, setBoxImage] = useState<string>('');
     const [sortConfig, setSortConfig] = useState<{ key: keyof SubscriptionPlan; direction: 'asc' | 'desc' } | null>({ key: 'price', direction: 'asc' });
 
+    // Find the actual product record for the subscription box
+    const boxProduct = useMemo(() => products.find(p => p.key === 'subscription_box'), [products]);
 
     const plans = useMemo(() => {
         let sortableItems = [...rawPlans];
@@ -44,13 +52,15 @@ const AdminSubscriptionBoxPage: React.FC = () => {
     }, [rawPlans, sortConfig]);
 
     const isLoading = plansLoading || contentLoading;
-    const isSavingPlans = createSubscriptionPlan.isPending || updateSubscriptionPlan.isPending;
 
     useEffect(() => {
         if (siteContentData) {
             setContent(JSON.parse(JSON.stringify(siteContentData.enhaLakPage.subscription)));
         }
-    }, [siteContentData]);
+        if (boxProduct) {
+            setBoxImage(boxProduct.image_url || '');
+        }
+    }, [siteContentData, boxProduct]);
 
     const handleOpenModal = (plan: SubscriptionPlan | null) => {
         setPlanToEdit(plan);
@@ -68,14 +78,14 @@ const AdminSubscriptionBoxPage: React.FC = () => {
         } catch (e) { /* Error handled in hook */ }
     };
     
-    const handleDeletePlan = async (planId: number) => {
-        if (window.confirm('هل أنت متأكد من حذف هذه الباقة؟')) {
-            await deleteSubscriptionPlan.mutateAsync({ planId });
-        }
-    };
-    
-    const handleContentChange = (field: keyof SiteContent['enhaLakPage']['subscription'], value: string | string[]) => {
-        setContent(prev => prev ? { ...prev, [field]: value } : null);
+    const handleBoxImageUpdate = async (key: string, url: string) => {
+        if (!boxProduct) return;
+        setBoxImage(url);
+        // تحديث صورة المنتج فوراً في قاعدة البيانات
+        await updatePersonalizedProduct.mutateAsync({
+            ...boxProduct,
+            image_url: url
+        });
     };
 
     const handleContentSave = async () => {
@@ -94,27 +104,7 @@ const AdminSubscriptionBoxPage: React.FC = () => {
         setSortConfig({ key, direction });
     };
 
-    const SortableTh: React.FC<{ sortKey: keyof SubscriptionPlan; label: string }> = ({ sortKey, label }) => (
-        <TableHead>
-            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
-                <div className="flex items-center">
-                   <span>{label}</span>
-                    {sortConfig?.key === sortKey && (
-                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
-                    )}
-                </div>
-            </Button>
-        </TableHead>
-    );
-
-    const error = plansError || contentError;
-    const refetch = () => {
-        if(plansError) refetchPlans();
-        if(contentError) refetchContent();
-    }
-
     if (isLoading || !content) return <PageLoader />;
-    if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
         <>
@@ -122,75 +112,108 @@ const AdminSubscriptionBoxPage: React.FC = () => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSave={handleSavePlan}
-                isSaving={isSavingPlans}
+                isSaving={updateSubscriptionPlan.isPending}
                 planToEdit={planToEdit}
             />
             <div className="animate-fadeIn space-y-8">
-                <h1 className="text-3xl font-extrabold text-foreground">إدارة صندوق الرحلة الشهري</h1>
+                <div className="flex justify-between items-center">
+                    <h1 className="text-3xl font-extrabold text-foreground">إدارة صندوق الرحلة الشهري</h1>
+                </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <FileText /> محتوى صفحة الاشتراك
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            <FormField label="العنوان الرئيسي" htmlFor="heroTitle">
-                                <Input id="heroTitle" value={content.heroTitle} onChange={e => handleContentChange('heroTitle', e.target.value)} />
-                            </FormField>
-                            <FormField label="النص التعريفي" htmlFor="heroSubtitle">
-                                <Textarea id="heroSubtitle" value={content.heroSubtitle} onChange={e => handleContentChange('heroSubtitle', e.target.value)} rows={3}/>
-                            </FormField>
-                            <FormField label="ميزات الصندوق (كل ميزة في سطر)" htmlFor="features">
-                                <Textarea id="features" value={(content.features || []).join('\n')} onChange={e => handleContentChange('features', e.target.value.split('\n'))} rows={4}/>
-                            </FormField>
-                            <div className="flex justify-end">
-                                <Button onClick={handleContentSave} loading={updateSiteContent.isPending} icon={<Save />}>حفظ المحتوى</Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 space-y-8">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <FileText /> محتوى صفحة الاشتراك
+                                </CardTitle>
+                                <CardDescription>النصوص التعريفية التي تظهر للعملاء في صفحة الصندوق.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <FormField label="العنوان الرئيسي" htmlFor="heroTitle">
+                                    <Input id="heroTitle" value={content.heroTitle} onChange={e => setContent({...content, heroTitle: e.target.value})} />
+                                </FormField>
+                                <FormField label="النص التعريفي" htmlFor="heroSubtitle">
+                                    <Textarea id="heroSubtitle" value={content.heroSubtitle} onChange={e => setContent({...content, heroSubtitle: e.target.value})} rows={3}/>
+                                </FormField>
+                                <FormField label="ميزات الصندوق (كل ميزة في سطر)" htmlFor="features">
+                                    <Textarea id="features" value={(content.features || []).join('\n')} onChange={e => setContent({...content, features: e.target.value.split('\n')})} rows={4}/>
+                                </FormField>
+                                <div className="flex justify-end">
+                                    <Button onClick={handleContentSave} loading={updateSiteContent.isPending} icon={<Save />}>حفظ المحتوى النصي</Button>
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                             <span className="flex items-center gap-2"><Package /> باقات الاشتراك</span>
-                            <Button onClick={() => handleOpenModal(null)} icon={<Plus size={18} />} size="sm">
-                                إضافة باقة
-                            </Button>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                         <div className="overflow-x-auto">
-                            <Table>
-                               <TableHeader>
-                                   <TableRow>
-                                        <SortableTh sortKey="name" label="الباقة" />
-                                        <SortableTh sortKey="duration_months" label="المدة" />
-                                        <SortableTh sortKey="price" label="السعر الإجمالي" />
-                                        <SortableTh sortKey="price_per_month" label="السعر الشهري" />
-                                        <TableHead>إجراءات</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {plans.map((plan: SubscriptionPlan) => (
-                                        <TableRow key={plan.id}>
-                                            <TableCell className="font-semibold">{plan.name} {plan.is_best_value && <span className="text-xs text-primary">(الأفضل قيمة)</span>}</TableCell>
-                                            <TableCell>{plan.duration_months} أشهر</TableCell>
-                                            <TableCell className="font-bold">{plan.price} ج.م</TableCell>
-                                            <TableCell>{plan.price_per_month} ج.م</TableCell>
-                                            <TableCell className="flex items-center gap-2">
-                                                <Button variant="ghost" size="icon" onClick={() => handleOpenModal(plan)}><Edit size={20} /></Button>
-                                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeletePlan(plan.id)}><Trash2 size={20} /></Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center justify-between">
+                                     <span className="flex items-center gap-2"><Package /> باقات الاشتراك</span>
+                                    <Button onClick={() => handleOpenModal(null)} icon={<Plus size={18} />} size="sm">
+                                        إضافة باقة
+                                    </Button>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                 <div className="overflow-x-auto">
+                                    <Table>
+                                       <TableHeader>
+                                           <TableRow>
+                                                <TableHead>الباقة</TableHead>
+                                                <TableHead>المدة</TableHead>
+                                                <TableHead>السعر الإجمالي</TableHead>
+                                                <TableHead>السعر الشهري</TableHead>
+                                                <TableHead>إجراءات</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {plans.map((plan: SubscriptionPlan) => (
+                                                <TableRow key={plan.id}>
+                                                    <TableCell className="font-semibold">{plan.name} {plan.is_best_value && <span className="text-xs text-primary">(الأفضل قيمة)</span>}</TableCell>
+                                                    <TableCell>{plan.duration_months} أشهر</TableCell>
+                                                    <TableCell className="font-bold">{plan.price} ج.م</TableCell>
+                                                    <TableCell>{plan.price_per_month} ج.م</TableCell>
+                                                    <TableCell className="flex items-center gap-2">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleOpenModal(plan)}><Edit size={20} /></Button>
+                                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteSubscriptionPlan.mutate({ planId: plan.id })}><Trash2 size={20} /></Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="lg:col-span-1 space-y-8">
+                        <Card className="border-t-4 border-t-primary">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <ImageIcon className="text-primary" /> صورة عرض الصندوق
+                                </CardTitle>
+                                <CardDescription>هذه هي الصورة التي تظهر في قائمة المنتجات، المتجر، والصفحة التعريفية.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ImageUploadField 
+                                    label="تحميل صورة الصندوق"
+                                    fieldKey="subscription_box_img"
+                                    currentUrl={boxImage}
+                                    onUrlChange={handleBoxImageUpdate}
+                                    recommendedSize="800x800px"
+                                />
+                                {updatePersonalizedProduct.isPending && (
+                                    <p className="text-xs text-blue-600 mt-2 animate-pulse">جاري تحديث صورة المنتج...</p>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <div className="p-4 bg-blue-50 text-blue-800 rounded-lg border border-blue-100 text-sm">
+                            <p className="font-bold mb-2 flex items-center gap-2"><Star size={16}/> ملاحظة الفصل:</p>
+                            <p>تغيير الصورة من هنا سيقوم بتحديثها تلقائياً في كل مكان يستخدم "صندوق الرحلة" كمثال للمنتج.</p>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
         </>
     );

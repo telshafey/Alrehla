@@ -1,6 +1,15 @@
 
 import React from 'react';
-import { Home, Info, ShoppingBag, BookOpen, Settings, Globe, Phone } from 'lucide-react';
+import { 
+    Home as HomeIcon, 
+    Info as InfoIcon, 
+    ShoppingBag as ShoppingBagIcon, 
+    BookOpen, 
+    Settings as SettingsIcon, 
+    Globe as GlobeIcon, 
+    Phone as PhoneIcon,
+    FileText
+} from 'lucide-react';
 
 export type FieldType = 'input' | 'textarea' | 'image' | 'array' | 'object_array';
 
@@ -35,7 +44,7 @@ export const pageConfigs: PageConfig[] = [
         key: 'global',
         title: 'إعدادات عامة & تذييل الصفحة',
         description: 'الروابط الاجتماعية، معلومات الفوتر، وإعدادات السيو العامة.',
-        icon: <Settings />,
+        icon: <SettingsIcon />,
         sections: [
             {
                 key: 'branding',
@@ -44,14 +53,6 @@ export const pageConfigs: PageConfig[] = [
                     { key: 'siteBranding.logoUrl', label: 'شعار الموقع (Logo)', type: 'image' },
                     { key: 'siteBranding.heroImageUrl', label: 'صورة الهيرو الرئيسية', type: 'image' },
                 ]
-            },
-            {
-                key: 'footer',
-                title: 'تذييل الصفحة (Footer)',
-                fields: [
-                    // Note: These keys would need to exist in SiteContent to be editable here
-                    // For now, assuming they might be added or mapped differently
-                ]
             }
         ]
     },
@@ -59,7 +60,7 @@ export const pageConfigs: PageConfig[] = [
         key: 'portalPage',
         title: 'الصفحة الرئيسية (البوابة)',
         description: 'الواجهة الأولى للزوار، تحتوي على الهيرو والأقسام الرئيسية.',
-        icon: <Home />,
+        icon: <HomeIcon />,
         sections: [
             {
                 key: 'hero',
@@ -76,6 +77,7 @@ export const pageConfigs: PageConfig[] = [
                 key: 'projects',
                 title: 'قسم المشاريع (إنها لك & بداية الرحلة)',
                 visibilityKey: 'portalPage.showProjectsSection',
+                description: 'ملاحظة: صور بطاقات المشاريع تسحب تلقائياً من صور المنتجات المخصصة.',
                 fields: [
                     { key: 'portalPage.projectsTitle', label: 'عنوان القسم', type: 'input' },
                     { key: 'portalPage.projectsSubtitle', label: 'وصف القسم', type: 'textarea', rows: 2 },
@@ -83,12 +85,11 @@ export const pageConfigs: PageConfig[] = [
                     { key: 'portalPage.enhaLakTitle', label: 'عنوان بطاقة "إنها لك"', type: 'input' },
                     { key: 'portalPage.enhaLakDescription', label: 'وصف بطاقة "إنها لك"', type: 'textarea', rows: 2 },
                     { key: 'portalPage.enhaLakBtnText', label: 'نص زر "إنها لك"', type: 'input' },
-                    { key: 'siteBranding.enhaLakPortalImageUrl', label: 'صورة بطاقة "إنها لك"', type: 'image' },
                     // Creative Writing Card
                     { key: 'portalPage.creativeWritingTitle', label: 'عنوان بطاقة "بداية الرحلة"', type: 'input' },
                     { key: 'portalPage.creativeWritingDescription', label: 'وصف بطاقة "بداية الرحلة"', type: 'textarea', rows: 2 },
                     { key: 'portalPage.creativeWritingBtnText', label: 'نص زر "بداية الرحلة"', type: 'input' },
-                    { key: 'siteBranding.creativeWritingPortalImageUrl', label: 'صورة بطاقة "بداية الرحلة"', type: 'image' }
+                    { key: 'siteBranding.creativeWritingPortalImageUrl', label: 'صورة خلفية بطاقة "بداية الرحلة"', type: 'image' }
                 ]
             },
             {
@@ -126,7 +127,7 @@ export const pageConfigs: PageConfig[] = [
                 visibilityKey: 'portalPage.showTestimonialsSection',
                 fields: [
                     { key: 'portalPage.testimonialsTitle', label: 'العنوان', type: 'input' },
-                    { key: 'portalPage.testimonialsSubtitle', label: 'الوصف', type: 'textarea', rows: 2 }
+                    { key: 'portalPage.testimonialsSubtitle', label: 'وصف القسم', type: 'textarea', rows: 2 }
                 ]
             },
             {
@@ -135,7 +136,7 @@ export const pageConfigs: PageConfig[] = [
                 visibilityKey: 'portalPage.showBlogSection',
                 fields: [
                     { key: 'portalPage.blogTitle', label: 'العنوان', type: 'input' },
-                    { key: 'portalPage.blogSubtitle', label: 'الوصف', type: 'textarea', rows: 2 }
+                    { key: 'portalPage.blogSubtitle', label: 'وصف القسم', type: 'textarea', rows: 2 }
                 ]
             },
              {
@@ -155,7 +156,7 @@ export const pageConfigs: PageConfig[] = [
         key: 'aboutPage',
         title: 'صفحة "رحلتنا"',
         description: 'صفحة من نحن، الرؤية، الرسالة، وفريق العمل.',
-        icon: <Info />,
+        icon: <InfoIcon />,
         sections: [
             {
                 key: 'main_info',
@@ -166,7 +167,7 @@ export const pageConfigs: PageConfig[] = [
                     { key: 'aboutPage.ourStory', label: 'قصتنا', type: 'textarea', rows: 5 },
                     { key: 'aboutPage.ourVision', label: 'رؤيتنا', type: 'textarea', rows: 3 },
                     { key: 'aboutPage.valuesTitle', label: 'عنوان قسم القيم', type: 'input' },
-                    { key: 'siteBranding.aboutImageUrl', label: 'صورة الخلفية (Hero)', type: 'image' }
+                    { key: 'siteBranding.aboutHeroImageUrl', label: 'صورة خلفية الهيرو', type: 'image' }
                 ]
             },
             {
@@ -194,25 +195,24 @@ export const pageConfigs: PageConfig[] = [
         key: 'enhaLakPage',
         title: 'قسم "إنها لك"',
         description: 'صفحات مشروع القصص المخصصة وصندوق الرحلة.',
-        icon: <ShoppingBag />,
+        icon: <ShoppingBagIcon />,
         sections: [
             {
                 key: 'main_landing',
-                title: 'الصفحة التعريفية',
+                title: 'الصفحة التعريفية للمشروع',
+                description: 'ملاحظة: صور عرض المنتجات (صندوق الرحلة والقصة) تسحب تلقائياً من إدارة المنتجات.',
                 fields: [
                     { key: 'enhaLakPage.main.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
                     { key: 'enhaLakPage.main.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
                     { key: 'enhaLakPage.main.heroBtnText', label: 'نص الزر الرئيسي', type: 'input' },
                     { key: 'enhaLakPage.main.productsTitle', label: 'عنوان قسم المنتجات', type: 'input' },
-                    { key: 'enhaLakPage.main.howItWorksTitle', label: 'عنوان "كيف نعمل؟"', type: 'input' },
-                    { key: 'enhaLakPage.main.testimonialsTitle', label: 'عنوان الآراء', type: 'input' },
-                    { key: 'enhaLakPage.main.customStoryImageUrl', label: 'صورة عرض "القصة المخصصة" (بالصفحة التعريفية)', type: 'image' },
-                    { key: 'enhaLakPage.main.subscriptionBoxImageUrl', label: 'صورة عرض "صندوق الاشتراك" (بالصفحة التعريفية)', type: 'image' }
+                    { key: 'enhaLakPage.main.howItWorksTitle', label: 'عنوان "كيف تعمل؟"', type: 'input' },
+                    { key: 'enhaLakPage.main.testimonialsTitle', label: 'عنوان الآراء', type: 'input' }
                 ]
             },
             {
                 key: 'store',
-                title: 'صفحة المتجر',
+                title: 'صفحة متجر القصص',
                 fields: [
                      { key: 'enhaLakPage.store.heroTitle', label: 'عنوان المتجر', type: 'input' },
                      { key: 'enhaLakPage.store.heroSubtitle', label: 'وصف المتجر', type: 'textarea', rows: 2 },
@@ -221,7 +221,7 @@ export const pageConfigs: PageConfig[] = [
             },
             {
                 key: 'subscription_page',
-                title: 'صفحة الاشتراك',
+                title: 'صفحة الاشتراك الشهري',
                 fields: [
                      { key: 'enhaLakPage.subscription.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
                      { key: 'enhaLakPage.subscription.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
@@ -258,7 +258,7 @@ export const pageConfigs: PageConfig[] = [
                     { key: 'creativeWritingPage.about.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
                     { key: 'creativeWritingPage.about.mainTitle', label: 'العنوان الداخلي', type: 'input' },
                     { key: 'creativeWritingPage.about.mainContent', label: 'المحتوى التفصيلي', type: 'textarea', rows: 6 },
-                    { key: 'creativeWritingPage.about.heroImageUrl', label: 'صورة الهيرو', type: 'image' }
+                    { key: 'creativeWritingPage.about.heroImageUrl', label: 'صورة عرض الفلسفة', type: 'image' }
                 ]
             },
             {
@@ -269,56 +269,6 @@ export const pageConfigs: PageConfig[] = [
                     { key: 'creativeWritingPage.curriculum.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
                     { key: 'creativeWritingPage.curriculum.treasuresTitle', label: 'عنوان الكنوز', type: 'input' },
                     { key: 'creativeWritingPage.curriculum.treasuresSubtitle', label: 'وصف الكنوز', type: 'textarea', rows: 2 }
-                ]
-            }
-        ]
-    },
-    {
-        key: 'supportPage',
-        title: 'صفحة الدعم والمساعدة',
-        description: 'نصوص صفحة اتصل بنا والأسئلة الشائعة.',
-        icon: <Phone />,
-        sections: [
-            {
-                key: 'contact_info',
-                title: 'المعلومات الأساسية',
-                fields: [
-                    { key: 'supportPage.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
-                    { key: 'supportPage.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
-                    { key: 'communicationSettings.whatsapp_number', label: 'رقم الواتساب', type: 'input' },
-                    { key: 'communicationSettings.support_email', label: 'بريد الدعم', type: 'input' }
-                ]
-            },
-            {
-                key: 'faqs',
-                title: 'الأسئلة الشائعة',
-                fields: [
-                    {
-                        key: 'supportPage.faqs',
-                        label: 'قائمة الأسئلة',
-                        type: 'object_array',
-                        itemLabel: 'سؤال',
-                        objectSchema: [
-                            { key: 'category', label: 'القسم (مثال: عام، الشحن...)', type: 'input' },
-                            { key: 'question', label: 'السؤال', type: 'input' },
-                            { key: 'answer', label: 'الإجابة', type: 'textarea', rows: 3 }
-                        ]
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        key: 'joinUsPage',
-        title: 'صفحة انضم إلينا',
-        description: 'إعدادات صفحة التوظيف.',
-        icon: <Globe />,
-        sections: [
-            {
-                key: 'join_main',
-                title: 'المحتوى الرئيسي',
-                fields: [
-                    { key: 'siteBranding.joinUsImageUrl', label: 'صورة الهيرو', type: 'image' }
                 ]
             }
         ]

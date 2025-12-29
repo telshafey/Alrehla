@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Feather, Target, ArrowLeft, Search, Edit, Gift } from 'lucide-react';
 import { useProduct } from '../contexts/ProductContext';
@@ -85,7 +85,11 @@ const HowItWorksStep: React.FC<{ icon: React.ReactNode, title: string, descripti
 const PortalPage: React.FC = () => {
     const { siteBranding, loading: productLoading } = useProduct();
     const { data, isLoading: publicDataLoading } = usePublicData();
-    const { blogPosts, siteContent } = data || {};
+    const { blogPosts, siteContent, personalizedProducts = [] } = data || {};
+
+    // الحصول على صور المشاريع من المنتجات المخصصة لضمان المزامنة
+    const customStoryImg = useMemo(() => personalizedProducts.find(p => p.key === 'custom_story')?.image_url, [personalizedProducts]);
+    const subBoxImg = useMemo(() => personalizedProducts.find(p => p.key === 'subscription_box')?.image_url, [personalizedProducts]);
 
     if (productLoading || publicDataLoading) {
         return <PageLoader text="جاري تجهيز الصفحة الرئيسية..." />;
@@ -110,7 +114,7 @@ const PortalPage: React.FC = () => {
                                 title={content?.enhaLakTitle || 'إنها لك'}
                                 description={content?.enhaLakDescription || "قصص مخصصة ومنتجات تربوية فريدة تجعل طفلك بطلاً."}
                                 link="/enha-lak"
-                                imageUrl={siteBranding?.enhaLakPortalImageUrl} 
+                                imageUrl={customStoryImg || siteBranding?.enhaLakPortalImageUrl} 
                                 icon={<BookOpen size={32} />}
                                 btnText={content?.enhaLakBtnText || "اكتشف القصص"}
                                 themeColor="pink"
