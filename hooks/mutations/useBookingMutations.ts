@@ -31,6 +31,7 @@ export const useBookingMutations = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminRawCwBookings'] });
             queryClient.invalidateQueries({ queryKey: ['trainingJourney'] });
+            addToast('تم حفظ ملاحظات التقدم بنجاح.', 'success');
         },
          onError: (error: Error) => {
             addToast(`فشل حفظ الملاحظات: ${error.message}`, 'error');
@@ -47,5 +48,33 @@ export const useBookingMutations = () => {
         }
     });
 
-    return { createBooking, updateBookingStatus, updateBookingProgressNotes, updateBookingDraft };
+    const sendSessionMessage = useMutation({
+        mutationFn: bookingService.sendSessionMessage,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['trainingJourney', variables.bookingId] });
+        },
+        onError: (error: Error) => {
+            addToast(`فشل إرسال الرسالة: ${error.message}`, 'error');
+        }
+    });
+
+    const uploadSessionAttachment = useMutation({
+        mutationFn: bookingService.uploadSessionAttachment,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['trainingJourney', variables.bookingId] });
+            addToast('تم رفع الملف بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل رفع الملف: ${error.message}`, 'error');
+        }
+    });
+
+    return { 
+        createBooking, 
+        updateBookingStatus, 
+        updateBookingProgressNotes, 
+        updateBookingDraft,
+        sendSessionMessage,
+        uploadSessionAttachment
+    };
 };

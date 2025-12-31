@@ -10,7 +10,8 @@ import type {
     CreativeWritingPackage,
     StandaloneService,
     SessionAttachment,
-    ComparisonItem
+    ComparisonItem,
+    SessionMessage
 } from '../lib/database.types';
 
 export const bookingService = {
@@ -107,48 +108,49 @@ export const bookingService = {
             if (error) throw error;
             return data as ComparisonItem[];
         } catch (e) {
-            // Fallback to mock data silently to prevent LCP errors
             return mockComparisonItems;
         }
     },
 
-    // --- Mutations: Comparison Items ---
-    async createComparisonItem(payload: any) {
-         const { id, ...rest } = payload;
-         const { data, error } = await supabase
-            .from('comparison_items')
-            .insert([{ ...rest, id: payload.id }])
-            .select()
-            .single();
-
-        if (error) throw new Error(error.message);
-        return data as ComparisonItem;
-    },
-
-    async updateComparisonItem(payload: any) {
-        const { id, ...updates } = payload;
+    // --- Mutations: Messages & Attachments ---
+    async sendSessionMessage(payload: { bookingId: string; senderId: string; role: string; message: string }) {
         const { data, error } = await supabase
-            .from('comparison_items')
-            .update(updates)
-            .eq('id', id)
+            .from('session_messages')
+            .insert([{
+                booking_id: payload.bookingId,
+                sender_id: payload.senderId,
+                sender_role: payload.role,
+                message_text: payload.message,
+                created_at: new Date().toISOString()
+            }])
+            .select()
+            .single();
+        
+        if (error) throw new Error(error.message);
+        return data as SessionMessage;
+    },
+
+    async uploadSessionAttachment(payload: { bookingId: string; uploaderId: string; role: string; file: File }) {
+        const fileUrl = await cloudinaryService.uploadImage(payload.file, `session_attachments/${payload.bookingId}`);
+        
+        const { data, error } = await supabase
+            .from('session_attachments')
+            .insert([{
+                booking_id: payload.bookingId,
+                uploader_id: payload.uploaderId,
+                uploader_role: payload.role,
+                file_name: payload.file.name,
+                file_url: fileUrl,
+                created_at: new Date().toISOString()
+            }])
             .select()
             .single();
 
         if (error) throw new Error(error.message);
-        return data as ComparisonItem;
+        return data as SessionAttachment;
     },
 
-    async deleteComparisonItem(itemId: string) {
-        const { error } = await supabase
-            .from('comparison_items')
-            .delete()
-            .eq('id', itemId);
-        if (error) throw new Error(error.message);
-        return { success: true };
-    },
-
-
-    // --- Mutations: Instructors ---
+    // --- Mutations: Instructors & Others ---
     async createInstructor(payload: any) {
         let avatarUrl = payload.avatar_url;
         if (payload.avatarFile) {
@@ -207,7 +209,6 @@ export const bookingService = {
         return { success: true };
     },
 
-    // --- Mutations: Bookings ---
     async createBooking(payload: any) {
         const bookingId = `bk_${Math.floor(Math.random() * 1000000)}`;
         const { data, error } = await supabase
@@ -257,7 +258,6 @@ export const bookingService = {
         return { success: true };
     },
 
-    // --- Mutations: Packages ---
     async createPackage(payload: any) {
         const { id, ...rest } = payload; 
         const { data, error } = await supabase
@@ -271,66 +271,80 @@ export const bookingService = {
 
     async updatePackage(payload: any) {
         const { id, ...updates } = payload;
-        
-        if (!id) throw new Error("لم يتم تحديد معرف الباقة (ID) للتحديث");
-
+        if (!id) throw new Error("ID Required");
         const { data, error } = await supabase
             .from('creative_writing_packages')
             .update(updates)
             .eq('id', id)
             .select();
-
         if (error) throw new Error(error.message);
-        
-        if (!data || data.length === 0) {
-             throw new Error(`فشل تحديث الباقة رقم ${id}.`);
-        }
-        
-        return data[0] as CreativeWritingPackage;
+        return data?.[0] as CreativeWritingPackage;
     },
 
     async deletePackage(packageId: number) {
-        const { error } = await supabase
-            .from('creative_writing_packages')
-            .delete()
-            .eq('id', packageId);
+        const { error } = await supabase.from('creative_writing_packages').delete().eq('id', packageId);
         if (error) throw new Error(error.message);
         return { success: true };
     },
 
-    // --- Mutations: Standalone Services ---
     async createStandaloneService(payload: any) {
         const { id, ...rest } = payload;
-        const { data, error } = await supabase
-            .from('standalone_services')
-            .insert([rest])
-            .select();
-            
+        const { data, error } = await supabase.from('standalone_services').insert([rest]).select();
         if (error) throw new Error(error.message);
         return data?.[0] as StandaloneService;
     },
 
     async updateStandaloneService(payload: any) {
         const { id, ...updates } = payload;
-        const { data, error } = await supabase
-            .from('standalone_services')
-            .update(updates)
-            .eq('id', id)
-            .select();
-            
+        const { data, error } = await supabase.from('standalone_services').update(updates).eq('id', id).select();
         if (error) throw new Error(error.message);
-        
-        if (!data || data.length === 0) {
-            throw new Error(`فشل تحديث الخدمة رقم ${id}.`);
-        }
-        return data[0] as StandaloneService;
+        return data?.[0] as StandaloneService;
     },
 
     async deleteStandaloneService(serviceId: number) {
+        const { error } = await supabase.from('standalone_services').delete().eq('id', serviceId);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    // --- Comparison Item Mutations ---
+
+    /**
+     * Creates a new comparison criterion in the database.
+     */
+    async createComparisonItem(payload: any) {
+        const { data, error } = await supabase
+            .from('comparison_items')
+            .insert([payload])
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data as ComparisonItem;
+    },
+
+    /**
+     * Updates an existing comparison criterion.
+     */
+    async updateComparisonItem(payload: any) {
+        const { id, ...updates } = payload;
+        const { data, error } = await supabase
+            .from('comparison_items')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw new Error(error.message);
+        return data as ComparisonItem;
+    },
+
+    /**
+     * Deletes a comparison criterion by its ID.
+     */
+    async deleteComparisonItem(itemId: string) {
         const { error } = await supabase
-            .from('standalone_services')
+            .from('comparison_items')
             .delete()
-            .eq('id', serviceId);
+            .eq('id', itemId);
         if (error) throw new Error(error.message);
         return { success: true };
     }

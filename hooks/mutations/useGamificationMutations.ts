@@ -4,19 +4,21 @@ import { useToast } from '../../contexts/ToastContext';
 import { gamificationService } from '../../services/gamificationService';
 
 export const useGamificationMutations = () => {
-    // Fix: Added missing 'const' keyword to correctly initialize queryClient using useQueryClient hook
     const queryClient = useQueryClient();
     const { addToast } = useToast();
 
     const awardBadge = useMutation({
         mutationFn: gamificationService.awardBadge,
         onSuccess: () => {
+            // تحديث كافة القوائم المرتبطة بالشارات فوراً
             queryClient.invalidateQueries({ queryKey: ['studentDashboardData'] });
             queryClient.invalidateQueries({ queryKey: ['userAccountData'] });
-            addToast('تم منح الشارة للطالب بنجاح! 🏆', 'success');
+            queryClient.invalidateQueries({ queryKey: ['trainingJourney'] });
+            
+            addToast('تم منح الشارة للطالب بنجاح! 🏆 وجهودكم كمدربين محل تقدير.', 'success');
         },
         onError: (err: Error) => {
-            addToast(`فشل منح الشارة: ${err.message}`, 'error');
+            addToast(`عذراً، فشل منح الشارة: ${err.message}`, 'error');
         }
     });
 

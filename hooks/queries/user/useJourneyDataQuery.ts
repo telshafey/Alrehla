@@ -1,6 +1,8 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { supabase } from '../../../lib/supabaseClient';
+import { bookingService } from '../../../services/bookingService';
 
 export const useStudentDashboardData = () => {
     const { currentUser } = useAuth();
@@ -10,7 +12,6 @@ export const useStudentDashboardData = () => {
         queryFn: async () => {
             if (!currentUser) return null;
 
-            // البحث عن الطفل المرتبط بهذا الحساب
             const { data: childData, error: childError } = await supabase
                 .from('child_profiles')
                 .select('id, name, user_id')
@@ -18,13 +19,8 @@ export const useStudentDashboardData = () => {
                 .maybeSingle();
 
             if (childError) throw new Error("خطأ في جلب بيانات الربط");
+            if (!childData) return { isUnlinked: true, journeys: [], orders: [], subscriptions: [], badges: [] };
 
-            // إذا لم يجد الربط، فهذا حساب طالب "يتيم" (سيتم حذفه تلقائياً بعد تشغيل الـ SQL)
-            if (!childData) {
-                return { isUnlinked: true, journeys: [], orders: [], subscriptions: [], badges: [] };
-            }
-
-            // جلب اسم ولي الأمر
             const { data: parentProfile } = await supabase
                 .from('profiles')
                 .select('name')
@@ -35,11 +31,11 @@ export const useStudentDashboardData = () => {
             const parentName = parentProfile?.name || 'ولي أمر';
 
             const [bookingsRes, ordersRes, subsRes, badgesRes, attachmentsRes] = await Promise.all([
-                supabase.from('bookings').select('*, instructors(name)').eq('child_id', childId),
+                supabase.from('bookings').select('*, instructors(name, id, avatar_url, specialty)').eq('child_id', childId),
                 supabase.from('orders').select('*').eq('child_id', childId),
                 supabase.from('subscriptions').select('*').eq('child_id', childId),
                 supabase.from('child_badges').select('*, badges(*)').eq('child_id', childId),
-                supabase.from('session_attachments').select('*').eq('child_id', childId) // تأكد من وجود child_id في هذا الجدول
+                supabase.from('session_attachments').select('*').eq('booking_id', childId) 
             ]);
 
             return {
@@ -65,7 +61,7 @@ export const useSessionDetails = (sessionId: string | undefined) => {
         queryKey: ['sessionDetails', sessionId],
         queryFn: async () => {
             if (!sessionId) return null;
-            const { data } = await supabase.from('scheduled_sessions').select('*').eq('id', sessionId).single();
+            const { data } = await supabase.from('scheduled_sessions').select('*, instructors(name)').eq('id', sessionId).single();
             return data;
         },
         enabled: !!sessionId,
@@ -77,7 +73,35 @@ export const useTrainingJourneyData = (journeyId: string | undefined) => {
         queryKey: ['trainingJourney', journeyId],
         queryFn: async () => {
             if (!journeyId) return null;
-            return null; 
+            
+            // جلب بيانات الحجز الأساسية مع العلاقات
+            const { data: booking, error: bookingError } = await supabase
+                .from('bookings')
+                .select('*, instructors(*), child_profiles(*)')
+                .eq('id', journeyId)
+                .single();
+
+            if (bookingError) throw bookingError;
+
+            // جلب البيانات المرتبطة بالتوازي
+            const [sessionsRes, messagesRes, attachmentsRes, packagesRes, servicesRes] = await Promise.all([
+                supabase.from('scheduled_sessions').select('*').eq('booking_id', journeyId).order('session_date', { ascending: true }),
+                supabase.from('session_messages').select('*').eq('booking_id', journeyId).order('created_at', { ascending: true }),
+                supabase.from('session_attachments').select('*').eq('booking_id', journeyId).order('created_at', { ascending: false }),
+                supabase.from('creative_writing_packages').select('*').eq('name', booking.package_name).maybeSingle(),
+                supabase.from('standalone_services').select('*').limit(5)
+            ]);
+
+            return {
+                booking,
+                package: packagesRes.data,
+                instructor: booking.instructors,
+                childProfile: booking.child_profiles,
+                scheduledSessions: sessionsRes.data || [],
+                messages: messagesRes.data || [],
+                attachments: attachmentsRes.data || [],
+                additionalServices: servicesRes.data || []
+            };
         },
         enabled: !!journeyId,
     });
