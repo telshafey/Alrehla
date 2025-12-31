@@ -69,22 +69,22 @@ const ShippingAddressForm: React.FC<ShippingAddressFormProps> = (props) => {
             {shippingOption === 'gift' && (
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4 animate-fadeIn">
                     <FormField label="اسم المستلم*" htmlFor="recipientName" error={errors.recipientName?.message || errors.recipientName}>
-                        <Input type="text" {...getInputProps('recipientName')} />
+                        <Input type="text" {...getInputProps('recipientName')} placeholder="الاسم الكامل للمستلم" />
                     </FormField>
                     <FormField label="عنوان المستلم*" htmlFor="recipientAddress" error={errors.recipientAddress?.message || errors.recipientAddress}>
-                        <Input type="text" {...getInputProps('recipientAddress')} />
+                        <Input type="text" {...getInputProps('recipientAddress')} placeholder="الشارع، رقم المبنى، الشقة" />
                     </FormField>
                     <FormField label="هاتف المستلم*" htmlFor="recipientPhone" error={errors.recipientPhone?.message || errors.recipientPhone}>
-                        <Input type="tel" {...getInputProps('recipientPhone')} />
+                        <Input type="tel" {...getInputProps('recipientPhone')} placeholder="01xxxxxxxxx" dir="ltr" />
                     </FormField>
-                    <FormField label="البريد الإلكتروني للمستلم (لإرسال بطاقة الهدية)" htmlFor="recipientEmail" error={errors.recipientEmail?.message || errors.recipientEmail}>
-                        <Input type="email" {...getInputProps('recipientEmail')} />
+                    <FormField label="البريد الإلكتروني للمستلم" htmlFor="recipientEmail" error={errors.recipientEmail?.message || errors.recipientEmail}>
+                        <Input type="email" {...getInputProps('recipientEmail')} placeholder="example@mail.com" dir="ltr" />
                     </FormField>
                     <FormField label="رسالة الهدية" htmlFor="giftMessage">
-                        <Textarea rows={3} placeholder="اكتب رسالتك هنا..." {...getInputProps('giftMessage')} />
+                        <Textarea rows={3} placeholder="اكتب رسالتك الرقيقة هنا لتصل مع الهدية..." {...getInputProps('giftMessage')} />
                     </FormField>
                     <div>
-                        <label className="flex items-center gap-2 text-sm">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
                             {isContextMode && register ? (
                                 <input type="checkbox" {...register('sendDigitalCard')} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
                             ) : (
@@ -96,7 +96,7 @@ const ShippingAddressForm: React.FC<ShippingAddressFormProps> = (props) => {
                                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                 />
                             )}
-                            <span>إرسال بطاقة هدية رقمية للمستلم فور تأكيد الطلب</span>
+                            <span className="font-semibold text-blue-800">إرسال بطاقة هدية رقمية للمستلم فور تأكيد الطلب</span>
                         </label>
                     </div>
                 </div>

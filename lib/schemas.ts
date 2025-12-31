@@ -1,5 +1,9 @@
+
 import { z } from 'zod';
 import { PersonalizedProduct } from './database.types';
+
+// تعبير نمطي لأرقام الهواتف المصرية (يبدأ بـ 01 ويتبعه 9 أرقام)
+const phoneRegex = /^01[0125][0-9]{8}$/;
 
 // Base Schema parts
 export const childDetailsSchema = z.object({
@@ -21,7 +25,7 @@ export const createOrderSchema = (product: PersonalizedProduct | undefined) => {
     recipientName: z.string().optional(),
     recipientAddress: z.string().optional(),
     recipientPhone: z.string().optional(),
-    recipientEmail: z.string().email("بريد إلكتروني غير صالح").optional().or(z.literal('')),
+    recipientEmail: z.string().optional(),
     giftMessage: z.string().optional(),
     sendDigitalCard: z.boolean().optional(),
     storyValue: z.string().optional(),
@@ -48,7 +52,6 @@ export const createOrderSchema = (product: PersonalizedProduct | undefined) => {
   if (product.image_slots) {
     product.image_slots.forEach((slot) => {
       if (slot.required) {
-        // We expect a File object or a truthy value indicating file presence
         schemaObject[slot.id] = z.any().refine((val) => val instanceof File || (typeof val === 'string' && val.length > 0), {
           message: `${slot.label} مطلوب`,
         });
@@ -74,11 +77,34 @@ export const createOrderSchema = (product: PersonalizedProduct | undefined) => {
       }
     }
 
-    // Shipping Validation
+    // Shipping & Gift Validation (Strict Checks)
     if (data.deliveryType === 'printed' && data.shippingOption === 'gift') {
-      if (!data.recipientName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "اسم المستلم مطلوب", path: ["recipientName"] });
-      if (!data.recipientAddress) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "عنوان المستلم مطلوب", path: ["recipientAddress"] });
-      if (!data.recipientPhone) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "هاتف المستلم مطلوب", path: ["recipientPhone"] });
+      if (!data.recipientName || data.recipientName.trim() === '') {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "اسم المستلم مطلوب", path: ["recipientName"] });
+      }
+      if (!data.recipientAddress || data.recipientAddress.trim() === '') {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "عنوان المستلم مطلوب", path: ["recipientAddress"] });
+      }
+      
+      // الهاتف: يجب أن يكون أرقاماً فقط ويتبع التنسيق
+      if (!data.recipientPhone || !phoneRegex.test(data.recipientPhone)) {
+        ctx.addIssue({ 
+          code: z.ZodIssueCode.custom, 
+          message: "يرجى إدخال رقم هاتف مصري صحيح (مثال: 01012345678)", 
+          path: ["recipientPhone"] 
+        });
+      }
+
+      // البريد الإلكتروني: يجب أن يكون صحيحاً إذا تم تفعيل البطاقة الرقمية أو إذا تم إدخاله
+      if (data.sendDigitalCard) {
+          if (!data.recipientEmail || data.recipientEmail.trim() === '') {
+              ctx.addIssue({ code: z.ZodIssueCode.custom, message: "البريد الإلكتروني مطلوب لإرسال البطاقة الرقمية", path: ["recipientEmail"] });
+          } else if (!z.string().email().safeParse(data.recipientEmail).success) {
+              ctx.addIssue({ code: z.ZodIssueCode.custom, message: "صيغة البريد الإلكتروني غير صحيحة", path: ["recipientEmail"] });
+          }
+      } else if (data.recipientEmail && data.recipientEmail.trim() !== '' && !z.string().email().safeParse(data.recipientEmail).success) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "صيغة البريد الإلكتروني غير صحيحة", path: ["recipientEmail"] });
+      }
     }
   });
 };

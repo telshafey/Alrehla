@@ -22,9 +22,8 @@ const AdminUsersPage: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState<'staff' | 'customers'>('staff');
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState<{ key: keyof UserWithParent | 'childrenCount'; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
     
-    // ربط الطلاب
     const [linkModalOpen, setLinkModalOpen] = useState(false);
     const [selectedUserForLink, setSelectedUserForLink] = useState<UserWithParent | null>(null);
 
@@ -55,8 +54,8 @@ const AdminUsersPage: React.FC = () => {
 
         if (sortConfig) {
             data.sort((a, b) => {
-                const aVal = a[sortConfig.key as keyof UserWithParent] ?? '';
-                const bVal = b[sortConfig.key as keyof UserWithParent] ?? '';
+                const aVal = (a as any)[sortConfig.key] ?? '';
+                const bVal = (b as any)[sortConfig.key] ?? '';
                 if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
                 if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
@@ -70,11 +69,11 @@ const AdminUsersPage: React.FC = () => {
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
             direction = 'desc';
         }
-        setSortConfig({ key: key as any, direction });
+        setSortConfig({ key, direction });
     };
 
     const handleDelete = (userId: string, name: string) => {
-        if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟ سيتم حذف جميع البيانات المرتبطة به نهائياً.`)) {
+        if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟`)) {
             bulkDeleteUsers.mutate({ userIds: [userId] });
         }
     };
@@ -115,7 +114,7 @@ const AdminUsersPage: React.FC = () => {
 
                         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'staff' | 'customers')}>
                             <TabsList className="w-full justify-start">
-                                <TabsTrigger value="staff"><Shield className="ml-2 w-4 h-4"/> الموظفون والإدارة ({staffUsers.length})</TabsTrigger>
+                                <TabsTrigger value="staff"><Shield className="ml-2 w-4 h-4"/> الموظفون ({staffUsers.length})</TabsTrigger>
                                 <TabsTrigger value="customers"><Briefcase className="ml-2 w-4 h-4"/> العملاء والطلاب ({customerUsers.length})</TabsTrigger>
                             </TabsList>
 
@@ -125,9 +124,11 @@ const AdminUsersPage: React.FC = () => {
                                         <TableHeader>
                                             <TableRow>
                                                 <SortableTableHead sortKey="name" label="الاسم" sortConfig={sortConfig} onSort={handleSort} />
-                                                <SortableTableHead sortKey="email" label="البريد الإلكتروني" sortConfig={sortConfig} onSort={handleSort} />
+                                                <SortableTableHead sortKey="email" label="البريد" sortConfig={sortConfig} onSort={handleSort} />
                                                 <SortableTableHead sortKey="role" label="النوع" sortConfig={sortConfig} onSort={handleSort} />
-                                                {activeTab === 'customers' && <SortableTableHead sortKey="childrenCount" label="الطلاب المفعلون" sortConfig={sortConfig} onSort={handleSort} />}
+                                                {activeTab === 'customers' && (
+                                                    <TableHead className="text-center">الأطفال (طلاب/كل)</TableHead>
+                                                )}
                                                 <TableHead>إجراءات</TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -137,15 +138,10 @@ const AdminUsersPage: React.FC = () => {
                                                     <TableRow key={user.id}>
                                                         <TableCell className="font-medium">
                                                             <div>{user.name}</div>
-                                                            {user.parentName ? (
+                                                            {user.parentName && (
                                                                 <div className="flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-blue-100">
-                                                                    <ArrowRight size={10} className="rtl:rotate-0" />
+                                                                    <ArrowRight size={10} />
                                                                     <span>تابع لـ: {user.parentName}</span>
-                                                                </div>
-                                                            ) : user.role === 'student' && (
-                                                                <div className="flex items-center gap-1 text-[10px] text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-orange-100">
-                                                                    <AlertCircle size={10} />
-                                                                    <span>بانتظار الربط بولي أمر</span>
                                                                 </div>
                                                             )}
                                                         </TableCell>
@@ -164,32 +160,29 @@ const AdminUsersPage: React.FC = () => {
                                                         </TableCell>
                                                         {activeTab === 'customers' && (
                                                             <TableCell className="text-center">
-                                                                <span className={user.childrenCount && user.childrenCount > 0 ? "font-bold text-green-600" : "text-gray-400"}>
-                                                                    {user.childrenCount || 0}
-                                                                </span>
+                                                                <div className="flex flex-col items-center">
+                                                                    <span className={`font-bold ${user.activeStudentsCount > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
+                                                                        {user.activeStudentsCount} طالب
+                                                                    </span>
+                                                                    <span className="text-[10px] text-muted-foreground">
+                                                                        من أصل {user.totalChildrenCount} ملف
+                                                                    </span>
+                                                                </div>
                                                             </TableCell>
                                                         )}
                                                         <TableCell>
                                                             <div className="flex items-center gap-1">
                                                                 {user.role === 'student' && (
-                                                                    <Button 
-                                                                        variant="ghost" 
-                                                                        size="icon" 
-                                                                        onClick={() => { setSelectedUserForLink(user); setLinkModalOpen(true); }} 
-                                                                        title={user.parentName ? "تعديل الربط" : "ربط بحساب ولي أمر"}
-                                                                        className={!user.parentName ? "text-orange-500 hover:bg-orange-50" : "text-blue-500"}
-                                                                    >
-                                                                        <LinkIcon size={18} />
-                                                                    </Button>
+                                                                    <Button variant="ghost" size="icon" onClick={() => { setSelectedUserForLink(user); setLinkModalOpen(true); }} className={!user.parentName ? "text-orange-500" : "text-blue-500"} title="ربط بالأب"><LinkIcon size={18} /></Button>
                                                                 )}
                                                                 <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}`)} title="تعديل"><Edit size={18} /></Button>
-                                                                <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(user.id, user.name)} title="حذف"><Trash2 size={18} /></Button>
+                                                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(user.id, user.name)} title="حذف"><Trash2 size={18} /></Button>
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>
                                                 ))
                                             ) : (
-                                                <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">لا توجد بيانات.</TableCell></TableRow>
+                                                <TableRow><TableCell colSpan={6} className="text-center py-12">لا توجد بيانات.</TableCell></TableRow>
                                             )}
                                         </TableBody>
                                     </Table>

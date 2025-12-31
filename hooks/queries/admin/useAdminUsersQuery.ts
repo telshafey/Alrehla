@@ -6,24 +6,25 @@ import type { UserProfile, ChildProfile, UserProfileWithRelations } from '../../
 export interface UserWithParent extends UserProfileWithRelations {
     parentName?: string;
     parentId?: string;
+    activeStudentsCount: number;
+    totalChildrenCount: number;
 }
 
 export const transformUsersWithRelations = (users: UserProfile[], children: ChildProfile[]): UserWithParent[] => {
-    // 1. خريطة للطلاب المفعلين فقط لكل أب (الذين لديهم حسابات طالب)
-    const activeStudentsByParentId = new Map<string, ChildProfile[]>();
-    // 2. خريطة للطالب لكل أب (لربط الطالب بولي أمره في العرض)
+    // خريطة لتجميع الأطفال لكل مستخدم
+    const childrenByUserId = new Map<string, ChildProfile[]>();
+    // خريطة لربط الطالب (student_user_id) ببيانات ولي أمره
     const studentToParentMap = new Map<string, { id: string, name: string }>();
 
     children.forEach(child => {
-        // إذا كان الطفل مرتبطاً بحساب طالب نشط، نقوم بحسابه
-        if (child.student_user_id) {
-            // حساب الطلاب المفعلين لكل أب
-            if (!activeStudentsByParentId.has(child.user_id)) {
-                activeStudentsByParentId.set(child.user_id, []);
-            }
-            activeStudentsByParentId.get(child.user_id)!.push(child);
+        // تجميع كل الأطفال بناءً على user_id (الأب)
+        if (!childrenByUserId.has(child.user_id)) {
+            childrenByUserId.set(child.user_id, []);
+        }
+        childrenByUserId.get(child.user_id)!.push(child);
 
-            // تسجيل علاقة الطالب بولي أمره
+        // إذا كان الطفل طالباً مفعلاً، نسجل علاقة العودة
+        if (child.student_user_id) {
             const parent = users.find(u => u.id === child.user_id);
             if (parent) {
                 studentToParentMap.set(child.student_user_id, { id: parent.id, name: parent.name });
@@ -32,21 +33,24 @@ export const transformUsersWithRelations = (users: UserProfile[], children: Chil
     });
 
     return users.map(user => {
-        const activatedChildren = activeStudentsByParentId.get(user.id) || [];
-        const activatedCount = activatedChildren.length;
+        const userChildren = childrenByUserId.get(user.id) || [];
+        const totalChildrenCount = userChildren.length;
+        const activeStudentsCount = userChildren.filter(c => !!c.student_user_id).length;
         const parentInfo = studentToParentMap.get(user.id);
 
-        // المنطق المطلوب: المستخدم يصبح ولي أمر فقط إذا كان لديه طالب واحد على الأقل مفعل
+        // ترقية الدور تلقائياً: إذا كان لديه أي طفل فهو ولي أمر
         let effectiveRole = user.role;
-        if (activatedCount > 0 && effectiveRole === 'user') {
+        if (totalChildrenCount > 0 && effectiveRole === 'user') {
             effectiveRole = 'parent';
         }
 
         return {
             ...user,
             role: effectiveRole,
-            children: activatedChildren, // نكتفي بعرض الأطفال المفعلين (الطلاب) في هذه القائمة
-            childrenCount: activatedCount, // عدد الطلاب النشطين
+            children: userChildren,
+            activeStudentsCount,
+            totalChildrenCount,
+            childrenCount: totalChildrenCount, // للتوافق مع المكونات الأخرى
             parentName: parentInfo?.name,
             parentId: parentInfo?.id
         };
