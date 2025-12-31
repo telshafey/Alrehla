@@ -4,82 +4,43 @@ import { useStudentDashboardData } from '../../hooks/queries/user/useJourneyData
 import PageLoader from '../../components/ui/PageLoader';
 import StudentJourneyCard from '../../components/student/StudentJourneyCard';
 import BadgeDisplay from '../../components/shared/BadgeDisplay';
-import { BookOpen, ShoppingBag, Star, Award, AlertCircle } from 'lucide-react';
+import { BookOpen, ShoppingBag, Star, Award, Link2Off, AlertCircle } from 'lucide-react';
 import { getStatusColor, getSubStatusColor, getSubStatusText, formatDate } from '../../utils/helpers';
 import type { Order, Subscription, Badge } from '../../lib/database.types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { useAuth } from '../../contexts/AuthContext';
-
-const OrderCard = React.memo(React.forwardRef<HTMLElement, { order: Order }>(({ order }, ref) => (
-    <Card ref={ref} className="transition-transform transform hover:-translate-y-1">
-        <CardContent className="pt-6 flex justify-between items-center">
-            <div>
-                <p className="font-bold text-foreground">{order.item_summary}</p>
-                <p className="text-sm text-muted-foreground">{formatDate(order.order_date)}</p>
-            </div>
-            <span className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(order.status)}`}>
-                {order.status}
-            </span>
-        </CardContent>
-    </Card>
-)));
-OrderCard.displayName = "OrderCard";
-
-
-const SubscriptionCard = React.memo(React.forwardRef<HTMLElement, { subscription: Subscription }>(({ subscription }, ref) => (
-    <Card ref={ref} className="transition-transform transform hover:-translate-y-1">
-         <CardContent className="pt-6 flex justify-between items-center">
-            <div>
-                <p className="font-bold text-foreground">صندوق الرحلة الشهري</p>
-                <p className="text-sm text-muted-foreground">التجديد القادم: {formatDate(subscription.next_renewal_date)}</p>
-            </div>
-            <span className={`px-3 py-1 text-xs font-bold rounded-full ${getSubStatusColor(subscription.status)}`}>
-                {getSubStatusText(subscription.status)}
-            </span>
-        </CardContent>
-    </Card>
-)));
-SubscriptionCard.displayName = "SubscriptionCard";
-
-const EmptyStateCard = React.forwardRef<HTMLElement, { title: string; message: string }>(({ title, message }, ref) => (
-    <Card ref={ref}>
-        <CardContent className="text-center py-10">
-            <h3 className="text-lg font-bold text-foreground">{title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{message}</p>
-        </CardContent>
-    </Card>
-));
-EmptyStateCard.displayName = "EmptyStateCard";
-
+import { Button } from '../../components/ui/Button';
 
 const StudentDashboardPage: React.FC = () => {
-    const { currentChildProfile } = useAuth();
     const { data, isLoading, error } = useStudentDashboardData();
 
     if (isLoading) {
-        return <PageLoader text="جاري تحميل بياناتك..." />;
+        return <PageLoader text="جاري فحص حالة الحساب..." />;
     }
 
-    if (!currentChildProfile) {
+    // إذا لم يجد الربط في سجلات الأطفال (isUnlinked)
+    if (data?.isUnlinked) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-                <AlertCircle className="w-16 h-16 text-yellow-500 mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800">الحساب غير مرتبط بملف طالب</h2>
-                <p className="text-gray-600 max-w-md mt-2">
-                    يبدو أن هذا الحساب لم يتم ربطه بملف طالب بشكل صحيح حتى الآن. يرجى الطلب من ولي أمرك مراجعة إعدادات الحساب في "المركز العائلي".
+            <div className="flex flex-col items-center justify-center py-20 text-center animate-fadeIn">
+                <div className="bg-orange-100 p-6 rounded-full mb-6">
+                    <Link2Off className="w-16 h-16 text-orange-600" />
+                </div>
+                <h2 className="text-3xl font-black text-gray-800">هذا الحساب غير مرتبط بملف طالب</h2>
+                <p className="text-gray-600 max-w-md mt-4 text-lg leading-relaxed">
+                    مرحباً بك. يبدو أن حسابك لم يتم ربطه بملف الطفل في لوحة تحكم ولي الأمر بعد. 
+                    <br/>
+                    <span className="font-bold text-orange-700">يرجى الطلب من ولي أمرك تنفيذ "ربط الحساب" من المركز العائلي.</span>
                 </p>
+                <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-start gap-3 text-right max-w-lg">
+                    <AlertCircle className="text-blue-500 shrink-0 mt-1" />
+                    <p className="text-sm text-blue-800 font-semibold">ملاحظة للمسؤول: إذا كنت ترى هذا المستخدم مرتبطاً في لوحة الأدمن، فهذا يعني أن معرّف الطالب في جدول `child_profiles` لا يزال فارغاً أو غير صحيح.</p>
+                </div>
             </div>
         );
     }
 
     if (error || !data) {
-        return (
-            <div className="text-center py-20 bg-red-50 rounded-xl border border-red-100 m-4">
-                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-                <p className="text-red-700 font-semibold">حدث خطأ في تحميل بياناتك.</p>
-                <p className="text-sm text-red-500 mt-1">{error?.message}</p>
-            </div>
-        );
+        return <div className="text-center py-20 text-red-500 font-bold">حدث خطأ أثناء جلب البيانات.</div>;
     }
 
     const { journeys = [], orders = [], subscriptions = [], badges = [] } = data;
@@ -87,7 +48,7 @@ const StudentDashboardPage: React.FC = () => {
 
     return (
         <div className="space-y-12 animate-fadeIn">
-            <section>
+             <section>
                 <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
                     <BookOpen /> رحلاتي التدريبية
                 </h2>
@@ -98,10 +59,7 @@ const StudentDashboardPage: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                    <EmptyStateCard 
-                        title="لا توجد رحلات نشطة"
-                        message="عندما يتم حجز باقة لك، ستظهر رحلتك هنا."
-                    />
+                    <Card><CardContent className="text-center py-10 text-muted-foreground">لا توجد رحلات نشطة بعد.</CardContent></Card>
                 )}
             </section>
 
@@ -118,46 +76,7 @@ const StudentDashboardPage: React.FC = () => {
                         </CardContent>
                     </Card>
                 ) : (
-                     <EmptyStateCard 
-                        title="لم تحصل على شارات بعد"
-                        message="مع كل إنجاز تحققه في رحلتك، ستظهر شاراتك هنا."
-                    />
-                )}
-            </section>
-            
-            <section>
-                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
-                    <Star /> اشتراكات صندوق الرحلة
-                </h2>
-                {subscriptions.length > 0 ? (
-                     <div className="space-y-4">
-                        {subscriptions.map((sub: Subscription) => (
-                            <SubscriptionCard key={sub.id} subscription={sub} />
-                        ))}
-                    </div>
-                ) : (
-                     <EmptyStateCard 
-                        title="لا توجد اشتراكات"
-                        message="عندما يتم الاشتراك لك في صندوق الرحلة، سيظهر هنا."
-                    />
-                )}
-            </section>
-
-            <section>
-                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
-                    <ShoppingBag /> قصصي المخصصة
-                </h2>
-                {orders.length > 0 ? (
-                    <div className="space-y-4">
-                        {orders.map((order: Order) => (
-                            <OrderCard key={order.id} order={order} />
-                        ))}
-                    </div>
-                ) : (
-                    <EmptyStateCard 
-                        title="لا توجد قصص مخصصة"
-                        message="عندما يتم طلب قصة مخصصة لك، ستظهر هنا."
-                    />
+                     <Card><CardContent className="text-center py-10 text-muted-foreground">لم تحصل على شارات بعد.</CardContent></Card>
                 )}
             </section>
         </div>

@@ -119,7 +119,8 @@ export const useUserMutations = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
             queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
-            addToast('تم حذف المستخدمين المحددين.', 'info');
+            queryClient.invalidateQueries({ queryKey: ['userAccountData'] }); // تحديث بيانات العميل فوراً
+            addToast('تم حذف المستخدمين والبيانات المرتبطة بهم بنجاح.', 'info');
         },
         onError: (error: Error) => addToast(`فشل حذف المستخدمين: ${error.message}`, 'error'),
     });

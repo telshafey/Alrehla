@@ -1,83 +1,67 @@
-
 import { supabase } from '../lib/supabaseClient';
+import { apiClient } from '../lib/api';
 import type { UserProfile, ChildProfile, UserRole } from '../lib/database.types';
 
 export const userService = {
-    // --- Admin: User Management ---
     async getAllUsers() {
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .order('created_at', { ascending: false });
-        
-        if (error) {
-            console.warn("Error fetching users:", error.message);
-            return [];
-        }
+        if (error) return [];
         return data as UserProfile[];
     },
 
     async createUser(payload: any) {
-        const { data, error } = await supabase.auth.signUp({
-            email: payload.email,
-            password: payload.password,
-            options: {
-                data: {
-                    name: payload.name,
-                    role: payload.role,
-                    phone: payload.phone,
-                    address: payload.address
-                }
-            }
-        });
-
-        if (error) throw new Error(error.message);
-        return data.user;
+        return apiClient.post<UserProfile>('/admin/users/create', payload);
     },
 
-    async updateUser(payload: { id: string; [key: string]: any }) {
-        const { id, ...updates } = payload;
-        const { data, error } = await supabase
-            .from('profiles')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) throw new Error(error.message);
-        return data as UserProfile;
-    },
-    
-    async updateUserPassword(payload: { userId: string, newPassword: string }) {
-        console.log(`Simulating password reset for user ${payload.userId} to ${payload.newPassword}`);
-        return { success: true };
-    },
-
-    async bulkDeleteUsers(userIds: string[]) {
-        const { error } = await supabase
-            .from('profiles')
-            .delete()
-            .in('id', userIds);
-            
-        if (error) throw new Error(error.message);
-        return { success: true };
-    },
-
-    // --- Parent: Child Profiles ---
-    async getAllChildProfiles() {
-        const { data, error } = await supabase
+    /**
+     * ربط حساب طالب بملف طفل وتغيير دوره في الـ DB فوراً
+     */
+    async linkStudentToChildProfile(payload: { studentUserId: string, childProfileId: number }) {
+        // 1. تحديث سجل الطفل بالمعرف الجديد
+        const { error: linkError } = await supabase
             .from('child_profiles')
-            .select('*');
-            
-        if (error) return [];
-        return data as ChildProfile[];
+            .update({ student_user_id: payload.studentUserId })
+            .eq('id', payload.childProfileId);
+        
+        if (linkError) throw new Error(linkError.message);
+        
+        // 2. تغيير دور الحساب المرتبط إلى 'student' في قاعدة البيانات
+        const { error: roleError } = await supabase
+            .from('profiles')
+            .update({ role: 'student' })
+            .eq('id', payload.studentUserId);
+
+        if (roleError) throw new Error("تم ربط الطفل ولكن فشل تحديث دور الحساب.");
+        
+        return { success: true };
     },
 
+    async unlinkStudentFromChildProfile(childProfileId: number) {
+        const { data: child } = await supabase.from('child_profiles').select('student_user_id').eq('id', childProfileId).single();
+        
+        // فك الارتباط
+        const { error } = await supabase.from('child_profiles').update({ student_user_id: null }).eq('id', childProfileId);
+        
+        // إعادة المستخدم لدور user عادي إذا فك الارتباط
+        if (child?.student_user_id) {
+            await supabase.from('profiles').update({ role: 'user' }).eq('id', child.student_user_id);
+        }
+
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    /**
+     * إنشاء ملف طفل وتحويل صاحب الحساب لولي أمر تلقائياً
+     */
     async createChildProfile(payload: any) {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not logged in");
+        if (!user) throw new Error("جلسة غير صالحة");
 
-        // إنشاء ملف الطفل (لا يغير دور المستخدم)
+        // 1. إضافة الطفل
         const { data: child, error: childError } = await supabase
             .from('child_profiles')
             .insert([{ ...payload, user_id: user.id }])
@@ -86,109 +70,56 @@ export const userService = {
 
         if (childError) throw new Error(childError.message);
 
+        // 2. تحويل صاحب الحساب إلى parent إذا كان user
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        if (profile?.role === 'user') {
+            await supabase.from('profiles').update({ role: 'parent' }).eq('id', user.id);
+        }
+
         return child as ChildProfile;
     },
 
-    async updateChildProfile(payload: { id: number; [key: string]: any }) {
+    async updateChildProfile(payload: any) {
         const { id, ...updates } = payload;
-        const { data, error } = await supabase
-            .from('child_profiles')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
-
+        const { data, error } = await supabase.from('child_profiles').update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
         return data as ChildProfile;
     },
 
     async deleteChildProfile(childId: number) {
-        const { error } = await supabase
-            .from('child_profiles')
-            .delete()
-            .eq('id', childId);
-
+        // قبل الحذف، قد نحتاج للتحقق إذا كان هذا هو الطفل الأخير لتحويل الأب لـ user (اختياري)
+        const { error } = await supabase.from('child_profiles').delete().eq('id', childId);
         if (error) throw new Error(error.message);
         return { success: true };
     },
 
-    // --- Student Account Linking (The Trigger for Parent Role) ---
+    async getAllChildProfiles() {
+        const { data, error } = await supabase.from('child_profiles').select('*');
+        return (data || []) as ChildProfile[];
+    },
+
+    async updateUser(payload: { id: string; [key: string]: any }) {
+        const { id, ...updates } = payload;
+        const { data, error } = await supabase.from('profiles').update(updates).eq('id', id).select().single();
+        if (error) throw new Error(error.message);
+        return data as UserProfile;
+    },
+
+    async updateUserPassword(payload: { userId: string, newPassword: string }) {
+        return apiClient.post<{ success: boolean }>('/admin/users/update-password', payload);
+    },
+
     async createAndLinkStudentAccount(payload: any) {
-        // 1. إنشاء حساب الطالب في Auth
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: payload.email,
-            password: payload.password,
-            options: {
-                data: {
-                    name: payload.name,
-                    role: 'student',
-                }
-            }
-        });
-
-        if (authError || !authData.user) throw new Error(authError?.message || 'Failed to create account');
-
-        // 2. ربط الحساب بملف الطفل
-        const { error: linkError } = await supabase
-            .from('child_profiles')
-            .update({ student_user_id: authData.user.id })
-            .eq('id', payload.childProfileId);
-
-        if (linkError) throw new Error(linkError.message);
-
-        // 3. ترقية دور المستخدم الأصلي (الأب) إلى 'parent' بشكل قطعي
-        try {
-            const { data: child } = await supabase
-                .from('child_profiles')
-                .select('user_id')
-                .eq('id', payload.childProfileId)
-                .single();
-
-            if (child) {
-                await supabase
-                    .from('profiles')
-                    .update({ role: 'parent' })
-                    .eq('id', child.user_id);
-                console.log("Parent role activated upon student link.");
-            }
-        } catch (e) {
-            console.error("Role upgrade failed", e);
-        }
-        
-        return { success: true };
+        return apiClient.post<any>('/admin/users/create-student', payload);
     },
 
-    async linkStudentToChildProfile(payload: { studentUserId: string, childProfileId: number }) {
-        const { error } = await supabase
-            .from('child_profiles')
-            .update({ student_user_id: payload.studentUserId })
-            .eq('id', payload.childProfileId);
+    async resetStudentPassword(payload: { studentUserId: string; newPassword: string }) {
+        return apiClient.post<{ success: boolean }>('/admin/users/reset-password', payload);
+    },
 
+    async bulkDeleteUsers(userIds: string[]) {
+        const { error } = await supabase.from('profiles').delete().in('id', userIds);
         if (error) throw new Error(error.message);
-
-        // ترقية دور الأب عند الربط اليدوي أيضاً
-        try {
-            const { data: child } = await supabase.from('child_profiles').select('user_id').eq('id', payload.childProfileId).single();
-            if (child) await supabase.from('profiles').update({ role: 'parent' }).eq('id', child.user_id);
-        } catch(e) {}
-
-        return { success: true };
-    },
-    
-    async unlinkStudentFromChildProfile(childProfileId: number) {
-        const { error } = await supabase
-            .from('child_profiles')
-            .update({ student_user_id: null })
-            .eq('id', childProfileId);
-
-        if (error) throw new Error(error.message);
-        return { success: true };
-    },
-
-    // --- Password Reset for Student ---
-    async resetStudentPassword(payload: { studentUserId: string, newPassword: string }) {
-        console.log(`[MOCK] Resetting password for student ${payload.studentUserId}`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
         return { success: true };
     }
 };

@@ -1,9 +1,9 @@
-
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations, type UserWithParent } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import { Users, Plus, Edit, Trash2, Search, Briefcase, GraduationCap, Shield, User, ArrowRight, RefreshCw, Link as LinkIcon, AlertCircle, Heart } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { Users, Plus, Edit, Trash2, Search, Briefcase, GraduationCap, Shield, User, ArrowRight, RefreshCw, Link as LinkIcon, Heart } from 'lucide-react';
 import { roleNames } from '../../lib/roles';
 import { Button } from '../../components/ui/Button';
 import ErrorState from '../../components/ui/ErrorState';
@@ -20,7 +20,7 @@ const AdminUsersPage: React.FC = () => {
     const { data: children = [], isLoading: childrenLoading, error: childrenError, refetch: refetchChildren } = useAdminAllChildProfiles();
     const { bulkDeleteUsers } = useUserMutations();
 
-    const [activeTab, setActiveTab] = useState<'staff' | 'customers'>('staff');
+    const [activeTab, setActiveTab] = useState<'staff' | 'customers'>('customers');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
     
@@ -73,7 +73,7 @@ const AdminUsersPage: React.FC = () => {
     };
 
     const handleDelete = (userId: string, name: string) => {
-        if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟`)) {
+        if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟ سيتم حذف كافة بياناته المرتبطة.`)) {
             bulkDeleteUsers.mutate({ userIds: [userId] });
         }
     };
@@ -84,14 +84,14 @@ const AdminUsersPage: React.FC = () => {
         <div className="animate-fadeIn space-y-8">
             <LinkStudentModal 
                 isOpen={linkModalOpen} 
-                onClose={() => { setLinkModalOpen(false); setSelectedUserForLink(null); refetchChildren(); }} 
+                onClose={() => { setLinkModalOpen(false); setSelectedUserForLink(null); refetchChildren(); refetchUsers(); }} 
                 user={selectedUserForLink} 
             />
 
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h1 className="text-3xl font-extrabold text-foreground">إدارة المستخدمين</h1>
-                <div className="flex gap-2">
-                    <Button onClick={() => { refetchUsers(); refetchChildren(); }} variant="ghost" size="sm" icon={<RefreshCw className={isRefetching ? 'animate-spin' : ''} size={16}/>}>تحديث</Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => { refetchUsers(); refetchChildren(); }} variant="ghost" icon={<RefreshCw className={isRefetching ? 'animate-spin' : ''} size={16}/>}>تحديث</Button>
                     <Button onClick={() => navigate('/admin/users/new')} icon={<Plus size={18} />}>إضافة مستخدم</Button>
                 </div>
             </div>
@@ -114,8 +114,8 @@ const AdminUsersPage: React.FC = () => {
 
                         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'staff' | 'customers')}>
                             <TabsList className="w-full justify-start">
-                                <TabsTrigger value="staff"><Shield className="ml-2 w-4 h-4"/> الموظفون ({staffUsers.length})</TabsTrigger>
                                 <TabsTrigger value="customers"><Briefcase className="ml-2 w-4 h-4"/> العملاء والطلاب ({customerUsers.length})</TabsTrigger>
+                                <TabsTrigger value="staff"><Shield className="ml-2 w-4 h-4"/> الموظفون ({staffUsers.length})</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value={activeTab}>
@@ -172,9 +172,7 @@ const AdminUsersPage: React.FC = () => {
                                                         )}
                                                         <TableCell>
                                                             <div className="flex items-center gap-1">
-                                                                {user.role === 'student' && (
-                                                                    <Button variant="ghost" size="icon" onClick={() => { setSelectedUserForLink(user); setLinkModalOpen(true); }} className={!user.parentName ? "text-orange-500" : "text-blue-500"} title="ربط بالأب"><LinkIcon size={18} /></Button>
-                                                                )}
+                                                                <Button variant="ghost" size="icon" onClick={() => { setSelectedUserForLink(user); setLinkModalOpen(true); }} className={user.role !== 'student' && user.role !== 'user' ? 'hidden' : 'text-blue-500'} title="ربط بحساب طفل"><LinkIcon size={18} /></Button>
                                                                 <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}`)} title="تعديل"><Edit size={18} /></Button>
                                                                 <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(user.id, user.name)} title="حذف"><Trash2 size={18} /></Button>
                                                             </div>
