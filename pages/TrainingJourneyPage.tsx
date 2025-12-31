@@ -22,7 +22,7 @@ import { formatDate } from '../utils/helpers';
 import type { SessionAttachment, ScheduledSession, Badge } from '../lib/database.types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
-import Modal from '../ui/Modal';
+import Modal from '../components/ui/Modal';
 import BadgeDisplay from '../components/shared/BadgeDisplay';
 
 // --- Sub-components ---
