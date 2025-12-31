@@ -38,7 +38,7 @@ const JourneyStep: React.FC<{ icon: React.ReactNode; title: string; description:
 
 const TeamMemberCard: React.FC<{ name: string; role: string; imageUrl: string; }> = ({ name, role, imageUrl }) => (
     <div className="text-center">
-        <Image src={imageUrl} alt={name} className="w-32 h-32 rounded-full mx-auto ring-4 ring-background shadow-lg aspect-square" />
+        <Image src={imageUrl || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={name} className="w-32 h-32 rounded-full mx-auto ring-4 ring-background shadow-lg aspect-square" />
         <h4 className="text-xl font-bold mt-4">{name}</h4>
         <p className="text-primary font-semibold">{role}</p>
     </div>
@@ -55,7 +55,7 @@ const AboutPage: React.FC = () => {
         return <PageLoader />;
     }
 
-    const teamMembers = content?.teamMembers?.filter(member => member && member.name && member.role && member.imageUrl) || [];
+    const teamMembers = content?.teamMembers?.filter(member => member && member.name && member.role) || [];
 
     return (
         <div className="bg-background animate-fadeIn">

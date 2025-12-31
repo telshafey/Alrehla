@@ -31,10 +31,9 @@ const PersonalizedStoriesPage = lazy(() => import('./pages/PersonalizedStoriesPa
 const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage'));
 const OrderPage = lazy(() => import('./pages/OrderPage'));
 
-// Creative Writing (Start of the Journey)
+// Creative Writing (Academy)
 const CreativeWritingPage = lazy(() => import('./pages/CreativeWritingPage'));
 const CreativeWritingAboutPage = lazy(() => import('./pages/CreativeWritingAboutPage'));
-const CreativeWritingCurriculumPage = lazy(() => import('./pages/CreativeWritingCurriculumPage'));
 const CreativeWritingInstructorsPage = lazy(() => import('./pages/CreativeWritingInstructorsPage'));
 const InstructorProfilePage = lazy(() => import('./pages/InstructorProfilePage'));
 const CreativeWritingBookingPage = lazy(() => import('./pages/CreativeWritingBookingPage'));
@@ -89,7 +88,6 @@ const AppRoutes: React.FC = () => {
                 {/* Creative Writing (Academy) */}
                 <Route path="/creative-writing" element={<CreativeWritingPage />} />
                 <Route path="/creative-writing/about" element={<CreativeWritingAboutPage />} />
-                <Route path="/creative-writing/curriculum" element={<CreativeWritingCurriculumPage />} />
                 <Route path="/creative-writing/instructors" element={<CreativeWritingInstructorsPage />} />
                 <Route path="/creative-writing/packages" element={<CreativeWritingPackagesPage />} />
                 

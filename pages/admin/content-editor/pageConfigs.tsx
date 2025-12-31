@@ -163,9 +163,9 @@ export const pageConfigs: PageConfig[] = [
                 title: 'المعلومات الأساسية',
                 fields: [
                     { key: 'aboutPage.heroTitle', label: 'عنوان الهيرو', type: 'input' },
-                    { key: 'aboutPage.missionStatement', label: 'رسالتنا', type: 'textarea', rows: 3 },
-                    { key: 'aboutPage.ourStory', label: 'قصتنا', type: 'textarea', rows: 5 },
-                    { key: 'aboutPage.ourVision', label: 'رؤيتنا', type: 'textarea', rows: 3 },
+                    { key: 'aboutPage.missionStatement', label: 'الرسالة', type: 'textarea', rows: 3 },
+                    { key: 'aboutPage.ourStory', label: 'الشرارة', type: 'textarea', rows: 5 },
+                    { key: 'aboutPage.ourVision', label: 'الرؤية', type: 'textarea', rows: 3 },
                     { key: 'aboutPage.valuesTitle', label: 'عنوان قسم القيم', type: 'input' },
                     { key: 'siteBranding.aboutHeroImageUrl', label: 'صورة خلفية الهيرو', type: 'image' }
                 ]
@@ -259,16 +259,6 @@ export const pageConfigs: PageConfig[] = [
                     { key: 'creativeWritingPage.about.mainTitle', label: 'العنوان الداخلي', type: 'input' },
                     { key: 'creativeWritingPage.about.mainContent', label: 'المحتوى التفصيلي', type: 'textarea', rows: 6 },
                     { key: 'creativeWritingPage.about.heroImageUrl', label: 'صورة عرض الفلسفة', type: 'image' }
-                ]
-            },
-            {
-                key: 'cw_curriculum',
-                title: "صفحة 'المنهج'",
-                fields: [
-                    { key: 'creativeWritingPage.curriculum.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
-                    { key: 'creativeWritingPage.curriculum.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
-                    { key: 'creativeWritingPage.curriculum.treasuresTitle', label: 'عنوان الكنوز', type: 'input' },
-                    { key: 'creativeWritingPage.curriculum.treasuresSubtitle', label: 'وصف الكنوز', type: 'textarea', rows: 2 }
                 ]
             }
         ]

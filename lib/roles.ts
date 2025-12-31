@@ -1,8 +1,10 @@
+
 import { UserRole } from './database.types';
 export type { UserRole };
 
 export const roleNames: Record<UserRole, string> = {
   user: 'مستخدم عادي',
+  parent: 'ولي أمر',
   student: 'طالب',
   super_admin: 'مدير النظام',
   general_supervisor: 'مشرف عام',
@@ -30,8 +32,7 @@ export interface Permissions {
   canManageJoinRequests: boolean;
   canManageSettings: boolean;
   canManageFinancials: boolean; 
-  canViewAuditLog: boolean; // New permission
-  // instructor permissions
+  canViewAuditLog: boolean;
   isInstructor: boolean;
   canManageOwnSchedule: boolean;
   canManageOwnProfile: boolean;
@@ -55,7 +56,7 @@ export const permissionKeys: (keyof Permissions)[] = [
     'canManageJoinRequests',
     'canManageSettings',
     'canManageFinancials',
-    'canViewAuditLog', // New permission
+    'canViewAuditLog',
     'isInstructor',
     'canManageOwnSchedule',
     'canManageOwnProfile',
@@ -79,7 +80,7 @@ export const permissionLabels: Record<keyof Permissions, string> = {
     canManageJoinRequests: 'إدارة طلبات الانضمام',
     canManageSettings: 'إدارة الإعدادات العامة',
     canManageFinancials: 'إدارة الشؤون المالية',
-    canViewAuditLog: 'عرض سجل النشاطات', // New permission label
+    canViewAuditLog: 'عرض سجل النشاطات',
     isInstructor: 'دور مدرب',
     canManageOwnSchedule: 'إدارة جدوله الخاص',
     canManageOwnProfile: 'إدارة ملفه الشخصي',
@@ -186,6 +187,7 @@ const permissionsByRole: Record<UserRole, Permissions> = {
     canManageJoinRequests: true,
   },
   user: basePermissions,
+  parent: basePermissions,
   student: basePermissions,
 };
 

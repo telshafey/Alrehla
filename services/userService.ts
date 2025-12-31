@@ -77,14 +77,37 @@ export const userService = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("User not logged in");
 
-        const { data, error } = await supabase
+        // 1. إنشاء ملف الطفل
+        const { data: child, error: childError } = await supabase
             .from('child_profiles')
             .insert([{ ...payload, user_id: user.id }])
             .select()
             .single();
 
-        if (error) throw new Error(error.message);
-        return data as ChildProfile;
+        if (childError) throw new Error(childError.message);
+
+        // 2. الترقية التلقائية لولي الأمر (Automatic Promotion)
+        // إذا كان دور المستخدم الحالي هو 'user' (مستخدم عادي)، نقوم بتحويله إلى 'parent' (ولي أمر)
+        try {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+
+            if (profile && profile.role === 'user') {
+                await supabase
+                    .from('profiles')
+                    .update({ role: 'parent' })
+                    .eq('id', user.id);
+                
+                console.log("User upgraded to 'parent' role successfully.");
+            }
+        } catch (e) {
+            console.error("Failed to upgrade user role:", e);
+        }
+
+        return child as ChildProfile;
     },
 
     async updateChildProfile(payload: { id: number; [key: string]: any }) {
@@ -157,7 +180,6 @@ export const userService = {
 
     // --- Password Reset for Student ---
     async resetStudentPassword(payload: { studentUserId: string, newPassword: string }) {
-        // This is a client-side simulation. In production, use an Edge Function with service_role.
         console.log(`[MOCK] Resetting password for student ${payload.studentUserId}`);
         await new Promise(resolve => setTimeout(resolve, 1000));
         return { success: true };

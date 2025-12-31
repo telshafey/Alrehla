@@ -3,6 +3,7 @@ export type Database = {};
 
 export type UserRole =
   | 'user'
+  | 'parent'
   | 'student'
   | 'super_admin'
   | 'general_supervisor'
@@ -208,11 +209,10 @@ export interface PersonalizedProduct {
     deleted_at?: string | null;
 }
 
-// New Interface for Comparison Criteria
 export interface ComparisonItem {
     id: string;
     label: string;
-    type: 'boolean' | 'text'; // boolean = Check/X, text = Custom text
+    type: 'boolean' | 'text'; 
     sort_order: number;
 }
 
@@ -228,8 +228,6 @@ export interface CreativeWritingPackage {
     target_age?: string; 
     level?: string; 
     icon_name?: string; 
-    // Dynamic values for the comparison table
-    // Key is ComparisonItem.id, value is boolean (for check/x) or string (for text)
     comparison_values: Record<string, boolean | string>;
 }
 
@@ -562,6 +560,5 @@ export interface PublicData {
     standaloneServices: StandaloneService[];
     communicationSettings: CommunicationSettings;
     badges: Badge[];
-    // Added comparison items to public data
     comparisonItems: ComparisonItem[];
 }
