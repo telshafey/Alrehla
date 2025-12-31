@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
     LayoutDashboard, Users, ShoppingBag, BookOpen, UserCog, MessageSquare, UserPlus,
     FileText, Settings, Star, Package, Sparkles, CalendarCheck, Plug, DollarSign, BarChart, History, X,
-    Globe, Home, Info, Phone, Palette, Database, Layout
+    Globe, Home, Info, Phone, Palette, Database, Layout, ListChecks
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Image from '../ui/Image';
@@ -105,6 +105,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                 items: [
                      { to: '/admin/financials', icon: <DollarSign size={20} />, label: 'الماليات', permission: permissions.canManageFinancials },
                      { to: '/admin/reports', icon: <BarChart size={20} />, label: 'التقارير', permission: permissions.canManageFinancials },
+                     { to: '/admin/price-review', icon: <ListChecks size={20} />, label: 'مراجعة الأسعار', permission: permissions.canManageInstructors },
                 ]
             },
             {
@@ -113,6 +114,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                     { to: '/admin/orders', icon: <ShoppingBag size={20} />, label: 'الطلبات', permission: permissions.canManageEnhaLakOrders },
                     { to: '/admin/personalized-products', icon: <Package size={20} />, label: 'المنتجات', permission: permissions.canManageEnhaLakProducts },
                     { to: '/admin/subscriptions', icon: <Star size={20} />, label: 'الاشتراكات', permission: permissions.canManageEnhaLakOrders },
+                    { to: '/admin/subscription-box', icon: <Settings size={20} />, label: 'إعدادات الصندوق', permission: permissions.canManageEnhaLakProducts },
                 ]
             },
             {
@@ -121,6 +123,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                     { to: '/admin/creative-writing', icon: <BookOpen size={20} />, label: 'الحجوزات', permission: permissions.canManageCreativeWritingBookings },
                     { to: '/admin/service-orders', icon: <Sparkles size={20} />, label: 'طلبات الخدمات', permission: permissions.canManageCreativeWritingBookings },
                     { to: '/admin/scheduled-sessions', icon: <CalendarCheck size={20} />, label: 'الجلسات المجدولة', permission: permissions.canManageCreativeWritingBookings },
+                    { to: '/admin/creative-writing-packages', icon: <Package size={20} />, label: 'إدارة الباقات', permission: permissions.canManageCreativeWritingSettings },
+                    { to: '/admin/creative-writing-services', icon: <Sparkles size={20} />, label: 'إدارة الخدمات', permission: permissions.canManageCreativeWritingSettings },
                 ]
             },
             {
