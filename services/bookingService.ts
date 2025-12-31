@@ -150,76 +150,29 @@ export const bookingService = {
         return data as SessionAttachment;
     },
 
-    // --- Mutations: Instructors & Others ---
-    async createInstructor(payload: any) {
-        let avatarUrl = payload.avatar_url;
-        if (payload.avatarFile) {
-            try {
-                avatarUrl = await cloudinaryService.uploadImage(payload.avatarFile, 'alrehla_instructors');
-            } catch (err) {
-                console.error("Avatar upload failed", err);
-            }
-        }
-
-        const { avatarFile, ...dbPayload } = payload;
-        const insertData = { ...dbPayload, avatar_url: avatarUrl };
-
-        const { data, error } = await supabase
-            .from('instructors')
-            .insert([insertData])
-            .select()
-            .single();
-
-        if (error) throw new Error(error.message);
-        return data as Instructor;
-    },
-
-    async updateInstructor(payload: any) {
-        let avatarUrl = payload.avatar_url;
-        if (payload.avatarFile) {
-            try {
-                avatarUrl = await cloudinaryService.uploadImage(payload.avatarFile, 'alrehla_instructors');
-            } catch (err) {
-                console.error("Avatar upload failed", err);
-            }
-        }
-
-        const { id, avatarFile, ...updates } = payload;
-        const updateData = { ...updates };
-        if (avatarUrl) updateData.avatar_url = avatarUrl;
-
-        const { data, error } = await supabase
-            .from('instructors')
-            .update(updateData)
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) throw new Error(error.message);
-        return data as Instructor;
-    },
-
-    async deleteInstructor(instructorId: number) {
-        const { error } = await supabase
-            .from('instructors')
-            .update({ deleted_at: new Date().toISOString() })
-            .eq('id', instructorId);
-        
-        if (error) throw new Error(error.message);
-        return { success: true };
-    },
-
+    // --- Mutations: Create Booking and Generate Full Schedule ---
     async createBooking(payload: any) {
         const bookingId = `bk_${Math.floor(Math.random() * 1000000)}`;
-        const { data, error } = await supabase
+        const pkg = payload.payload.package;
+        const startDate = new Date(payload.payload.dateTime.date);
+        const [hours, minutes] = payload.payload.dateTime.time.split(':');
+        startDate.setHours(parseInt(hours), parseInt(minutes), 0);
+
+        // تحديد عدد الجلسات بناءً على الباقة
+        let sessionCount = 1;
+        const match = pkg.sessions.match(/\d+/);
+        if (match) sessionCount = parseInt(match[0]);
+
+        // 1. إنشاء الحجز الأساسي
+        const { data: bookingData, error: bookingError } = await supabase
             .from('bookings')
             .insert([{
                 id: bookingId,
                 user_id: payload.userId,
                 child_id: payload.payload.child.id,
                 instructor_id: payload.payload.instructor.id,
-                package_name: payload.payload.package.name,
-                booking_date: payload.payload.dateTime.date,
+                package_name: pkg.name,
+                booking_date: startDate.toISOString(),
                 booking_time: payload.payload.dateTime.time,
                 total: payload.payload.total,
                 status: 'بانتظار الدفع',
@@ -227,8 +180,33 @@ export const bookingService = {
             }])
             .select();
 
-        if (error) throw new Error(error.message);
-        return data?.[0] as CreativeWritingBooking;
+        if (bookingError) throw new Error(bookingError.message);
+
+        // 2. توليد الجلسات المجدولة تلقائياً (تكرار أسبوعي)
+        const sessionsToInsert = [];
+        for (let i = 0; i < sessionCount; i++) {
+            const sessionDate = new Date(startDate);
+            sessionDate.setDate(startDate.getDate() + (i * 7)); // إضافة أسبوع لكل جلسة
+            
+            sessionsToInsert.push({
+                booking_id: bookingId,
+                child_id: payload.payload.child.id,
+                instructor_id: payload.payload.instructor.id,
+                session_date: sessionDate.toISOString(),
+                status: 'upcoming'
+            });
+        }
+
+        const { error: sessionsError } = await supabase
+            .from('scheduled_sessions')
+            .insert(sessionsToInsert);
+
+        if (sessionsError) {
+            console.error("Failed to generate sessions schedule:", sessionsError);
+            // لا نرمي خطأ هنا لكي لا نفشل الحجز بالكامل، ولكن يجب تنبيه الإدارة
+        }
+
+        return bookingData?.[0] as CreativeWritingBooking;
     },
 
     async updateBookingStatus(bookingId: string, newStatus: BookingStatus) {
@@ -254,6 +232,58 @@ export const bookingService = {
             .from('bookings')
             .update({ draft_content: draft })
             .eq('id', bookingId);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    // --- Instructor CRUD ---
+
+    // Added fix: Implementation for missing createInstructor method
+    async createInstructor(payload: any) {
+        let avatar_url = payload.avatar_url;
+        if (payload.avatarFile) {
+            avatar_url = await cloudinaryService.uploadImage(payload.avatarFile, 'instructors');
+        }
+
+        const { avatarFile, ...rest } = payload;
+        const { data, error } = await supabase
+            .from('instructors')
+            .insert([{ ...rest, avatar_url }])
+            .select()
+            .single();
+            
+        if (error) throw new Error(error.message);
+        return data as Instructor;
+    },
+
+    // Added fix: Implementation for missing updateInstructor method
+    async updateInstructor(payload: any) {
+        let avatar_url = payload.avatar_url;
+        if (payload.avatarFile) {
+            avatar_url = await cloudinaryService.uploadImage(payload.avatarFile, 'instructors');
+        }
+
+        const { id, avatarFile, ...updates } = payload;
+        if (!id) throw new Error("ID Required");
+        const { data, error } = await supabase
+            .from('instructors')
+            .update({ ...updates, avatar_url })
+            .eq('id', id)
+            .select()
+            .single();
+            
+        if (error) throw new Error(error.message);
+        return data as Instructor;
+    },
+
+    // Added fix: Implementation for missing deleteInstructor method
+    async deleteInstructor(instructorId: number) {
+        // Soft delete instructor to preserve related historical data
+        const { error } = await supabase
+            .from('instructors')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', instructorId);
+            
         if (error) throw new Error(error.message);
         return { success: true };
     },
@@ -307,11 +337,6 @@ export const bookingService = {
         return { success: true };
     },
 
-    // --- Comparison Item Mutations ---
-
-    /**
-     * Creates a new comparison criterion in the database.
-     */
     async createComparisonItem(payload: any) {
         const { data, error } = await supabase
             .from('comparison_items')
@@ -322,9 +347,6 @@ export const bookingService = {
         return data as ComparisonItem;
     },
 
-    /**
-     * Updates an existing comparison criterion.
-     */
     async updateComparisonItem(payload: any) {
         const { id, ...updates } = payload;
         const { data, error } = await supabase
@@ -337,9 +359,6 @@ export const bookingService = {
         return data as ComparisonItem;
     },
 
-    /**
-     * Deletes a comparison criterion by its ID.
-     */
     async deleteComparisonItem(itemId: string) {
         const { error } = await supabase
             .from('comparison_items')

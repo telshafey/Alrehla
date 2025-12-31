@@ -1,3 +1,4 @@
+
 import { supabase } from '../lib/supabaseClient';
 import { apiClient } from '../lib/api';
 import type { UserProfile, ChildProfile, UserRole } from '../lib/database.types';
@@ -17,9 +18,11 @@ export const userService = {
     },
 
     /**
-     * ربط حساب طالب وتحديث الأدوار
+     * ربط حساب طالب وتحديث الأدوار في قاعدة البيانات
+     * لضمان ظهور الصلاحيات الصحيحة فوراً
      */
     async linkStudentToChildProfile(payload: { studentUserId: string, childProfileId: number }) {
+        // 1. تحديث معرف الطالب في سجل الطفل
         const { data: child, error: linkError } = await supabase
             .from('child_profiles')
             .update({ student_user_id: payload.studentUserId })
@@ -29,10 +32,10 @@ export const userService = {
         
         if (linkError) throw new Error(linkError.message);
         
-        // تحديث دور الحساب المربوط ليصبح 'student'
+        // 2. تحديث دور الحساب المربوط ليصبح 'student' رسمياً
         await supabase.from('profiles').update({ role: 'student' }).eq('id', payload.studentUserId);
         
-        // تحديث دور ولي الأمر ليصبح 'parent'
+        // 3. تحديث دور ولي الأمر ليصبح 'parent' لفتح ميزات المتابعة
         if (child?.user_id) {
             await supabase.from('profiles').update({ role: 'parent' }).eq('id', child.user_id);
         }
@@ -40,19 +43,22 @@ export const userService = {
         return { success: true };
     },
 
-    /**
-     * فك الارتباط: يعيد الطالب مستخدم عادي
-     */
     async unlinkStudentFromChildProfile(childProfileId: number) {
         const { data: child } = await supabase.from('child_profiles').select('user_id, student_user_id').eq('id', childProfileId).single();
         
         const { error } = await supabase.from('child_profiles').update({ student_user_id: null }).eq('id', childProfileId);
         
         if (child?.student_user_id) {
+            // إعادة الطالب لمستخدم عادي
             await supabase.from('profiles').update({ role: 'user' }).eq('id', child.student_user_id);
             
-            // تحقق هل بقي للأب طلاب آخرون؟
-            const { count } = await supabase.from('child_profiles').select('*', { count: 'exact', head: true }).eq('user_id', child.user_id).not('student_user_id', 'is', null);
+            // تحقق هل بقي للأب طلاب آخرون؟ إذا لا، يعود مستخدم عادي
+            const { count } = await supabase
+                .from('child_profiles')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', child.user_id)
+                .not('student_user_id', 'is', null);
+
             if (count === 0) {
                 await supabase.from('profiles').update({ role: 'user' }).eq('id', child.user_id);
             }
@@ -62,22 +68,16 @@ export const userService = {
         return { success: true };
     },
 
-    /**
-     * حذف ملف طفل: يحذف معه حساب الطالب المرتبط به نهائياً (حل مشكلة تالا)
-     */
     async deleteChildProfile(childId: number) {
         const { data: child } = await supabase.from('child_profiles').select('user_id, student_user_id').eq('id', childId).single();
         
-        // 1. إذا كان له حساب طالب، نحذفه من جدول الحسابات أولاً
         if (child?.student_user_id) {
             await supabase.from('profiles').delete().eq('id', child.student_user_id);
         }
 
-        // 2. حذف ملف الطفل
         const { error } = await supabase.from('child_profiles').delete().eq('id', childId);
         if (error) throw new Error(error.message);
 
-        // 3. تحديث دور الأب إذا أصبح بلا طلاب
         if (child?.user_id) {
             const { count } = await supabase.from('child_profiles').select('*', { count: 'exact', head: true }).eq('user_id', child.user_id).not('student_user_id', 'is', null);
             if (count === 0) {
@@ -128,7 +128,6 @@ export const userService = {
     },
 
     async bulkDeleteUsers(userIds: string[]) {
-        // حذف الأطفال المرتبطين بهؤلاء المستخدمين أولاً لضمان تنظيف الطلاب
         for (const uid of userIds) {
             const { data: children } = await supabase.from('child_profiles').select('id').eq('user_id', uid);
             if (children) {

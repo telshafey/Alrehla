@@ -1,17 +1,8 @@
 
 import { supabase } from '../lib/supabaseClient';
-import {
-    mockSocialLinks,
-    mockPublicHolidays,
-    mockCommunicationSettings,
-    mockSiteBranding,
-    mockSiteContent,
-    mockBadges 
-} from '../data/mockData';
 
 export const publicService = {
     async getAllPublicData() {
-        // 1. Fetch Dynamic Data from Supabase Tables
         const [
             { data: instructors },
             { data: blogPosts },
@@ -20,7 +11,8 @@ export const publicService = {
             { data: subscriptionPlans },
             { data: standaloneServices },
             { data: settingsData },
-            { data: badges } 
+            { data: badges },
+            { data: comparisonItems }
         ] = await Promise.all([
             supabase.from('instructors').select('*').is('deleted_at', null),
             supabase.from('blog_posts').select('*').eq('status', 'published').is('deleted_at', null),
@@ -29,13 +21,13 @@ export const publicService = {
             supabase.from('subscription_plans').select('*').order('price'),
             supabase.from('standalone_services').select('*'),
             supabase.from('site_settings').select('*'),
-            supabase.from('badges').select('*')
+            supabase.from('badges').select('*'),
+            supabase.from('comparison_items').select('*').order('sort_order')
         ]);
 
-        // Helper to extract value from settings array
-        const getSetting = (key: string, fallback: any) => {
+        const getSetting = (key: string) => {
             const item = settingsData?.find(s => s.key === key);
-            return item ? item.value : fallback;
+            return item ? item.value : null;
         };
 
         return {
@@ -45,16 +37,16 @@ export const publicService = {
             creativeWritingPackages: creativeWritingPackages || [],
             subscriptionPlans: subscriptionPlans || [],
             standaloneServices: standaloneServices || [],
-            badges: badges && badges.length > 0 ? badges : mockBadges,
+            badges: badges || [],
+            comparisonItems: comparisonItems || [],
             
-            // Dynamic Settings from site_settings table
-            siteContent: getSetting('global_content', mockSiteContent),
-            siteBranding: getSetting('branding', mockSiteBranding),
-            socialLinks: getSetting('social_links', mockSocialLinks),
-            communicationSettings: getSetting('communication_settings', mockCommunicationSettings),
+            // سيعيد null إذا لم تكن الإعدادات موجودة في DB، مما ينبه المسؤول لتهيئتها
+            siteContent: getSetting('global_content'),
+            siteBranding: getSetting('branding'),
+            socialLinks: getSetting('social_links'),
+            communicationSettings: getSetting('communication_settings'),
             
-            // Static/Config Data
-            publicHolidays: mockPublicHolidays,
+            publicHolidays: [], // يمكن جلبها من جدول خاص مستقبلاً
         };
     }
 };

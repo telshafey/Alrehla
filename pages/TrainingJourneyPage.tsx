@@ -14,7 +14,7 @@ import WritingDraftPanel from '../components/student/WritingDraftPanel';
 import { 
     MessageSquare, Paperclip, FileText, Calendar, Clock, Video, 
     CheckCircle, Send, Upload, Save, FileCheck2, PenSquare, 
-    Award, MoreVertical, XCircle, ArrowLeft
+    Award, MoreVertical, XCircle, ArrowLeft, Hourglass
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
@@ -22,7 +22,7 @@ import { formatDate } from '../utils/helpers';
 import type { SessionAttachment, ScheduledSession, Badge } from '../lib/database.types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
-import Modal from '../components/ui/Modal';
+import Modal from '../ui/Modal';
 import BadgeDisplay from '../components/shared/BadgeDisplay';
 
 // --- Sub-components ---
@@ -213,14 +213,12 @@ const TrainingJourneyPage: React.FC = () => {
     const isStudentOrParent = currentUser?.role === 'student' || currentUser?.role === 'user' || currentUser?.role === 'parent';
     const canInteract = !!currentUser;
 
-    const { upcomingSessions, pastSessions, totalSessions, completedSessionsCount, progress } = useMemo(() => {
-        if (!journeyData) return { upcomingSessions: [], pastSessions: [], totalSessions: 0, completedSessionsCount: 0, progress: 0 };
-        const all = journeyData.scheduledSessions || [];
-        const upcoming = all.filter(s => s.status === 'upcoming').sort((a,b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
-        const past = all.filter(s => s.status !== 'upcoming').sort((a,b) => new Date(b.session_date).getTime() - new Date(a.session_date).getTime());
+    const { allSessions, totalSessions, completedSessionsCount, progress } = useMemo(() => {
+        if (!journeyData) return { allSessions: [], totalSessions: 0, completedSessionsCount: 0, progress: 0 };
+        const all = [...(journeyData.scheduledSessions || [])].sort((a,b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
         const total = parseTotalSessions(journeyData.package?.sessions);
-        const completed = past.filter(s => s.status === 'completed').length;
-        return { upcomingSessions: upcoming, pastSessions: past, totalSessions: total, completedSessionsCount: completed, progress: total > 0 ? (completed / total) * 100 : 0 };
+        const completed = all.filter(s => s.status === 'completed').length;
+        return { allSessions: all, totalSessions: total, completedSessionsCount: completed, progress: total > 0 ? (completed / total) * 100 : 0 };
     }, [journeyData]);
 
     if (isLoading) return <PageLoader text="جاري تحميل مساحة العمل..." />;
@@ -300,21 +298,59 @@ const TrainingJourneyPage: React.FC = () => {
                         </Card>
 
                         <Card>
-                             <CardHeader><CardTitle className="text-sm font-bold">مواعيد الجلسات</CardTitle></CardHeader>
-                             <CardContent className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                                {upcomingSessions.map(s => (
-                                    <div key={s.id} className="p-3 rounded-xl bg-blue-50 border border-blue-100 flex justify-between items-center">
-                                        <div className="flex flex-col"><span className="text-[10px] font-bold text-blue-700">{formatDate(s.session_date)}</span><span className="text-[10px] text-blue-600 font-mono">{new Date(s.session_date).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}</span></div>
-                                        <Button as={Link} to={`/session/${s.id}`} size="sm" variant="success" className="h-7 text-[10px] px-2">انضم</Button>
+                             <CardHeader><CardTitle className="text-sm font-bold">الجدول الزمني للرحلة</CardTitle></CardHeader>
+                             <CardContent className="space-y-4">
+                                <div className="relative">
+                                    {/* الخط العمودي لخلفية التايم لاين */}
+                                    <div className="absolute top-0 right-[15px] bottom-0 w-0.5 bg-muted"></div>
+                                    
+                                    <div className="space-y-6 relative">
+                                        {allSessions.map((s, idx) => {
+                                            const isUpcoming = s.status === 'upcoming';
+                                            const isCompleted = s.status === 'completed';
+                                            const sessionDate = new Date(s.session_date);
+                                            const isToday = sessionDate.toDateString() === new Date().toDateString();
+
+                                            return (
+                                                <div key={s.id} className="relative flex items-start gap-4 pr-10">
+                                                    {/* أيقونة الحالة */}
+                                                    <div className={`absolute right-0 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center z-10 shadow-sm ${
+                                                        isCompleted ? 'bg-green-500 text-white' : 
+                                                        isToday ? 'bg-blue-600 text-white animate-pulse' : 'bg-muted text-muted-foreground'
+                                                    }`}>
+                                                        {isCompleted ? <CheckCircle size={14}/> : isToday ? <Video size={14}/> : <Hourglass size={14}/>}
+                                                    </div>
+
+                                                    <div className={`flex-grow p-3 rounded-xl border transition-all ${
+                                                        isToday ? 'bg-blue-50 border-blue-200 shadow-md ring-1 ring-blue-500/20' : 
+                                                        isCompleted ? 'bg-gray-50 border-gray-100 opacity-60' : 'bg-white border-gray-100'
+                                                    }`}>
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <span className="text-[10px] font-black text-gray-700">الجلسة {idx + 1}</span>
+                                                            {isCompleted ? (
+                                                                <span className="text-[9px] font-bold text-green-600">مكتملة</span>
+                                                            ) : isToday ? (
+                                                                <span className="text-[9px] font-bold text-blue-600">اليوم!</span>
+                                                            ) : null}
+                                                        </div>
+                                                        <p className="text-[11px] font-bold text-gray-800">{formatDate(s.session_date)}</p>
+                                                        <div className="flex justify-between items-center mt-2">
+                                                            <span className="text-[10px] font-mono text-muted-foreground">
+                                                                {sessionDate.toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}
+                                                            </span>
+                                                            {!isCompleted && (
+                                                                <Button as={Link} to={`/session/${s.id}`} size="sm" variant={isToday ? "success" : "ghost"} className="h-6 text-[9px] px-2">
+                                                                    {isToday ? 'انضم الآن' : 'معاينة'}
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                ))}
-                                {pastSessions.map(s => (
-                                    <div key={s.id} className="p-2 rounded-lg bg-gray-50 border flex justify-between items-center opacity-60">
-                                        <span className="text-[10px] line-through">{formatDate(s.session_date)}</span>
-                                        <span className="text-[9px] font-bold text-muted-foreground">مكتملة</span>
-                                    </div>
-                                ))}
-                                {upcomingSessions.length === 0 && pastSessions.length === 0 && (
+                                </div>
+                                {allSessions.length === 0 && (
                                     <p className="text-xs text-muted-foreground text-center py-4 italic">لا توجد جلسات مجدولة حالياً.</p>
                                 )}
                              </CardContent>
