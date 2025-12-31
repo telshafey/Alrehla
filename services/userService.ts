@@ -77,7 +77,7 @@ export const userService = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("User not logged in");
 
-        // 1. إنشاء ملف الطفل
+        // إنشاء ملف الطفل (لا يغير دور المستخدم)
         const { data: child, error: childError } = await supabase
             .from('child_profiles')
             .insert([{ ...payload, user_id: user.id }])
@@ -85,27 +85,6 @@ export const userService = {
             .single();
 
         if (childError) throw new Error(childError.message);
-
-        // 2. الترقية التلقائية لولي الأمر (Automatic Promotion)
-        // إذا كان دور المستخدم الحالي هو 'user' (مستخدم عادي)، نقوم بتحويله إلى 'parent' (ولي أمر)
-        try {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
-
-            if (profile && profile.role === 'user') {
-                await supabase
-                    .from('profiles')
-                    .update({ role: 'parent' })
-                    .eq('id', user.id);
-                
-                console.log("User upgraded to 'parent' role successfully.");
-            }
-        } catch (e) {
-            console.error("Failed to upgrade user role:", e);
-        }
 
         return child as ChildProfile;
     },
@@ -133,8 +112,9 @@ export const userService = {
         return { success: true };
     },
 
-    // --- Student Account Linking ---
+    // --- Student Account Linking (The Trigger for Parent Role) ---
     async createAndLinkStudentAccount(payload: any) {
+        // 1. إنشاء حساب الطالب في Auth
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: payload.email,
             password: payload.password,
@@ -148,12 +128,32 @@ export const userService = {
 
         if (authError || !authData.user) throw new Error(authError?.message || 'Failed to create account');
 
+        // 2. ربط الحساب بملف الطفل
         const { error: linkError } = await supabase
             .from('child_profiles')
             .update({ student_user_id: authData.user.id })
             .eq('id', payload.childProfileId);
 
         if (linkError) throw new Error(linkError.message);
+
+        // 3. ترقية دور المستخدم الأصلي (الأب) إلى 'parent' بشكل قطعي
+        try {
+            const { data: child } = await supabase
+                .from('child_profiles')
+                .select('user_id')
+                .eq('id', payload.childProfileId)
+                .single();
+
+            if (child) {
+                await supabase
+                    .from('profiles')
+                    .update({ role: 'parent' })
+                    .eq('id', child.user_id);
+                console.log("Parent role activated upon student link.");
+            }
+        } catch (e) {
+            console.error("Role upgrade failed", e);
+        }
         
         return { success: true };
     },
@@ -165,6 +165,13 @@ export const userService = {
             .eq('id', payload.childProfileId);
 
         if (error) throw new Error(error.message);
+
+        // ترقية دور الأب عند الربط اليدوي أيضاً
+        try {
+            const { data: child } = await supabase.from('child_profiles').select('user_id').eq('id', payload.childProfileId).single();
+            if (child) await supabase.from('profiles').update({ role: 'parent' }).eq('id', child.user_id);
+        } catch(e) {}
+
         return { success: true };
     },
     

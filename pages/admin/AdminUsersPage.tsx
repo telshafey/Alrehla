@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations, type UserWithParent } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import { Users, Plus, Edit, Trash2, Search, Briefcase, GraduationCap, Shield, User, ArrowRight, RefreshCw, Heart } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Briefcase, GraduationCap, Shield, User, ArrowRight, RefreshCw, Link as LinkIcon, AlertCircle, Heart } from 'lucide-react';
 import { roleNames } from '../../lib/roles';
 import { Button } from '../../components/ui/Button';
 import ErrorState from '../../components/ui/ErrorState';
@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 import { Input } from '../../components/ui/Input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
+import LinkStudentModal from '../../components/admin/LinkStudentModal';
 
 const AdminUsersPage: React.FC = () => {
     const navigate = useNavigate();
@@ -22,6 +23,10 @@ const AdminUsersPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'staff' | 'customers'>('staff');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: keyof UserWithParent | 'childrenCount'; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
+    
+    // ربط الطلاب
+    const [linkModalOpen, setLinkModalOpen] = useState(false);
+    const [selectedUserForLink, setSelectedUserForLink] = useState<UserWithParent | null>(null);
 
     const isLoading = usersLoading || childrenLoading;
     const error = usersError || childrenError;
@@ -69,7 +74,7 @@ const AdminUsersPage: React.FC = () => {
     };
 
     const handleDelete = (userId: string, name: string) => {
-        if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟ سيتم حذف جميع البيانات المرتبطة به.`)) {
+        if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟ سيتم حذف جميع البيانات المرتبطة به نهائياً.`)) {
             bulkDeleteUsers.mutate({ userIds: [userId] });
         }
     };
@@ -78,6 +83,12 @@ const AdminUsersPage: React.FC = () => {
 
     return (
         <div className="animate-fadeIn space-y-8">
+            <LinkStudentModal 
+                isOpen={linkModalOpen} 
+                onClose={() => { setLinkModalOpen(false); setSelectedUserForLink(null); refetchChildren(); }} 
+                user={selectedUserForLink} 
+            />
+
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-extrabold text-foreground">إدارة المستخدمين</h1>
                 <div className="flex gap-2">
@@ -116,7 +127,7 @@ const AdminUsersPage: React.FC = () => {
                                                 <SortableTableHead sortKey="name" label="الاسم" sortConfig={sortConfig} onSort={handleSort} />
                                                 <SortableTableHead sortKey="email" label="البريد الإلكتروني" sortConfig={sortConfig} onSort={handleSort} />
                                                 <SortableTableHead sortKey="role" label="النوع" sortConfig={sortConfig} onSort={handleSort} />
-                                                {activeTab === 'customers' && <SortableTableHead sortKey="childrenCount" label="عدد الأطفال" sortConfig={sortConfig} onSort={handleSort} />}
+                                                {activeTab === 'customers' && <SortableTableHead sortKey="childrenCount" label="الطلاب المفعلون" sortConfig={sortConfig} onSort={handleSort} />}
                                                 <TableHead>إجراءات</TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -126,10 +137,15 @@ const AdminUsersPage: React.FC = () => {
                                                     <TableRow key={user.id}>
                                                         <TableCell className="font-medium">
                                                             <div>{user.name}</div>
-                                                            {user.parentName && (
+                                                            {user.parentName ? (
                                                                 <div className="flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-blue-100">
                                                                     <ArrowRight size={10} className="rtl:rotate-0" />
                                                                     <span>تابع لـ: {user.parentName}</span>
+                                                                </div>
+                                                            ) : user.role === 'student' && (
+                                                                <div className="flex items-center gap-1 text-[10px] text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-orange-100">
+                                                                    <AlertCircle size={10} />
+                                                                    <span>بانتظار الربط بولي أمر</span>
                                                                 </div>
                                                             )}
                                                         </TableCell>
@@ -146,9 +162,26 @@ const AdminUsersPage: React.FC = () => {
                                                                 {roleNames[user.role]}
                                                             </span>
                                                         </TableCell>
-                                                        {activeTab === 'customers' && <TableCell className="text-center font-bold">{user.childrenCount || 0}</TableCell>}
+                                                        {activeTab === 'customers' && (
+                                                            <TableCell className="text-center">
+                                                                <span className={user.childrenCount && user.childrenCount > 0 ? "font-bold text-green-600" : "text-gray-400"}>
+                                                                    {user.childrenCount || 0}
+                                                                </span>
+                                                            </TableCell>
+                                                        )}
                                                         <TableCell>
                                                             <div className="flex items-center gap-1">
+                                                                {user.role === 'student' && (
+                                                                    <Button 
+                                                                        variant="ghost" 
+                                                                        size="icon" 
+                                                                        onClick={() => { setSelectedUserForLink(user); setLinkModalOpen(true); }} 
+                                                                        title={user.parentName ? "تعديل الربط" : "ربط بحساب ولي أمر"}
+                                                                        className={!user.parentName ? "text-orange-500 hover:bg-orange-50" : "text-blue-500"}
+                                                                    >
+                                                                        <LinkIcon size={18} />
+                                                                    </Button>
+                                                                )}
                                                                 <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}`)} title="تعديل"><Edit size={18} /></Button>
                                                                 <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(user.id, user.name)} title="حذف"><Trash2 size={18} /></Button>
                                                             </div>
