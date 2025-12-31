@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { supabase } from '../../../lib/supabaseClient';
@@ -11,7 +10,7 @@ export const useStudentDashboardData = () => {
         queryFn: async () => {
             if (!currentUser) return null;
 
-            // 1. البحث عن الطفل المرتبط بهذا الحساب
+            // البحث عن الطفل المرتبط بهذا الحساب
             const { data: childData, error: childError } = await supabase
                 .from('child_profiles')
                 .select('id, name, user_id')
@@ -20,12 +19,12 @@ export const useStudentDashboardData = () => {
 
             if (childError) throw new Error("خطأ في جلب بيانات الربط");
 
-            // حالة الحساب غير المرتبط (يتيم)
+            // إذا لم يجد الربط، فهذا حساب طالب "يتيم" (سيتم حذفه تلقائياً بعد تشغيل الـ SQL)
             if (!childData) {
                 return { isUnlinked: true, journeys: [], orders: [], subscriptions: [], badges: [] };
             }
 
-            // 2. جلب اسم ولي الأمر (صاحب الحساب الذي أنشأ الطفل)
+            // جلب اسم ولي الأمر
             const { data: parentProfile } = await supabase
                 .from('profiles')
                 .select('name')
@@ -35,11 +34,12 @@ export const useStudentDashboardData = () => {
             const childId = childData.id;
             const parentName = parentProfile?.name || 'ولي أمر';
 
-            const [bookingsRes, ordersRes, subsRes, badgesRes] = await Promise.all([
+            const [bookingsRes, ordersRes, subsRes, badgesRes, attachmentsRes] = await Promise.all([
                 supabase.from('bookings').select('*, instructors(name)').eq('child_id', childId),
                 supabase.from('orders').select('*').eq('child_id', childId),
                 supabase.from('subscriptions').select('*').eq('child_id', childId),
-                supabase.from('child_badges').select('*, badges(*)').eq('child_id', childId)
+                supabase.from('child_badges').select('*, badges(*)').eq('child_id', childId),
+                supabase.from('session_attachments').select('*').eq('child_id', childId) // تأكد من وجود child_id في هذا الجدول
             ]);
 
             return {
@@ -53,6 +53,7 @@ export const useStudentDashboardData = () => {
                 orders: ordersRes.data || [],
                 subscriptions: subsRes.data || [],
                 badges: (badgesRes.data || []).map((cb: any) => cb.badges).filter(Boolean),
+                attachments: attachmentsRes.data || []
             };
         },
         enabled: !!currentUser && currentUser.role === 'student',

@@ -17,37 +17,45 @@ export const userService = {
     },
 
     /**
-     * ربط حساب طالب بملف طفل وتغيير دوره في الـ DB فوراً
+     * ربط حساب طالب وتحديث الأدوار
      */
     async linkStudentToChildProfile(payload: { studentUserId: string, childProfileId: number }) {
-        // 1. تحديث سجل الطفل بالمعرف الجديد
-        const { error: linkError } = await supabase
+        const { data: child, error: linkError } = await supabase
             .from('child_profiles')
             .update({ student_user_id: payload.studentUserId })
-            .eq('id', payload.childProfileId);
+            .eq('id', payload.childProfileId)
+            .select('user_id')
+            .single();
         
         if (linkError) throw new Error(linkError.message);
         
-        // 2. تغيير دور الحساب المرتبط إلى 'student' في قاعدة البيانات
-        const { error: roleError } = await supabase
-            .from('profiles')
-            .update({ role: 'student' })
-            .eq('id', payload.studentUserId);
-
-        if (roleError) throw new Error("تم ربط الطفل ولكن فشل تحديث دور الحساب.");
+        // تحديث دور الحساب المربوط ليصبح 'student'
+        await supabase.from('profiles').update({ role: 'student' }).eq('id', payload.studentUserId);
+        
+        // تحديث دور ولي الأمر ليصبح 'parent'
+        if (child?.user_id) {
+            await supabase.from('profiles').update({ role: 'parent' }).eq('id', child.user_id);
+        }
         
         return { success: true };
     },
 
+    /**
+     * فك الارتباط: يعيد الطالب مستخدم عادي
+     */
     async unlinkStudentFromChildProfile(childProfileId: number) {
-        const { data: child } = await supabase.from('child_profiles').select('student_user_id').eq('id', childProfileId).single();
+        const { data: child } = await supabase.from('child_profiles').select('user_id, student_user_id').eq('id', childProfileId).single();
         
-        // فك الارتباط
         const { error } = await supabase.from('child_profiles').update({ student_user_id: null }).eq('id', childProfileId);
         
-        // إعادة المستخدم لدور user عادي إذا فك الارتباط
         if (child?.student_user_id) {
             await supabase.from('profiles').update({ role: 'user' }).eq('id', child.student_user_id);
+            
+            // تحقق هل بقي للأب طلاب آخرون؟
+            const { count } = await supabase.from('child_profiles').select('*', { count: 'exact', head: true }).eq('user_id', child.user_id).not('student_user_id', 'is', null);
+            if (count === 0) {
+                await supabase.from('profiles').update({ role: 'user' }).eq('id', child.user_id);
+            }
         }
 
         if (error) throw new Error(error.message);
@@ -55,27 +63,36 @@ export const userService = {
     },
 
     /**
-     * إنشاء ملف طفل وتحويل صاحب الحساب لولي أمر تلقائياً
+     * حذف ملف طفل: يحذف معه حساب الطالب المرتبط به نهائياً (حل مشكلة تالا)
      */
+    async deleteChildProfile(childId: number) {
+        const { data: child } = await supabase.from('child_profiles').select('user_id, student_user_id').eq('id', childId).single();
+        
+        // 1. إذا كان له حساب طالب، نحذفه من جدول الحسابات أولاً
+        if (child?.student_user_id) {
+            await supabase.from('profiles').delete().eq('id', child.student_user_id);
+        }
+
+        // 2. حذف ملف الطفل
+        const { error } = await supabase.from('child_profiles').delete().eq('id', childId);
+        if (error) throw new Error(error.message);
+
+        // 3. تحديث دور الأب إذا أصبح بلا طلاب
+        if (child?.user_id) {
+            const { count } = await supabase.from('child_profiles').select('*', { count: 'exact', head: true }).eq('user_id', child.user_id).not('student_user_id', 'is', null);
+            if (count === 0) {
+                await supabase.from('profiles').update({ role: 'user' }).eq('id', child.user_id);
+            }
+        }
+        
+        return { success: true };
+    },
+
     async createChildProfile(payload: any) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("جلسة غير صالحة");
-
-        // 1. إضافة الطفل
-        const { data: child, error: childError } = await supabase
-            .from('child_profiles')
-            .insert([{ ...payload, user_id: user.id }])
-            .select()
-            .single();
-
+        const { data: child, error: childError } = await supabase.from('child_profiles').insert([{ ...payload, user_id: user.id }]).select().single();
         if (childError) throw new Error(childError.message);
-
-        // 2. تحويل صاحب الحساب إلى parent إذا كان user
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-        if (profile?.role === 'user') {
-            await supabase.from('profiles').update({ role: 'parent' }).eq('id', user.id);
-        }
-
         return child as ChildProfile;
     },
 
@@ -84,13 +101,6 @@ export const userService = {
         const { data, error } = await supabase.from('child_profiles').update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
         return data as ChildProfile;
-    },
-
-    async deleteChildProfile(childId: number) {
-        // قبل الحذف، قد نحتاج للتحقق إذا كان هذا هو الطفل الأخير لتحويل الأب لـ user (اختياري)
-        const { error } = await supabase.from('child_profiles').delete().eq('id', childId);
-        if (error) throw new Error(error.message);
-        return { success: true };
     },
 
     async getAllChildProfiles() {
@@ -118,6 +128,13 @@ export const userService = {
     },
 
     async bulkDeleteUsers(userIds: string[]) {
+        // حذف الأطفال المرتبطين بهؤلاء المستخدمين أولاً لضمان تنظيف الطلاب
+        for (const uid of userIds) {
+            const { data: children } = await supabase.from('child_profiles').select('id').eq('user_id', uid);
+            if (children) {
+                for (const c of children) await this.deleteChildProfile(c.id);
+            }
+        }
         const { error } = await supabase.from('profiles').delete().in('id', userIds);
         if (error) throw new Error(error.message);
         return { success: true };
