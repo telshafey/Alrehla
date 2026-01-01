@@ -22,6 +22,7 @@ const StudentAccountForm: React.FC<StudentAccountFormProps> = ({ childProfile, o
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            // ننتظر انتهاء العملية فعلياً قبل تنفيذ onSuccess
             await createAndLinkStudentAccount.mutateAsync({
                 name: childProfile.name,
                 email,
@@ -30,7 +31,8 @@ const StudentAccountForm: React.FC<StudentAccountFormProps> = ({ childProfile, o
             });
             onSuccess();
         } catch (error) {
-            // Error is handled in the mutation hook
+            // يتم عرض الخطأ عبر التوست من خلال الهوك
+            console.error("Creation failed", error);
         }
     };
 
