@@ -24,13 +24,11 @@ export const useInstructorData = () => {
         queryFn: async () => {
             if (!currentUser) return null;
 
-            // 1. Fetch Instructor Profile (Real DB)
             const currentInstructor = await bookingService.getInstructorByUserId(currentUser.id);
             if (!currentInstructor) return { instructor: null };
 
-            // 2. Fetch related data (Real DB)
             const [
-                instructorBookings,
+                allInstructorBookings,
                 allPackages,
                 allScheduledSessions,
                 allChildren,
@@ -41,14 +39,15 @@ export const useInstructorData = () => {
                 bookingService.getInstructorBookings(currentInstructor.id),
                 bookingService.getAllPackages(),
                 bookingService.getAllScheduledSessions(),
-                userService.getAllChildProfiles(), // We might need a more optimized query later
+                userService.getAllChildProfiles(),
                 supabase.from('service_orders').select('*').eq('assigned_instructor_id', currentInstructor.id).then(res => res.data as ServiceOrder[] || []),
-                // Payouts might not have a service yet, using direct supabase call or empty array
                 supabase.from('instructor_payouts').select('*').eq('instructor_id', currentInstructor.id).then(res => res.data as InstructorPayout[] || []).catch(() => []),
                 supabase.from('session_attachments').select('*').then(res => res.data as SessionAttachment[] || [])
             ]);
 
-            // 3. Process and Enrich Data
+            // الفلترة الجوهرية: المدرب لا يرى إلا الحجوزات المؤكدة أو المكتملة
+            const instructorBookings = allInstructorBookings.filter(b => b.status === 'مؤكد' || b.status === 'مكتمل');
+
             const enrichedBookings = instructorBookings.map(booking => {
                 const journeySessions = allScheduledSessions.filter(s => s.booking_id === booking.id);
                 const packageDetails = allPackages.find(p => p.name === booking.package_name);
@@ -79,7 +78,7 @@ export const useInstructorData = () => {
                 bookings: enrichedBookings,
                 introSessionsThisMonth,
                 payouts: instructorPayouts,
-                serviceOrders: instructorServiceOrders,
+                serviceOrders: instructorServiceOrders.filter(o => o.status === 'مؤكد' || o.status === 'مكتمل' || o.status === 'قيد التنفيذ'),
                 attachments: relevantAttachments,
             };
         },
