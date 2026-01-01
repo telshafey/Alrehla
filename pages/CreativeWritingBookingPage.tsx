@@ -18,7 +18,6 @@ import type { ChildProfile, CreativeWritingPackage, Instructor } from '../lib/da
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import ChildProfileModal from '../components/account/ChildProfileModal';
 
-// إعادة ترتيب الخطوات: الباقة -> الطفل -> المدرب -> الموعد
 type BookingStep = 'package' | 'child' | 'instructor' | 'schedule';
 
 const stepsConfig = [
@@ -45,14 +44,11 @@ const CreativeWritingBookingPage: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isChildModalOpen, setIsChildModalOpen] = useState(false);
 
-    // التعرف على الباقة الممررة من الصفحة السابقة
     useEffect(() => {
         if (location.state?.selectedPackage) {
             setSelectedPackage(location.state.selectedPackage);
-            // الانتقال مباشرة لخطوة الطفل إذا تم اختيار الباقة مسبقاً
             setStep('child');
         }
-        
         if (location.state?.instructor) {
             setSelectedInstructor(location.state.instructor);
             setStep('schedule');
@@ -62,7 +58,7 @@ const CreativeWritingBookingPage: React.FC = () => {
         }
     }, [location.state]);
     
-    const { instructors = [], cw_packages = [], holidays = [] } = bookingData || {};
+    const { instructors = [], cw_packages = [], holidays = [], activeBookings = [] } = bookingData || {};
     
     const finalPrice = useMemo(() => {
         if (!selectedPackage) return null;
@@ -85,9 +81,7 @@ const CreativeWritingBookingPage: React.FC = () => {
 
 
     const isLoading = authLoading || bookingDataLoading;
-    if (isLoading) {
-        return <PageLoader text="جاري تجهيز صفحة الحجز..." />;
-    }
+    if (isLoading) return <PageLoader text="جاري تجهيز صفحة الحجز..." />;
     
     if (!isLoggedIn) {
         return (
@@ -101,13 +95,7 @@ const CreativeWritingBookingPage: React.FC = () => {
     const handleNext = () => {
         const currentIndex = stepsConfig.findIndex(s => s.key === step);
         if (currentIndex < stepsConfig.length - 1) {
-            let nextStep = stepsConfig[currentIndex + 1].key as BookingStep;
-            
-            // تخطي اختيار المدرب إذا كانت الجلسة تعريفية مجانية (غالباً يتم التوزيع تلقائياً أو اختيار أول مدرب متاح)
-            if (step === 'package' && selectedPackage?.price === 0 && instructors.length > 0) {
-                 // كمنطق افتراضي للجلسات المجانية
-            }
-            setStep(nextStep);
+            setStep(stepsConfig[currentIndex + 1].key as BookingStep);
         }
     };
     
@@ -120,20 +108,10 @@ const CreativeWritingBookingPage: React.FC = () => {
         }
     };
 
-    const handleChildDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setChildData(prev => ({ ...prev, [name]: value }));
-        if (selectedChildId !== null) setSelectedChildId(null);
-    };
-
     const handleSelectChild = (child: ChildProfile | null) => {
         if (child) {
             setSelectedChildId(child.id);
-            setChildData({
-                childName: child.name,
-                childBirthDate: child.birth_date,
-                childGender: child.gender,
-            });
+            setChildData({ childName: child.name, childBirthDate: child.birth_date, childGender: child.gender });
         } else {
             setSelectedChildId(null);
             setChildData({ childName: '', childBirthDate: '', childGender: '' });
@@ -143,11 +121,7 @@ const CreativeWritingBookingPage: React.FC = () => {
     const handleSelectSelf = () => {
         if(!currentUser) return;
         setSelectedChildId(null);
-        setChildData({
-            childName: currentUser.name,
-            childBirthDate: '',
-            childGender: '',
-        });
+        setChildData({ childName: currentUser.name, childBirthDate: '', childGender: '' });
     };
 
     const isNextDisabled = () => {
@@ -170,7 +144,7 @@ const CreativeWritingBookingPage: React.FC = () => {
         const childForCart: Partial<ChildProfile> = selectedChildId
             ? childProfiles.find(c => c.id === selectedChildId)!
             : {
-                id: -1, // سيتم إنشاء ملف بروفايل في صفحة الدفع كما فعلنا سابقاً
+                id: -1,
                 name: childData.childName,
                 birth_date: childData.childBirthDate,
                 gender: childData.childGender as 'ذكر' | 'أنثى',
@@ -195,30 +169,6 @@ const CreativeWritingBookingPage: React.FC = () => {
 
     const currentStepTitle = stepsConfig.find(s => s.key === step)?.title;
 
-    const renderStepContent = () => {
-        switch (step) {
-            case 'package':
-                return <PackageSelection packages={cw_packages as CreativeWritingPackage[]} onSelect={setSelectedPackage} />;
-            case 'child':
-                return <ChildDetailsSection 
-                            childProfiles={childProfiles}
-                            onSelectChild={handleSelectChild}
-                            selectedChildId={selectedChildId}
-                            formData={childData}
-                            handleChange={handleChildDataChange}
-                            errors={{}}
-                            currentUser={currentUser}
-                            onSelectSelf={handleSelectSelf}
-                            onAddChild={() => setIsChildModalOpen(true)}
-                        />;
-            case 'instructor':
-                return <InstructorSelection instructors={instructors as Instructor[]} onSelect={setSelectedInstructor} />;
-            case 'schedule':
-                if (!selectedInstructor) return <p>الرجاء اختيار مدرب أولاً.</p>;
-                return <CalendarSelection instructor={selectedInstructor} holidays={holidays as string[]} onSelect={(date, time) => setSelectedDateTime({ date, time })} />;
-        }
-    };
-
     return (
         <>
             <ChildProfileModal isOpen={isChildModalOpen} onClose={() => setIsChildModalOpen(false)} childToEdit={null} />
@@ -240,15 +190,15 @@ const CreativeWritingBookingPage: React.FC = () => {
                                     </CardHeader>
                                 )}
                                <CardContent className="pt-2 space-y-10">
-                                  {renderStepContent()}
+                                  {step === 'package' && <PackageSelection packages={cw_packages as CreativeWritingPackage[]} onSelect={setSelectedPackage} />}
+                                  {step === 'child' && <ChildDetailsSection childProfiles={childProfiles} onSelectChild={handleSelectChild} selectedChildId={selectedChildId} formData={childData} handleChange={(e) => setChildData(p => ({...p, [e.target.name]: e.target.value}))} errors={{}} currentUser={currentUser} onSelectSelf={handleSelectSelf} onAddChild={() => setIsChildModalOpen(true)} />}
+                                  {step === 'instructor' && <InstructorSelection instructors={instructors as Instructor[]} onSelect={setSelectedInstructor} />}
+                                  {step === 'schedule' && selectedInstructor && <CalendarSelection instructor={selectedInstructor} holidays={holidays as string[]} activeBookings={activeBookings as any[]} onSelect={(date, time) => setSelectedDateTime({ date, time })} />}
+                                  
                                   <div className="flex justify-between items-center pt-6 border-t">
-                                      <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />}>
-                                          السابق
-                                      </Button>
+                                      <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />}>السابق</Button>
                                       {step !== 'schedule' ? (
-                                          <Button onClick={handleNext} disabled={isNextDisabled()}>
-                                              التالي <ArrowLeft />
-                                          </Button>
+                                          <Button onClick={handleNext} disabled={isNextDisabled()}>التالي <ArrowLeft /></Button>
                                       ) : (
                                            <p className="text-sm text-muted-foreground font-bold text-blue-600 animate-pulse">أكمل الحجز من ملخص الطلب على اليسار</p>
                                       )}
@@ -256,17 +206,7 @@ const CreativeWritingBookingPage: React.FC = () => {
                                </CardContent>
                             </Card>
                             <div className="lg:col-span-1 sticky top-24">
-                               <BookingSummary
-                                    childName={childData.childName}
-                                    pkg={selectedPackage}
-                                    instructor={selectedInstructor}
-                                    dateTime={selectedDateTime}
-                                    onSubmit={handleSubmit}
-                                    isSubmitting={isSubmitting}
-                                    isConfirmStep={step === 'schedule'}
-                                    finalPrice={finalPrice}
-                                    priceRange={priceRange}
-                               />
+                               <BookingSummary childName={childData.childName} pkg={selectedPackage} instructor={selectedInstructor} dateTime={selectedDateTime} onSubmit={handleSubmit} isSubmitting={isSubmitting} isConfirmStep={step === 'schedule'} finalPrice={finalPrice} priceRange={priceRange} />
                             </div>
                         </div>
                     </div>

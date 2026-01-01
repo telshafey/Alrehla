@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Instructor } from '../../../lib/database.types';
 import BookingCalendar from '../../BookingCalendar';
@@ -7,9 +8,10 @@ interface CalendarSelectionProps {
     instructor: Instructor;
     onSelect: (date: Date, time: string) => void;
     holidays: string[];
+    activeBookings: any[];
 }
 
-const CalendarSelection: React.FC<CalendarSelectionProps> = ({ instructor, onSelect, holidays }) => {
+const CalendarSelection: React.FC<CalendarSelectionProps> = ({ instructor, onSelect, holidays, activeBookings }) => {
     
     const hasAvailability = instructor?.weekly_schedule && Object.values(instructor.weekly_schedule).some(daySlots => Array.isArray(daySlots) && daySlots.length > 0);
 
@@ -20,7 +22,12 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({ instructor, onSel
                     <p className="text-muted-foreground mb-4">
                         اختر الموعد المناسب لك من المواعيد المتاحة للمدرب <span className="font-bold text-foreground">{instructor.name}</span>.
                     </p>
-                    <BookingCalendar instructor={instructor} onDateTimeSelect={onSelect} holidays={holidays} />
+                    <BookingCalendar 
+                        instructor={instructor} 
+                        onDateTimeSelect={onSelect} 
+                        holidays={holidays} 
+                        activeBookings={activeBookings}
+                    />
                 </>
             ) : (
                  <div className="text-center py-10 px-6 bg-yellow-50 border-2 border-dashed border-yellow-300 rounded-2xl">

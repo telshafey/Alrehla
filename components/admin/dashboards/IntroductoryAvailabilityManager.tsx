@@ -18,15 +18,16 @@ const IntroductoryAvailabilityManager: React.FC<{ instructor: Instructor }> = ({
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [selectedTime, setSelectedTime] = useState('17:00');
     
-    // تنقية البيانات عند التحميل الأول
     const [availability, setAvailability] = useState<AvailableSlots>(() => {
-        // Fix: Explicitly type raw as AvailableSlots to avoid 'unknown' indexing issues on line 27
         const raw = (instructor.intro_availability as AvailableSlots) || {};
         const cleaned: AvailableSlots = {};
         Object.keys(raw).forEach(date => {
             const slots = raw[date];
             if (Array.isArray(slots)) {
-                cleaned[date] = Array.from(new Set(slots)).sort();
+                // فلترة الساعات فقط عند التحميل الأولي
+                cleaned[date] = Array.from(new Set(slots))
+                    .filter(t => t.endsWith(':00'))
+                    .sort();
             }
         });
         return cleaned;
@@ -55,11 +56,15 @@ const IntroductoryAvailabilityManager: React.FC<{ instructor: Instructor }> = ({
     };
 
     const handleSave = () => {
-        requestIntroAvailabilityChange.mutate({ instructorId: instructor.id, availability });
+        // فلترة نهائية قبل الحفظ لضمان السلامة
+        const finalAvailability: AvailableSlots = {};
+        Object.keys(availability).forEach(date => {
+            finalAvailability[date] = availability[date].filter(t => t.endsWith(':00'));
+        });
+        requestIntroAvailabilityChange.mutate({ instructorId: instructor.id, availability: finalAvailability });
     };
 
     const totalSlots = useMemo(() => 
-        // Fix: Explicitly type the accumulator as number to fix '+' operator error on line 60
         Object.values(availability).reduce((acc: number, times) => acc + (times as string[]).length, 0),
     [availability]);
 
@@ -69,7 +74,7 @@ const IntroductoryAvailabilityManager: React.FC<{ instructor: Instructor }> = ({
                 <Star className="text-yellow-600 mt-1 flex-shrink-0" />
                 <div className="text-sm">
                     <p className="font-bold text-yellow-800">نظام الجلسات التعريفية المجانية</p>
-                    <p className="text-yellow-700 mt-1">يجب توفير <span className="font-black">جلسة واحدة على الأقل شهرياً</span>. يمكنك إضافة أي عدد من الجلسات الإضافية لزيادة فرص جذب عملاء جدد.</p>
+                    <p className="text-yellow-700 mt-1">يجب توفير <span className="font-black">جلسة واحدة على الأقل شهرياً</span>. المواعيد تعتمد نظام الساعات الكاملة فقط.</p>
                 </div>
             </div>
 

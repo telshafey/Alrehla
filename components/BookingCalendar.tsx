@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Instructor, WeeklySchedule } from '../lib/database.types';
@@ -6,9 +7,10 @@ interface BookingCalendarProps {
     instructor: Instructor | null;
     onDateTimeSelect: (date: Date, time: string) => void;
     holidays?: string[];
+    activeBookings?: any[]; // قائمة بالحجوزات الحالية لفلترة المواعيد المشغولة
 }
 
-const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTimeSelect, holidays = [] }) => {
+const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTimeSelect, holidays = [], activeBookings = [] }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -37,7 +39,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
     
     const handleDateClick = (day: number) => {
         const newSelectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-        if (newSelectedDate < new Date(new Date().toDateString())) return; // Disable past dates
+        if (newSelectedDate < new Date(new Date().toDateString())) return; 
         setSelectedDate(newSelectedDate);
     };
     
@@ -45,10 +47,22 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
     const daysArray = Array.from({ length: totalDays }, (_, i) => i + 1);
     
     const availableTimes = useMemo(() => {
-        if (!selectedDate || !weeklySchedule) return [];
+        if (!selectedDate || !weeklySchedule || !instructor) return [];
+        
         const dayOfWeek = selectedDate.toLocaleString('en-US', { weekday: 'long' }).toLowerCase() as keyof WeeklySchedule;
-        return weeklySchedule[dayOfWeek] || [];
-    }, [selectedDate, weeklySchedule]);
+        const templateSlots = weeklySchedule[dayOfWeek] || [];
+        
+        // جلب مواعيد هذا المدرب في هذا اليوم تحديداً
+        const dateString = selectedDate.toISOString().split('T')[0];
+        const busySlotsForDay = activeBookings
+            .filter(b => b.instructor_id === instructor.id && b.booking_date.startsWith(dateString))
+            .map(b => b.booking_time);
+
+        // فلترة: عرض الساعات الكاملة فقط + استبعاد المحجوز مسبقاً
+        return templateSlots.filter(time => 
+            time.endsWith(':00') && !busySlotsForDay.includes(time)
+        );
+    }, [selectedDate, weeklySchedule, activeBookings, instructor]);
 
     return (
         <div className="bg-gray-50 p-6 rounded-2xl border">
@@ -70,7 +84,14 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
                     const isSelected = selectedDate?.toDateString() === date.toDateString();
                     const isPast = date < new Date(new Date().toDateString());
                     const dayOfWeek = date.toLocaleString('en-US', { weekday: 'long' }).toLowerCase() as keyof WeeklySchedule;
-                    const isAvailableDay = (weeklySchedule[dayOfWeek] || []).length > 0;
+                    
+                    const slots = weeklySchedule[dayOfWeek] || [];
+                    const dateStr = date.toISOString().split('T')[0];
+                    const busyCount = activeBookings.filter(b => b.instructor_id === instructor?.id && b.booking_date.startsWith(dateStr)).length;
+                    
+                    // اليوم متاح إذا كان فيه ساعات في القالب ولم تُحجز بالكامل بعد
+                    const isAvailableDay = slots.some(time => time.endsWith(':00')) && (slots.filter(t => t.endsWith(':00')).length > busyCount);
+                    
                     const isHoliday = holidays.includes(date.toISOString().split('T')[0]);
                     const isDisabled = isPast || !isAvailableDay || isHoliday;
 
@@ -80,8 +101,8 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
                             onClick={() => handleDateClick(day)}
                             disabled={isDisabled}
                             className={`w-10 h-10 rounded-full transition-colors ${
-                                isDisabled ? 'text-gray-300' :
-                                isSelected ? 'bg-blue-600 text-white' :
+                                isDisabled ? 'text-gray-300 opacity-50 cursor-not-allowed' :
+                                isSelected ? 'bg-blue-600 text-white font-bold' :
                                 isToday ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-200'
                             }`}
                         >
@@ -100,13 +121,13 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
                                 <button
                                     key={time}
                                     onClick={() => onDateTimeSelect(selectedDate, time)}
-                                    className="p-2 border rounded-lg text-sm bg-white hover:bg-blue-100 hover:border-blue-500 transition-colors"
+                                    className="p-2 border rounded-lg text-sm bg-white hover:bg-blue-100 hover:border-blue-500 transition-colors font-bold shadow-sm"
                                 >
                                     {time}
                                 </button>
                             ))
                         ) : (
-                            <p className="col-span-full text-center text-gray-500 py-4">لا توجد مواعيد متاحة في هذا اليوم.</p>
+                            <p className="col-span-full text-center text-gray-500 py-4 text-xs">عذراً، هذا اليوم محجوز بالكامل أو غير متاح حالياً.</p>
                         )}
                     </div>
                 </div>
