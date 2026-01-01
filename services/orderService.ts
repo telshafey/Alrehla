@@ -173,40 +173,34 @@ export const orderService = {
         return { success: true };
     },
 
-    // Fix: Property 'uploadOrderFile' does not exist on type 'orderService'
     async uploadOrderFile(file: File, folder: string = 'alrehla_orders') {
         return cloudinaryService.uploadImage(file, folder);
     },
 
-    // Fix: Property 'updateOrderComment' does not exist on type 'orderService'
     async updateOrderComment(orderId: string, comment: string) {
         const { error } = await supabase.from('orders').update({ admin_comment: comment }).eq('id', orderId);
         if (error) throw new Error(error.message);
         return { success: true };
     },
 
-    // Fix: Property 'bulkUpdateOrderStatus' does not exist on type 'orderService'
     async bulkUpdateOrderStatus(orderIds: string[], status: OrderStatus) {
         const { error } = await supabase.from('orders').update({ status }).in('id', orderIds);
         if (error) throw new Error(error.message);
         return { success: true };
     },
 
-    // Fix: Property 'bulkDeleteOrders' does not exist on type 'orderService'
     async bulkDeleteOrders(orderIds: string[]) {
         const { error } = await supabase.from('orders').delete().in('id', orderIds);
         if (error) throw new Error(error.message);
         return { success: true };
     },
 
-    // Fix: Property 'createSubscriptionPlan' does not exist on type 'orderService'
     async createSubscriptionPlan(payload: any) {
         const { data, error } = await supabase.from('subscription_plans').insert([payload]).select().single();
         if (error) throw new Error(error.message);
         return data as SubscriptionPlan;
     },
 
-    // Fix: Property 'updateSubscriptionPlan' does not exist on type 'orderService'
     async updateSubscriptionPlan(payload: any) {
         const { id, ...updates } = payload;
         const { data, error } = await supabase.from('subscription_plans').update(updates).eq('id', id).select().single();
@@ -214,21 +208,18 @@ export const orderService = {
         return data as SubscriptionPlan;
     },
 
-    // Fix: Property 'deleteSubscriptionPlan' does not exist on type 'orderService'
     async deleteSubscriptionPlan(planId: number) {
         const { error } = await supabase.from('subscription_plans').update({ deleted_at: new Date().toISOString() }).eq('id', planId);
         if (error) throw new Error(error.message);
         return { success: true };
     },
 
-    // Fix: Property 'createPersonalizedProduct' does not exist on type 'orderService'
     async createPersonalizedProduct(payload: any) {
         const { data, error } = await supabase.from('personalized_products').insert([payload]).select().single();
         if (error) throw new Error(error.message);
         return data as PersonalizedProduct;
     },
 
-    // Fix: Property 'updatePersonalizedProduct' does not exist on type 'orderService'
     async updatePersonalizedProduct(payload: any) {
         const { id, ...updates } = payload;
         const { data, error } = await supabase.from('personalized_products').update(updates).eq('id', id).select().single();
@@ -236,7 +227,6 @@ export const orderService = {
         return data as PersonalizedProduct;
     },
 
-    // Fix: Property 'deletePersonalizedProduct' does not exist on type 'orderService'
     async deletePersonalizedProduct(productId: number) {
         const { error } = await supabase.from('personalized_products').update({ deleted_at: new Date().toISOString() }).eq('id', productId);
         if (error) throw new Error(error.message);

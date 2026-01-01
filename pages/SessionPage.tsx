@@ -1,11 +1,21 @@
+
 import React, { useRef, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSessionDetails } from '../hooks/queries/user/useJourneyDataQuery';
 import { useAdminJitsiSettings } from '../hooks/queries/admin/useAdminSettingsQuery';
-import { Loader2, ShieldAlert, Clock, CheckCircle, Headphones, Video, Wind, Sparkles } from 'lucide-react';
+import { 
+    Loader2, ShieldAlert, Clock, CheckCircle, Headphones, 
+    Video, Wind, Sparkles, LogOut, Save, MessageSquare 
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-
+import { Button } from '../components/ui/Button';
+import { Textarea } from '../components/ui/Textarea';
+import Modal from '../components/ui/Modal';
+// Added FormField import to fix missing name error
+import FormField from '../components/ui/FormField';
+import { bookingService } from '../services/bookingService';
+import { useToast } from '../contexts/ToastContext';
 
 declare global {
   interface Window {
@@ -31,22 +41,16 @@ const CountdownTimer: React.FC<{ targetDate: Date; onComplete: () => void }> = (
     const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
     useEffect(() => {
-        const difference = +targetDate - +new Date();
-        const timer = setTimeout(() => {
+        const timer = setInterval(() => {
             const newTimeLeft = calculateTimeLeft();
             setTimeLeft(newTimeLeft);
-            if (difference <= 0) {
+            if (+targetDate - +new Date() <= 0) {
                 onComplete();
+                clearInterval(timer);
             }
         }, 1000);
-        
-        if (difference <= 0) {
-          onComplete();
-        }
-
-
-        return () => clearTimeout(timer);
-    });
+        return () => clearInterval(timer);
+    }, [targetDate, onComplete]);
 
     const timerComponents = [
         timeLeft.days > 0 && `${timeLeft.days} يوم`,
@@ -61,36 +65,38 @@ const CountdownTimer: React.FC<{ targetDate: Date; onComplete: () => void }> = (
 const SessionPage: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
     const { currentUser, loading: authLoading } = useAuth();
-    const { data: session, isLoading: sessionLoading } = useSessionDetails(sessionId);
-    const { data: jitsiSettings, isLoading: settingsLoading } = useAdminJitsiSettings();
-    const jitsiContainerRef = useRef<HTMLDivElement>(null);
+    const { addToast } = useToast();
     const navigate = useNavigate();
+    
+    const { data: session, isLoading: sessionLoading, refetch } = useSessionDetails(sessionId);
+    const { data: jitsiSettings, isLoading: settingsLoading } = useAdminJitsiSettings();
+    
+    const jitsiContainerRef = useRef<HTMLDivElement>(null);
+    const jitsiApiRef = useRef<any>(null);
     
     const [status, setStatus] = useState<'loading' | 'waiting' | 'active' | 'ended' | 'error'>('loading');
     const [error, setError] = useState<string | null>(null);
     const [joinTime, setJoinTime] = useState<Date | null>(null);
     const [jitsiScriptLoaded, setJitsiScriptLoaded] = useState(false);
+    const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
+    const [finishNotes, setFinishNotes] = useState('');
+    const [isSubmittingFinish, setIsSubmittingFinish] = useState(false);
 
-    // Dynamically load Jitsi script
+    const isInstructor = currentUser?.role === 'instructor';
+
+    // 1. Load Jitsi Script
     useEffect(() => {
         const script = document.createElement('script');
         script.src = 'https://meet.jit.si/external_api.js';
         script.async = true;
         script.onload = () => setJitsiScriptLoaded(true);
         document.head.appendChild(script);
-
-        return () => {
-            document.head.removeChild(script);
-        };
+        return () => { if (document.head.contains(script)) { document.head.removeChild(script); } };
     }, []);
 
-
-    // Effect to check session status and timing
+    // 2. Validate Session & State
     useEffect(() => {
-        if (authLoading || sessionLoading || settingsLoading) {
-            setStatus('loading');
-            return;
-        }
+        if (authLoading || sessionLoading || settingsLoading) return;
 
         if (!currentUser) {
             navigate('/account');
@@ -103,25 +109,19 @@ const SessionPage: React.FC = () => {
             return;
         }
         
-        if (!jitsiSettings) {
-            setError('فشل تحميل إعدادات التكامل.');
-            setStatus('error');
+        if (session.status === 'completed' || session.status === 'missed') {
+            setStatus('ended');
             return;
         }
 
         const startTime = new Date(session.session_date);
-        const joinMinutesBefore = jitsiSettings.join_minutes_before ?? 10;
-        const expireMinutesAfter = jitsiSettings.expire_minutes_after || 120;
-        
+        const joinMinutesBefore = jitsiSettings?.join_minutes_before ?? 10;
         const calculatedJoinTime = new Date(startTime.getTime() - joinMinutesBefore * 60000);
-        const endTime = new Date(startTime.getTime() + expireMinutesAfter * 60000);
         const now = new Date();
 
         setJoinTime(calculatedJoinTime);
 
-        if (session.status === 'completed' || session.status === 'missed' || now > endTime) {
-            setStatus('ended');
-        } else if (now < calculatedJoinTime) {
+        if (now < calculatedJoinTime) {
             setStatus('waiting');
         } else {
             setStatus('active');
@@ -129,30 +129,22 @@ const SessionPage: React.FC = () => {
 
     }, [authLoading, sessionLoading, settingsLoading, currentUser, session, jitsiSettings, navigate]);
 
-    // Effect to initialize Jitsi when status becomes active
+    // 3. Initialize Jitsi
     useEffect(() => {
-        if (status !== 'active' || !jitsiScriptLoaded || !jitsiSettings || !session || !currentUser) {
+        if (status !== 'active' || !jitsiScriptLoaded || !jitsiSettings || !session || !currentUser || jitsiApiRef.current) {
             return;
         }
 
-        let jitsiApi: any = null;
-
         const initializeJitsi = async () => {
-            // Permission check
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 stream.getTracks().forEach(track => track.stop());
             } catch (err: any) {
-                if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-                    setError("للانضمام للجلسة، يرجى السماح بالوصول إلى الكاميرا والميكروفون في إعدادات المتصفح ثم تحديث الصفحة.");
-                } else {
-                    setError("لم نتمكن من الوصول إلى الكاميرا أو الميكروفون.");
-                }
+                setError("يرجى السماح بالوصول إلى الكاميرا والميكروفون للانضمام.");
                 setStatus('error');
                 return;
             }
 
-            // Initialization
             if (window.JitsiMeetExternalAPI && jitsiContainerRef.current) {
                 try {
                     const options = {
@@ -169,99 +161,172 @@ const SessionPage: React.FC = () => {
                         interfaceConfigOverwrite: {
                             SHOW_JITSI_WATERMARK: false,
                             SHOW_WATERMARK_FOR_GUESTS: false,
-                            TOOLBAR_BUTTONS: ['microphone', 'camera', 'desktop', 'fullscreen', 'fodeviceselection', 'hangup', 'profile', 'chat', 'settings', 'tileview'],
+                            TOOLBAR_BUTTONS: [
+                                'microphone', 'camera', 'desktop', 'fullscreen', 
+                                'fodeviceselection', 'hangup', 'profile', 'chat', 
+                                'settings', 'tileview'
+                            ],
                         },
                     };
 
-                    jitsiApi = new window.JitsiMeetExternalAPI(jitsiSettings.domain, options);
+                    jitsiApiRef.current = new window.JitsiMeetExternalAPI(jitsiSettings.domain, options);
+                    
+                    // Listen for hangup
+                    jitsiApiRef.current.addEventListener('videoConferenceLeft', () => {
+                        if (!isInstructor) {
+                            navigate(-1);
+                        }
+                    });
+
                 } catch (e) {
-                    setError("فشل تحميل مكون الفيديو. يرجى تحديث الصفحة.");
+                    setError("فشل تحميل مكون الفيديو.");
                     setStatus('error');
                 }
-            } else {
-                 setError("فشل تحميل مكتبة الفيديو. يرجى تحديث الصفحة.");
-                 setStatus('error');
             }
         };
 
         initializeJitsi();
 
         return () => {
-            jitsiApi?.dispose();
+            if (jitsiApiRef.current) {
+                jitsiApiRef.current.dispose();
+                jitsiApiRef.current = null;
+            }
         };
-    }, [status, currentUser, session, jitsiSettings, jitsiScriptLoaded]);
+    }, [status, currentUser, session, jitsiSettings, jitsiScriptLoaded, isInstructor, navigate]);
 
-    const renderContent = () => {
-        switch (status) {
-            case 'loading':
-                return (
-                    <div className="flex flex-col justify-center items-center h-full">
-                        <Loader2 className="animate-spin h-12 w-12 text-white" />
-                        <p className="mt-4 text-gray-300">جاري تجهيز غرفة الاجتماع...</p>
-                    </div>
-                );
-            case 'waiting':
-                const tips = [
-                    { icon: <Headphones/>, text: 'تأكد من سماعاتك وميكروفونك.'},
-                    { icon: <Video/>, text: 'تأكد من أن الكاميرا تعمل جيداً.'},
-                    { icon: <Wind/>, text: 'اختر مكاناً هادئاً وخالياً من المشتتات.'},
-                    { icon: <Sparkles/>, text: 'استعد للإبداع واطلاق العنان لخيالك!'},
-                ];
-                return (
-                    <div className="flex flex-col justify-center items-center h-full text-white text-center p-4 bg-gray-900/50">
-                        <Card className="max-w-lg w-full text-center animate-fadeIn bg-background/90 backdrop-blur-sm">
-                            <CardHeader>
-                                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-muted mb-4">
-                                    <Clock className="h-8 w-8 text-primary" />
-                                </div>
-                                <CardTitle className="text-2xl">الجلسة لم تبدأ بعد</CardTitle>
-                                <CardDescription>سيتم فتح الغرفة تلقائياً عند بدء موعد الجلسة. يتبقى:</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                {joinTime && <CountdownTimer targetDate={joinTime} onComplete={() => setStatus('active')} />}
-                                
-                                <div className="text-right border-t pt-4">
-                                    <h4 className="font-bold text-foreground mb-3">نصائح لجلسة رائعة:</h4>
-                                    <ul className="space-y-2 text-sm text-muted-foreground">
-                                        {tips.map((tip, index) => (
-                                            <li key={index} className="flex items-center gap-3">
-                                                <div className="flex-shrink-0 text-primary">{tip.icon}</div>
-                                                <span>{tip.text}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                );
-            case 'ended':
-                 return (
-                    <div className="flex flex-col justify-center items-center h-full text-white text-center p-4">
-                        <CheckCircle className="h-16 w-16 text-green-300 mb-4" />
-                        <h2 className="text-2xl font-bold mb-2">انتهت الجلسة</h2>
-                        <p className="max-w-md text-gray-300">تم أرشفة هذه الجلسة ولا يمكن الانضمام إليها.</p>
-                    </div>
-                );
-            case 'error':
-                 return (
-                    <div className="flex flex-col justify-center items-center h-full text-white text-center p-4">
-                        <ShieldAlert className="h-16 w-16 text-red-400 mb-4" />
-                        <h2 className="text-xl font-bold mb-2">حدث خطأ</h2>
-                        <p className="max-w-md text-gray-300">{error}</p>
-                    </div>
-                );
-            case 'active':
-                return null; // Jitsi will render here
+    const handleFinishSession = async () => {
+        if (!sessionId) return;
+        setIsSubmittingFinish(true);
+        try {
+            await bookingService.updateScheduledSession(sessionId, { 
+                status: 'completed', 
+                notes: finishNotes 
+            });
+            addToast('تم إنهاء الجلسة بنجاح وتوثيقها.', 'success');
+            navigate(`/journey/${session.booking_id}`);
+        } catch (e) {
+            addToast('حدث خطأ أثناء إنهاء الجلسة.', 'error');
+        } finally {
+            setIsSubmittingFinish(false);
         }
     };
 
-    return (
-        <div className="w-full h-screen bg-black">
-            {renderContent()}
-            <div ref={jitsiContainerRef} className={`w-full h-full ${status === 'active' ? 'opacity-100' : 'opacity-0 h-0 w-0'}`}>
-                {/* Jitsi meeting will be embedded here */}
+    const renderContent = () => {
+        if (status === 'loading') return (
+            <div className="flex flex-col justify-center items-center h-full">
+                <Loader2 className="animate-spin h-12 w-12 text-white" />
+                <p className="mt-4 text-gray-300">جاري تجهيز الغرفة...</p>
             </div>
+        );
+
+        if (status === 'waiting') return (
+            <div className="flex flex-col justify-center items-center h-full text-white text-center p-4 bg-slate-900">
+                <Card className="max-w-lg w-full">
+                    <CardHeader>
+                        <Clock className="h-12 w-12 text-primary mx-auto mb-4" />
+                        <CardTitle className="text-2xl">الجلسة لم تبدأ بعد</CardTitle>
+                        <CardDescription>موعد البدء:</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {joinTime && <CountdownTimer targetDate={joinTime} onComplete={() => setStatus('active')} />}
+                        <div className="text-right border-t pt-4 space-y-2">
+                            <p className="text-xs font-bold text-muted-foreground flex items-center gap-2"><Wind size={14}/> تأكد من الهدوء حولك.</p>
+                            <p className="text-xs font-bold text-muted-foreground flex items-center gap-2"><Headphones size={14}/> استخدم سماعات الأذن لتركيز أفضل.</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+
+        if (status === 'ended') return (
+            <div className="flex flex-col justify-center items-center h-full text-white text-center p-4 bg-slate-900">
+                <CheckCircle className="h-20 w-20 text-green-400 mb-6" />
+                <h2 className="text-3xl font-black mb-2">انتهت هذه الجلسة</h2>
+                <p className="max-w-md text-gray-400 mb-8">تم إغلاق القاعة وتوثيق الحضور. يمكنك العودة لمتابعة رحلتك التعليمية.</p>
+                <Button as={Link} to="/account">العودة لحسابي</Button>
+            </div>
+        );
+
+        if (status === 'error') return (
+             <div className="flex flex-col justify-center items-center h-full text-white text-center p-4">
+                <ShieldAlert className="h-16 w-16 text-red-400 mb-4" />
+                <h2 className="text-xl font-bold mb-2">تعذر الدخول</h2>
+                <p className="max-w-md text-gray-400 mb-6">{error}</p>
+                <Button onClick={() => window.location.reload()}>تحديث الصفحة</Button>
+            </div>
+        );
+
+        return null;
+    };
+
+    return (
+        <div className="w-full h-screen bg-black flex flex-col overflow-hidden">
+            {/* Instructor Controls Header */}
+            {status === 'active' && isInstructor && (
+                <div className="bg-gray-900 border-b border-gray-800 p-3 flex justify-between items-center z-50">
+                    <div className="flex items-center gap-3">
+                         <div className="w-8 h-8 rounded-full bg-green-500 animate-pulse flex items-center justify-center">
+                            <Video size={16} className="text-white" />
+                         </div>
+                         <span className="text-white font-bold text-sm">الجلسة جارية الآن</span>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            icon={<LogOut size={16}/>}
+                            onClick={() => setIsFinishModalOpen(true)}
+                        >
+                            إنهاء الجلسة رسمياً
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            <div className="flex-1 relative">
+                {renderContent()}
+                <div ref={jitsiContainerRef} className={`w-full h-full ${status === 'active' ? 'block' : 'hidden'}`} />
+            </div>
+
+            {/* Finish Session Modal */}
+            <Modal
+                isOpen={isFinishModalOpen}
+                onClose={() => setIsFinishModalOpen(false)}
+                title="إنهاء وتوثيق الجلسة"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setIsFinishModalOpen(false)}>تراجع</Button>
+                        <Button 
+                            variant="success" 
+                            onClick={handleFinishSession} 
+                            loading={isSubmittingFinish}
+                            icon={<Save />}
+                        >
+                            تأكيد الإنهاء والحفظ
+                        </Button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start gap-3">
+                        <MessageSquare className="text-blue-600 shrink-0 mt-1" />
+                        <p className="text-sm text-blue-800">
+                            عند تأكيد الإنهاء، سيتم إغلاق القاعة لجميع المشاركين وتحديث حالة الجلسة إلى "مكتملة" في سجل الطالب.
+                        </p>
+                    </div>
+                    {/* Fixed FormField usage with missing import resolved */}
+                    <FormField label="ملخص سريع للجلسة (اختياري)" htmlFor="finish-notes">
+                        <Textarea 
+                            id="finish-notes" 
+                            value={finishNotes} 
+                            onChange={e => setFinishNotes(e.target.value)} 
+                            rows={4} 
+                            placeholder="ما الذي تم إنجازه اليوم؟ هل هناك ملاحظات للطالب أو الإدارة؟"
+                        />
+                    </FormField>
+                </div>
+            </Modal>
         </div>
     );
 };

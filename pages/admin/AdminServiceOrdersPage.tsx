@@ -1,9 +1,10 @@
 
 import React, { useState, useMemo } from 'react';
-import { Eye, Sparkles, Loader2 } from 'lucide-react';
+import { Eye, Sparkles, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminServiceOrders } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
+import { useToast } from '../../contexts/ToastContext';
 import PageLoader from '../../components/ui/PageLoader';
 import { getStatusColor } from '../../utils/helpers';
 import type { ServiceOrderWithRelations, OrderStatus } from '../../lib/database.types';
@@ -26,7 +27,8 @@ const statusColors: { [key in OrderStatus]?: string } = {
 
 const AdminServiceOrdersPage: React.FC = () => {
     const navigate = useNavigate();
-    const { data: orders = [], isLoading, error, refetch } = useAdminServiceOrders();
+    const { addToast } = useToast();
+    const { data: orders = [], isLoading, error, refetch, isRefetching } = useAdminServiceOrders();
     const { updateServiceOrderStatus } = useOrderMutations();
     
     const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
@@ -79,7 +81,10 @@ const AdminServiceOrdersPage: React.FC = () => {
 
     return (
         <div className="animate-fadeIn space-y-8">
-            <h1 className="text-3xl font-extrabold text-foreground">إدارة طلبات الخدمات الإبداعية</h1>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h1 className="text-3xl font-extrabold text-foreground">إدارة طلبات الخدمات الإبداعية</h1>
+                <Button onClick={() => refetch()} variant="ghost" size="sm" icon={<RefreshCw className={isRefetching ? 'animate-spin' : ''} size={16}/>}>تحديث</Button>
+            </div>
             
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <StatFilterCard label="الكل" value={orders.length} color="bg-primary" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
@@ -151,7 +156,12 @@ const AdminServiceOrdersPage: React.FC = () => {
                                 ))}
                             </TableBody>
                         </Table>
-                            {sortedAndFilteredOrders.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد طلبات تطابق بحثك.</p>}
+                        {sortedAndFilteredOrders.length === 0 && (
+                            <div className="text-center py-12">
+                                <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-2" />
+                                <p className="text-muted-foreground">لا توجد طلبات تطابق بحثك حالياً.</p>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>

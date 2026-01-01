@@ -8,14 +8,12 @@ import type { ScheduledSession } from '../../../lib/database.types';
 export const useAdminScheduledSessions = () => useQuery({
     queryKey: ['adminScheduledSessions'],
     queryFn: async () => {
-        const [sessions, instructors, children, bookings, subscriptions, serviceOrders, standaloneServices] = await Promise.all([
+        const [sessions, instructors, children, bookings, subscriptions] = await Promise.all([
             bookingService.getAllScheduledSessions(),
             bookingService.getAllInstructors(),
             userService.getAllChildProfiles(),
             bookingService.getAllBookings(),
-            orderService.getAllSubscriptions(),
-            orderService.getAllServiceOrders(),
-            bookingService.getAllStandaloneServices()
+            orderService.getAllSubscriptions()
         ]);
 
         return sessions
@@ -23,34 +21,19 @@ export const useAdminScheduledSessions = () => useQuery({
                 const booking = bookings.find(b => b.id === session.booking_id);
                 const subscription = subscriptions.find(s => s.id === session.subscription_id);
                 
-                // تحديد الحالة: إذا لم يوجد حجز أو اشتراك، نعتبرها "قادمة" طالما لم يتم إلغاؤها
-                const status = booking?.status || (subscription ? 'نشط' : 'active');
-
-                // تحديد مسمى الخدمة/الباقة
-                let packageName = 'جلسة خاصة';
-                if (booking) {
-                    packageName = booking.package_name;
-                } else if (subscription) {
-                    packageName = `صندوق الرحلة (${subscription.plan_name})`;
-                } else {
-                    // قد تكون الجلسة مرتبطة بطلب خدمة إبداعية مباشرة
-                    const relatedServiceOrder = serviceOrders.find(so => so.child_id === session.child_id && so.assigned_instructor_id === session.instructor_id);
-                    if (relatedServiceOrder) {
-                        const serviceDef = standaloneServices.find(s => s.id === relatedServiceOrder.service_id);
-                        packageName = serviceDef?.name || 'خدمة إبداعية';
-                    }
-                }
+                // تحديد الحالة: إذا لم يوجد حجز (باقة)، نتحقق من حالة الاشتراك
+                const status = booking?.status || (subscription ? 'نشط' : 'unknown');
 
                 return {
                     ...session,
                     instructor_name: instructors.find(i => i.id === session.instructor_id)?.name || 'غير محدد',
                     child_name: children.find(c => c.id === session.child_id)?.name || 'غير محدد',
-                    type: session.subscription_id ? 'اشتراك' : (booking ? 'حجز باقة' : 'خدمة فردية'),
-                    package_name: packageName,
+                    type: session.subscription_id ? 'اشتراك' : 'حجز باقة',
+                    package_name: booking?.package_name || (subscription ? 'صندوق الرحلة' : 'خدمة إضافية'),
                     booking_status: status
                 };
             })
-            // استبعاد الملغي فقط، والسماح للبقية بالظهور لضمان عدم فراغ القائمة
+            // تصفية الجلسات المرتبطة بحجوزات ملغية فقط
             .filter(session => session.booking_status !== 'ملغي');
     },
 });

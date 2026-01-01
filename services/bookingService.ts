@@ -63,56 +63,191 @@ export const bookingService = {
             .single();
         
         if (error) {
-            if (error.code !== 'PGRST116') {
-                throw new Error(error.message);
-            }
+            if (error.code !== 'PGRST116') throw new Error(error.message);
             return null;
         }
         return data as Instructor | null;
     },
 
+    // --- Mutations ---
+    // Added createInstructor method
+    async createInstructor(payload: any) {
+        const { avatarFile, ...rest } = payload;
+        let avatar_url = null;
+        if (avatarFile) {
+            avatar_url = await cloudinaryService.uploadImage(avatarFile, 'alrehla_instructors');
+        }
+        const { data, error } = await supabase.from('instructors').insert([{ ...rest, avatar_url }]).select().single();
+        if (error) throw new Error(error.message);
+        return data as Instructor;
+    },
+
+    // Added updateInstructor method
+    async updateInstructor(payload: any) {
+        const { id, avatarFile, ...updates } = payload;
+        let avatar_url = updates.avatar_url;
+        if (avatarFile) {
+            avatar_url = await cloudinaryService.uploadImage(avatarFile, 'alrehla_instructors');
+        }
+        const { data, error } = await supabase.from('instructors').update({ ...updates, avatar_url }).eq('id', id).select().single();
+        if (error) throw new Error(error.message);
+        return data as Instructor;
+    },
+
+    // Added deleteInstructor method
+    async deleteInstructor(instructorId: number) {
+        const { error } = await supabase.from('instructors').update({ deleted_at: new Date().toISOString() }).eq('id', instructorId);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    // Added createPackage method
+    async createPackage(payload: any) {
+        const { data, error } = await supabase.from('creative_writing_packages').insert([payload]).select().single();
+        if (error) throw new Error(error.message);
+        return data as CreativeWritingPackage;
+    },
+
+    // Added updatePackage method
+    async updatePackage(payload: any) {
+        const { id, ...updates } = payload;
+        const { data, error } = await supabase.from('creative_writing_packages').update(updates).eq('id', id).select().single();
+        if (error) throw new Error(error.message);
+        return data as CreativeWritingPackage;
+    },
+
+    // Added deletePackage method
+    async deletePackage(packageId: number) {
+        const { error } = await supabase.from('creative_writing_packages').delete().eq('id', packageId);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    // Added createComparisonItem method
+    async createComparisonItem(payload: any) {
+        const { data, error } = await supabase.from('comparison_items').insert([payload]).select().single();
+        if (error) throw new Error(error.message);
+        return data as ComparisonItem;
+    },
+
+    // Added updateComparisonItem method
+    async updateComparisonItem(payload: any) {
+        const { id, ...updates } = payload;
+        const { data, error } = await supabase.from('comparison_items').update(updates).eq('id', id).select().single();
+        if (error) throw new Error(error.message);
+        return data as ComparisonItem;
+    },
+
+    // Added deleteComparisonItem method
+    async deleteComparisonItem(itemId: string) {
+        const { error } = await supabase.from('comparison_items').delete().eq('id', itemId);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    // Added createStandaloneService method
+    async createStandaloneService(payload: any) {
+        const { data, error } = await supabase.from('standalone_services').insert([payload]).select().single();
+        if (error) throw new Error(error.message);
+        return data as StandaloneService;
+    },
+
+    // Added updateStandaloneService method
+    async updateStandaloneService(payload: any) {
+        const { id, ...updates } = payload;
+        const { data, error } = await supabase.from('standalone_services').update(updates).eq('id', id).select().single();
+        if (error) throw new Error(error.message);
+        return data as StandaloneService;
+    },
+
+    // Added deleteStandaloneService method
+    async deleteStandaloneService(serviceId: number) {
+        const { error } = await supabase.from('standalone_services').delete().eq('id', serviceId);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    // Added getAllAttachments method
     async getAllAttachments() {
-        const { data, error } = await supabase
-            .from('session_attachments')
-            .select('*')
-            .order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('session_attachments').select('*').order('created_at', { ascending: false });
         if (error) throw new Error(error.message);
         return data as SessionAttachment[];
     },
 
-    async getAllPackages() {
-        const { data, error } = await supabase
-            .from('creative_writing_packages')
-            .select('*')
-            .order('price', { ascending: true });
-        if (error) throw new Error(error.message);
-        return data as CreativeWritingPackage[];
-    },
+    async updateBookingStatus(bookingId: string, newStatus: BookingStatus) {
+        // 1. تحديث الحالة الأساسية
+        const { data: booking, error } = await supabase
+            .from('bookings')
+            .update({ status: newStatus })
+            .eq('id', bookingId)
+            .select('*, instructors(user_id, name)')
+            .single();
 
-    async getAllStandaloneServices() {
-        const { data, error } = await supabase
-            .from('standalone_services')
-            .select('*')
-            .order('price', { ascending: true });
         if (error) throw new Error(error.message);
-        return data as StandaloneService[];
-    },
 
-    async getAllComparisonItems() {
-        try {
-            const { data, error } = await supabase
-                .from('comparison_items')
-                .select('*')
-                .order('sort_order', { ascending: true });
+        // 2. منطق خاص عند "تأكيد" الحجز (Confirmed)
+        if (newStatus === 'مؤكد') {
+            // أ. تنظيف الجلسات القديمة التي قد تكون ولدت وقت الطلب ولم تعد صالحة
+            await supabase.from('scheduled_sessions').delete().eq('booking_id', bookingId).eq('status', 'upcoming');
+
+            // ب. تحديد تاريخ البداية الجديد (أول موعد متاح في المستقبل)
+            const now = new Date();
+            const originalDate = new Date(booking.booking_date);
+            let startDate = originalDate;
+
+            // إذا كان الموعد الأصلي قد فات، نقوم بترحيله أسبوعاً وراء أسبوع حتى نصل للمستقبل
+            while (startDate < now) {
+                startDate.setDate(startDate.getDate() + 7);
+            }
+
+            // ج. إعادة توليد الجلسات
+            const { data: pkg } = await supabase.from('creative_writing_packages').select('sessions').eq('name', booking.package_name).single();
+            const sessionCount = parseInt(pkg?.sessions.match(/\d+/)?.[0] || '1');
             
-            if (error) throw error;
-            return data as ComparisonItem[];
-        } catch (e) {
-            return mockComparisonItems;
+            const sessionsToInsert = [];
+            for (let i = 0; i < sessionCount; i++) {
+                const sDate = new Date(startDate);
+                sDate.setDate(startDate.getDate() + (i * 7));
+                sessionsToInsert.push({
+                    booking_id: bookingId,
+                    child_id: booking.child_id,
+                    instructor_id: booking.instructor_id,
+                    session_date: sDate.toISOString(),
+                    status: 'upcoming'
+                });
+            }
+            await supabase.from('scheduled_sessions').insert(sessionsToInsert);
+
+            // د. إرسال إشعار للمدرب
+            if (booking.instructors?.user_id) {
+                await supabase.from('notifications').insert([{
+                    user_id: booking.instructors.user_id,
+                    message: `تم تأكيد حجز جديد لبرنامج ${booking.package_name}. يرجى مراجعة جدولك.`,
+                    link: `/journey/${bookingId}`,
+                    type: 'booking',
+                    read: false
+                }]);
+            }
         }
+
+        return { success: true };
     },
 
-    // --- Mutations: Messages & Attachments ---
+    async updateScheduledSession(sessionId: string, updates: { status?: string; notes?: string; new_date?: string; reason?: string }) {
+        const payload: any = {};
+        if (updates.status) payload.status = updates.status;
+        if (updates.notes) payload.notes = updates.notes;
+        if (updates.new_date) payload.session_date = updates.new_date;
+
+        const { error } = await supabase
+            .from('scheduled_sessions')
+            .update(payload)
+            .eq('id', sessionId);
+
+        if (error) throw error;
+        return { success: true };
+    },
+
     async sendSessionMessage(payload: { bookingId: string; senderId: string; role: string; message: string }) {
         const { data, error } = await supabase
             .from('session_messages')
@@ -123,16 +258,13 @@ export const bookingService = {
                 message_text: payload.message,
                 created_at: new Date().toISOString()
             }])
-            .select()
-            .single();
-        
+            .select().single();
         if (error) throw new Error(error.message);
         return data as SessionMessage;
     },
 
     async uploadSessionAttachment(payload: { bookingId: string; uploaderId: string; role: string; file: File }) {
         const fileUrl = await cloudinaryService.uploadImage(payload.file, `session_attachments/${payload.bookingId}`);
-        
         const { data, error } = await supabase
             .from('session_attachments')
             .insert([{
@@ -143,35 +275,25 @@ export const bookingService = {
                 file_url: fileUrl,
                 created_at: new Date().toISOString()
             }])
-            .select()
-            .single();
-
+            .select().single();
         if (error) throw new Error(error.message);
         return data as SessionAttachment;
     },
 
-    // --- Mutations: Create Booking and Generate Full Schedule ---
     async createBooking(payload: any) {
         const bookingId = `bk_${Math.floor(Math.random() * 1000000)}`;
-        const pkg = payload.payload.package;
         const startDate = new Date(payload.payload.dateTime.date);
-        const [hours, minutes] = payload.payload.dateTime.time.split(':');
-        startDate.setHours(parseInt(hours), parseInt(minutes), 0);
+        const [h, m] = payload.payload.dateTime.time.split(':');
+        startDate.setHours(parseInt(h), parseInt(m), 0);
 
-        // تحديد عدد الجلسات بناءً على الباقة
-        let sessionCount = 1;
-        const match = pkg.sessions.match(/\d+/);
-        if (match) sessionCount = parseInt(match[0]);
-
-        // 1. إنشاء الحجز الأساسي
-        const { data: bookingData, error: bookingError } = await supabase
+        const { data, error } = await supabase
             .from('bookings')
             .insert([{
                 id: bookingId,
                 user_id: payload.userId,
                 child_id: payload.payload.child.id,
                 instructor_id: payload.payload.instructor.id,
-                package_name: pkg.name,
+                package_name: payload.payload.package.name,
                 booking_date: startDate.toISOString(),
                 booking_time: payload.payload.dateTime.time,
                 total: payload.payload.total,
@@ -180,191 +302,34 @@ export const bookingService = {
             }])
             .select();
 
-        if (bookingError) throw new Error(bookingError.message);
-
-        // 2. توليد الجلسات المجدولة تلقائياً (تكرار أسبوعي)
-        const sessionsToInsert = [];
-        for (let i = 0; i < sessionCount; i++) {
-            const sessionDate = new Date(startDate);
-            sessionDate.setDate(startDate.getDate() + (i * 7)); // إضافة أسبوع لكل جلسة
-            
-            sessionsToInsert.push({
-                booking_id: bookingId,
-                child_id: payload.payload.child.id,
-                instructor_id: payload.payload.instructor.id,
-                session_date: sessionDate.toISOString(),
-                status: 'upcoming'
-            });
-        }
-
-        const { error: sessionsError } = await supabase
-            .from('scheduled_sessions')
-            .insert(sessionsToInsert);
-
-        if (sessionsError) {
-            console.error("Failed to generate sessions schedule:", sessionsError);
-            // لا نرمي خطأ هنا لكي لا نفشل الحجز بالكامل، ولكن يجب تنبيه الإدارة
-        }
-
-        return bookingData?.[0] as CreativeWritingBooking;
-    },
-
-    async updateBookingStatus(bookingId: string, newStatus: BookingStatus) {
-        const { error } = await supabase
-            .from('bookings')
-            .update({ status: newStatus })
-            .eq('id', bookingId);
         if (error) throw new Error(error.message);
-        return { success: true };
+        return data?.[0] as CreativeWritingBooking;
     },
 
     async updateBookingProgressNotes(bookingId: string, notes: string) {
-        const { error } = await supabase
-            .from('bookings')
-            .update({ progress_notes: notes })
-            .eq('id', bookingId);
+        const { error } = await supabase.from('bookings').update({ progress_notes: notes }).eq('id', bookingId);
         if (error) throw new Error(error.message);
         return { success: true };
     },
 
     async saveBookingDraft(bookingId: string, draft: string) {
-        const { error } = await supabase
-            .from('bookings')
-            .update({ draft_content: draft })
-            .eq('id', bookingId);
+        const { error } = await supabase.from('bookings').update({ draft_content: draft }).eq('id', bookingId);
         if (error) throw new Error(error.message);
         return { success: true };
     },
 
-    // --- Instructor CRUD ---
-
-    // Added fix: Implementation for missing createInstructor method
-    async createInstructor(payload: any) {
-        let avatar_url = payload.avatar_url;
-        if (payload.avatarFile) {
-            avatar_url = await cloudinaryService.uploadImage(payload.avatarFile, 'instructors');
-        }
-
-        const { avatarFile, ...rest } = payload;
-        const { data, error } = await supabase
-            .from('instructors')
-            .insert([{ ...rest, avatar_url }])
-            .select()
-            .single();
-            
-        if (error) throw new Error(error.message);
-        return data as Instructor;
+    async getAllPackages() {
+        const { data } = await supabase.from('creative_writing_packages').select('*').order('price');
+        return data as CreativeWritingPackage[];
     },
 
-    // Added fix: Implementation for missing updateInstructor method
-    async updateInstructor(payload: any) {
-        let avatar_url = payload.avatar_url;
-        if (payload.avatarFile) {
-            avatar_url = await cloudinaryService.uploadImage(payload.avatarFile, 'instructors');
-        }
-
-        const { id, avatarFile, ...updates } = payload;
-        if (!id) throw new Error("ID Required");
-        const { data, error } = await supabase
-            .from('instructors')
-            .update({ ...updates, avatar_url })
-            .eq('id', id)
-            .select()
-            .single();
-            
-        if (error) throw new Error(error.message);
-        return data as Instructor;
+    async getAllStandaloneServices() {
+        const { data } = await supabase.from('standalone_services').select('*').order('price');
+        return data as StandaloneService[];
     },
 
-    // Added fix: Implementation for missing deleteInstructor method
-    async deleteInstructor(instructorId: number) {
-        // Soft delete instructor to preserve related historical data
-        const { error } = await supabase
-            .from('instructors')
-            .update({ deleted_at: new Date().toISOString() })
-            .eq('id', instructorId);
-            
-        if (error) throw new Error(error.message);
-        return { success: true };
-    },
-
-    async createPackage(payload: any) {
-        const { id, ...rest } = payload; 
-        const { data, error } = await supabase
-            .from('creative_writing_packages')
-            .insert([rest])
-            .select();
-            
-        if (error) throw new Error(error.message);
-        return data?.[0] as CreativeWritingPackage;
-    },
-
-    async updatePackage(payload: any) {
-        const { id, ...updates } = payload;
-        if (!id) throw new Error("ID Required");
-        const { data, error } = await supabase
-            .from('creative_writing_packages')
-            .update(updates)
-            .eq('id', id)
-            .select();
-        if (error) throw new Error(error.message);
-        return data?.[0] as CreativeWritingPackage;
-    },
-
-    async deletePackage(packageId: number) {
-        const { error } = await supabase.from('creative_writing_packages').delete().eq('id', packageId);
-        if (error) throw new Error(error.message);
-        return { success: true };
-    },
-
-    async createStandaloneService(payload: any) {
-        const { id, ...rest } = payload;
-        const { data, error } = await supabase.from('standalone_services').insert([rest]).select();
-        if (error) throw new Error(error.message);
-        return data?.[0] as StandaloneService;
-    },
-
-    async updateStandaloneService(payload: any) {
-        const { id, ...updates } = payload;
-        const { data, error } = await supabase.from('standalone_services').update(updates).eq('id', id).select();
-        if (error) throw new Error(error.message);
-        return data?.[0] as StandaloneService;
-    },
-
-    async deleteStandaloneService(serviceId: number) {
-        const { error } = await supabase.from('standalone_services').delete().eq('id', serviceId);
-        if (error) throw new Error(error.message);
-        return { success: true };
-    },
-
-    async createComparisonItem(payload: any) {
-        const { data, error } = await supabase
-            .from('comparison_items')
-            .insert([payload])
-            .select()
-            .single();
-        if (error) throw new Error(error.message);
-        return data as ComparisonItem;
-    },
-
-    async updateComparisonItem(payload: any) {
-        const { id, ...updates } = payload;
-        const { data, error } = await supabase
-            .from('comparison_items')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
-        if (error) throw new Error(error.message);
-        return data as ComparisonItem;
-    },
-
-    async deleteComparisonItem(itemId: string) {
-        const { error } = await supabase
-            .from('comparison_items')
-            .delete()
-            .eq('id', itemId);
-        if (error) throw new Error(error.message);
-        return { success: true };
+    async getAllComparisonItems() {
+        const { data } = await supabase.from('comparison_items').select('*').order('sort_order');
+        return data as ComparisonItem[];
     }
 };
