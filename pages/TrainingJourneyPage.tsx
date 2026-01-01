@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
-import { Input } from '../ui/Input';
+import { Input } from '../components/ui/Input';
 import { formatDate } from '../utils/helpers';
 import type { SessionAttachment, ScheduledSession, Badge } from '../lib/database.types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -172,7 +172,6 @@ const TrainingJourneyPage: React.FC = () => {
                                     {allSessions.map((s, idx) => {
                                         const isCompleted = s.status === 'completed';
                                         const isMissed = s.status === 'missed';
-                                        const isNow = status === 'active'; // Logic simplified for brevity
 
                                         return (
                                             <div key={s.id} className={`p-3 rounded-xl border relative transition-all ${isCompleted ? 'bg-green-50 border-green-100 opacity-80' : isMissed ? 'bg-red-50 border-red-100 opacity-80' : 'bg-white border-gray-100 shadow-sm'}`}>
