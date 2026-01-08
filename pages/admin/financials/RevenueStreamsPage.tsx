@@ -7,6 +7,7 @@ import ErrorState from '../../../components/ui/ErrorState';
 import { ShoppingBag, BookOpen, Star, Wallet, TrendingUp, Landmark } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import BarChart from '../../../components/admin/BarChart';
+import { calculateInstructorNet, calculatePlatformMargin } from '../../../utils/pricingCalculator';
 
 const RevenueStreamsPage: React.FC = () => {
     const { data, isLoading, error, refetch } = useRevenueStreams();
@@ -17,22 +18,19 @@ const RevenueStreamsPage: React.FC = () => {
         
         const { orders, bookings, serviceOrders, subscriptions } = data;
 
-        // حساب إجمالي الدخل المحقق (Gross Revenue)
+        // 1. إجمالي الدخل المحقق (Gross Revenue)
         const grossTotal = [...orders, ...bookings, ...serviceOrders]
             .filter(o => o.status === 'مكتمل' || o.status === 'تم التسليم')
             .reduce((sum, o) => sum + (o.total || 0), 0);
 
-        // حساب مستحقات المدربين (Instructor Share)
-        // المعادلة العكسية: (سعر العميل - الرسوم الثابتة) / نسبة المنصة = صافي المدرب
+        // 2. مستحقات المدربين (Instructor Share)
+        // يتم حسابها بشكل عكسي باستخدام الأداة المركزية
         const instructorShare = [...bookings, ...serviceOrders]
             .filter(o => o.status === 'مكتمل')
-            .reduce((sum, o) => {
-                const net = (o.total - pricingConfig.fixed_fee) / pricingConfig.company_percentage;
-                return sum + net;
-            }, 0);
+            .reduce((sum, o) => sum + calculateInstructorNet(o.total, pricingConfig), 0);
 
-        // صافي ربح المنصة (Platform Profit)
-        const platformProfit = grossTotal - instructorShare;
+        // 3. صافي ربح المنصة (Platform Profit)
+        const platformProfit = calculatePlatformMargin(grossTotal, instructorShare);
 
         return {
             grossTotal,
@@ -68,7 +66,7 @@ const RevenueStreamsPage: React.FC = () => {
                 <Card className="border-green-200 bg-green-50">
                     <CardHeader className="pb-2 text-xs font-bold uppercase text-green-800">صافي ربح المنصة (Margin)</CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black text-green-600">{Math.floor(stats.platformProfit).toLocaleString()} ج.m</div>
+                        <div className="text-3xl font-black text-green-600">{Math.floor(stats.platformProfit).toLocaleString()} ج.م</div>
                         <p className="text-xs mt-2 text-green-700">الربح الصافي بعد خصم حصة المدربين</p>
                     </CardContent>
                 </Card>
@@ -111,7 +109,7 @@ const RevenueStreamsPage: React.FC = () => {
                         </div>
                         <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg text-blue-800 text-xs leading-relaxed">
                             <Landmark className="shrink-0" size={16} />
-                            <p>يتم احتساب هذه النسب بناءً على الرسوم الإدارية ({pricingConfig.fixed_fee} ج.م) ومعامل الضرب ({pricingConfig.company_percentage}) المحدد في الإعدادات.</p>
+                            <p>يتم احتساب هذه النسب بناءً على الرسوم الإدارية ({pricingConfig?.fixed_fee} ج.م) ومعامل الضرب ({pricingConfig?.company_percentage}) المحدد في الإعدادات.</p>
                         </div>
                     </CardContent>
                 </Card>

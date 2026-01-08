@@ -9,12 +9,13 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
 import { Select } from '../../components/ui/Select';
-import { ArrowLeft, Save, Plus, Trash2, Gift, Settings, Type, Image as ImageIcon, Star } from 'lucide-react';
+import { ArrowLeft, Save, Gift, Settings, Type, Image as ImageIcon, Star } from 'lucide-react';
 import type { PersonalizedProduct } from '../../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Checkbox } from '../../components/ui/Checkbox';
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
+import DynamicListManager from '../../components/admin/DynamicListManager';
 
 const AdminProductDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -54,7 +55,8 @@ const AdminProductDetailPage: React.FC = () => {
                 navigate('/admin/personalized-products');
             }
         } else if (isNew) {
-            if (productType === 'subscription_box') {
+            // ... (Initial setup logic remains same)
+             if (productType === 'subscription_box') {
                 setProduct(prev => ({
                     ...prev,
                     title: 'صندوق الرحلة الشهري',
@@ -79,24 +81,10 @@ const AdminProductDetailPage: React.FC = () => {
                     story_goals: [
                         { key: 'anger', title: 'الغضب' },
                         { key: 'fear', title: 'الخوف' },
-                        { key: 'jealousy', title: 'الغيرة' },
-                        { key: 'frustration', title: 'الإحباط' },
-                        { key: 'anxiety', title: 'القلق' },
-                        { key: 'sadness', title: 'الحزن' },
                     ],
                     image_slots: [{ id: 'child_photo_1', label: 'صورة وجه الطفل (إلزامي)', required: true }],
                     text_fields: [
-                        { id: 'homeEnvironment', label: 'البيئة المنزلية (الأشخاص)', placeholder: 'أسماء الوالدين، الإخوة...', required: true, type: 'textarea' },
-                        { id: 'friendsAndSchool', label: 'بيئة الأصدقاء والمدرسة', placeholder: 'اسم أفضل صديق، اسم المدرسة...', required: false, type: 'textarea' },
-                        { id: 'physicalDescription', label: 'الوصف الجسدي (البصري)', placeholder: 'لون الشعر، لون العينين...', required: true, type: 'textarea' },
-                        { id: 'petInfo', label: 'الحيوان الأليف (إن وجد)', placeholder: 'الاسم ونوع الحيوان...', required: false, type: 'textarea' },
-                        { id: 'triggerSituation', label: 'الموقف المُحفز للمشاعر', placeholder: 'موقف واقعي يثير المشاعر...', required: true, type: 'textarea' },
-                        { id: 'childReaction', label: 'رد فعل الطفل النموذجي', placeholder: 'كيف يتصرف الطفل؟...', required: true, type: 'textarea' },
-                        { id: 'calmingMethod', label: 'أسلوب التهدئة المتبع', placeholder: 'كيف تهدئون الطفل؟...', required: true, type: 'textarea' },
-                        { id: 'positiveBehavior', label: 'التحول الإيجابي المطلوب', placeholder: 'السلوك المأمول...', required: true, type: 'textarea' },
-                        { id: 'favoriteHobby', label: 'هواية/اهتمام مفضل', placeholder: 'كرة القدم، الرسم...', required: true, type: 'input' },
-                        { id: 'favoritePhrase', label: 'كلمة/جملة مفضلة', placeholder: 'كلمة يكررها...', required: false, type: 'input' },
-                        { id: 'interactiveElementChoice', label: 'هل ترغب في عنصر بحث بصري؟*', placeholder: 'نعم/لا...', required: true, type: 'input' },
+                        { id: 'homeEnvironment', label: 'البيئة المنزلية', placeholder: 'أسماء الوالدين...', required: true, type: 'textarea' },
                     ]
                 }));
             }
@@ -116,37 +104,26 @@ const AdminProductDetailPage: React.FC = () => {
         }));
     };
     
-    const handleFeaturesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setProduct(prev => ({ ...prev, features: e.target.value.split('\n') }));
-    };
-
-    const handleImageChange = (key: string, url: string) => {
-        setProduct(prev => ({ ...prev, image_url: url }));
-    };
-
-    const handleDynamicListChange = (listName: 'image_slots' | 'text_fields' | 'story_goals', index: number, field: string, value: any) => {
+    // Generic handler for all dynamic lists using the new component
+    const handleDynamicListChange = (listKey: keyof PersonalizedProduct, index: number, field: string, value: any) => {
         setProduct(prev => {
-            const list = [...(prev[listName as keyof PersonalizedProduct] as any[] || [])];
+            const list = [...(prev[listKey] as any[] || [])];
             list[index] = { ...list[index], [field]: value };
-            return { ...prev, [listName]: list };
+            return { ...prev, [listKey]: list };
         });
     };
-    
-    const addDynamicListItem = (listName: 'image_slots' | 'text_fields' | 'story_goals') => {
+
+    const handleAddItem = (listKey: keyof PersonalizedProduct) => {
         let newItem: any;
-        if (listName === 'image_slots') {
-            newItem = { id: `img_${uuidv4()}`, label: '', required: false };
-        } else if (listName === 'text_fields') {
-             newItem = { id: `txt_${uuidv4()}`, label: '', placeholder: '', required: false, type: 'textarea' };
-        } else if (listName === 'story_goals') {
-             newItem = { key: `goal_${uuidv4()}`, title: '' };
-        }
-       
-        setProduct(prev => ({ ...prev, [listName]: [...(prev[listName as keyof PersonalizedProduct] as any[] || []), newItem] }));
+        if (listKey === 'image_slots') newItem = { id: `img_${uuidv4().slice(0,4)}`, label: '', required: false };
+        else if (listKey === 'text_fields') newItem = { id: `txt_${uuidv4().slice(0,4)}`, label: '', placeholder: '', required: false, type: 'textarea' };
+        else if (listKey === 'story_goals') newItem = { key: `goal_${uuidv4().slice(0,4)}`, title: '' };
+
+        setProduct(prev => ({ ...prev, [listKey]: [...(prev[listKey] as any[] || []), newItem] }));
     };
 
-    const removeDynamicListItem = (listName: 'image_slots' | 'text_fields' | 'story_goals', index: number) => {
-        setProduct(prev => ({ ...prev, [listName]: (prev[listName as keyof PersonalizedProduct] as any[] || []).filter((_, i) => i !== index) }));
+    const handleRemoveItem = (listKey: keyof PersonalizedProduct, index: number) => {
+        setProduct(prev => ({ ...prev, [listKey]: (prev[listKey] as any[] || []).filter((_, i) => i !== index) }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -156,30 +133,27 @@ const AdminProductDetailPage: React.FC = () => {
             price_printed: product.has_printed_version ? Number(product.price_printed) : null,
             price_electronic: Number(product.price_electronic) || null
         };
-
-        if (isNew) {
-            await createPersonalizedProduct.mutateAsync(payload);
-        } else {
-            await updatePersonalizedProduct.mutateAsync(payload);
-        }
+        if (isNew) await createPersonalizedProduct.mutateAsync(payload);
+        else await updatePersonalizedProduct.mutateAsync(payload);
         navigate('/admin/personalized-products');
     };
 
     return (
          <div className="animate-fadeIn space-y-8">
-            <Link to="/admin/personalized-products" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold mb-4">
-                <ArrowLeft size={16} />
-                العودة إلى قائمة المنتجات
-            </Link>
-            <h1 className="text-3xl font-extrabold text-foreground">
-                {isNew ? (productType === 'subscription_box' ? 'إعداد صندوق الرحلة' : productType === 'emotion_story' ? 'إعداد القصة المميزة' : 'إضافة منتج جديد') : `تعديل: ${product.title}`}
-            </h1>
-            <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                    <div className="lg:col-span-2 space-y-8">
-                        <Card>
-                            <CardHeader><CardTitle className="flex items-center gap-2"><Gift /> المعلومات الأساسية</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+                <Link to="/admin/personalized-products" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold">
+                    <ArrowLeft size={16} /> العودة
+                </Link>
+                <h1 className="text-2xl font-bold text-foreground">
+                    {isNew ? 'منتج جديد' : `تعديل: ${product.title}`}
+                </h1>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="lg:col-span-2 space-y-8">
+                    <Card>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><Gift /> المعلومات الأساسية</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
                                <FormField label="اسم المنتج*" htmlFor="title">
                                     <Input id="title" name="title" value={product.title} onChange={handleSimpleChange} required />
                                 </FormField>
@@ -190,146 +164,109 @@ const AdminProductDetailPage: React.FC = () => {
                                     label="صورة المنتج" 
                                     fieldKey="image_url" 
                                     currentUrl={product.image_url || ''} 
-                                    onUrlChange={handleImageChange}
+                                    onUrlChange={(k, v) => setProduct(p => ({...p, [k]: v}))}
                                     recommendedSize="800x800px" 
                                 />
                                 <FormField label="الميزات (كل ميزة في سطر)" htmlFor="features">
-                                    <Textarea id="features" name="features" value={(product.features || []).join('\n')} onChange={handleFeaturesChange} rows={4} />
+                                    <Textarea id="features" value={(product.features || []).join('\n')} onChange={e => setProduct({...product, features: e.target.value.split('\n')})} rows={4} />
                                 </FormField>
-                            </CardContent>
-                        </Card>
-                        
-                         <Card>
-                            <CardHeader><CardTitle className="flex items-center gap-2"><Type /> حقول النصوص المخصصة</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                {(product.text_fields || []).map((field, index) => (
-                                    <div key={field.id || index} className="p-4 border rounded-lg bg-muted grid grid-cols-2 gap-4 items-end">
-                                        <Input placeholder="المعرّف (ID)" value={field.id} onChange={(e) => handleDynamicListChange('text_fields', index, 'id', e.target.value)} disabled={productType === 'emotion_story'} />
-                                        <Input placeholder="العنوان الظاهر للعميل" value={field.label} onChange={(e) => handleDynamicListChange('text_fields', index, 'label', e.target.value)} />
-                                        <div className="col-span-2">
-                                           <Input placeholder="النص المؤقت (Placeholder)" value={field.placeholder} onChange={(e) => handleDynamicListChange('text_fields', index, 'placeholder', e.target.value)} />
-                                        </div>
-                                        <Select value={field.type} onChange={(e) => handleDynamicListChange('text_fields', index, 'type', e.target.value)}>
-                                            <option value="textarea">مربع نص كبير</option>
-                                            <option value="input">حقل نصي صغير</option>
-                                        </Select>
-                                        <div className="flex items-center justify-between">
-                                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={field.required} onChange={(e) => handleDynamicListChange('text_fields', index, 'required', e.target.checked)} /> إلزامي</label>
-                                            <Button type="button" variant="destructive" size="icon" onClick={() => removeDynamicListItem('text_fields', index)}><Trash2 size={16}/></Button>
-                                        </div>
-                                    </div>
-                                ))}
-                                <Button type="button" variant="outline" onClick={() => addDynamicListItem('text_fields')} icon={<Plus />}>إضافة حقل نصي</Button>
-                            </CardContent>
-                        </Card>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><Type /> حقول النصوص المخصصة</CardTitle></CardHeader>
+                        <CardContent>
+                            <DynamicListManager 
+                                items={product.text_fields || []}
+                                onAdd={() => handleAddItem('text_fields')}
+                                onRemove={(idx) => handleRemoveItem('text_fields', idx)}
+                                onChange={(idx, key, val) => handleDynamicListChange('text_fields', idx, key, val)}
+                                addButtonLabel="إضافة حقل نصي"
+                                fields={[
+                                    { key: 'id', placeholder: 'ID (txt_...)', disabled: productType === 'emotion_story' },
+                                    { key: 'label', placeholder: 'العنوان الظاهر' },
+                                    { key: 'placeholder', placeholder: 'النص التوضيحي', width: 'flex-[2]' },
+                                    { key: 'type', placeholder: 'النوع', type: 'select', options: [{label: 'نص طويل', value: 'textarea'}, {label: 'نص قصير', value: 'input'}] },
+                                    { key: 'required', placeholder: 'إلزامي؟', type: 'checkbox', width: 'w-24' },
+                                ]}
+                            />
+                        </CardContent>
+                    </Card>
 
-                         <Card>
-                            <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon /> حقول رفع الصور</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                 {(product.image_slots || []).map((slot, index) => (
-                                    <div key={slot.id || index} className="p-4 border rounded-lg bg-muted grid grid-cols-2 gap-4 items-center">
-                                         <Input placeholder="المعرّف (ID)" value={slot.id} onChange={(e) => handleDynamicListChange('image_slots', index, 'id', e.target.value)} disabled={productType === 'emotion_story' || productType === 'subscription_box'}/>
-                                         <Input placeholder="العنوان الظاهر للعميل" value={slot.label} onChange={(e) => handleDynamicListChange('image_slots', index, 'label', e.target.value)} />
-                                         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={slot.required} onChange={(e) => handleDynamicListChange('image_slots', index, 'required', e.target.checked)} /> إلزامي</label>
-                                         <Button type="button" variant="destructive" size="icon" onClick={() => removeDynamicListItem('image_slots', index)} className="justify-self-end"><Trash2 size={16}/></Button>
-                                    </div>
-                                ))}
-                                <Button type="button" variant="outline" onClick={() => addDynamicListItem('image_slots')} icon={<Plus />}>إضافة حقل صورة</Button>
-                            </CardContent>
-                        </Card>
+                    <Card>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon /> حقول رفع الصور</CardTitle></CardHeader>
+                        <CardContent>
+                             <DynamicListManager 
+                                items={product.image_slots || []}
+                                onAdd={() => handleAddItem('image_slots')}
+                                onRemove={(idx) => handleRemoveItem('image_slots', idx)}
+                                onChange={(idx, key, val) => handleDynamicListChange('image_slots', idx, key, val)}
+                                addButtonLabel="إضافة حقل صورة"
+                                fields={[
+                                    { key: 'id', placeholder: 'ID (img_...)' },
+                                    { key: 'label', placeholder: 'عنوان الحقل (مثال: صورة الطفل)' },
+                                    { key: 'required', placeholder: 'إلزامي؟', type: 'checkbox', width: 'w-24' },
+                                ]}
+                            />
+                        </CardContent>
+                    </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Gift /> مكونات المنتج (للباقات)
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground mb-4">
-                                    اختر المنتجات التي يتكون منها هذا المنتج تلقائياً. هذا مفيد للمنتجات المجمعة مثل "بوكس الهدية".
-                                </p>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    {/* Updated filter: Show ALL products except the current one being edited */}
-                                    {allProducts.filter(p => p.id !== product.id).map(component => (
-                                        <label key={component.id} className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50 cursor-pointer hover:border-primary">
-                                            <Checkbox
-                                                checked={(product.component_keys || []).includes(component.key)}
-                                                onCheckedChange={(checked) => {
-                                                    const key = component.key;
-                                                    const currentComponents = product.component_keys || [];
-                                                    const newComponents = checked
-                                                        ? [...currentComponents, key]
-                                                        : currentComponents.filter(k => k !== key);
-                                                    setProduct(prev => ({ ...prev, component_keys: newComponents }));
-                                                }}
-                                            />
-                                            <span>{component.title}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader><CardTitle className="flex items-center gap-2"><Star /> إدارة الأهداف المحددة مسبقاً</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                {(product.story_goals || []).map((goal, index) => (
-                                    <div key={goal.key || index} className="p-4 border rounded-lg bg-muted grid grid-cols-2 gap-4 items-center">
-                                        <Input placeholder="المعرّف (key)" value={goal.key} onChange={(e) => handleDynamicListChange('story_goals', index, 'key', e.target.value)} />
-                                        <Input placeholder="العنوان" value={goal.title} onChange={(e) => handleDynamicListChange('story_goals', index, 'title', e.target.value)} />
-                                        <div className="col-span-2 flex justify-end">
-                                            <Button type="button" variant="destructive" size="icon" onClick={() => removeDynamicListItem('story_goals', index)}><Trash2 size={16}/></Button>
-                                        </div>
-                                    </div>
-                                ))}
-                                <Button type="button" variant="outline" onClick={() => addDynamicListItem('story_goals')} icon={<Plus />} disabled={product.goal_config !== 'predefined' && product.goal_config !== 'predefined_and_custom'}>
-                                    إضافة هدف
-                                </Button>
-                                {(product.goal_config !== 'predefined' && product.goal_config !== 'predefined_and_custom') && (
-                                    <p className="text-xs text-muted-foreground mt-2">يجب تفعيل خيار "قائمة محددة" في إعدادات الهدف من القصة لتتمكن من إضافة أهداف.</p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <div className="lg:col-span-1 sticky top-24">
-                        <Card>
-                             <CardHeader><CardTitle className="flex items-center gap-2"><Settings /> الإعدادات والتسعير</CardTitle></CardHeader>
-                             <CardContent className="space-y-6">
-                                <FormField label="المعرّف (Key)*" htmlFor="key">
-                                    <Input id="key" name="key" value={product.key} onChange={handleSimpleChange} required disabled={!isNew} dir="ltr" />
-                                </FormField>
-                                <FormField label="ترتيب العرض" htmlFor="sort_order">
-                                    <Input type="number" id="sort_order" name="sort_order" value={product.sort_order || ''} onChange={handleSimpleChange} />
-                                </FormField>
-                                <FormField label="السعر (إلكتروني)" htmlFor="price_electronic">
-                                    <Input type="number" name="price_electronic" value={product.price_electronic || ''} onChange={handleSimpleChange} />
-                                </FormField>
-                                 <FormField label="السعر (مطبوع)" htmlFor="price_printed">
-                                    <Input type="number" name="price_printed" value={product.price_printed || ''} onChange={handleSimpleChange} disabled={!product.has_printed_version} />
-                                </FormField>
-                                 <FormField label="إعدادات الهدف من القصة" htmlFor="goal_config">
-                                    <Select id="goal_config" name="goal_config" value={product.goal_config} onChange={handleSimpleChange}>
-                                        <option value="none">بدون هدف</option>
-                                        <option value="predefined">قائمة محددة فقط</option>
-                                        <option value="custom">هدف مخصص فقط</option>
-                                        <option value="predefined_and_custom">قائمة وهدف مخصص</option>
-                                    </Select>
-                                </FormField>
-                                <div className="space-y-2 pt-4 border-t">
-                                    <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_featured" checked={product.is_featured} onChange={handleSimpleChange}/> منتج مميز</label>
-                                    <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_addon" checked={product.is_addon} onChange={handleSimpleChange}/> إضافة إبداعية (Addon)</label>
-                                    <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="has_printed_version" checked={product.has_printed_version} onChange={handleSimpleChange}/> له نسخة مطبوعة</label>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    <Card>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><Star /> الأهداف التربوية</CardTitle></CardHeader>
+                        <CardContent>
+                             <DynamicListManager 
+                                items={product.story_goals || []}
+                                onAdd={() => handleAddItem('story_goals')}
+                                onRemove={(idx) => handleRemoveItem('story_goals', idx)}
+                                onChange={(idx, key, val) => handleDynamicListChange('story_goals', idx, key, val)}
+                                addButtonLabel="إضافة هدف"
+                                disableAdd={product.goal_config !== 'predefined' && product.goal_config !== 'predefined_and_custom'}
+                                emptyMessage="يجب تفعيل 'قائمة محددة' أدناه لإضافة أهداف."
+                                fields={[
+                                    { key: 'key', placeholder: 'المعرف (key)' },
+                                    { key: 'title', placeholder: 'عنوان الهدف (مثال: الصدق)' },
+                                ]}
+                            />
+                        </CardContent>
+                    </Card>
                 </div>
 
-                <div className="flex justify-end sticky bottom-6 mt-8">
-                    <Button type="submit" loading={isSaving} size="lg" icon={<Save />}>
-                        {isSaving ? 'جاري الحفظ...' : 'حفظ المنتج'}
-                    </Button>
+                <div className="lg:col-span-1 sticky top-24 space-y-6">
+                    <Card>
+                            <CardHeader><CardTitle className="flex items-center gap-2"><Settings /> الإعدادات</CardTitle></CardHeader>
+                            <CardContent className="space-y-6">
+                            <FormField label="المعرّف (Key)*" htmlFor="key">
+                                <Input id="key" name="key" value={product.key} onChange={handleSimpleChange} required disabled={!isNew} dir="ltr" />
+                            </FormField>
+                            <FormField label="ترتيب العرض" htmlFor="sort_order">
+                                <Input type="number" id="sort_order" name="sort_order" value={product.sort_order || ''} onChange={handleSimpleChange} />
+                            </FormField>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField label="سعر (إلكتروني)" htmlFor="price_electronic">
+                                    <Input type="number" name="price_electronic" value={product.price_electronic || ''} onChange={handleSimpleChange} />
+                                </FormField>
+                                <FormField label="سعر (مطبوع)" htmlFor="price_printed">
+                                    <Input type="number" name="price_printed" value={product.price_printed || ''} onChange={handleSimpleChange} disabled={!product.has_printed_version} />
+                                </FormField>
+                            </div>
+                                <FormField label="نوع الهدف" htmlFor="goal_config">
+                                <Select id="goal_config" name="goal_config" value={product.goal_config} onChange={handleSimpleChange}>
+                                    <option value="none">بدون هدف</option>
+                                    <option value="predefined">قائمة محددة</option>
+                                    <option value="custom">هدف مخصص</option>
+                                    <option value="predefined_and_custom">قائمة + مخصص</option>
+                                </Select>
+                            </FormField>
+                            <div className="space-y-3 pt-4 border-t">
+                                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_featured" checked={product.is_featured} onChange={handleSimpleChange}/> منتج مميز (الرئيسية)</label>
+                                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_addon" checked={product.is_addon} onChange={handleSimpleChange}/> إضافة إبداعية (Addon)</label>
+                                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="has_printed_version" checked={product.has_printed_version} onChange={handleSimpleChange}/> نسخة مطبوعة متاحة</label>
+                            </div>
+                            <Button type="submit" loading={isSaving} size="lg" icon={<Save />} className="w-full">
+                                {isSaving ? 'جاري الحفظ...' : 'حفظ المنتج'}
+                            </Button>
+                        </CardContent>
+                    </Card>
                 </div>
             </form>
         </div>

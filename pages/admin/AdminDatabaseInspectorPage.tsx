@@ -16,10 +16,46 @@ interface TableStatus {
     error?: string;
 }
 
+// القائمة الكاملة لجميع جداول النظام (25 جدول)
 const tableNames = [
-    'profiles', 'child_profiles', 'instructors', 'orders', 'bookings', 
-    'subscriptions', 'service_orders', 'scheduled_sessions', 'site_settings',
-    'blog_posts', 'support_tickets', 'join_requests', 'audit_logs', 'notifications'
+    // المستخدمين والملفات
+    'profiles', 
+    'child_profiles', 
+    'instructors', 
+    
+    // المنتجات والباقات
+    'personalized_products',
+    'creative_writing_packages',
+    'standalone_services',
+    'subscription_plans',
+    'comparison_items', // لعناصر المقارنة
+    
+    // العمليات الأساسية
+    'orders', 
+    'bookings', 
+    'subscriptions', 
+    'service_orders', 
+    
+    // الجلسات والتواصل
+    'scheduled_sessions', 
+    'session_messages',
+    'session_attachments',
+    'support_session_requests',
+    
+    // المحتوى والدعم
+    'blog_posts', 
+    'support_tickets', 
+    'join_requests', 
+    'notifications',
+    
+    // النظام والإعدادات
+    'site_settings',
+    'audit_logs', 
+    'instructor_payouts',
+    
+    // التحفيز (Gamification)
+    'badges',
+    'child_badges'
 ];
 
 const AdminDatabaseInspectorPage: React.FC = () => {
@@ -85,39 +121,52 @@ const AdminDatabaseInspectorPage: React.FC = () => {
 
     useEffect(() => { runDiagnosis(); }, []);
 
+    // تلوين الحالة العامة
+    const overallStatus = results.every(r => r.status === 'online') ? 'healthy' : 'issues';
+    const issuesCount = results.filter(r => r.status === 'error').length;
+
     return (
         <div className="animate-fadeIn space-y-8 pb-20">
             <div className="flex justify-between items-center">
                 <div className="space-y-1">
-                    <h1 className="text-3xl font-extrabold flex items-center gap-3"><Database className="text-primary" /> مراقب القاعدة والأمان</h1>
-                    <p className="text-sm text-muted-foreground italic">في حال ظهور اللون الأحمر، فهذا يعني وجود مشكلة في سياسات الـ RLS.</p>
+                    <h1 className="text-3xl font-extrabold flex items-center gap-3">
+                        <Database className={overallStatus === 'healthy' ? "text-green-600" : "text-orange-500"} /> 
+                        مراقب القاعدة والأمان
+                    </h1>
+                    <p className="text-sm text-muted-foreground italic">
+                        {issuesCount === 0 
+                            ? 'جميع الجداول (25) تعمل بشكل سليم.' 
+                            : `تنبيه: هناك ${issuesCount} جداول تواجه مشاكل في الاتصال أو الصلاحيات.`}
+                    </p>
                 </div>
                 <Button onClick={runDiagnosis} loading={isRefreshing} icon={<RefreshCw size={16}/>}>تحديث الفحص</Button>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-                <Card className="xl:col-span-1 max-h-[75vh] overflow-y-auto border-t-4 border-primary">
+                <Card className={`xl:col-span-1 max-h-[75vh] overflow-y-auto border-t-4 ${overallStatus === 'healthy' ? 'border-green-500' : 'border-orange-500'}`}>
                     <CardHeader className="p-4 border-b bg-muted/20">
-                        <CardTitle className="text-sm">حالة الجداول ({tableNames.length})</CardTitle>
+                        <CardTitle className="text-sm flex justify-between">
+                            <span>حالة الجداول</span>
+                            <span className="bg-white px-2 py-0.5 rounded text-xs border">{results.length}</span>
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {results.map((table) => (
                             <button 
                                 key={table.name} 
                                 onClick={() => exploreTable(table.name)} 
-                                className={`w-full text-right p-4 border-b hover:bg-muted/50 flex justify-between items-center transition-colors ${selectedTable === table.name ? 'bg-primary/5 border-r-4 border-r-primary' : ''}`}
+                                className={`w-full text-right p-3 border-b hover:bg-muted/50 flex justify-between items-center transition-colors ${selectedTable === table.name ? 'bg-primary/5 border-r-4 border-r-primary' : ''}`}
                             >
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <p className="font-mono text-xs font-bold truncate">{table.name}</p>
-                                        {table.status === 'error' ? (
-                                            <ShieldAlert size={12} className="text-red-500 animate-pulse" />
-                                        ) : (
-                                            <ShieldCheck size={12} className="text-green-600" />
-                                        )}
+                                        <p className={`font-mono text-xs font-bold truncate ${table.status === 'error' ? 'text-red-600' : 'text-foreground'}`}>{table.name}</p>
                                     </div>
-                                    <p className="text-[10px] text-muted-foreground mt-1">
-                                        {table.status === 'online' ? `${table.count} سجل متاح` : 'خطأ في الوصول (Recursion?)'}
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                        {table.status === 'online' ? (
+                                            <span className="text-green-600 flex items-center gap-1"><ShieldCheck size={10}/> {table.count} سجل</span>
+                                        ) : (
+                                            <span className="text-red-500 flex items-center gap-1"><ShieldAlert size={10}/> خطأ الوصول</span>
+                                        )}
                                     </p>
                                 </div>
                                 {table.status === 'online' ? <CheckCircle size={14} className="text-green-500" /> : <AlertTriangle size={14} className="text-red-500" />}
@@ -133,11 +182,11 @@ const AdminDatabaseInspectorPage: React.FC = () => {
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <CardTitle className="text-xl font-mono text-primary">{selectedTable}</CardTitle>
-                                        <CardDescription>معاينة عينة البيانات والتحقق من الأخطاء.</CardDescription>
+                                        <CardDescription>معاينة عينة البيانات (أول 5 سجلات).</CardDescription>
                                     </div>
                                     {results.find(t => t.name === selectedTable)?.status === 'error' && (
                                         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2">
-                                            <Bug size={14}/> Infinite Recursion Detected
+                                            <Bug size={14}/> مشكلة في الوصول (RLS أو الجدول غير موجود)
                                         </div>
                                     )}
                                 </div>
@@ -167,12 +216,18 @@ const AdminDatabaseInspectorPage: React.FC = () => {
                                         </div>
                                     ) : (
                                         <div className="p-20 text-center space-y-4">
-                                            <AlertTriangle className="mx-auto text-red-400" size={48} />
                                             <div className="max-w-md mx-auto">
-                                                <p className="font-bold text-red-600">تعذر جلب البيانات لهذا الجدول</p>
-                                                <p className="text-sm text-muted-foreground mt-2 bg-red-50 p-3 rounded border border-red-100 font-mono">
-                                                    {results.find(t => t.name === selectedTable)?.error || 'الوصول مقيد بسياسات الأمان أو وجود تداخل برمي (Recursion).'}
-                                                </p>
+                                                {results.find(t => t.name === selectedTable)?.status === 'online' ? (
+                                                     <p className="text-muted-foreground italic">الجدول فارغ حالياً (0 سجلات).</p>
+                                                ) : (
+                                                    <>
+                                                        <AlertTriangle className="mx-auto text-red-400 mb-4" size={48} />
+                                                        <p className="font-bold text-red-600">تعذر جلب البيانات لهذا الجدول</p>
+                                                        <p className="text-sm text-muted-foreground mt-2 bg-red-50 p-3 rounded border border-red-100 font-mono text-left dir-ltr">
+                                                            {results.find(t => t.name === selectedTable)?.error}
+                                                        </p>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     )
@@ -182,8 +237,8 @@ const AdminDatabaseInspectorPage: React.FC = () => {
                     ) : (
                         <div className="h-96 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl text-muted-foreground bg-muted/5">
                             <Database size={64} className="opacity-10 mb-4 text-primary"/>
-                            <p className="font-semibold text-lg">اختر جدولاً لتحليل حالة أمانه</p>
-                            <p className="text-sm">سيتم عرض أي أخطاء متعلقة بـ "Infinite Recursion" هنا بشكل مباشر.</p>
+                            <p className="font-semibold text-lg">اختر جدولاً من القائمة الجانبية</p>
+                            <p className="text-sm">لمعاينة حالته والبيانات الموجودة بداخله.</p>
                         </div>
                     )}
                 </div>

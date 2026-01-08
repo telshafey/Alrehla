@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import type { SubscriptionPlan } from '../../lib/database.types';
@@ -6,10 +7,20 @@ import { Input } from '../ui/Input';
 import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
 
+interface SubscriptionPlanFormValues {
+    id?: number;
+    name: string;
+    duration_months: number;
+    price: number;
+    price_per_month: number;
+    savings_text: string;
+    is_best_value: boolean;
+}
+
 interface SubscriptionPlanModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (payload: any) => void;
+    onSave: (payload: SubscriptionPlanFormValues) => void;
     isSaving: boolean;
     planToEdit: SubscriptionPlan | null;
 }
@@ -45,12 +56,12 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({ is
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const payload = {
+        const payload: SubscriptionPlanFormValues = {
             id: planToEdit?.id,
             name,
-            duration_months: parseInt(duration),
-            price: parseFloat(price),
-            price_per_month: parseFloat(pricePerMonth),
+            duration_months: parseInt(duration) || 0,
+            price: parseFloat(price) || 0,
+            price_per_month: parseFloat(pricePerMonth) || 0,
             savings_text: savings,
             is_best_value: isBestValue,
         };

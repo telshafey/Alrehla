@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Upload, Loader2, Info } from 'lucide-react';
+import { Upload, Loader2, Info, X } from 'lucide-react';
 import { Input } from '../../ui/Input';
 import FormField from '../../ui/FormField';
 import Image from '../../ui/Image';
-import { compressImage } from '../../../utils/imageCompression';
+import { cloudinaryService } from '../../../services/cloudinaryService';
 import { useToast } from '../../../contexts/ToastContext';
 
 interface ImageUploadFieldProps {
@@ -12,7 +12,7 @@ interface ImageUploadFieldProps {
     fieldKey: string;
     currentUrl?: string;
     onUrlChange: (fieldKey: string, newUrl: string) => void;
-    recommendedSize?: string; // New prop for dimensions
+    recommendedSize?: string; 
 }
 
 const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ label, fieldKey, currentUrl, onUrlChange, recommendedSize }) => {
@@ -29,21 +29,23 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ label, fieldKey, cu
         if (file) {
             setIsProcessing(true);
             try {
-                // Compress image before setting it
-                const compressedDataUrl = await compressImage(file);
-                onUrlChange(fieldKey, compressedDataUrl);
-                setPreview(compressedDataUrl);
+                // Upload directly to Cloudinary
+                const uploadedUrl = await cloudinaryService.uploadImage(file, 'alrehla_admin_uploads');
+                onUrlChange(fieldKey, uploadedUrl);
+                setPreview(uploadedUrl);
+                addToast('تم رفع الصورة بنجاح', 'success');
             } catch (error) {
-                console.error("Image processing failed", error);
-                addToast("فشل معالجة الصورة. يرجى المحاولة مرة أخرى.", "error");
+                console.error("Image upload failed", error);
+                addToast("فشل رفع الصورة. يرجى المحاولة مرة أخرى.", "error");
             } finally {
                 setIsProcessing(false);
             }
-        } else {
-            // If the file is cleared, revert to original URL or nothing
-            onUrlChange(fieldKey, '');
-            setPreview('');
         }
+    };
+
+    const handleRemoveImage = () => {
+        onUrlChange(fieldKey, '');
+        setPreview('');
     };
 
     return (
@@ -81,14 +83,26 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ label, fieldKey, cu
                         </>
                     )}
                 </div>
-                <div className="flex-grow">
-                    <label htmlFor={fieldKey} className={`cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2 ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
-                        <Upload size={16} />
-                        <span>{preview ? 'تغيير الصورة' : 'اختر صورة'}</span>
-                    </label>
+                <div className="flex-grow space-y-3">
+                    <div className="flex gap-2">
+                        <label htmlFor={fieldKey} className={`cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2 ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
+                            <Upload size={16} />
+                            <span>{preview ? 'تغيير الصورة' : 'اختر صورة'}</span>
+                        </label>
+                        {preview && (
+                            <button 
+                                type="button" 
+                                onClick={handleRemoveImage}
+                                className="bg-white py-2 px-3 border border-red-200 text-red-600 rounded-md shadow-sm text-sm hover:bg-red-50"
+                                title="إزالة الصورة"
+                            >
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
                     <Input id={fieldKey} type="file" accept="image/*" onChange={handleFileChange} className="sr-only" disabled={isProcessing} />
-                    <p className="text-[10px] text-muted-foreground mt-2">
-                        {recommendedSize ? `يفضل الالتزام بالأبعاد ${recommendedSize} لضمان أفضل عرض.` : 'سيتم ضغط الصورة تلقائياً لضمان سرعة الموقع.'}
+                    <p className="text-[10px] text-muted-foreground">
+                        {recommendedSize ? `الأبعاد الموصى بها: ${recommendedSize}.` : ''} سيتم الرفع إلى الخادم السحابي مباشرة.
                     </p>
                 </div>
             </div>

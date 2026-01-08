@@ -1,8 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-// Fix for line 65: Added Info icon to imports
-import { Users, UserCog, ArrowUp, ArrowDown, Trash2, FileEdit, AlertCircle, Calendar, Plus, Shield, UserPlus, Info } from 'lucide-react';
+import { Users, Plus, UserCog, Calendar, FileEdit } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -13,8 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import Accordion from '../../components/ui/Accordion';
 import type { Instructor } from '../../lib/database.types';
-// Fix for lines 83 and 84: Imported missing SortableTableHead component
 import SortableTableHead from '../../components/admin/ui/SortableTableHead';
+import { Trash2, UserPlus, Info } from 'lucide-react';
 
 const AdminInstructorsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -22,13 +21,16 @@ const AdminInstructorsPage: React.FC = () => {
     const { deleteInstructor } = useInstructorMutations();
     const [sortConfig, setSortConfig] = useState<{ key: keyof Instructor; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
 
-    // Corrected sorting logic to use 'asc' and 'desc' strings instead of numeric -1
     const sortedInstructors = useMemo(() => {
         let sortableItems = [...instructors];
         if (sortConfig !== null) {
             sortableItems.sort((a, b) => {
-                if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+                // Handle potentially null/undefined values safely
+                const aVal = a[sortConfig.key] || '';
+                const bVal = b[sortConfig.key] || '';
+                
+                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
             });
         }
@@ -58,7 +60,6 @@ const AdminInstructorsPage: React.FC = () => {
                 <h1 className="text-3xl font-extrabold text-foreground flex items-center gap-3">
                     <UserCog className="text-primary" /> إدارة المدربين
                 </h1>
-                {/* ملاحظة: زر الإضافة تم نقله لصفحة المستخدمين حسب طلب العميل */}
                 <Button onClick={() => navigate('/admin/users?tab=staff')} variant="outline" className="gap-2 border-primary text-primary hover:bg-primary/5">
                     <UserPlus size={18} /> إضافة مدرب جديد (عبر إدارة الموظفين)
                 </Button>

@@ -18,54 +18,53 @@ export const calculateAge = (birthDateString: string | null | undefined): number
 };
 
 export const formatCurrency = (amount: number | null | undefined): string => {
-    if (amount === null || amount === undefined) return '-';
-    return `${amount.toLocaleString('en-US')} ج.م`;
+    if (amount === null || amount === undefined || isNaN(amount)) return '-';
+    return new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP' }).format(amount);
 };
 
 export const getStatusColor = (status: string | null): string => {
     if (!status) return 'bg-gray-100 text-gray-800';
-    switch (status) {
-        case 'تم التسليم':
-        case 'مكتمل':
-            return 'bg-green-100 text-green-800';
-        case 'تم الشحن':
-        case 'مؤكد':
-            return 'bg-blue-100 text-blue-800';
-        case 'قيد التجهيز':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'بانتظار المراجعة':
-            return 'bg-indigo-100 text-indigo-800';
-        case 'بانتظار الدفع':
-            return 'bg-gray-200 text-gray-800';
-        case 'يحتاج مراجعة':
-            return 'bg-orange-100 text-orange-800';
-        case 'ملغي':
-            return 'bg-red-100 text-red-800';
-        case 'قيد التنفيذ':
-            return 'bg-teal-100 text-teal-800';
-        case 'نشط':
-             return 'bg-indigo-100 text-indigo-800';
-        default:
-            return 'bg-gray-100 text-gray-800';
-    }
+    
+    // تطبيع الحالة لإزالة المسافات الزائدة
+    const s = status.trim();
+
+    if (['مكتمل', 'تم التسليم', 'مؤكد', 'نشط', 'مقبول', 'تمت الموافقة'].includes(s)) return 'bg-green-100 text-green-800 border-green-200';
+    if (['تم الشحن', 'قيد التنفيذ'].includes(s)) return 'bg-blue-100 text-blue-800 border-blue-200';
+    if (['قيد التجهيز', 'جديد', 'جديدة'].includes(s)) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    if (['بانتظار المراجعة', 'بانتظار الدفع', 'معلق'].includes(s)) return 'bg-indigo-50 text-indigo-800 border-indigo-200';
+    if (['يحتاج مراجعة', 'متوقف مؤقتاً'].includes(s)) return 'bg-orange-100 text-orange-800 border-orange-200';
+    if (['ملغي', 'مرفوض', 'لم يحضر', 'cancelled'].includes(s)) return 'bg-red-100 text-red-800 border-red-200';
+    
+    return 'bg-gray-100 text-gray-800';
 };
 
-// فرض توقيت القاهرة في عرض التاريخ
-export const formatDate = (dateString: string | null | undefined): string => {
+// دالة موحدة لجميع تواريخ الموقع
+export const formatDate = (dateString: string | null | undefined, includeTime: boolean = false): string => {
     if (!dateString) return 'غير محدد';
     try {
-        return new Intl.DateTimeFormat('ar-EG', {
+        const date = new Date(dateString);
+        // التحقق من صحة التاريخ
+        if (isNaN(date.getTime())) return 'تاريخ غير صالح';
+
+        const options: Intl.DateTimeFormatOptions = {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
             timeZone: 'Africa/Cairo'
-        }).format(new Date(dateString));
+        };
+
+        if (includeTime) {
+            options.hour = '2-digit';
+            options.minute = '2-digit';
+            options.hour12 = true;
+        }
+
+        return new Intl.DateTimeFormat('ar-EG', options).format(date);
     } catch(e) {
         return 'تاريخ غير صالح';
     }
 };
 
-// دالة جديدة لعرض الوقت بتوقيت القاهرة
 export const formatTime = (dateString: string | null | undefined): string => {
     if (!dateString) return '--:--';
     try {
@@ -86,24 +85,4 @@ export const daysInMonth = (date: Date): number => {
 
 export const firstDayOfMonth = (date: Date): number => {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-};
-
-export const getSubStatusText = (status: Subscription['status']) => {
-    switch (status) {
-        case 'active': return 'نشط';
-        case 'paused': return 'متوقف مؤقتاً';
-        case 'cancelled': return 'ملغي';
-        case 'pending_payment': return 'بانتظار الدفع';
-        default: return status;
-    }
-};
-
-export const getSubStatusColor = (status: Subscription['status']) => {
-    switch (status) {
-        case 'active': return 'bg-green-100 text-green-800';
-        case 'paused': return 'bg-yellow-100 text-yellow-800';
-        case 'cancelled': return 'bg-red-100 text-red-800';
-        case 'pending_payment': return 'bg-gray-200 text-gray-800';
-        default: return 'bg-gray-100 text-gray-800';
-    }
 };

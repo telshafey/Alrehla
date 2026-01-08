@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Package, Star, Info, List, FileText, Table as TableIcon, Calculator } from 'lucide-react';
+import { ArrowLeft, Save, Calculator } from 'lucide-react';
 import { useAdminCWSettings, useAdminPricingSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useCreativeWritingSettingsMutations } from '../../hooks/mutations/useCreativeWritingSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { Checkbox } from '../../components/ui/Checkbox';
 import type { CreativeWritingPackage } from '../../lib/database.types';
 import { IconMap } from '../../components/creative-writing/services/IconMap';
+import { calculateCustomerPrice } from '../../utils/pricingCalculator';
 
 const AdminPackageDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -50,11 +51,9 @@ const AdminPackageDetailPage: React.FC = () => {
         }
     }, [id, isNew, data]);
 
-    // حساب السعر التقديري للعميل بناءً على الصافي المدخل والمعادلة
+    // حساب السعر التقديري للعميل بناءً على الصافي المدخل والمعادلة المركزية
     const estimatedCustomerPrice = useMemo(() => {
-        if (!pricingConfig || pkg.price === undefined) return 0;
-        if (pkg.price === 0) return 0;
-        return Math.ceil((pkg.price * pricingConfig.company_percentage) + pricingConfig.fixed_fee);
+        return calculateCustomerPrice(pkg.price, pricingConfig);
     }, [pkg.price, pricingConfig]);
 
     const handleSubmit = async (e: React.FormEvent) => {

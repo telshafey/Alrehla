@@ -4,10 +4,11 @@ import { Link } from 'react-router-dom';
 import { ShoppingBag, Star, BookOpen, CreditCard, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useUserAccountData } from '../../hooks/queries/user/useUserDataQuery';
 import { useAuth } from '../../contexts/AuthContext';
-import { getStatusColor, formatDate, daysInMonth, firstDayOfMonth, getSubStatusColor, getSubStatusText } from '../../utils/helpers';
+import { formatDate, daysInMonth, firstDayOfMonth } from '../../utils/helpers';
 import EmptyState from './EmptyState';
 import { Button } from '../ui/Button';
 import type { Order, Subscription, CreativeWritingBooking, ScheduledSession, CreativeWritingPackage } from '../../lib/database.types';
+import StatusBadge from '../ui/StatusBadge';
 
 type EnrichedBooking = CreativeWritingBooking & {
     sessions: ScheduledSession[];
@@ -180,7 +181,7 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                                         </div>
                                                     </div>
                                                      <div className="flex items-center gap-2 flex-wrap justify-end">
-                                                        <span className={`px-3 py-1 text-xs font-bold rounded-full ${getSubStatusColor(sub.status)}`}>{getSubStatusText(sub.status)}</span>
+                                                        <StatusBadge status={sub.status} />
                                                         {sub.status === 'pending_payment' && <Button onClick={() => onPay({ id: sub.id, type: 'subscription' })} variant="success" size="sm" icon={<CreditCard size={14} />}>ادفع الآن</Button>}
                                                     </div>
                                                 </div>
@@ -203,7 +204,7 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-2 flex-wrap justify-end mt-3 sm:mt-0">
-                                                            <span className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(item.status)}`}>{item.status}</span>
+                                                            <StatusBadge status={item.status} />
                                                             {item.status === 'بانتظار الدفع' && <Button onClick={() => onPay({ id: item.id, type: 'order' })} variant="success" size="sm" icon={<CreditCard size={14} />}>ادفع الآن</Button>}
                                                         </div>
                                                     </div>

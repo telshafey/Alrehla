@@ -6,7 +6,6 @@ import { useAdminServiceOrders } from '../../hooks/queries/admin/useAdminCommuni
 import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
 import { useToast } from '../../contexts/ToastContext';
 import PageLoader from '../../components/ui/PageLoader';
-import { getStatusColor } from '../../utils/helpers';
 import type { ServiceOrderWithRelations, OrderStatus } from '../../lib/database.types';
 import { Button } from '../../components/ui/Button';
 import StatFilterCard from '../../components/admin/StatFilterCard';
@@ -16,6 +15,7 @@ import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import SortableTableHead from '../../components/admin/ui/SortableTableHead';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 const orderStatuses: OrderStatus[] = ["بانتظار المراجعة", "قيد التنفيذ", "مكتمل", "ملغي"];
 const statusColors: { [key in OrderStatus]?: string } = {
@@ -137,17 +137,8 @@ const AdminServiceOrdersPage: React.FC = () => {
                                         <TableCell className="text-sm">{order.instructors?.name || 'غير معين'}</TableCell>
                                         <TableCell className="font-bold">{order.total} ج.م</TableCell>
                                         <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Select
-                                                    value={order.status}
-                                                    onChange={e => updateServiceOrderStatus.mutate({ orderId: order.id, newStatus: e.target.value as OrderStatus })}
-                                                    className={`w-full p-1 text-xs font-bold ${getStatusColor(order.status)}`}
-                                                    disabled={updateServiceOrderStatus.isPending && updateServiceOrderStatus.variables?.orderId === order.id}
-                                                >
-                                                    {orderStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                                                </Select>
-                                                {updateServiceOrderStatus.isPending && updateServiceOrderStatus.variables?.orderId === order.id && <Loader2 className="animate-spin" size={16} />}
-                                            </div>
+                                            {/* عرض الحالة فقط، التعديل يتم في التفاصيل */}
+                                            <StatusBadge status={order.status} showIcon />
                                         </TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/service-orders/${order.id}`)} title="عرض التفاصيل"><Eye size={20} /></Button>

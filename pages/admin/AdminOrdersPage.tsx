@@ -5,17 +5,16 @@ import { useAdminOrders } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import ErrorState from '../../components/ui/ErrorState';
-import type { OrderWithRelations, OrderStatus } from '../../lib/database.types';
+import type { OrderWithRelations } from '../../lib/database.types';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '../../components/ui/Table';
 import { Button } from '../../components/ui/Button';
 import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
-import { getStatusColor } from '../../utils/helpers';
 import { useNavigate } from 'react-router-dom';
-
-const orderStatuses: OrderStatus[] = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "تم الشحن", "تم التسليم", "مكتمل", "ملغي"];
+import StatusBadge from '../../components/ui/StatusBadge';
+import { ORDER_STATUSES } from '../../lib/constants';
 
 const AdminOrdersPage: React.FC = () => {
     const navigate = useNavigate();
@@ -107,7 +106,7 @@ const AdminOrdersPage: React.FC = () => {
                         <div className="w-full md:w-64">
                             <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                                 <option value="all">كل الحالات</option>
-                                {orderStatuses.map(status => (
+                                {ORDER_STATUSES.map(status => (
                                     <option key={status} value={status}>{status}</option>
                                 ))}
                             </Select>
@@ -139,9 +138,7 @@ const AdminOrdersPage: React.FC = () => {
                                             <TableCell className="max-w-xs truncate" title={order.item_summary}>{order.item_summary}</TableCell>
                                             <TableCell className="font-bold">{order.total} ج.م</TableCell>
                                             <TableCell>
-                                                <span className={`px-2 py-1 text-xs font-bold rounded-full ${getStatusColor(order.status)}`}>
-                                                    {order.status}
-                                                </span>
+                                                <StatusBadge status={order.status} showIcon />
                                             </TableCell>
                                             <TableCell>
                                                 <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/orders/${order.id}`)} title="عرض ومراجعة">

@@ -1,13 +1,16 @@
+
 import React, { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/Table';
 import { Checkbox } from '../../ui/Checkbox';
 import Dropdown from '../../ui/Dropdown';
+import { Button } from '../../ui/Button';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown } from 'lucide-react';
 
 // Type definitions for props
 interface ColumnDef<T> {
     accessorKey: string;
     header: string;
-    cell?: (props: { value: any }) => React.ReactNode;
+    cell?: (props: { value: any, row: T }) => React.ReactNode;
 }
 
 interface BulkAction<T> {
@@ -21,6 +24,8 @@ interface DataTableProps<T> {
     columns: ColumnDef<T>[];
     bulkActions?: BulkAction<T>[];
     renderRowActions?: (item: T) => React.ReactNode;
+    pageSize?: number;
+    initialSort?: { key: string; direction: 'asc' | 'desc' };
 }
 
 // Helper to access nested properties like 'users.name'
@@ -29,16 +34,60 @@ const getNestedValue = (obj: any, path: string): any => {
 };
 
 // Generic DataTable component
-function DataTable<T extends { id: any }>({ data, columns, bulkActions, renderRowActions }: DataTableProps<T>) {
+function DataTable<T extends { id: any }>({ 
+    data, 
+    columns, 
+    bulkActions, 
+    renderRowActions, 
+    pageSize = 10,
+    initialSort 
+}: DataTableProps<T>) {
     const [selectedRowIds, setSelectedRowIds] = useState<Set<any>>(new Set());
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(pageSize);
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(initialSort || null);
 
-    const isAllSelected = selectedRowIds.size === data.length && data.length > 0;
+    // Reset page if data length changes significantly (filtering)
+    useMemo(() => {
+        setCurrentPage(1);
+    }, [data.length]);
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedData = useMemo(() => {
+        if (!sortConfig) return data;
+        return [...data].sort((a, b) => {
+            const aVal = getNestedValue(a, sortConfig.key);
+            const bVal = getNestedValue(b, sortConfig.key);
+            
+            if (aVal === null || aVal === undefined) return 1;
+            if (bVal === null || bVal === undefined) return -1;
+            
+            if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [data, sortConfig]);
+
+    const totalPages = Math.ceil(sortedData.length / rowsPerPage);
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const currentData = sortedData.slice(startIndex, startIndex + rowsPerPage);
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedRowIds(new Set(data.map(row => row.id)));
+            const newSet = new Set(selectedRowIds);
+            currentData.forEach(row => newSet.add(row.id));
+            setSelectedRowIds(newSet);
         } else {
-            setSelectedRowIds(new Set());
+            const newSet = new Set(selectedRowIds);
+            currentData.forEach(row => newSet.delete(row.id));
+            setSelectedRowIds(newSet);
         }
     };
 
@@ -52,14 +101,14 @@ function DataTable<T extends { id: any }>({ data, columns, bulkActions, renderRo
         setSelectedRowIds(newSelectedRowIds);
     };
 
-    const selectedData = useMemo(() => {
+    const selectedDataItems = useMemo(() => {
         return data.filter(row => selectedRowIds.has(row.id));
     }, [data, selectedRowIds]);
     
     const dropdownItems = bulkActions?.map(action => ({
         label: action.label,
         action: () => {
-            action.action(selectedData);
+            action.action(selectedDataItems);
             setSelectedRowIds(new Set()); // Clear selection after action
         },
         isDestructive: action.isDestructive
@@ -67,37 +116,57 @@ function DataTable<T extends { id: any }>({ data, columns, bulkActions, renderRo
 
     return (
         <div className="space-y-4">
-            {bulkActions && selectedRowIds.size > 0 && (
-                <div className="flex items-center gap-4">
-                    <p className="text-sm text-muted-foreground">
-                        {selectedRowIds.size} من {data.length} صفوف محددة.
-                    </p>
-                    {dropdownItems && <Dropdown trigger="إجراءات مجمعة" items={dropdownItems} />}
+            <div className="flex justify-between items-center">
+                {bulkActions && selectedRowIds.size > 0 ? (
+                    <div className="flex items-center gap-4 animate-fadeIn">
+                        <p className="text-sm text-muted-foreground">
+                            {selectedRowIds.size} عنصر محدد
+                        </p>
+                        {dropdownItems && <Dropdown trigger="إجراءات مجمعة" items={dropdownItems} />}
+                    </div>
+                ) : <div></div>}
+                
+                <div className="text-xs text-muted-foreground">
+                    إجمالي النتائج: {data.length}
                 </div>
-            )}
-            <div className="rounded-md border">
+            </div>
+
+            <div className="rounded-md border bg-white shadow-sm overflow-hidden">
                 <Table>
                     <TableHeader>
-                        <TableRow>
+                        <TableRow className="bg-muted/40">
                             {bulkActions && (
                                 <TableHead className="w-12">
                                     <Checkbox
-                                        checked={isAllSelected}
+                                        checked={currentData.length > 0 && currentData.every(row => selectedRowIds.has(row.id))}
                                         onCheckedChange={handleSelectAll}
                                         aria-label="Select all"
                                     />
                                 </TableHead>
                             )}
                             {columns.map(column => (
-                                <TableHead key={column.accessorKey}>{column.header}</TableHead>
+                                <TableHead key={column.accessorKey}>
+                                    <Button 
+                                        variant="ghost" 
+                                        onClick={() => handleSort(column.accessorKey)} 
+                                        className="px-0 h-auto py-0 hover:bg-transparent font-bold text-muted-foreground hover:text-foreground"
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            {column.header}
+                                            {sortConfig?.key === column.accessorKey && (
+                                                sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                                            )}
+                                        </div>
+                                    </Button>
+                                </TableHead>
                             ))}
-                             {renderRowActions && <TableHead>إجراءات</TableHead>}
+                             {renderRowActions && <TableHead className="font-bold">إجراءات</TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {data.length > 0 ? (
-                            data.map((row, rowIndex) => (
-                                <TableRow key={(row as any).id ?? rowIndex}>
+                        {currentData.length > 0 ? (
+                            currentData.map((row, rowIndex) => (
+                                <TableRow key={(row as any).id ?? rowIndex} className="hover:bg-muted/5 transition-colors">
                                     {bulkActions && (
                                         <TableCell>
                                             <Checkbox
@@ -111,7 +180,7 @@ function DataTable<T extends { id: any }>({ data, columns, bulkActions, renderRo
                                         const value = getNestedValue(row, column.accessorKey);
                                         return (
                                             <TableCell key={column.accessorKey}>
-                                                {column.cell ? column.cell({ value }) : (value ?? 'N/A')}
+                                                {column.cell ? column.cell({ value, row }) : (value ?? '-')}
                                             </TableCell>
                                         );
                                     })}
@@ -126,7 +195,7 @@ function DataTable<T extends { id: any }>({ data, columns, bulkActions, renderRo
                             ))
                         ) : (
                              <TableRow>
-                                <TableCell colSpan={columns.length + (bulkActions ? 1 : 0) + (renderRowActions ? 1 : 0)} className="h-24 text-center">
+                                <TableCell colSpan={columns.length + (bulkActions ? 1 : 0) + (renderRowActions ? 1 : 0)} className="h-24 text-center text-muted-foreground">
                                     لا توجد بيانات لعرضها.
                                 </TableCell>
                             </TableRow>
@@ -134,6 +203,71 @@ function DataTable<T extends { id: any }>({ data, columns, bulkActions, renderRo
                     </TableBody>
                 </Table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>عرض</span>
+                        <select 
+                            value={rowsPerPage} 
+                            onChange={(e) => {
+                                setRowsPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="border rounded p-1 bg-white text-xs"
+                        >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                        </select>
+                        <span>في الصفحة</span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        <span className="text-sm text-muted-foreground ml-4">
+                            صفحة {currentPage} من {totalPages}
+                        </span>
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => setCurrentPage(1)} 
+                            disabled={currentPage === 1}
+                        >
+                            <ChevronsRight size={14} className="rtl:rotate-180" />
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                            disabled={currentPage === 1}
+                        >
+                            <ChevronRight size={14} className="rtl:rotate-180" />
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+                            disabled={currentPage === totalPages}
+                        >
+                            <ChevronLeft size={14} className="rtl:rotate-180" />
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => setCurrentPage(totalPages)} 
+                            disabled={currentPage === totalPages}
+                        >
+                            <ChevronsLeft size={14} className="rtl:rotate-180" />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

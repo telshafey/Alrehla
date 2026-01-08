@@ -13,8 +13,10 @@ import App from './App';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false,
-      retry: false,
+      refetchOnWindowFocus: false, // Don't fetch when window gains focus
+      retry: 1, // Only retry once on failure
+      staleTime: 1000 * 60 * 5, // Data is considered fresh for 5 minutes (Aggressive Caching)
+      gcTime: 1000 * 60 * 30, // Keep unused data in cache for 30 minutes
     },
   },
 });

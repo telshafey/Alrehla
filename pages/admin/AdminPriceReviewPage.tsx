@@ -5,13 +5,13 @@ import { useAdminCWSettings, useAdminPricingSettings } from '../../hooks/queries
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import { useToast } from '../../contexts/ToastContext';
 import PageLoader from '../../components/ui/PageLoader';
-import ErrorState from '../../components/ui/ErrorState';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Card } from '../../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { DollarSign, Package, Sparkles, Save, Info, Users, Calculator, TrendingUp } from 'lucide-react';
+import { Package, Sparkles, Save, Calculator } from 'lucide-react';
+import { calculateCustomerPrice, calculatePlatformMargin } from '../../utils/pricingCalculator';
 
 type EditableRates = {
     [instructorId: number]: {
@@ -21,8 +21,8 @@ type EditableRates = {
 }
 
 const AdminPriceReviewPage: React.FC = () => {
-    const { data: instructors = [], isLoading: instructorsLoading, error: instructorsError, refetch: refetchInstructors } = useAdminInstructors();
-    const { data: settings, isLoading: settingsLoading, error: settingsError } = useAdminCWSettings();
+    const { data: instructors = [], isLoading: instructorsLoading, refetch: refetchInstructors } = useAdminInstructors();
+    const { data: settings, isLoading: settingsLoading } = useAdminCWSettings();
     const { data: pricingConfig, isLoading: pricingLoading } = useAdminPricingSettings();
     const { updateInstructor } = useInstructorMutations();
     const { addToast } = useToast();
@@ -41,12 +41,6 @@ const AdminPriceReviewPage: React.FC = () => {
             setEditableRates(initialRates);
         }
     }, [instructors]);
-
-    const calculateCustomerPrice = (net: number | undefined) => {
-        if (net === undefined || isNaN(net) || net === 0) return 0;
-        if (!pricingConfig) return net;
-        return Math.ceil((net * pricingConfig.company_percentage) + pricingConfig.fixed_fee);
-    };
 
     const handleRateChange = (instructorId: number, type: 'service' | 'package', itemId: number, value: string) => {
         const rateKey = type === 'service' ? 'service_rates' : 'package_rates';
@@ -129,16 +123,16 @@ const AdminPriceReviewPage: React.FC = () => {
                                                 <p className="text-[9px] text-muted-foreground font-normal">الافتراضي: {pkg.price} ج.م</p>
                                             </TableCell>
                                             {instructors.map(inst => {
-                                                const net = editableRates[inst.id]?.package_rates?.[pkg.id] || pkg.price;
-                                                const customerPrice = calculateCustomerPrice(net);
-                                                const platformMargin = customerPrice - net;
+                                                const net = editableRates[inst.id]?.package_rates?.[pkg.id] ?? pkg.price;
+                                                const customerPrice = calculateCustomerPrice(net, pricingConfig);
+                                                const platformMargin = calculatePlatformMargin(customerPrice, net || 0);
                                                 return (
                                                     <TableCell key={inst.id} className="text-center p-4">
                                                         <div className="space-y-2">
                                                             <Input 
                                                                 type="number" 
                                                                 className="text-center h-8 font-bold"
-                                                                value={net} 
+                                                                value={net ?? ''} 
                                                                 onChange={e => handleRateChange(inst.id, 'package', pkg.id, e.target.value)}
                                                             />
                                                             <div className="flex justify-between items-center px-1">
@@ -157,7 +151,55 @@ const AdminPriceReviewPage: React.FC = () => {
                     </Card>
                 </TabsContent>
                 
-                {/* تبويب الخدمات يتبع نفس النمط مع Margin */}
+                <TabsContent value="services" className="mt-6">
+                    <Card className="overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead className="sticky right-0 bg-muted/80 z-20 w-[200px] border-l">الخدمة / المدرب</TableHead>
+                                        {instructors.map(inst => (
+                                            <TableHead key={inst.id} className="text-center min-w-[200px] p-4">
+                                                <span className="text-xs">{inst.name}</span>
+                                            </TableHead>
+                                        ))}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {instructorServices.map((service: any) => (
+                                        <TableRow key={service.id}>
+                                            <TableCell className="font-bold sticky right-0 bg-white z-10 border-l shadow-sm">
+                                                {service.name}
+                                                <p className="text-[9px] text-muted-foreground font-normal">الافتراضي: {service.price} ج.م</p>
+                                            </TableCell>
+                                            {instructors.map(inst => {
+                                                const net = editableRates[inst.id]?.service_rates?.[service.id] ?? service.price;
+                                                const customerPrice = calculateCustomerPrice(net, pricingConfig);
+                                                const platformMargin = calculatePlatformMargin(customerPrice, net || 0);
+                                                return (
+                                                    <TableCell key={inst.id} className="text-center p-4">
+                                                        <div className="space-y-2">
+                                                            <Input 
+                                                                type="number" 
+                                                                className="text-center h-8 font-bold"
+                                                                value={net ?? ''} 
+                                                                onChange={e => handleRateChange(inst.id, 'service', service.id, e.target.value)}
+                                                            />
+                                                            <div className="flex justify-between items-center px-1">
+                                                                <div className="text-[10px] text-green-600 font-bold">للعميل: {customerPrice}</div>
+                                                                <div className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 rounded">ربحك: {platformMargin}</div>
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+                                                )
+                                            })}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </Card>
+                </TabsContent>
             </Tabs>
         </div>
     );

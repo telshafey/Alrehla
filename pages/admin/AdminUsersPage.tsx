@@ -3,17 +3,15 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations, type UserWithParent } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import { Users, Plus, Edit, Trash2, Search, Briefcase, GraduationCap, Shield, User, ArrowRight, RefreshCw, Link as LinkIcon, Heart, UserCog, UserCheck } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Briefcase, Shield, Link as LinkIcon, RefreshCw } from 'lucide-react';
 import { roleNames, STAFF_ROLES, CUSTOMER_ROLES } from '../../lib/roles';
 import { Button } from '../../components/ui/Button';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
-import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 import { Input } from '../../components/ui/Input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 import LinkStudentModal from '../../components/admin/LinkStudentModal';
-import Dropdown from '../../components/ui/Dropdown';
+import DataTable from '../../components/admin/ui/DataTable';
 
 const AdminUsersPage: React.FC = () => {
     const navigate = useNavigate();
@@ -23,58 +21,30 @@ const AdminUsersPage: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState<'staff' | 'customers'>('customers');
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
     
     const [linkModalOpen, setLinkModalOpen] = useState(false);
     const [selectedUserForLink, setSelectedUserForLink] = useState<UserWithParent | null>(null);
 
-    const isLoading = usersLoading || childrenLoading;
     const error = usersError || childrenError;
 
     const enrichedUsers = useMemo(() => {
-        if (isLoading || error) return [];
+        if (usersLoading || childrenLoading || error) return [];
         return transformUsersWithRelations(users, children);
-    }, [users, children, isLoading, error]);
+    }, [users, children, usersLoading, childrenLoading, error]);
 
-    const { staffUsers, customerUsers } = useMemo(() => {
-        const staff = enrichedUsers.filter(u => STAFF_ROLES.includes(u.role));
-        const customers = enrichedUsers.filter(u => CUSTOMER_ROLES.includes(u.role));
-        return { staffUsers: staff, customerUsers: customers };
-    }, [enrichedUsers]);
-
-    const filteredAndSortedUsers = useMemo(() => {
-        let data = activeTab === 'staff' ? [...staffUsers] : [...customerUsers];
-
-        if (searchTerm) {
-            const lowerTerm = searchTerm.toLowerCase();
-            data = data.filter(user => 
-                user.name.toLowerCase().includes(lowerTerm) || 
-                user.email.toLowerCase().includes(lowerTerm)
-            );
-        }
-
-        if (sortConfig) {
-            data.sort((a, b) => {
-                const aVal = (a as any)[sortConfig.key] ?? '';
-                const bVal = (b as any)[sortConfig.key] ?? '';
-                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
-        }
-        return data;
-    }, [staffUsers, customerUsers, activeTab, searchTerm, sortConfig]);
-
-    const handleSort = (key: string) => {
-        let direction: 'asc' | 'desc' = 'asc';
-        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
-        }
-        setSortConfig({ key, direction });
-    };
+    const filteredUsers = useMemo(() => {
+        const roleFilter = activeTab === 'staff' ? STAFF_ROLES : CUSTOMER_ROLES;
+        return enrichedUsers.filter(user => {
+            const matchesRole = roleFilter.includes(user.role);
+            const matchesSearch = searchTerm === '' || 
+                user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                user.email.toLowerCase().includes(searchTerm.toLowerCase());
+            return matchesRole && matchesSearch;
+        });
+    }, [enrichedUsers, activeTab, searchTerm]);
 
     const handleDelete = (userId: string, name: string) => {
-        if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟ سيتم حذف كافة بياناته المرتبطة ولن يتمكن من الدخول ثانية.`)) {
+        if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟ سيتم حذف كافة البيانات المرتبطة ولن يتمكن من الدخول ثانية.`)) {
             bulkDeleteUsers.mutate({ userIds: [userId] });
         }
     };
@@ -107,75 +77,86 @@ const AdminUsersPage: React.FC = () => {
                             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                             <Input 
                                 placeholder="بحث بالاسم أو البريد الإلكتروني..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                value={searchTerm} 
+                                onChange={(e) => setSearchTerm(e.target.value)} 
                                 className="pr-10"
                             />
                         </div>
 
                         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'staff' | 'customers')}>
                             <TabsList className="w-full justify-start bg-muted/50 p-1">
-                                <TabsTrigger value="customers" className="gap-2"><Briefcase size={16}/> العملاء والطلاب ({customerUsers.length})</TabsTrigger>
-                                <TabsTrigger value="staff" className="gap-2"><Shield size={16}/> الموظفون والمدربون ({staffUsers.length})</TabsTrigger>
+                                <TabsTrigger value="customers" className="gap-2"><Briefcase size={16}/> العملاء والطلاب</TabsTrigger>
+                                <TabsTrigger value="staff" className="gap-2"><Shield size={16}/> الموظفون والمدربون</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value={activeTab}>
-                                <div className="overflow-x-auto border rounded-lg">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="bg-muted/20">
-                                                <SortableTableHead sortKey="name" label="الاسم" sortConfig={sortConfig} onSort={handleSort} />
-                                                <SortableTableHead sortKey="email" label="البريد" sortConfig={sortConfig} onSort={handleSort} />
-                                                <SortableTableHead sortKey="role" label="الدور / الرتبة" sortConfig={sortConfig} onSort={handleSort} />
-                                                <TableHead className="text-center">الحالة / الربط</TableHead>
-                                                <TableHead>إجراءات</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredAndSortedUsers.length > 0 ? (
-                                                filteredAndSortedUsers.map((user) => (
-                                                    <TableRow key={user.id}>
-                                                        <TableCell className="font-medium">
-                                                            <div>{user.name}</div>
-                                                            {user.parentName && (
-                                                                <div className="flex items-center gap-1 text-[9px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-blue-100">
-                                                                    <LinkIcon size={10} />
-                                                                    <span>تابع لـ: {user.parentName}</span>
-                                                                </div>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell className="text-xs font-mono">{user.email}</TableCell>
-                                                        <TableCell>
-                                                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                                                                user.role === 'student' ? 'bg-blue-100 text-blue-800' : 
-                                                                user.role === 'parent' ? 'bg-green-100 text-green-800' :
-                                                                user.role === 'instructor' ? 'bg-orange-100 text-orange-800' :
-                                                                user.role === 'user' ? 'bg-gray-100 text-gray-800' : 'bg-purple-100 text-purple-800'
-                                                            }`}>
-                                                                {roleNames[user.role]}
-                                                            </span>
-                                                        </TableCell>
-                                                        <TableCell className="text-center">
-                                                            {user.role === 'student' ? (
-                                                                <span className="text-[10px] text-muted-foreground italic">حساب دخول طالب</span>
-                                                            ) : (
-                                                                <span className="text-[10px] font-bold text-gray-400">{user.totalChildrenCount} ملفات أطفال</span>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <div className="flex items-center gap-1">
-                                                                <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}`)} title="تعديل"><Edit size={18} /></Button>
-                                                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(user.id, user.name)} title="حذف"><Trash2 size={18} /></Button>
-                                                            </div>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))
+                                <DataTable<UserWithParent>
+                                    data={filteredUsers}
+                                    columns={[
+                                        {
+                                            accessorKey: 'name',
+                                            header: 'الاسم',
+                                            cell: ({ row }) => (
+                                                <div>
+                                                    <div className="font-medium">{row.name}</div>
+                                                    {row.parentName && (
+                                                        <div className="flex items-center gap-1 text-[9px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-blue-100">
+                                                            <LinkIcon size={10} />
+                                                            <span>تابع لـ: {row.parentName}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )
+                                        },
+                                        {
+                                            accessorKey: 'email',
+                                            header: 'البريد الإلكتروني',
+                                            cell: ({ value }) => <span className="text-xs font-mono">{value}</span>
+                                        },
+                                        {
+                                            accessorKey: 'role',
+                                            header: 'الرتبة',
+                                            cell: ({ value }) => (
+                                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                                    value === 'student' ? 'bg-blue-100 text-blue-800' : 
+                                                    value === 'parent' ? 'bg-green-100 text-green-800' :
+                                                    value === 'instructor' ? 'bg-orange-100 text-orange-800' :
+                                                    value === 'user' ? 'bg-gray-100 text-gray-800' : 'bg-purple-100 text-purple-800'
+                                                }`}>
+                                                    {roleNames[value as keyof typeof roleNames]}
+                                                </span>
+                                            )
+                                        },
+                                        {
+                                            accessorKey: 'totalChildrenCount',
+                                            header: 'الملفات / الحالة',
+                                            cell: ({ row }) => row.role === 'student' ? (
+                                                <span className="text-[10px] text-muted-foreground italic">حساب طالب</span>
                                             ) : (
-                                                <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">لا توجد بيانات تطابق بحثك.</TableCell></TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </div>
+                                                <span className="text-[10px] font-bold text-gray-400">{row.totalChildrenCount} ملفات أطفال</span>
+                                            )
+                                        }
+                                    ]}
+                                    renderRowActions={(user) => (
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}`)} title="تعديل"><Edit size={18} /></Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(user.id, user.name)} title="حذف"><Trash2 size={18} /></Button>
+                                        </div>
+                                    )}
+                                    bulkActions={[
+                                        {
+                                            label: 'حذف المحدد',
+                                            action: (selected) => {
+                                                if (window.confirm(`هل أنت متأكد من حذف ${selected.length} مستخدمين؟`)) {
+                                                    bulkDeleteUsers.mutate({ userIds: selected.map(u => u.id) });
+                                                }
+                                            },
+                                            isDestructive: true
+                                        }
+                                    ]}
+                                    pageSize={10}
+                                    initialSort={{ key: 'created_at', direction: 'desc' }}
+                                />
                             </TabsContent>
                         </Tabs>
                     </div>

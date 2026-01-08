@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import type { StandaloneService } from '../../lib/database.types';
@@ -12,7 +13,7 @@ import { IconMap } from '../creative-writing/services/IconMap';
 interface ServiceSettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (payload: any) => void;
+    onSave: (payload: Partial<StandaloneService>) => void;
     isSaving: boolean;
     serviceToEdit: StandaloneService | null;
 }
@@ -32,7 +33,7 @@ export const ServiceSettingsModal: React.FC<ServiceSettingsModalProps> = ({ isOp
                 setName(serviceToEdit.name);
                 setPrice(serviceToEdit.price.toString());
                 setDescription(serviceToEdit.description);
-                setCategory(serviceToEdit.category);
+                setCategory(serviceToEdit.category as any);
                 setIconName(serviceToEdit.icon_name);
                 setRequiresFileUpload(serviceToEdit.requires_file_upload);
                 setProviderType(serviceToEdit.provider_type || 'instructor');
@@ -50,10 +51,10 @@ export const ServiceSettingsModal: React.FC<ServiceSettingsModalProps> = ({ isOp
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const payload = {
+        const payload: Partial<StandaloneService> = {
             id: serviceToEdit?.id,
             name,
-            price: parseFloat(price),
+            price: parseFloat(price) || 0,
             description,
             category,
             icon_name: iconName,

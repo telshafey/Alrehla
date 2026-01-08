@@ -11,16 +11,34 @@ import type {
     StandaloneService,
     SessionAttachment,
     ComparisonItem,
-    SessionMessage
+    WeeklySchedule,
+    AvailableSlots
 } from '../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
+
+// Types for Mutations
+interface CreateBookingPayload {
+    child: { id: number; name: string };
+    package: { name: string };
+    instructor: { id: number };
+    dateTime: { date: Date; time: string };
+    total: number;
+}
+
+interface CreateInstructorPayload {
+    name: string;
+    specialty: string;
+    slug: string;
+    bio: string;
+    avatarFile?: File | null;
+    avatar_url?: string | null;
+    [key: string]: any;
+}
 
 // دالة مساعدة لاستخراج عدد الجلسات بشكل صحيح من النص
 const parseSessionCount = (sessionString: string | undefined): number => {
     if (!sessionString) return 1;
-    // إذا كان النص يحتوي على كلمة "واحدة" فالعدد 1
     if (sessionString.includes('واحدة')) return 1;
-    // البحث عن الرقم في بداية النص (مثل "4 جلسات")
     const match = sessionString.match(/^(\d+)/);
     return match ? parseInt(match[1], 10) : 1;
 };
@@ -84,7 +102,7 @@ export const bookingService = {
 
     // --- Mutations ---
 
-    async createBooking(payload: { userId: string, payload: any, receiptUrl: string }) {
+    async createBooking(payload: { userId: string, payload: CreateBookingPayload, receiptUrl: string }) {
         const { userId, payload: bookingData, receiptUrl } = payload;
         const bookingId = `BK-${Date.now().toString().slice(-6)}`;
         
@@ -201,7 +219,7 @@ export const bookingService = {
         return { success: true };
     },
 
-    async createInstructor(payload: any) {
+    async createInstructor(payload: CreateInstructorPayload) {
         let avatarUrl = null;
         if (payload.avatarFile) {
             avatarUrl = await cloudinaryService.uploadImage(payload.avatarFile, 'alrehla_instructors');
@@ -212,12 +230,14 @@ export const bookingService = {
         return data as Instructor;
     },
 
-    async updateInstructor(payload: any) {
+    async updateInstructor(payload: Partial<Instructor> & { avatarFile?: File | null }) {
         let avatarUrl = payload.avatar_url;
         if (payload.avatarFile) {
             avatarUrl = await cloudinaryService.uploadImage(payload.avatarFile, 'alrehla_instructors');
         }
         const { id, avatarFile, ...updates } = payload;
+        if (!id) throw new Error("Instructor ID is required for update");
+        
         const { data, error } = await supabase.from('instructors').update({ ...updates, avatar_url: avatarUrl }).eq('id', id).select().single();
         if (error) throw error;
         return data as Instructor;
@@ -229,13 +249,14 @@ export const bookingService = {
         return { success: true };
     },
 
-    async createPackage(payload: any) {
+    async createPackage(payload: Partial<CreativeWritingPackage>) {
         const { data, error } = await supabase.from('creative_writing_packages').insert([payload]).select().single();
         if (error) throw error;
         return data as CreativeWritingPackage;
     },
-    async updatePackage(payload: any) {
+    async updatePackage(payload: Partial<CreativeWritingPackage>) {
         const { id, ...updates } = payload;
+        if (!id) throw new Error("ID required");
         const { data, error } = await supabase.from('creative_writing_packages').update(updates).eq('id', id).select().single();
         if (error) throw error;
         return data as CreativeWritingPackage;
@@ -246,13 +267,14 @@ export const bookingService = {
         return { success: true };
     },
 
-    async createStandaloneService(payload: any) {
+    async createStandaloneService(payload: Partial<StandaloneService>) {
         const { data, error } = await supabase.from('standalone_services').insert([payload]).select().single();
         if (error) throw error;
         return data as StandaloneService;
     },
-    async updateStandaloneService(payload: any) {
+    async updateStandaloneService(payload: Partial<StandaloneService>) {
         const { id, ...updates } = payload;
+        if (!id) throw new Error("ID required");
         const { data, error } = await supabase.from('standalone_services').update(updates).eq('id', id).select().single();
         if (error) throw error;
         return data as StandaloneService;
@@ -263,13 +285,14 @@ export const bookingService = {
         return { success: true };
     },
 
-    async createComparisonItem(payload: any) {
+    async createComparisonItem(payload: Partial<ComparisonItem>) {
         const { data, error } = await supabase.from('comparison_items').insert([payload]).select().single();
         if (error) throw error;
         return data as ComparisonItem;
     },
-    async updateComparisonItem(payload: any) {
+    async updateComparisonItem(payload: Partial<ComparisonItem>) {
         const { id, ...updates } = payload;
+        if (!id) throw new Error("ID required");
         const { data, error } = await supabase.from('comparison_items').update(updates).eq('id', id).select().single();
         if (error) throw error;
         return data as ComparisonItem;

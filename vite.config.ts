@@ -12,11 +12,10 @@ export default defineConfig({
     rollupOptions: {
         output: {
             manualChunks: {
-                vendor: ['react', 'react-dom', 'react-router-dom'],
-                // Removed @radix-ui/react-slot, clsx, tailwind-merge as they caused build errors
-                ui: ['lucide-react'], 
-                // Removed date-fns as it is not explicitly used/installed
-                utils: ['@tanstack/react-query', 'zod', 'react-hook-form'] 
+                'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+                'vendor-ui': ['lucide-react', 'framer-motion'], 
+                'vendor-utils': ['@tanstack/react-query', 'zod', 'react-hook-form', 'uuid'],
+                'vendor-supabase': ['@supabase/supabase-js']
             }
         }
     }

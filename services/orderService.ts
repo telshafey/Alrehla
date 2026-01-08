@@ -11,6 +11,53 @@ import type {
     OrderStatus 
 } from '../lib/database.types';
 
+// --- Type Definitions ---
+interface CreateOrderPayload {
+    userId: string;
+    childId: number | null;
+    summary: string;
+    total: number;
+    productKey: string;
+    details: Record<string, any>;
+    receiptUrl?: string;
+}
+
+interface CreateServiceOrderPayload {
+    userId: string;
+    childId: number;
+    total: number;
+    receiptUrl?: string;
+    details: {
+        serviceId: number;
+        serviceName: string;
+        userNotes?: string;
+        fileName?: string;
+        assigned_instructor_id?: number | null;
+        [key: string]: any;
+    };
+}
+
+interface CreateSubscriptionPayload {
+    userId: string;
+    childId: number;
+    planId: number;
+    planName: string;
+    durationMonths: number;
+    total: number;
+    shippingCost?: number;
+    receiptUrl?: string;
+}
+
+interface CreateProductPayload {
+    key: string;
+    title: string;
+    description: string;
+    features: string[];
+    price_printed: number | null;
+    price_electronic: number | null;
+    [key: string]: any;
+}
+
 export const orderService = {
     // --- Queries ---
     async getAllOrders() {
@@ -62,9 +109,8 @@ export const orderService = {
     },
 
     // --- Mutations ---
-    async createOrder(payload: any) {
+    async createOrder(payload: CreateOrderPayload) {
         const orderId = `ORD-${Date.now().toString().slice(-6)}`;
-        const safeDetails = payload.details || {};
         const initialStatus: OrderStatus = payload.receiptUrl ? 'بانتظار المراجعة' : 'بانتظار الدفع';
         
         const { data, error } = await supabase
@@ -72,11 +118,11 @@ export const orderService = {
             .insert([{
                 id: orderId,
                 user_id: payload.userId,
-                child_id: payload.childId || null, 
+                child_id: payload.childId, 
                 item_summary: payload.summary,
                 total: payload.total,
                 status: initialStatus,
-                details: safeDetails,
+                details: payload.details,
                 receipt_url: payload.receiptUrl || null,
                 order_date: new Date().toISOString()
             }])
@@ -86,7 +132,7 @@ export const orderService = {
         return data as Order;
     },
 
-    async createServiceOrder(payload: any) {
+    async createServiceOrder(payload: CreateServiceOrderPayload) {
         const orderId = `SRV-${Date.now().toString().slice(-6)}`;
         const initialStatus: OrderStatus = payload.receiptUrl ? 'بانتظار المراجعة' : 'بانتظار الدفع';
         
@@ -145,7 +191,7 @@ export const orderService = {
         return { receiptUrl: publicUrl };
     },
 
-    async createSubscription(payload: any) {
+    async createSubscription(payload: CreateSubscriptionPayload) {
         const subId = `SUB-${Date.now().toString().slice(-6)}`;
         const startDate = new Date();
         const renewalDate = new Date(startDate);
@@ -208,7 +254,7 @@ export const orderService = {
         return { success: true };
     },
 
-    async createSubscriptionPlan(payload: any) {
+    async createSubscriptionPlan(payload: Partial<SubscriptionPlan>) {
         const { data, error } = await supabase.from('subscription_plans').insert([payload]).select().single();
         if (error) throw new Error(error.message);
         
@@ -216,8 +262,9 @@ export const orderService = {
         return data as SubscriptionPlan;
     },
 
-    async updateSubscriptionPlan(payload: any) {
+    async updateSubscriptionPlan(payload: Partial<SubscriptionPlan>) {
         const { id, ...updates } = payload;
+        if (!id) throw new Error("Plan ID is required");
         const { data, error } = await supabase.from('subscription_plans').update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
         
@@ -233,7 +280,7 @@ export const orderService = {
         return { success: true };
     },
 
-    async createPersonalizedProduct(payload: any) {
+    async createPersonalizedProduct(payload: CreateProductPayload) {
         const { data, error } = await supabase.from('personalized_products').insert([payload]).select().single();
         if (error) throw new Error(error.message);
         
@@ -241,8 +288,9 @@ export const orderService = {
         return data as PersonalizedProduct;
     },
 
-    async updatePersonalizedProduct(payload: any) {
+    async updatePersonalizedProduct(payload: Partial<PersonalizedProduct>) {
         const { id, ...updates } = payload;
+        if (!id) throw new Error("Product ID is required");
         const { data, error } = await supabase.from('personalized_products').update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
         

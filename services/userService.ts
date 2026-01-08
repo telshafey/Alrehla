@@ -4,36 +4,55 @@ import { reportingService } from './reportingService';
 import type { UserProfile, ChildProfile, UserRole } from '../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
 
+interface CreateUserPayload {
+    name: string;
+    email: string;
+    role: UserRole;
+    phone?: string;
+    address?: string;
+    password?: string; // Only used for registration
+}
+
+interface UpdateUserPayload {
+    id: string;
+    name?: string;
+    role?: UserRole;
+    phone?: string;
+    address?: string;
+    governorate?: string;
+}
+
 export const userService = {
     async getAllUsers() {
         const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
         return (data || []) as UserProfile[];
     },
 
-    // دالة للتحقق من وجود البريد الإلكتروني مسبقاً
+    // دالة للتحقق من وجود البريد الإلكتروني مسبقاً لضمان التفرد
     async isEmailTaken(email: string): Promise<boolean> {
+        const normalizedEmail = email.toLowerCase().trim();
         const { data } = await supabase
             .from('profiles')
             .select('id')
-            .eq('email', email.toLowerCase().trim())
+            .eq('email', normalizedEmail)
             .maybeSingle();
         
         return !!data;
     },
 
-    async createUser(payload: any) {
+    async createUser(payload: CreateUserPayload) {
         const { name, email, role, phone, address } = payload;
         const normalizedEmail = email.toLowerCase().trim();
 
         // فحص التفرد قبل البدء
-        const taken = await this.isEmailTaken(normalizedEmail);
+        const taken = await userService.isEmailTaken(normalizedEmail);
         if (taken) {
             throw new Error(`البريد الإلكتروني ${normalizedEmail} مسجل بالفعل لمستخدم آخر.`);
         }
 
         const userId = uuidv4();
 
-        // 1. إنشاء الملف الشخصي في قاعدة البيانات
+        // 1. إنشاء الملف الشخصي
         const { data: profile, error: pError } = await supabase
             .from('profiles')
             .insert([{
@@ -50,7 +69,7 @@ export const userService = {
 
         if (pError) throw new Error(`فشل إنشاء ملف المستخدم: ${pError.message}`);
 
-        // 2. معالجة حساب المدرب إذا كان الدور مدرباً
+        // 2. معالجة حساب المدرب
         if (role === 'instructor') {
             const slug = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(Math.random() * 1000);
             await supabase.from('instructors').insert([{
@@ -72,13 +91,13 @@ export const userService = {
     async createAndLinkStudentAccount(payload: { name: string, email: string, password?: string, childProfileId: number }) {
         const normalizedEmail = payload.email.toLowerCase().trim();
 
-        // فحص التفرد
-        const taken = await this.isEmailTaken(normalizedEmail);
+        // فحص التفرد - التأكد أن البريد غير مستخدم نهائياً
+        const taken = await userService.isEmailTaken(normalizedEmail);
         if (taken) {
             throw new Error(`بريد الطالب ${normalizedEmail} مستخدم بالفعل في حساب آخر.`);
         }
 
-        // التأكد من أن ملف الطفل غير مرتبط بحساب آخر
+        // التأكد من أن ملف الطفل غير مرتبط بحساب آخر لتجنب تضارب البيانات
         const { data: child } = await supabase
             .from('child_profiles')
             .select('student_user_id, name')
@@ -91,7 +110,7 @@ export const userService = {
 
         const newStudentId = uuidv4();
 
-        // 1. إنشاء حساب الطالب في profiles
+        // 1. إنشاء حساب الطالب في profiles بالبريد الفريد
         const { error: profileError } = await supabase
             .from('profiles')
             .insert([{
@@ -104,7 +123,7 @@ export const userService = {
 
         if (profileError) throw new Error(`فشل إنشاء حساب الطالب: ${profileError.message}`);
 
-        // 2. تحديث جدول الأطفال للربط
+        // 2. تحديث ملف الطفل لربطه بالحساب الجديد (العلاقة: ولي أمر -> طفل -> طالب)
         const { error: linkError } = await supabase
             .from('child_profiles')
             .update({ student_user_id: newStudentId })
@@ -148,7 +167,7 @@ export const userService = {
         return { success: true };
     },
 
-    async createChildProfile(payload: any) {
+    async createChildProfile(payload: Partial<ChildProfile>) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("جلسة غير صالحة");
         const { data, error } = await supabase.from('child_profiles').insert([{ ...payload, user_id: user.id }]).select().single();
@@ -156,7 +175,7 @@ export const userService = {
         return data as ChildProfile;
     },
 
-    async updateChildProfile(payload: any) {
+    async updateChildProfile(payload: Partial<ChildProfile> & { id: number }) {
         const { id, ...updates } = payload;
         const { data, error } = await supabase.from('child_profiles').update(updates).eq('id', id).select().single();
         if (error) throw error;
@@ -168,10 +187,9 @@ export const userService = {
         return (data || []) as ChildProfile[];
     },
 
-    async updateUser(payload: { id: string; [key: string]: any }) {
+    async updateUser(payload: UpdateUserPayload) {
         const { id, ...updates } = payload;
 
-        // منع تغيير رتبة ولي الأمر إذا كان لديه أطفال مرتبطين
         if (updates.role && updates.role !== 'parent' && updates.role !== 'user') {
             const { count } = await supabase.from('child_profiles').select('*', { count: 'exact', head: true }).eq('user_id', id);
             if (count && count > 0) {
@@ -187,7 +205,9 @@ export const userService = {
     },
 
     async updateUserPassword(payload: { userId: string, newPassword: string }) {
-        // في بيئة Supabase الحقيقية يتم هذا عبر Auth API وليس جدول profiles
+        // In a real app, this would use supabase admin auth to set password
+        // Since we are mocking the backend logic somewhat, we'll just return success
+        // In Supabase client side, you can only update your OWN password.
         return { success: true };
     },
 

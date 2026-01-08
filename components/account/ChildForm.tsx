@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, ArrowLeft } from 'lucide-react';
+import { Save, Image as ImageIcon, ArrowLeft, Loader2 } from 'lucide-react';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import type { ChildProfile } from '../../lib/database.types';
 import { Button } from '../ui/Button';
@@ -9,6 +9,7 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
 import Image from '../ui/Image';
+import { cloudinaryService } from '../../services/cloudinaryService';
 
 interface ChildFormProps {
     childToEdit: ChildProfile | null;
@@ -18,7 +19,6 @@ interface ChildFormProps {
 
 const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess }) => {
     const { createChildProfile, updateChildProfile } = useUserMutations();
-    const isSaving = createChildProfile.isPending || updateChildProfile.isPending;
     const today = new Date().toISOString().split('T')[0];
     
     const [name, setName] = useState('');
@@ -28,6 +28,7 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
     const [preview, setPreview] = useState<string | null>(null);
     const [interests, setInterests] = useState('');
     const [strengths, setStrengths] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         if (childToEdit) {
@@ -52,14 +53,21 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsUploading(true);
+
         try {
             const interestsArray = interests.split(',').map(s => s.trim()).filter(Boolean);
             const strengthsArray = strengths.split(',').map(s => s.trim()).filter(Boolean);
 
             let newAvatarUrl = childToEdit?.avatar_url || null;
+            
             if (avatarFile) {
-                // In a real app, integrate with cloudinaryService here
-                newAvatarUrl = 'https://i.ibb.co/2S4xT8w/male-avatar.png';
+                try {
+                    newAvatarUrl = await cloudinaryService.uploadImage(avatarFile, 'alrehla_child_profiles');
+                } catch (uploadError) {
+                    console.error("Image upload failed", uploadError);
+                    alert("فشل رفع الصورة، سيتم الحفظ بدون تغيير الصورة.");
+                }
             }
             
             const profileData = {
@@ -79,8 +87,12 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
             onSuccess();
         } catch (error) {
             console.error("Failed to save child profile", error);
+        } finally {
+            setIsUploading(false);
         }
     };
+
+    const isSaving = createChildProfile.isPending || updateChildProfile.isPending || isUploading;
 
     return (
         <div className="animate-fadeIn">
@@ -100,24 +112,31 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
 
             <form id="child-profile-form" onSubmit={handleSubmit} className="space-y-8 max-w-2xl mx-auto">
                 <div className="flex flex-col items-center gap-4 p-6 border-2 border-dashed rounded-xl bg-gray-50">
-                    <Image src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-24 h-24 rounded-full" />
-                    <input type="file" id="avatar-upload" onChange={handleFileChange} accept="image/*" className="hidden"/>
-                    <label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 text-sm font-semibold text-blue-600 bg-white border border-blue-100 hover:bg-blue-50 px-4 py-2 rounded-full shadow-sm transition-colors">
+                    <div className="relative">
+                        <Image src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-24 h-24 rounded-full" />
+                        {isUploading && (
+                            <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-full">
+                                <Loader2 className="animate-spin text-primary" size={24}/>
+                            </div>
+                        )}
+                    </div>
+                    <input type="file" id="avatar-upload" onChange={handleFileChange} accept="image/*" className="hidden" disabled={isSaving}/>
+                    <label htmlFor="avatar-upload" className={`cursor-pointer flex items-center gap-2 text-sm font-semibold text-blue-600 bg-white border border-blue-100 hover:bg-blue-50 px-4 py-2 rounded-full shadow-sm transition-colors ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
                         <ImageIcon size={16} /> <span>{preview ? 'تغيير الصورة' : 'رفع صورة رمزية'}</span>
                     </label>
                 </div>
 
                 <div className="space-y-6">
                     <FormField label="اسم الطفل*" htmlFor="name">
-                        <Input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="الاسم الأول والأخير" />
+                        <Input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="الاسم الأول والأخير" disabled={isSaving} />
                     </FormField>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField label="تاريخ الميلاد*" htmlFor="birthDate">
-                            <Input type="date" id="birthDate" value={birthDate} max={today} onChange={(e) => setBirthDate(e.target.value)} required />
+                            <Input type="date" id="birthDate" value={birthDate} max={today} onChange={(e) => setBirthDate(e.target.value)} required disabled={isSaving} />
                         </FormField>
                         <FormField label="الجنس*" htmlFor="gender">
-                            <Select id="gender" value={gender} onChange={(e) => setGender(e.target.value as 'ذكر' | 'أنثى' | '')} required>
+                            <Select id="gender" value={gender} onChange={(e) => setGender(e.target.value as 'ذكر' | 'أنثى' | '')} required disabled={isSaving}>
                                 <option value="" disabled>-- اختر الجنس --</option>
                                 <option value="ذكر">ذكر</option>
                                 <option value="أنثى">أنثى</option>
@@ -126,12 +145,12 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
                     </div>
                     
                     <FormField label="اهتمامات الطفل (اختياري)" htmlFor="interests">
-                        <Textarea id="interests" value={interests} onChange={(e) => setInterests(e.target.value)} rows={3} placeholder="مثال: الديناصورات، الرسم، كرة القدم"/>
+                        <Textarea id="interests" value={interests} onChange={(e) => setInterests(e.target.value)} rows={3} placeholder="مثال: الديناصورات، الرسم، كرة القدم" disabled={isSaving}/>
                         <p className="text-xs text-gray-500 mt-1">افصل بين كل اهتمام بفاصلة (,)</p>
                     </FormField>
                     
                     <FormField label="نقاط قوة الطفل (اختياري)" htmlFor="strengths">
-                        <Textarea id="strengths" value={strengths} onChange={(e) => setStrengths(e.target.value)} rows={3} placeholder="مثال: شجاع، خياله واسع، يحب مساعدة الآخرين"/>
+                        <Textarea id="strengths" value={strengths} onChange={(e) => setStrengths(e.target.value)} rows={3} placeholder="مثال: شجاع، خياله واسع، يحب مساعدة الآخرين" disabled={isSaving}/>
                         <p className="text-xs text-gray-500 mt-1">افصل بين كل نقطة قوة بفاصلة (,)</p>
                     </FormField>
                 </div>
@@ -141,7 +160,7 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
                         إلغاء
                     </Button>
                     <Button type="submit" loading={isSaving} icon={<Save size={18} />} className="w-32">
-                        حفظ
+                        {isUploading ? 'جاري الرفع...' : 'حفظ'}
                     </Button>
                 </div>
             </form>

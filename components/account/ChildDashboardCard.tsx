@@ -19,7 +19,7 @@ interface ChildDashboardCardProps {
     allBadges: Badge[];
     childBadges: ChildBadge[];
     onEdit: (child: EnrichedChildProfile) => void;
-    onDelete: (childId: number) => void; // Kept in prop type for compatibility but not used in UI
+    onDelete: (childId: number) => void;
     onCreateStudentAccount: (child: EnrichedChildProfile) => void;
     onResetPassword: (child: EnrichedChildProfile) => void;
 }
@@ -72,15 +72,14 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
                         </div>
                         <div className="flex gap-1">
                             <Button variant="ghost" size="icon" onClick={() => onEdit(child)} aria-label={`تعديل ${child.name}`}><Edit size={18} /></Button>
-                            {/* Delete button removed as requested */}
                         </div>
                     </div>
                     
-                    {/* Student Account Status / Credentials */}
+                    {/* حساب الطالب والبريد الإلكتروني المخصص */}
                     <div className="mt-2 p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
                         {child.student_user_id ? (
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-green-500"></span>
                                         <span className="text-xs font-bold text-green-700">حساب طالب نشط</span>
@@ -89,22 +88,18 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
                                         تغيير كلمة المرور
                                     </Button>
                                 </div>
-                                <div className="text-sm text-gray-600 space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <Mail size={14} className="text-gray-400"/>
-                                        <span className="font-mono text-xs">{child.student_email || 'البريد غير متاح'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                                        <Lock size={14}/>
-                                        <span>كلمة المرور: (مخفية)</span>
+                                <div className="text-sm bg-muted/30 p-2 rounded border border-dashed">
+                                    <div className="flex items-center gap-2 text-gray-700 font-mono text-xs">
+                                        <Mail size={14} className="text-primary"/>
+                                        <span>{child.student_email || 'البريد قيد التحديث...'}</span>
                                     </div>
                                 </div>
                             </div>
                         ) : (
                             <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">لا يوجد حساب طالب</span>
+                                <span className="text-xs text-muted-foreground italic">لا يوجد حساب دخول لهذا الطفل بعد</span>
                                 <Button variant="outline" size="sm" onClick={() => onCreateStudentAccount(child)} icon={<UserPlus size={14} />} className="h-8 text-xs">
-                                    إنشاء حساب
+                                    إنشاء حساب طالب
                                 </Button>
                             </div>
                         )}
@@ -154,16 +149,6 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
                             </Link>
                          )) : <p className="text-sm text-center text-gray-500 py-4">لا توجد أنشطة مسجلة لهذا الطفل بعد.</p>}
                     </div>
-                    {earnedBadges.length > 0 && (
-                        <div className="mt-4 pt-4 border-t">
-                            <h4 className="font-bold text-gray-700 mb-2">أحدث الإنجازات</h4>
-                            <div className="flex gap-4 overflow-x-auto pb-2">
-                                {earnedBadges.slice(0, 3).map(badge => (
-                                    <BadgeDisplay key={badge.id} badge={badge} size="lg" />
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
