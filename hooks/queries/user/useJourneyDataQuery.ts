@@ -42,10 +42,10 @@ export const useStudentDashboardData = () => {
             return {
                 parentName,
                 isUnlinked: false,
-                journeys: bookingsRes.data?.map(b => ({ ...b, instructor_name: (b as any).instructors?.name })) || [],
+                journeys: (bookingsRes.data || []).map((b: any) => ({ ...b, instructor_name: b.instructors?.name })),
                 orders: ordersRes.data || [],
                 subscriptions: subsRes.data || [],
-                badges: badgesRes.data?.map((cb: any) => cb.badges).filter(Boolean) || [],
+                badges: (badgesRes.data || []).map((cb: any) => cb.badges).filter(Boolean),
                 attachments: attachmentsRes.data || [],
                 childProfile
             };
@@ -81,18 +81,21 @@ export const useTrainingJourneyData = (journeyId: string | undefined) => {
             if (bookingError) throw bookingError;
             if (!booking) throw new Error("Journey not found");
 
+            // Cast booking to any to safely access potentially joined properties that might be inferred as never
+            const safeBooking = booking as any;
+
             const [sessionsRes, messagesRes, attachmentsRes, packagesRes] = await Promise.all([
                 supabase.from('scheduled_sessions').select('*').eq('booking_id', journeyId).order('session_date', { ascending: true }),
                 supabase.from('session_messages').select('*').eq('booking_id', journeyId).order('created_at', { ascending: true }),
                 supabase.from('session_attachments').select('*').eq('booking_id', journeyId).order('created_at', { ascending: false }),
-                supabase.from('creative_writing_packages').select('*').eq('name', booking.package_name).maybeSingle()
+                supabase.from('creative_writing_packages').select('*').eq('name', safeBooking.package_name).maybeSingle()
             ]);
 
             return {
-                booking,
+                booking: safeBooking,
                 package: packagesRes.data,
-                instructor: (booking as any).instructors,
-                childProfile: (booking as any).child_profiles,
+                instructor: safeBooking.instructors,
+                childProfile: safeBooking.child_profiles,
                 scheduledSessions: sessionsRes.data || [],
                 messages: messagesRes.data || [],
                 attachments: attachmentsRes.data || []

@@ -103,6 +103,7 @@ export const userService = {
             .eq('id', payload.childProfileId)
             .single();
 
+        // Safe property access using casting if needed, though optional chaining works for potentially missing properties
         if (child && child.student_user_id) {
             throw new Error(`ملف الطفل ${child.name} مرتبط بالفعل بحساب طالب آخر.`);
         }

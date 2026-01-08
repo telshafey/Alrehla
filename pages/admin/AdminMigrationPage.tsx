@@ -35,8 +35,7 @@ const AdminMigrationPage: React.FC = () => {
         addLog(`بدء فحص جدول: ${tableName}...`);
         
         // 1. Fetch records
-        const { data: records, error } = await supabase
-            .from(tableName)
+        const { data: records, error } = await (supabase.from(tableName) as any)
             .select(`${idColumn}, ${column}`)
             .not(column, 'is', null);
 
@@ -75,8 +74,7 @@ const AdminMigrationPage: React.FC = () => {
                 const newUrl = await cloudinaryService.uploadImage(file, folder);
                 
                 // Update Supabase
-                const { error: updateError } = await supabase
-                    .from(tableName)
+                const { error: updateError } = await (supabase.from(tableName) as any)
                     .update({ [column]: newUrl })
                     .eq(idColumn, record[idColumn]);
 
