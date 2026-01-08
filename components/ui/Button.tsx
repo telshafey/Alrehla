@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, LinkProps } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -19,6 +19,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        primary: 'bg-primary text-primary-foreground hover:bg-primary/90', // Alias for default
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
@@ -43,33 +44,38 @@ const buttonVariants = cva(
   }
 );
 
-
-type ButtonProps = {
-  as?: React.ElementType;
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | 'success' | 'pink' | 'special' | 'subtle';
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'default' | 'primary' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | 'success' | 'pink' | 'special' | 'subtle';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   loading?: boolean;
   icon?: React.ReactNode;
-} & React.ButtonHTMLAttributes<HTMLButtonElement> & React.AnchorHTMLAttributes<HTMLAnchorElement>;
+  as?: any; 
+  to?: string; 
+  // Add other LinkProps if needed, or simply use [key: string]: any for flexibility
+  [key: string]: any; 
+}
 
-const Button = React.forwardRef<HTMLElement, ButtonProps>(
-  ({ className, variant, size, loading = false, icon, children, as: Component = 'button', disabled, ...props }, ref) => {
+const Button = React.forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
+  ({ className, variant, size, loading = false, icon, children, as, ...props }, ref) => {
     
     // Explicitly handle disabling when loading
-    const isDisabled = disabled || loading;
+    const isDisabled = props.disabled || loading;
+
+    // Use Link if 'to' prop is present, unless 'as' is overridden
+    const Component = as || (props.to ? Link : 'button');
 
     return (
       <Component
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        disabled={isDisabled}
+        disabled={Component === 'button' ? isDisabled : undefined}
         aria-busy={loading ? "true" : undefined}
         aria-disabled={isDisabled ? "true" : undefined}
         {...props}
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
             <>
-                {icon && <span className="mr-2">{icon}</span>}
+                {icon && <span className={children ? "mr-2" : ""}>{icon}</span>}
                 {children}
             </>
         )}

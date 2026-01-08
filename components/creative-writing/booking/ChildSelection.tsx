@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ChildProfile } from '../../../lib/database.types';
@@ -26,10 +27,8 @@ const ChildSelection: React.FC<ChildSelectionProps> = ({ childProfiles, onSelect
                     يرجى إضافة ملف طفل أولاً من المركز العائلي لتتمكن من حجز باقة له.
                 </p>
                 <div className="mt-6">
-                    <Button asChild>
-                        <Link to="/account" state={{ defaultTab: 'familyCenter' }}>
-                            الذهاب إلى المركز العائلي
-                        </Link>
+                    <Button as={Link} to="/account" state={{ defaultTab: 'familyCenter' }}>
+                        الذهاب إلى المركز العائلي
                     </Button>
                 </div>
             </div>

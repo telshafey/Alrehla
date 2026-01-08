@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useUserAccountData, type EnrichedBooking, type SessionAttachment } from '../../hooks/queries/user/useUserDataQuery';
@@ -115,11 +116,9 @@ const PortfolioPanel: React.FC = () => {
                                             </p>
                                         </CardContent>
                                         <CardFooter>
-                                            <Button asChild variant="outline" className="w-full">
-                                                <a href={item.file_url} target="_blank" rel="noopener noreferrer">
-                                                    <Download size={16} className="ml-2" />
-                                                    عرض / تحميل
-                                                </a>
+                                            <Button as="a" href={item.file_url} target="_blank" rel="noopener noreferrer" variant="outline" className="w-full">
+                                                <Download size={16} className="ml-2" />
+                                                عرض / تحميل
                                             </Button>
                                         </CardFooter>
                                     </Card>

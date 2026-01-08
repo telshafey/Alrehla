@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Clock } from 'lucide-react';
@@ -40,10 +41,8 @@ const PaymentStatusPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     <CardDescription className="text-base">{currentStatus.message}</CardDescription>
-                    <Button asChild className="mt-8">
-                        <Link to="/account">
-                            الذهاب إلى حسابي
-                        </Link>
+                    <Button as={Link} to="/account" className="mt-8">
+                        الذهاب إلى حسابي
                     </Button>
                 </CardContent>
             </Card>

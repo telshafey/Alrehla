@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, ShoppingBag, Calendar, Info, CheckCheck } from 'lucide-react';
@@ -48,8 +49,8 @@ const NotificationPanel: React.FC = () => {
              <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
                 <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><Bell /> الإشعارات</h2>
                 <div className="flex items-center gap-2 flex-wrap">
-                    <Button variant={filter === 'all' ? 'primary' : 'ghost'} size="sm" onClick={() => setFilter('all')}>الكل</Button>
-                    <Button variant={filter === 'unread' ? 'primary' : 'ghost'} size="sm" onClick={() => setFilter('unread')}>غير المقروءة</Button>
+                    <Button variant={filter === 'all' ? 'default' : 'ghost'} size="sm" onClick={() => setFilter('all')}>الكل</Button>
+                    <Button variant={filter === 'unread' ? 'default' : 'ghost'} size="sm" onClick={() => setFilter('unread')}>غير المقروءة</Button>
                     <Button variant="subtle" size="sm" onClick={() => markAllNotificationsAsRead.mutate()} icon={<CheckCheck size={16}/>} disabled={!notifications.some((n: any) => !n.read)}>
                         تحديد الكل كمقروء
                     </Button>

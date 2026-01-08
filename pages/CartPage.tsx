@@ -93,8 +93,8 @@ const CartPage: React.FC = () => {
                                 <ShoppingCart className="mx-auto h-16 w-16 text-muted-foreground" />
                                 <h2 className="mt-4 text-2xl font-bold text-foreground">سلتك فارغة</h2>
                                 <p className="mt-2 text-muted-foreground">يبدو أنك لم تقم بإضافة أي منتجات بعد. ابدأ رحلتك الآن!</p>
-                                <Button asChild className="mt-8">
-                                    <Link to="/">العودة إلى الرئيسية</Link>
+                                <Button as={Link} to="/" className="mt-8">
+                                    العودة إلى الرئيسية
                                 </Button>
                             </CardContent>
                         </Card>

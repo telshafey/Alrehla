@@ -71,8 +71,8 @@ export const mockOrders: Order[] = [
 ];
 
 export const mockSubscriptions: Subscription[] = [
-    { id: 'sub_xyz', user_id: 'usr_parent', child_id: 1, start_date: '2023-08-01T10:00:00Z', next_renewal_date: '2024-08-01T10:00:00Z', status: 'active', user_name: 'أحمد عبدالله', child_name: 'فاطمة أحمد', plan_name: 'اشتراك سنوي', total: 3000 },
-    { id: 'sub_demo_1', user_id: 'usr_new_demo', child_id: 99, start_date: '2024-02-01T10:00:00Z', next_renewal_date: '2024-03-01T10:00:00Z', status: 'active', user_name: 'ماجد وليد', child_name: 'ياسين ماجد', plan_name: 'اشتراك ربع سنوي', total: 850 },
+    { id: 'sub_xyz', user_id: 'usr_parent', child_id: 1, start_date: '2023-08-01T10:00:00Z', next_renewal_date: '2024-08-01T10:00:00Z', status: 'active', user_name: 'أحمد عبدالله', child_name: 'فاطمة أحمد', plan_name: 'اشتراك سنوي', plan_id: 3, total: 3000, shipping_cost: 0 },
+    { id: 'sub_demo_1', user_id: 'usr_new_demo', child_id: 99, start_date: '2024-02-01T10:00:00Z', next_renewal_date: '2024-03-01T10:00:00Z', status: 'active', user_name: 'ماجد وليد', child_name: 'ياسين ماجد', plan_name: 'اشتراك ربع سنوي', plan_id: 1, total: 850, shipping_cost: 50 },
 ];
 
 export const mockSubscriptionPlans: SubscriptionPlan[] = [

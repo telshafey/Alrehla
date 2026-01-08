@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useStudentDashboardData } from '../../hooks/queries/user/useJourneyDataQuery';
 import PageLoader from '../../components/ui/PageLoader';
@@ -54,11 +55,9 @@ const StudentPortfolioPage: React.FC = () => {
                                 </p>
                             </CardContent>
                             <CardFooter>
-                                <Button asChild variant="outline" className="w-full">
-                                    <a href={item.file_url} target="_blank" rel="noopener noreferrer">
-                                        <Download size={16} className="ml-2" />
-                                        عرض / تحميل
-                                    </a>
+                                <Button as="a" href={item.file_url} target="_blank" rel="noopener noreferrer" variant="outline" className="w-full">
+                                    <Download size={16} className="ml-2" />
+                                    عرض / تحميل
                                 </Button>
                             </CardFooter>
                         </Card>

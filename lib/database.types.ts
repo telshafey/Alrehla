@@ -1,5 +1,167 @@
 
-export type Database = {};
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: UserProfile
+        Insert: Partial<UserProfile>
+        Update: Partial<UserProfile>
+      }
+      child_profiles: {
+        Row: ChildProfile
+        Insert: Partial<ChildProfile>
+        Update: Partial<ChildProfile>
+      }
+      instructors: {
+        Row: Instructor
+        Insert: Partial<Instructor>
+        Update: Partial<Instructor>
+      }
+      orders: {
+        Row: Order
+        Insert: Partial<Order>
+        Update: Partial<Order>
+      }
+      subscriptions: {
+        Row: Subscription
+        Insert: Partial<Subscription>
+        Update: Partial<Subscription>
+      }
+      bookings: {
+        Row: CreativeWritingBooking
+        Insert: Partial<CreativeWritingBooking>
+        Update: Partial<CreativeWritingBooking>
+      }
+      service_orders: {
+        Row: ServiceOrder
+        Insert: Partial<ServiceOrder>
+        Update: Partial<ServiceOrder>
+      }
+      scheduled_sessions: {
+        Row: ScheduledSession
+        Insert: Partial<ScheduledSession>
+        Update: Partial<ScheduledSession>
+      }
+      session_messages: {
+        Row: SessionMessage
+        Insert: Partial<SessionMessage>
+        Update: Partial<SessionMessage>
+      }
+      session_attachments: {
+        Row: SessionAttachment
+        Insert: Partial<SessionAttachment>
+        Update: Partial<SessionAttachment>
+      }
+      notifications: {
+        Row: Notification
+        Insert: Partial<Notification>
+        Update: Partial<Notification>
+      }
+      blog_posts: {
+        Row: BlogPost
+        Insert: Partial<BlogPost>
+        Update: Partial<BlogPost>
+      }
+      support_tickets: {
+        Row: SupportTicket
+        Insert: Partial<SupportTicket>
+        Update: Partial<SupportTicket>
+      }
+      join_requests: {
+        Row: JoinRequest
+        Insert: Partial<JoinRequest>
+        Update: Partial<JoinRequest>
+      }
+      site_settings: {
+        Row: { key: string; value: any; updated_at: string }
+        Insert: { key: string; value: any; updated_at?: string }
+        Update: { key?: string; value?: any; updated_at?: string }
+      }
+      personalized_products: {
+        Row: PersonalizedProduct
+        Insert: Partial<PersonalizedProduct>
+        Update: Partial<PersonalizedProduct>
+      }
+      creative_writing_packages: {
+        Row: CreativeWritingPackage
+        Insert: Partial<CreativeWritingPackage>
+        Update: Partial<CreativeWritingPackage>
+      }
+      standalone_services: {
+        Row: StandaloneService
+        Insert: Partial<StandaloneService>
+        Update: Partial<StandaloneService>
+      }
+      subscription_plans: {
+        Row: SubscriptionPlan
+        Insert: Partial<SubscriptionPlan>
+        Update: Partial<SubscriptionPlan>
+      }
+      badges: {
+        Row: Badge
+        Insert: Partial<Badge>
+        Update: Partial<Badge>
+      }
+      child_badges: {
+        Row: ChildBadge
+        Insert: Partial<ChildBadge>
+        Update: Partial<ChildBadge>
+      }
+      comparison_items: {
+        Row: ComparisonItem
+        Insert: Partial<ComparisonItem>
+        Update: Partial<ComparisonItem>
+      }
+      instructor_payouts: {
+        Row: InstructorPayout
+        Insert: Partial<InstructorPayout>
+        Update: Partial<InstructorPayout>
+      }
+      support_session_requests: {
+        Row: SupportSessionRequest
+        Insert: Partial<SupportSessionRequest>
+        Update: Partial<SupportSessionRequest>
+      }
+      audit_logs: {
+        Row: {
+            id: string;
+            user_id: string | null;
+            user_name: string | null;
+            action: string;
+            target_description: string | null;
+            details: string | null;
+            timestamp: string;
+        }
+        Insert: {
+            id?: string;
+            user_id?: string | null;
+            user_name?: string | null;
+            action: string;
+            target_description?: string | null;
+            details?: string | null;
+            timestamp?: string;
+        }
+        Update: {
+            id?: string;
+            user_id?: string | null;
+            user_name?: string | null;
+            action?: string;
+            target_description?: string | null;
+            details?: string | null;
+            timestamp?: string;
+        }
+      }
+    }
+  }
+}
 
 export type UserRole =
   | 'user'
@@ -41,6 +203,7 @@ export interface ChildProfile {
   interests: string[] | null;
   strengths: string[] | null;
   student_user_id: string | null;
+  student_email?: string; // Virtual field for display
   age?: number;
 }
 
@@ -128,7 +291,9 @@ export interface Subscription {
   user_name: string;
   child_name: string;
   plan_name: string;
+  plan_id: number;
   total: number;
+  shipping_cost: number;
 }
 
 export interface SubscriptionPlan {
@@ -283,13 +448,14 @@ export interface SiteBranding {
     joinUsImageUrl: string;
     creativeWritingPortalImageUrl: string;
     enhaLakPortalImageUrl: string;
+    aboutImageUrl?: string;
 }
 
 export type Prices = { [key: string]: number };
 export type ShippingCosts = { [country: string]: { [region: string]: number } };
 
 export interface SocialLinks {
-    id: number;
+    id?: number;
     facebook_url: string;
     twitter_url: string;
     instagram_url: string;
@@ -305,6 +471,7 @@ export interface BlogPost {
     image_url: string | null;
     author_name: string;
     status: 'draft' | 'published';
+    deleted_at?: string | null;
 }
 
 export type TicketStatus = 'جديدة' | 'تمت المراجعة' | 'مغلقة';
@@ -385,6 +552,7 @@ export interface SiteContent {
         showTestimonialsSection?: boolean;
         showBlogSection?: boolean;
         showFinalCtaSection?: boolean;
+        stepsTitle?: string;
         steps?: { title: string; description: string }[];
     };
     aboutPage: {
@@ -482,6 +650,7 @@ export interface ScheduledSession {
     instructor_id: number;
     session_date: string;
     status: SessionStatus;
+    notes?: string;
 }
 
 export interface SessionMessage {
@@ -523,7 +692,7 @@ export interface InstructorPayout {
 }
 
 export interface PricingSettings {
-    id: number;
+    id?: number;
     company_percentage: number;
     fixed_fee: number;
 }
@@ -539,7 +708,7 @@ export interface CommunicationSettings {
 }
 
 export interface JitsiSettings {
-    id: number;
+    id?: number;
     domain: string;
     room_prefix: string;
     join_minutes_before: number;

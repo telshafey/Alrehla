@@ -46,6 +46,7 @@ interface CreateSubscriptionPayload {
     total: number;
     shippingCost?: number;
     receiptUrl?: string;
+    shippingDetails?: any; // Added this field
 }
 
 interface CreateProductPayload {

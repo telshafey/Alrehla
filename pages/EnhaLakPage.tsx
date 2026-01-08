@@ -71,8 +71,8 @@ const EnhaLakPage: React.FC = () => {
                         {content?.heroSubtitle}
                     </p>
                     <div className="mt-10">
-                        <Button asChild size="lg" variant="pink" className="shadow-lg transition-transform transform hover:scale-105">
-                           <Link to="/enha-lak/store">تصفح المنتجات واطلب الآن</Link>
+                        <Button as={Link} to="/enha-lak/store" size="lg" variant="pink" className="shadow-lg transition-transform transform hover:scale-105">
+                           تصفح المنتجات واطلب الآن
                         </Button>
                     </div>
                      <div className="mt-8 flex justify-center">
@@ -169,10 +169,8 @@ const EnhaLakPage: React.FC = () => {
                     <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.finalCtaTitle}</h2>
                     <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">{content?.finalCtaSubtitle}</p>
                     <div className="mt-8">
-                        <Button asChild size="lg" variant="pink" icon={<ArrowLeft className="me-3 transform rotate-180" size={22}/>} className="shadow-lg transition-transform transform hover:scale-105">
-                            <Link to="/enha-lak/store">
-                                ابدأ تخصيص قصتك الآن
-                            </Link>
+                        <Button as={Link} to="/enha-lak/store" size="lg" variant="pink" icon={<ArrowLeft className="me-3 transform rotate-180" size={22}/>} className="shadow-lg transition-transform transform hover:scale-105">
+                            ابدأ تخصيص قصتك الآن
                         </Button>
                     </div>
                 </div>
