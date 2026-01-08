@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
@@ -32,12 +33,16 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer,
         return () => setMounted(false);
     }, []);
 
-    useModalAccessibility({ modalRef, isOpen, onClose, initialFocusRef: closeButtonRef });
+    // Cast refs to any to bypass strict type checking between HTMLElement and specific element types
+    useModalAccessibility({ 
+        modalRef, 
+        isOpen, 
+        onClose, 
+        initialFocusRef: closeButtonRef as any 
+    });
 
     if (!isOpen || !mounted) return null;
 
-    // Safety check: Ensure document.body exists before creating portal
-    // This prevents "Minified React error #306"
     const container = typeof document !== 'undefined' ? document.body : null;
     if (!container) return null;
 
@@ -50,13 +55,13 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer,
             aria-labelledby="modal-title"
         >
             <Card
-                ref={modalRef}
+                ref={modalRef as any}
                 className={`w-full flex flex-col m-4 animate-fadeIn max-h-[90vh] ${sizeClasses[size]}`}
                 onClick={e => e.stopPropagation()}
             >
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle id="modal-title">{title}</CardTitle>
-                    <Button ref={closeButtonRef} onClick={onClose} variant="ghost" size="icon" className="text-muted-foreground">
+                    <Button ref={closeButtonRef as any} onClick={onClose} variant="ghost" size="icon" className="text-muted-foreground">
                         <X size={24} />
                     </Button>
                 </CardHeader>

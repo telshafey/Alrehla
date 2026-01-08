@@ -133,7 +133,9 @@ const TrainingJourneyPage: React.FC = () => {
                                                                     <p className="text-[10px] text-muted-foreground">{formatDate(att.created_at)}</p>
                                                                 </div>
                                                             </div>
-                                                            <Button as="a" href={att.file_url} target="_blank" variant="ghost" size="icon"><Download size={18}/></Button>
+                                                            <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-gray-200 transition-colors">
+                                                                <Download size={18}/>
+                                                            </a>
                                                         </CardContent>
                                                     </Card>
                                                 )) : <div className="col-span-full py-10 text-center text-muted-foreground border-2 border-dashed rounded-xl">لا توجد ملفات مرفوعة بعد.</div>}

@@ -97,15 +97,14 @@ const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpe
                 </div>
 
                 <div className="pt-4 flex justify-center">
-                    <Button 
-                        as="a" 
+                    <a 
                         href="https://calendar.google.com/calendar/u/0/r/settings/addbyurl" 
                         target="_blank" 
-                        variant="outline" 
-                        className="gap-2 text-xs border-blue-200 text-blue-700"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 text-xs border border-blue-200 text-blue-700 hover:bg-blue-50 h-9 rounded-md px-3"
                     >
                         فتح إعدادات Google Calendar <ExternalLink size={14} />
-                    </Button>
+                    </a>
                 </div>
             </div>
         </Modal>

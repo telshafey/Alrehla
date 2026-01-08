@@ -1,8 +1,8 @@
+
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Paperclip, ArrowLeft } from 'lucide-react';
+import { Calendar, ArrowLeft } from 'lucide-react';
 import AdminSection from '../AdminSection';
-import { formatDate } from '../../../utils/helpers';
 import { Button } from '../../ui/Button';
 
 const AgendaWidget = React.forwardRef<HTMLElement, { bookings: any[], attachments: any[] } & React.HTMLAttributes<HTMLElement>>(
@@ -53,8 +53,8 @@ const AgendaWidget = React.forwardRef<HTMLElement, { bookings: any[], attachment
                                         <p className="font-semibold text-sm">{session.childName}</p>
                                         <p className="text-xs text-muted-foreground">{new Date(session.session_date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })} - {session.packageName}</p>
                                     </div>
-                                    <Button asChild size="sm" variant="outline">
-                                        <Link to={`/session/${session.id}`}>انضم</Link>
+                                    <Button as={Link} to={`/session/${session.id}`} size="sm" variant="outline">
+                                        انضم
                                     </Button>
                                 </div>
                             ))}
@@ -73,11 +73,9 @@ const AgendaWidget = React.forwardRef<HTMLElement, { bookings: any[], attachment
                                         <p className="font-semibold text-sm truncate max-w-[150px]">{att.file_name}</p>
                                         <p className="text-xs text-muted-foreground">من: {att.childName}</p>
                                     </div>
-                                    <Button asChild size="sm" variant="ghost">
-                                        <Link to={`/journey/${att.booking_id}`}>
-                                            <span className="hidden sm:inline">مراجعة</span>
-                                            <ArrowLeft size={16} className="sm:mr-1" />
-                                        </Link>
+                                    <Button as={Link} to={`/journey/${att.booking_id}`} size="sm" variant="ghost">
+                                        <span className="hidden sm:inline">مراجعة</span>
+                                        <ArrowLeft size={16} className="sm:mr-1" />
                                     </Button>
                                 </div>
                             ))}

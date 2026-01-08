@@ -19,7 +19,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        primary: 'bg-primary text-primary-foreground hover:bg-primary/90', // Alias for default
+        primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
@@ -44,24 +44,30 @@ const buttonVariants = cva(
   }
 );
 
-// Define prop types that include everything a Button OR a Link might need
-export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & Partial<LinkProps> & {
+// Flexible props to handle both button attributes and Link attributes without strict conflict
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'default' | 'primary' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | 'success' | 'pink' | 'special' | 'subtle';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   loading?: boolean;
   icon?: React.ReactNode;
-  as?: React.ElementType; 
-  to?: string; 
-};
+  as?: any; // Allow passing Link component or 'a' tag
+  to?: string; // For React Router Link
+  href?: string; // For anchor tags
+  target?: string;
+  rel?: string;
+  state?: any; // For Link state
+  [key: string]: any; // Catch-all for other props
+}
 
 const Button = React.forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
   ({ className, variant, size, loading = false, icon, children, as, ...props }, ref) => {
     
-    // Explicitly handle disabling when loading
     const isDisabled = props.disabled || loading;
 
-    // Determine the component to render: 'as' prop > Link (if 'to' is present) > 'button'
-    const Component = as || (props.to ? Link : 'button');
+    // Determine the component to render: 'as' prop > Link (if 'to' is present) > 'a' (if href) > 'button'
+    let Component = as || 'button';
+    if (!as && props.to) Component = Link;
+    else if (!as && props.href) Component = 'a';
 
     return (
       <Component

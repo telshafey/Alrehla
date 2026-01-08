@@ -55,10 +55,15 @@ const StudentPortfolioPage: React.FC = () => {
                                 </p>
                             </CardContent>
                             <CardFooter>
-                                <Button as="a" href={item.file_url} target="_blank" rel="noopener noreferrer" variant="outline" className="w-full">
+                                <a 
+                                    href={item.file_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
+                                >
                                     <Download size={16} className="ml-2" />
                                     عرض / تحميل
-                                </Button>
+                                </a>
                             </CardFooter>
                         </Card>
                     ))}

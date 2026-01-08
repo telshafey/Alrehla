@@ -141,9 +141,9 @@ const SupportPage: React.FC = () => {
                               <CardDescription>فريق الدعم متاح عبر واتساب يومياً من 9 ص إلى 9 م.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <Button as="a" href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-full bg-green-600 hover:bg-green-700 text-white shadow-md transition-transform hover:-translate-y-1">
+                                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-full bg-green-600 hover:bg-green-700 text-white shadow-md transition-transform hover:-translate-y-1 h-10 px-4 py-2 rounded-md text-sm font-medium">
                                     تواصل عبر واتساب
-                                </Button>
+                                </a>
                             </CardContent>
                         </Card>
 

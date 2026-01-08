@@ -123,7 +123,7 @@ export const bookingService = {
             status: receiptUrl ? 'بانتظار المراجعة' : 'بانتظار الدفع',
             receipt_url: receiptUrl,
             session_id: `ses-${uuidv4().slice(0,8)}`
-        }]).select().single();
+        } as any]).select().single();
 
         if (error) throw error;
         return data as CreativeWritingBooking;
@@ -132,7 +132,7 @@ export const bookingService = {
     async updateBookingStatus(bookingId: string, newStatus: BookingStatus) {
         const { data: booking, error } = await supabase
             .from('bookings')
-            .update({ status: newStatus })
+            .update({ status: newStatus } as any)
             .eq('id', bookingId)
             .select('*, instructors(user_id, name), child_profiles(name)')
             .single();
@@ -167,7 +167,7 @@ export const bookingService = {
                     status: 'upcoming'
                 });
             }
-            await supabase.from('scheduled_sessions').insert(sessionsToInsert);
+            await supabase.from('scheduled_sessions').insert(sessionsToInsert as any);
         }
 
         if (newStatus === 'ملغي') {
@@ -184,13 +184,13 @@ export const bookingService = {
     },
 
     async updateBookingProgressNotes(bookingId: string, notes: string) {
-        const { error } = await supabase.from('bookings').update({ progress_notes: notes }).eq('id', bookingId);
+        const { error } = await supabase.from('bookings').update({ progress_notes: notes } as any).eq('id', bookingId);
         if (error) throw error;
         return { success: true };
     },
 
     async saveBookingDraft(bookingId: string, draft: string) {
-        const { error } = await supabase.from('bookings').update({ details: { draft } }).eq('id', bookingId);
+        const { error } = await supabase.from('bookings').update({ details: { draft } } as any).eq('id', bookingId);
         if (error) throw error;
         return { success: true };
     },
@@ -201,7 +201,7 @@ export const bookingService = {
             sender_id: payload.senderId,
             sender_role: payload.role,
             message_text: payload.message
-        }]);
+        } as any]);
         if (error) throw error;
         return { success: true };
     },
@@ -214,7 +214,7 @@ export const bookingService = {
             uploader_role: payload.role,
             file_name: payload.file.name,
             file_url: publicUrl
-        }]);
+        } as any]);
         if (error) throw error;
         return { success: true };
     },
@@ -225,7 +225,7 @@ export const bookingService = {
             avatarUrl = await cloudinaryService.uploadImage(payload.avatarFile, 'alrehla_instructors');
         }
         const { avatarFile, ...rest } = payload;
-        const { data, error } = await supabase.from('instructors').insert([{ ...rest, avatar_url: avatarUrl }]).select().single();
+        const { data, error } = await supabase.from('instructors').insert([{ ...rest, avatar_url: avatarUrl } as any]).select().single();
         if (error) throw error;
         return data as Instructor;
     },
@@ -238,26 +238,26 @@ export const bookingService = {
         const { id, avatarFile, ...updates } = payload;
         if (!id) throw new Error("Instructor ID is required for update");
         
-        const { data, error } = await supabase.from('instructors').update({ ...updates, avatar_url: avatarUrl }).eq('id', id).select().single();
+        const { data, error } = await supabase.from('instructors').update({ ...updates, avatar_url: avatarUrl } as any).eq('id', id).select().single();
         if (error) throw error;
         return data as Instructor;
     },
 
     async deleteInstructor(instructorId: number) {
-        const { error } = await supabase.from('instructors').update({ deleted_at: new Date().toISOString() }).eq('id', instructorId);
+        const { error } = await supabase.from('instructors').update({ deleted_at: new Date().toISOString() } as any).eq('id', instructorId);
         if (error) throw error;
         return { success: true };
     },
 
     async createPackage(payload: Partial<CreativeWritingPackage>) {
-        const { data, error } = await supabase.from('creative_writing_packages').insert([payload]).select().single();
+        const { data, error } = await supabase.from('creative_writing_packages').insert([payload as any]).select().single();
         if (error) throw error;
         return data as CreativeWritingPackage;
     },
     async updatePackage(payload: Partial<CreativeWritingPackage>) {
         const { id, ...updates } = payload;
         if (!id) throw new Error("ID required");
-        const { data, error } = await supabase.from('creative_writing_packages').update(updates).eq('id', id).select().single();
+        const { data, error } = await supabase.from('creative_writing_packages').update(updates as any).eq('id', id).select().single();
         if (error) throw error;
         return data as CreativeWritingPackage;
     },
@@ -268,14 +268,14 @@ export const bookingService = {
     },
 
     async createStandaloneService(payload: Partial<StandaloneService>) {
-        const { data, error } = await supabase.from('standalone_services').insert([payload]).select().single();
+        const { data, error } = await supabase.from('standalone_services').insert([payload as any]).select().single();
         if (error) throw error;
         return data as StandaloneService;
     },
     async updateStandaloneService(payload: Partial<StandaloneService>) {
         const { id, ...updates } = payload;
         if (!id) throw new Error("ID required");
-        const { data, error } = await supabase.from('standalone_services').update(updates).eq('id', id).select().single();
+        const { data, error } = await supabase.from('standalone_services').update(updates as any).eq('id', id).select().single();
         if (error) throw error;
         return data as StandaloneService;
     },
@@ -286,14 +286,14 @@ export const bookingService = {
     },
 
     async createComparisonItem(payload: Partial<ComparisonItem>) {
-        const { data, error } = await supabase.from('comparison_items').insert([payload]).select().single();
+        const { data, error } = await supabase.from('comparison_items').insert([payload as any]).select().single();
         if (error) throw error;
         return data as ComparisonItem;
     },
     async updateComparisonItem(payload: Partial<ComparisonItem>) {
         const { id, ...updates } = payload;
         if (!id) throw new Error("ID required");
-        const { data, error } = await supabase.from('comparison_items').update(updates).eq('id', id).select().single();
+        const { data, error } = await supabase.from('comparison_items').update(updates as any).eq('id', id).select().single();
         if (error) throw error;
         return data as ComparisonItem;
     },

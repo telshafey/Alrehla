@@ -69,9 +69,10 @@ const AdminTicketDetailPage: React.FC = () => {
                     <DetailRow label="الاسم" value={ticket.name} />
                     <DetailRow label="البريد الإلكتروني" value={ticket.email} />
                     <div className="mt-4">
-                        <Button as="a" href={`mailto:${ticket.email}`} variant="outline" size="sm" icon={<Mail size={16} />}>
+                        <a href={`mailto:${ticket.email}`} className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3">
+                            <Mail size={16} className="mr-2"/>
                             إرسال رد عبر البريد
-                        </Button>
+                        </a>
                     </div>
                 </CardContent>
             </Card>
