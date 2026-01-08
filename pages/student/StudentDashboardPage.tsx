@@ -1,24 +1,30 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useStudentDashboardData } from '../../hooks/queries/user/useJourneyDataQuery';
 import PageLoader from '../../components/ui/PageLoader';
 import StudentJourneyCard from '../../components/student/StudentJourneyCard';
 import BadgeDisplay from '../../components/shared/BadgeDisplay';
-import { BookOpen, ShoppingBag, Star, Award, Link2Off, AlertCircle } from 'lucide-react';
-import { getStatusColor, getSubStatusColor, getSubStatusText, formatDate } from '../../utils/helpers';
-import type { Order, Subscription, Badge } from '../../lib/database.types';
+import { BookOpen, ShoppingBag, Star, Award, Link2Off, AlertCircle, Clock } from 'lucide-react';
+import { getStatusColor, formatDate } from '../../utils/helpers';
+import type { Badge } from '../../lib/database.types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../../components/ui/Button';
 
 const StudentDashboardPage: React.FC = () => {
     const { data, isLoading, error } = useStudentDashboardData();
+
+    const { activeJourneys, pendingJourneys } = useMemo(() => {
+        if (!data?.journeys) return { activeJourneys: [], pendingJourneys: [] };
+        
+        return {
+            activeJourneys: data.journeys.filter((j: any) => ['مؤكد', 'مكتمل'].includes(j.status)),
+            pendingJourneys: data.journeys.filter((j: any) => ['بانتظار الدفع', 'بانتظار المراجعة'].includes(j.status))
+        };
+    }, [data]);
 
     if (isLoading) {
         return <PageLoader text="جاري فحص حالة الحساب..." />;
     }
 
-    // إذا لم يجد الربط في سجلات الأطفال (isUnlinked)
     if (data?.isUnlinked) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-center animate-fadeIn">
@@ -43,29 +49,53 @@ const StudentDashboardPage: React.FC = () => {
         return <div className="text-center py-20 text-red-500 font-bold">حدث خطأ أثناء جلب البيانات.</div>;
     }
 
-    const { journeys = [], orders = [], subscriptions = [], badges = [] } = data;
-    const displayJourneys = journeys.filter((j: any) => ['مؤكد', 'مكتمل'].includes(j.status));
+    const { badges = [] } = data;
 
     return (
         <div className="space-y-12 animate-fadeIn">
-             <section>
+            {/* قسم الرحلات النشطة */}
+            <section>
                 <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
-                    <BookOpen /> رحلاتي التدريبية
+                    <BookOpen className="text-primary" /> رحلاتي التدريبية
                 </h2>
-                {displayJourneys.length > 0 ? (
+                {activeJourneys.length > 0 ? (
                     <div className="space-y-6">
-                        {displayJourneys.map((journey: any) => (
+                        {activeJourneys.map((journey: any) => (
                             <StudentJourneyCard key={journey.id} journey={journey} />
                         ))}
                     </div>
-                ) : (
+                ) : pendingJourneys.length === 0 ? (
                     <Card><CardContent className="text-center py-10 text-muted-foreground">لا توجد رحلات نشطة بعد.</CardContent></Card>
-                )}
+                ) : null}
             </section>
+
+            {/* قسم الرحلات بانتظار التأكيد */}
+            {pendingJourneys.length > 0 && (
+                <section className="animate-fadeIn">
+                    <h2 className="text-xl font-bold text-orange-600 flex items-center gap-3 mb-6">
+                        <Clock /> رحلات بانتظار تفعيل الإدارة ({pendingJourneys.length})
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-80">
+                        {pendingJourneys.map((journey: any) => (
+                            <Card key={journey.id} className="border-dashed border-orange-200 bg-orange-50/30">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-lg text-gray-700">{journey.package_name}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-orange-700 font-semibold flex items-center gap-2">
+                                        <AlertCircle size={14} /> جاري مراجعة طلب الاشتراك وتأكيد الموعد مع المدرب...
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-2 italic">ستظهر هذه الرحلة في قسم "رحلاتي" فور اعتمادها.</p>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </section>
+            )}
 
              <section>
                 <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
-                    <Award /> إنجازاتي
+                    <Award className="text-yellow-500" /> إنجازاتي
                 </h2>
                 {badges.length > 0 ? (
                     <Card>

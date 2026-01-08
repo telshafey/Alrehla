@@ -37,12 +37,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const queryClient = useQueryClient();
 
     const fetchUserData = async (user: UserProfile) => {
-        if (user.role === 'user') {
-            const children = await authService.getUserChildren(user.id);
-            setChildProfiles(children);
-        } else if (user.role === 'student') {
-            const profile = await authService.getStudentProfile(user.id);
-            setCurrentChildProfile(profile);
+        try {
+            if (user.role === 'student') {
+                const profile = await authService.getStudentProfile(user.id);
+                setCurrentChildProfile(profile);
+            } else if (['user', 'parent', 'super_admin', 'general_supervisor', 'instructor'].includes(user.role)) {
+                const children = await authService.getUserChildren(user.id);
+                setChildProfiles(children || []);
+            }
+        } catch (e) {
+            console.warn("Could not fetch secondary user data, continuing...");
         }
     };
 
@@ -52,55 +56,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 const response = await authService.getCurrentUser();
                 if (response && response.user) {
                     setCurrentUser(response.user);
-                    await fetchUserData(response.user);
-                } else {
-                    // Session invalid or expired
-                    setCurrentUser(null);
+                    // لا ننتظر تحميل بقية البيانات لفتح الواجهة
+                    fetchUserData(response.user);
                 }
             } catch (e) {
-                console.error("Session validation failed", e);
-                setCurrentUser(null);
+                console.error("Session sync error", e);
             } finally {
+                // نضمن إنهاء وضع التحميل مهما كانت النتيجة
                 setLoading(false);
             }
         };
-
         validateSession();
     }, []);
 
     const signIn = async (email: string, password: string): Promise<boolean> => {
         setLoading(true);
         setError(null);
-
         try {
             const { user, accessToken } = await authService.login(email, password);
-            setToken(accessToken);
+            if (accessToken) setToken(accessToken);
             setCurrentUser(user);
             await fetchUserData(user);
-            addToast(`مرحباً بعودتك، ${user.name}!`, 'success');
+            addToast(`مرحباً بك، ${user.name}!`, 'success');
             return true;
         } catch (e: any) {
-            setError(e.message);
-            addToast(`فشل تسجيل الدخول: ${e.message}`, 'error');
+            const msg = e.message || 'بيانات الدخول غير صحيحة';
+            setError(msg);
+            addToast(msg, 'error');
             return false;
         } finally {
             setLoading(false);
         }
     };
 
-    const signUp = async (email: string, password: string, name: string, role: UserRole): Promise<boolean> => {
+    const signUp = async (email: string, password: string, name: string, role: UserRole) => {
         setLoading(true);
         setError(null);
         try {
             const { user, accessToken } = await authService.register(email, password, name, role);
-            setToken(accessToken);
+            if (accessToken) setToken(accessToken);
             setCurrentUser(user);
-            setChildProfiles([]); 
-            addToast('تم إنشاء حسابك بنجاح!', 'success');
+            addToast('تم إنشاء الحساب بنجاح!', 'success');
             return true;
         } catch (e: any) {
             setError(e.message);
-            addToast(`فشل إنشاء الحساب: ${e.message}`, 'error');
+            addToast(e.message, 'error');
             return false;
         } finally {
             setLoading(false);
@@ -118,37 +118,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     
     const updateCurrentUser = (updatedData: Partial<UserProfile>) => {
-        setCurrentUser(prevUser => {
-            if (!prevUser) return null;
-            return { ...prevUser, ...updatedData };
-        });
+        setCurrentUser(prev => prev ? { ...prev, ...updatedData } : null);
     };
     
-    const isParent = useMemo(() => childProfiles.length > 0, [childProfiles]);
-
-    const value: AuthContextType = useMemo(() => ({
-        currentUser,
-        currentChildProfile,
-        isLoggedIn: !!currentUser,
-        signOut,
-        signIn,
-        signUp,
-        updateCurrentUser,
-        loading,
-        error,
-        hasAdminAccess: currentUser ? getPermissions(currentUser.role).canViewDashboard : false,
-        permissions: currentUser ? getPermissions(currentUser.role) : getPermissions('user'),
-        childProfiles,
-        isParent,
-    }), [currentUser, currentChildProfile, loading, error, childProfiles, isParent]);
+    const value = useMemo(() => {
+        const userRole = currentUser?.role || 'user';
+        const currentPermissions = getPermissions(userRole);
+        
+        return {
+            currentUser,
+            currentChildProfile,
+            isLoggedIn: !!currentUser,
+            signOut,
+            signIn,
+            signUp,
+            updateCurrentUser,
+            loading,
+            error,
+            // حق الوصول للوحة بناءً على الرتبة المباشرة
+            hasAdminAccess: ['super_admin', 'general_supervisor', 'instructor', 'enha_lak_supervisor', 'creative_writing_supervisor'].includes(userRole),
+            permissions: currentPermissions,
+            childProfiles,
+            isParent: childProfiles.length > 0,
+        };
+    }, [currentUser, currentChildProfile, loading, error, childProfiles]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
+    if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
     return context;
 };

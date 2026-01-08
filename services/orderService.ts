@@ -1,6 +1,7 @@
 
 import { supabase } from '../lib/supabaseClient';
 import { cloudinaryService } from './cloudinaryService';
+import { reportingService } from './reportingService';
 import type { 
     Order, 
     Subscription, 
@@ -111,18 +112,24 @@ export const orderService = {
     async updateOrderStatus(orderId: string, newStatus: OrderStatus) {
         const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('UPDATE_ORDER_STATUS', orderId, `طلب رقم #${orderId}`, `تغيير الحالة إلى: ${newStatus}`);
         return { success: true };
     },
 
     async updateServiceOrderStatus(orderId: string, newStatus: OrderStatus) {
         const { error } = await supabase.from('service_orders').update({ status: newStatus }).eq('id', orderId);
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('UPDATE_SERVICE_STATUS', orderId, `طلب خدمة #${orderId}`, `تغيير الحالة إلى: ${newStatus}`);
         return { success: true };
     },
 
     async assignInstructorToServiceOrder(orderId: string, instructorId: number | null) {
         const { error } = await supabase.from('service_orders').update({ assigned_instructor_id: instructorId }).eq('id', orderId);
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('ASSIGN_INSTRUCTOR', orderId, `طلب خدمة #${orderId}`, `تعيين مدرب معرف: ${instructorId}`);
         return { success: true };
     },
 
@@ -170,6 +177,8 @@ export const orderService = {
         let status = action === 'pause' ? 'paused' : action === 'cancel' ? 'cancelled' : 'active';
         const { error } = await supabase.from('subscriptions').update({ status }).eq('id', subscriptionId);
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('UPDATE_SUBSCRIPTION', subscriptionId, `اشتراك #${subscriptionId}`, `إجراء: ${action}`);
         return { success: true };
     },
 
@@ -186,18 +195,24 @@ export const orderService = {
     async bulkUpdateOrderStatus(orderIds: string[], status: OrderStatus) {
         const { error } = await supabase.from('orders').update({ status }).in('id', orderIds);
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('BULK_ORDER_UPDATE', 'multiple', `${orderIds.length} طلبات`, `تغيير الحالة مجمع إلى: ${status}`);
         return { success: true };
     },
 
     async bulkDeleteOrders(orderIds: string[]) {
         const { error } = await supabase.from('orders').delete().in('id', orderIds);
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('BULK_ORDER_DELETE', 'multiple', `${orderIds.length} طلبات`, `حذف مجمع للطلبات`);
         return { success: true };
     },
 
     async createSubscriptionPlan(payload: any) {
         const { data, error } = await supabase.from('subscription_plans').insert([payload]).select().single();
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('CREATE_SUB_PLAN', data.id.toString(), `باقة اشتراك: ${data.name}`, `إنشاء باقة جديدة بسعر ${data.price}`);
         return data as SubscriptionPlan;
     },
 
@@ -205,18 +220,24 @@ export const orderService = {
         const { id, ...updates } = payload;
         const { data, error } = await supabase.from('subscription_plans').update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('UPDATE_SUB_PLAN', id.toString(), `باقة اشتراك: ${data.name}`, `تحديث بيانات الباقة`);
         return data as SubscriptionPlan;
     },
 
     async deleteSubscriptionPlan(planId: number) {
         const { error } = await supabase.from('subscription_plans').update({ deleted_at: new Date().toISOString() }).eq('id', planId);
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('DELETE_SUB_PLAN', planId.toString(), `باقة اشتراك ID: ${planId}`, `حذف ناعم للباقة`);
         return { success: true };
     },
 
     async createPersonalizedProduct(payload: any) {
         const { data, error } = await supabase.from('personalized_products').insert([payload]).select().single();
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('CREATE_PRODUCT', data.id.toString(), `منتج: ${data.title}`, `إضافة منتج جديد للمتجر`);
         return data as PersonalizedProduct;
     },
 
@@ -224,12 +245,16 @@ export const orderService = {
         const { id, ...updates } = payload;
         const { data, error } = await supabase.from('personalized_products').update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('UPDATE_PRODUCT', id.toString(), `منتج: ${data.title}`, `تحديث بيانات المنتج`);
         return data as PersonalizedProduct;
     },
 
     async deletePersonalizedProduct(productId: number) {
         const { error } = await supabase.from('personalized_products').update({ deleted_at: new Date().toISOString() }).eq('id', productId);
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('DELETE_PRODUCT', productId.toString(), `منتج ID: ${productId}`, `حذف ناعم للمنتج`);
         return { success: true };
     }
 };

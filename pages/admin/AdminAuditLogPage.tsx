@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { History, User, ShoppingBag, Edit, Search, Calendar, Filter, List } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { History, User, ShoppingBag, Edit, Search, Filter, List, RefreshCw, AlertCircle } from 'lucide-react';
 import { useAdminAuditLogQuery } from '../../hooks/queries/admin/useAdminAuditLogQuery';
 import PageLoader from '../../components/ui/PageLoader';
 import ErrorState from '../../components/ui/ErrorState';
@@ -12,26 +12,27 @@ import { Button } from '../../components/ui/Button';
 import { useAdminUsers } from '../../hooks/queries/admin/useAdminUsersQuery';
 
 const ActionIcon: React.FC<{ action: string }> = ({ action }) => {
-    if (action.includes('USER')) return <User size={16} className="text-blue-500" />;
-    if (action.includes('ORDER')) return <ShoppingBag size={16} className="text-pink-500" />;
-    if (action.includes('POST')) return <Edit size={16} className="text-green-500" />;
+    if (!action) return <History size={16} className="text-gray-400" />;
+    const act = action.toUpperCase();
+    if (act.includes('USER')) return <User size={16} className="text-blue-500" />;
+    if (act.includes('ORDER')) return <ShoppingBag size={16} className="text-pink-500" />;
+    if (act.includes('POST') || act.includes('BLOG')) return <Edit size={16} className="text-green-500" />;
+    if (act.includes('INSTRUCTOR')) return <User size={16} className="text-orange-500" />;
     return <History size={16} className="text-gray-500" />;
 };
 
 const AdminAuditLogPage: React.FC = () => {
     const [filters, setFilters] = useState({ startDate: '', endDate: '', actionType: 'all', userId: 'all' });
-    const [isSearchTriggered, setIsSearchTriggered] = useState(false);
+    const [isSearchTriggered, setIsSearchTriggered] = useState(true);
 
-    // Fetch users list separately for the filter dropdown to be populated before searching logs
     const { data: usersList = [] } = useAdminUsers(); 
-    
-    const { data: logData, isLoading, error, refetch } = useAdminAuditLogQuery(filters, isSearchTriggered);
+    const { data: logData, isLoading, error, refetch, isRefetching } = useAdminAuditLogQuery(filters, isSearchTriggered);
 
-    const { logs = [], actionTypes = [] } = logData || {};
+    const logs = logData?.logs || [];
+    const actionTypes = logData?.actionTypes || [];
 
     const handleFilterChange = (field: keyof typeof filters, value: string) => {
         setFilters(prev => ({ ...prev, [field]: value }));
-        // We don't auto-fetch on change anymore to prevent heavy loading
     };
 
     const handleSearch = () => {
@@ -39,25 +40,23 @@ const AdminAuditLogPage: React.FC = () => {
         refetch();
     };
 
-    // Mock action types for the dropdown if not yet loaded from query
-    const availableActionTypes = actionTypes.length > 0 ? actionTypes : [
-        'UPDATE_ORDER_STATUS', 'UPDATE_USER_ROLE', 'CREATE_BLOG_POST', 'APPROVE_INSTRUCTOR_SCHEDULE', 'UPDATE_PRODUCT'
-    ];
-
-    // Filter admins/staff only for the user dropdown
-    const staffUsers = usersList.filter(u => u.role !== 'user' && u.role !== 'student');
+    const staffUsers = Array.isArray(usersList) ? usersList.filter(u => u.role !== 'user' && u.role !== 'student') : [];
 
     return (
         <div className="animate-fadeIn space-y-8">
-            <div>
-                <h1 className="text-3xl font-extrabold text-foreground">سجل النشاطات</h1>
-                <p className="text-muted-foreground mt-1">مراقبة وتتبع جميع الإجراءات الحساسة التي تتم داخل لوحة التحكم.</p>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-extrabold text-foreground">سجل النشاطات</h1>
+                    <p className="text-muted-foreground mt-1">تتبع كافة الإجراءات الإدارية وتعديلات البيانات.</p>
+                </div>
+                <Button onClick={() => refetch()} variant="outline" size="sm" icon={<RefreshCw className={isRefetching ? 'animate-spin' : ''} />}>
+                    تحديث السجل
+                </Button>
             </div>
 
             <Card className="border-t-4 border-t-primary">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg"><Filter size={20}/> تصفية السجلات</CardTitle>
-                    <CardDescription>حدد المعايير أدناه ثم اضغط على "عرض السجلات" لتحميل البيانات.</CardDescription>
+                    <CardTitle className="flex items-center gap-2 text-lg"><Filter size={20}/> تصفية النتائج</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
@@ -71,86 +70,74 @@ const AdminAuditLogPage: React.FC = () => {
                         </div>
                         
                         <div className="space-y-2">
-                            <label className="text-sm font-medium flex items-center gap-2"><List size={14} /> نوع الإجراء</label>
+                            <label className="text-sm font-medium">نوع الإجراء</label>
                             <Select value={filters.actionType} onChange={(e) => handleFilterChange('actionType', e.target.value)}>
                                 <option value="all">كل الإجراءات</option>
-                                {availableActionTypes.map((action: string) => <option key={action} value={action}>{action}</option>)}
+                                {actionTypes.map((action: string) => <option key={action} value={action}>{action}</option>)}
                             </Select>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium flex items-center gap-2"><User size={14} /> المستخدم المسؤول</label>
+                            <label className="text-sm font-medium">المسؤول</label>
                             <Select value={filters.userId} onChange={(e) => handleFilterChange('userId', e.target.value)}>
-                                <option value="all">كل المستخدمين</option>
+                                <option value="all">الكل</option>
                                 {staffUsers.map((user: any) => <option key={user.id} value={user.id}>{user.name}</option>)}
                             </Select>
                         </div>
                     </div>
                     
                     <div className="mt-6 flex justify-end border-t pt-4">
-                        <Button onClick={handleSearch} icon={<Search size={18} />} loading={isLoading && isSearchTriggered} size="lg" className="w-full md:w-auto">
-                            عرض السجلات
+                        <Button onClick={handleSearch} icon={<Search size={18} />} loading={isLoading && isSearchTriggered}>
+                            تطبيق الفلاتر
                         </Button>
                     </div>
                 </CardContent>
             </Card>
             
-            {error && <ErrorState message={(error as Error).message} onRetry={refetch} />}
-
-            {isSearchTriggered && !error && !isLoading && (
-                <Card className="animate-fadeIn">
-                    <CardHeader>
-                        <div className="flex justify-between items-center">
-                            <CardTitle className="text-lg">نتائج البحث</CardTitle>
-                            <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                                عدد السجلات: {logs.length}
-                            </span>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[200px]">الإجراء</TableHead>
-                                        <TableHead>المستخدم</TableHead>
-                                        <TableHead>الهدف</TableHead>
-                                        <TableHead>التفاصيل</TableHead>
-                                        <TableHead className="text-left">التوقيت</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {logs.length > 0 ? logs.map((log: any) => (
-                                        <TableRow key={log.id}>
-                                            <TableCell><span className="flex items-center gap-2 font-mono text-xs font-semibold bg-gray-50 p-1 rounded border w-fit"><ActionIcon action={log.action} /> {log.action}</span></TableCell>
-                                            <TableCell className="font-medium">{log.user_name}</TableCell>
-                                            <TableCell className="text-sm text-muted-foreground">{log.target_description}</TableCell>
-                                            <TableCell className="text-sm">{log.details}</TableCell>
-                                            <TableCell className="text-xs text-muted-foreground text-left" dir="ltr">{new Date(log.timestamp).toLocaleString('ar-EG')}</TableCell>
-                                        </TableRow>
-                                    )) : (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <Search className="h-8 w-8 text-gray-300" />
-                                                    <p>لا توجد سجلات تطابق الفلاتر المحددة.</p>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {!isSearchTriggered && (
-                <div className="text-center py-16 bg-muted/30 rounded-xl border-2 border-dashed border-gray-200">
-                    <History className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-700">لم يتم عرض أي بيانات بعد</h3>
-                    <p className="text-muted-foreground mt-2">الرجاء استخدام الفلاتر أعلاه والضغط على "عرض السجلات" لبدء التصفح.</p>
+            {error ? (
+                <div className="p-8 text-center bg-red-50 rounded-xl border border-red-100">
+                    <AlertCircle className="mx-auto text-red-500 mb-4" size={40} />
+                    <h3 className="text-lg font-bold text-red-800">تعذر تحميل السجلات</h3>
+                    <p className="text-sm text-red-600 mt-1">تأكد من وجود جدول audit_logs في قاعدة البيانات.</p>
+                    <Button onClick={() => refetch()} variant="outline" className="mt-4 border-red-200 text-red-700">إعادة المحاولة</Button>
                 </div>
+            ) : (
+                isLoading ? <PageLoader text="جاري تحميل سجل النشاطات..." /> : (
+                    <Card className="animate-fadeIn">
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-muted/30">
+                                            <TableHead className="w-[180px]">الإجراء</TableHead>
+                                            <TableHead>المسؤول</TableHead>
+                                            <TableHead>الهدف</TableHead>
+                                            <TableHead>التفاصيل</TableHead>
+                                            <TableHead className="text-left">التوقيت</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {logs.length > 0 ? logs.map((log: any) => (
+                                            <TableRow key={log.id}>
+                                                <TableCell><span className="flex items-center gap-2 font-mono text-[10px] font-bold bg-gray-100 p-1 rounded border border-gray-200 w-fit"><ActionIcon action={log.action} /> {log.action}</span></TableCell>
+                                                <TableCell className="font-bold text-sm">{log.user_name}</TableCell>
+                                                <TableCell className="text-xs text-muted-foreground">{log.target_description}</TableCell>
+                                                <TableCell className="text-xs max-w-xs truncate" title={log.details}>{log.details}</TableCell>
+                                                <TableCell className="text-[10px] text-muted-foreground text-left" dir="ltr">{new Date(log.timestamp).toLocaleString('ar-EG')}</TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic">
+                                                    لا توجد سجلات بعد. بمجرد قيامك بأي عملية تعديل أو حذف، ستظهر هنا.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )
             )}
         </div>
     );

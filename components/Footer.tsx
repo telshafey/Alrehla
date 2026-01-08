@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Loader2 } from 'lucide-react';
@@ -8,57 +9,70 @@ const Footer: React.FC = () => {
     const socialLinks = data?.socialLinks;
     const siteContent = data?.siteContent;
 
+    // دالة للتحقق من وجود رابط حقيقي وغير فارغ
+    const hasLink = (url: string | null | undefined) => url && url.trim() !== '' && url !== '#';
+
     return (
         <footer className="bg-secondary text-secondary-foreground">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                    {/* About Section */}
                     <div>
                         <h3 className="text-lg font-bold mb-4">منصة الرحلة</h3>
-                        <p className="text-muted-foreground text-sm">
-                            {siteContent?.aboutPage.missionStatement || "nؤمن أن كل طفل هو بطل حكايته الخاصة. لذلك نصنع بحب وإتقان قصصاً ومنتجات تربوية مخصصة تماماً، تكون مرآة تعكس شخصية الطفل الفريدة، وتعزز هويته العربية، وتغرس في قلبه أسمى القيم الإنسانية."}
+                        <p className="text-muted-foreground text-sm leading-relaxed">
+                            {siteContent?.aboutPage.missionStatement || "نؤمن أن كل طفل هو بطل حكايته الخاصة."}
                         </p>
                     </div>
 
-                    {/* Quick Links */}
                     <div>
                         <h3 className="text-lg font-bold mb-4">روابط سريعة</h3>
                         <ul className="space-y-2 text-sm">
-                            <li><Link to="/about" className="text-muted-foreground hover:text-primary">رحلتنا</Link></li>
-                            <li><Link to="/blog" className="text-muted-foreground hover:text-primary">المدونة</Link></li>
-                            <li><Link to="/support" className="text-muted-foreground hover:text-primary">الدعم والمساعدة</Link></li>
-                            <li><Link to="/join-us" className="text-muted-foreground hover:text-primary">انضم إلينا</Link></li>
+                            <li><Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">رحلتنا</Link></li>
+                            <li><Link to="/blog" className="text-muted-foreground hover:text-primary transition-colors">المدونة</Link></li>
+                            <li><Link to="/support" className="text-muted-foreground hover:text-primary transition-colors">الدعم</Link></li>
+                            <li><Link to="/join-us" className="text-muted-foreground hover:text-primary transition-colors">انضم إلينا</Link></li>
                         </ul>
                     </div>
                     
-                    {/* Projects */}
                      <div>
                         <h3 className="text-lg font-bold mb-4">أقسامنا</h3>
                         <ul className="space-y-2 text-sm">
-                            <li><Link to="/enha-lak/store" className="text-muted-foreground hover:text-primary">قصص "إنها لك"</Link></li>
-                            <li><Link to="/creative-writing" className="text-muted-foreground hover:text-primary">برنامج "بداية الرحلة"</Link></li>
-                            <li><Link to="/enha-lak/subscription" className="text-muted-foreground hover:text-primary">صندوق الرحلة الشهري</Link></li>
+                            <li><Link to="/enha-lak/store" className="text-muted-foreground hover:text-primary transition-colors">قصص "إنها لك"</Link></li>
+                            <li><Link to="/creative-writing" className="text-muted-foreground hover:text-primary transition-colors">برنامج "بداية الرحلة"</Link></li>
                         </ul>
                     </div>
 
-                    {/* Social Media */}
                     <div>
                         <h3 className="text-lg font-bold mb-4">تابعنا</h3>
-                        {isLoading ? <Loader2 className="animate-spin" /> : (
-                            <div className="flex space-x-4 rtl:space-x-reverse">
-                                {socialLinks?.facebook_url && <a href={socialLinks.facebook_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Facebook /></a>}
-                                {socialLinks?.twitter_url && <a href={socialLinks.twitter_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Twitter /></a>}
-                                {socialLinks?.instagram_url && <a href={socialLinks.instagram_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Instagram /></a>}
+                        {isLoading ? <Loader2 className="animate-spin text-muted-foreground" /> : (
+                            <div className="flex gap-4">
+                                {hasLink(socialLinks?.facebook_url) && (
+                                    <a href={socialLinks!.facebook_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-blue-600 transition-colors" title="فيسبوك">
+                                        <Facebook size={24} />
+                                    </a>
+                                )}
+                                {hasLink(socialLinks?.twitter_url) && (
+                                    <a href={socialLinks!.twitter_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-sky-500 transition-colors" title="تويتر">
+                                        <Twitter size={24} />
+                                    </a>
+                                )}
+                                {hasLink(socialLinks?.instagram_url) && (
+                                    <a href={socialLinks!.instagram_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-pink-600 transition-colors" title="انستجرام">
+                                        <Instagram size={24} />
+                                    </a>
+                                )}
+                                {!hasLink(socialLinks?.facebook_url) && !hasLink(socialLinks?.twitter_url) && !hasLink(socialLinks?.instagram_url) && (
+                                    <span className="text-xs text-muted-foreground italic">لم يتم ربط حسابات تواصل</span>
+                                )}
                             </div>
                         )}
                     </div>
                 </div>
 
-                <div className="mt-8 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground">
+                <div className="mt-8 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground gap-4">
                     <p>&copy; {new Date().getFullYear()} منصة الرحلة. جميع الحقوق محفوظة.</p>
-                    <div className="flex space-x-4 rtl:space-x-reverse mt-4 sm:mt-0">
-                        <Link to="/privacy" className="hover:text-primary">سياسة الخصوصية</Link>
-                        <Link to="/terms" className="hover:text-primary">شروط الاستخدام</Link>
+                    <div className="flex gap-4">
+                        <Link to="/privacy" className="hover:text-primary transition-colors">الخصوصية</Link>
+                        <Link to="/terms" className="hover:text-primary transition-colors">الشروط</Link>
                     </div>
                 </div>
             </div>

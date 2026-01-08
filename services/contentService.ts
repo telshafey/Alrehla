@@ -1,11 +1,12 @@
 
 import { supabase } from '../lib/supabaseClient';
 import { cloudinaryService } from './cloudinaryService';
+import { reportingService } from './reportingService';
 import type { SiteContent, BlogPost } from '../lib/database.types';
 import { mockSiteContent } from '../data/mockData';
 
 export const contentService = {
-    // --- Site Content (Stored as JSON in site_settings) ---
+    // --- Site Content ---
     async getSiteContent() {
         const { data, error } = await supabase
             .from('site_settings')
@@ -32,16 +33,17 @@ export const contentService = {
             .single();
 
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('UPDATE_SITE_CONTENT', 'global', `محتوى الموقع`, `تحديث النصوص / الصور في صفحات المنصة`);
         return data.value as SiteContent;
     },
 
     async uploadFile(file: File): Promise<{ url: string }> {
-        // Upload to Cloudinary under 'alrehla_content' folder
         const url = await cloudinaryService.uploadImage(file, 'alrehla_content');
         return { url };
     },
 
-    // --- Blog Posts (Stored in blog_posts table) ---
+    // --- Blog Posts ---
     async getAllBlogPosts() {
         const { data, error } = await supabase
             .from('blog_posts')
@@ -54,7 +56,6 @@ export const contentService = {
     },
 
     async createBlogPost(payload: any) {
-        // Handle image upload if provided as File
         let imageUrl = payload.image_url;
         if (payload.imageFile) {
             const { url } = await this.uploadFile(payload.imageFile);
@@ -75,6 +76,8 @@ export const contentService = {
             .single();
 
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('CREATE_BLOG_POST', data.id.toString(), `مقال: ${data.title}`, `إنشاء مقال جديد في المدونة`);
         return data as BlogPost;
     },
 
@@ -96,17 +99,20 @@ export const contentService = {
             .single();
 
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('UPDATE_BLOG_POST', id.toString(), `مقال: ${data.title}`, `تحديث محتوى المقال`);
         return data as BlogPost;
     },
 
     async deleteBlogPost(postId: number) {
-        // Soft delete
         const { error } = await supabase
             .from('blog_posts')
             .update({ deleted_at: new Date().toISOString() })
             .eq('id', postId);
 
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('DELETE_BLOG_POST', postId.toString(), `مقال ID: ${postId}`, `حذف ناعم للمقال`);
         return { success: true };
     },
 
@@ -117,6 +123,8 @@ export const contentService = {
             .in('id', postIds);
 
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('BULK_BLOG_STATUS', 'multiple', `${postIds.length} مقالات`, `تغيير الحالة مجمع إلى: ${status}`);
         return { success: true };
     },
 
@@ -127,6 +135,8 @@ export const contentService = {
             .in('id', postIds);
 
         if (error) throw new Error(error.message);
+        
+        await reportingService.logAction('BULK_BLOG_DELETE', 'multiple', `${postIds.length} مقالات`, `حذف مجمع للمقالات`);
         return { success: true };
     }
 };

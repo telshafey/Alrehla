@@ -43,6 +43,7 @@ const AdminIntroductorySessionsPage = lazy(() => import('../../pages/admin/Admin
 const AdminPriceReviewPage = lazy(() => import('../../pages/admin/AdminPriceReviewPage'));
 const AdminReportsPage = lazy(() => import('../../pages/admin/AdminReportsPage'));
 const AdminAuditLogPage = lazy(() => import('../../pages/admin/AdminAuditLogPage'));
+const AdminDatabaseInspectorPage = lazy(() => import('../../pages/admin/AdminDatabaseInspectorPage'));
 
 // Financials
 const AdminFinancialsLayout = lazy(() => import('../../pages/admin/financials/AdminFinancialsLayout'));
@@ -156,6 +157,8 @@ const AdminLayout: React.FC = () => {
                                             <Route path="price-review" element={<PermissionBasedRoute permission="canManageInstructors"><AdminPriceReviewPage/></PermissionBasedRoute>} />
                                             <Route path="reports" element={<PermissionBasedRoute permission="canManageFinancials"><AdminReportsPage /></PermissionBasedRoute>} />
                                             <Route path="audit-log" element={<PermissionBasedRoute permission="canViewAuditLog"><AdminAuditLogPage /></PermissionBasedRoute>} />
+                                            
+                                            <Route path="database-inspector" element={<PermissionBasedRoute permission="canManageSettings"><AdminDatabaseInspectorPage /></PermissionBasedRoute>} />
                                             
                                             <Route path="financials" element={<PermissionBasedRoute permission="canManageFinancials"><AdminFinancialsLayout /></PermissionBasedRoute>}>
                                                 <Route index element={<FinancialOverviewPage />} />

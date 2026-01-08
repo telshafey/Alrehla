@@ -15,7 +15,7 @@ import type {
     UserRole,
     ComparisonItem
 } from '../lib/database.types';
-import type { Permissions } from '../lib/roles';
+import { permissionsByRole } from '../lib/roles';
 
 // New Comparison Criteria Data (Removed num_sessions)
 export const mockComparisonItems: ComparisonItem[] = [
@@ -140,7 +140,7 @@ export const mockPersonalizedProducts: PersonalizedProduct[] = [
             { id: 'triggerSituation', label: 'الموقف المُحفز للمشاعر', placeholder: 'صف لنا موقفاً واقعياً ومحدداً حدث مؤخراً أثار هذا الشعور بقوة لدى الطفل. (مثلاً: عندما يخسر لعبة فيديو).', required: true, type: 'textarea' },
             { id: 'childReaction', label: 'رد فعل الطفل النموذجي', placeholder: 'كيف يتصرف الطفل عندما يشعر بذلك؟ (مثلاً: الصراخ، العزلة، رمي الأشياء، البكاء الشديد).', required: true, type: 'textarea' },
             { id: 'calmingMethod', label: 'أسلوب التهدئة المُتبع حالياً', placeholder: 'ما هي الاستراتيجية التي تستخدمونها حالياً لتهدئة الطفل (العد، الحضن، التنفس العميق)؟', required: true, type: 'textarea' },
-            { id: 'positiveBehavior', label: 'التحول الإيجابي المطلوب', placeholder: 'ما هو السلوك الإيجابي الذي تتمنى أن يتعلمه الطفل ليحل محل السلوك السلبي؟ (مثلاً: أن يعبر عن غضبه بالكلمات).', required: true, type: 'textarea' },
+            { id: 'positiveBehavior', label: 'التحول الإيجابي المطلوب', placeholder: 'ما هو السلوك الإيجابي الذي تتمنى أن يعبر عنه طفلك بدلاً من ذلك؟', required: true, type: 'textarea' },
             { id: 'favoriteHobby', label: 'هواية/اهتمام مفضل', placeholder: 'ما هو الشيء الذي يحبه الطفل أكثر؟ (مثل: كرة القدم، الرسم، بناء الليغو).', required: true, type: 'input' },
             { id: 'favoritePhrase', label: 'كلمة/جملة مفضلة', placeholder: 'هل لديه كلمة أو عبارة يتكرر استخدامها كثيراً؟', required: false, type: 'input' },
             { id: 'interactiveElementChoice', label: 'هل ترغب في عنصر بحث بصري؟*', placeholder: 'نعم / لا. مثال: نعم، أرغب في إيجاد دمية محددة مخبأة في الرسومات.', required: true, type: 'input' },
@@ -525,8 +525,7 @@ export const mockPricingSettings: PricingSettings = {
     fixed_fee: 50 // 50 EGP fixed fee
 };
 
-// Usually permissions are not dynamic in mock, but for the sake of completeness
-export const mockRolePermissions: any = {}; 
+export const mockRolePermissions: any = permissionsByRole; 
 
 export const mockCommunicationSettings: CommunicationSettings = {
     support_email: 'support@alrehlah.com',

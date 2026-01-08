@@ -142,6 +142,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                 items: [
                      { to: '/admin/settings', icon: <Settings size={20} />, label: 'الإعدادات العامة', permission: permissions.canManageSettings },
                      { to: '/admin/audit-log', icon: <History size={20} />, label: 'سجل النشاطات', permission: permissions.canViewAuditLog },
+                     { to: '/admin/database-inspector', icon: <Database size={20} />, label: 'مراقب القاعدة', permission: permissions.canManageSettings },
                      { to: '/admin/integrations', icon: <Plug size={20} />, label: 'التكاملات', permission: permissions.canManageSettings },
                 ]
             },

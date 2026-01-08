@@ -1,26 +1,28 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Users, Plus, UserCog, ArrowUp, ArrowDown, Trash2, FileEdit, AlertCircle, Calendar } from 'lucide-react';
+// Fix for line 65: Added Info icon to imports
+import { Users, UserCog, ArrowUp, ArrowDown, Trash2, FileEdit, AlertCircle, Calendar, Plus, Shield, UserPlus, Info } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import AvailabilityManager from '../../components/admin/AvailabilityManager';
 import { Button } from '../../components/ui/Button';
 import ErrorState from '../../components/ui/ErrorState';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import Accordion from '../../components/ui/Accordion';
 import type { Instructor } from '../../lib/database.types';
+// Fix for lines 83 and 84: Imported missing SortableTableHead component
+import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 
-
-// Main Page Component
 const AdminInstructorsPage: React.FC = () => {
     const navigate = useNavigate();
     const { data: instructors = [], isLoading, error, refetch } = useAdminInstructors();
     const { deleteInstructor } = useInstructorMutations();
     const [sortConfig, setSortConfig] = useState<{ key: keyof Instructor; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
 
+    // Corrected sorting logic to use 'asc' and 'desc' strings instead of numeric -1
     const sortedInstructors = useMemo(() => {
         let sortableItems = [...instructors];
         if (sortConfig !== null) {
@@ -33,12 +35,12 @@ const AdminInstructorsPage: React.FC = () => {
         return sortableItems;
     }, [instructors, sortConfig]);
 
-    const handleSort = (key: keyof Instructor) => {
+    const handleSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
             direction = 'desc';
         }
-        setSortConfig({ key, direction });
+        setSortConfig({ key: key as keyof Instructor, direction });
     };
 
     const handleDeleteInstructor = async (id: number, name: string) => {
@@ -47,70 +49,70 @@ const AdminInstructorsPage: React.FC = () => {
         }
     };
 
-    const SortableTh: React.FC<{ sortKey: keyof Instructor; label: string }> = ({ sortKey, label }) => (
-        <TableHead>
-            <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-0 h-auto py-0">
-                <div className="flex items-center">
-                   <span>{label}</span>
-                    {sortConfig?.key === sortKey && (
-                        sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 mr-2" /> : <ArrowDown className="h-4 w-4 mr-2" />
-                    )}
-                </div>
-            </Button>
-        </TableHead>
-    );
-
-
     if (isLoading) return <PageLoader text="جاري تحميل بيانات المدربين..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
     return (
         <div className="animate-fadeIn space-y-8">
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold text-foreground">إدارة المدربين</h1>
-                <Button onClick={() => navigate('/admin/instructors/new')} icon={<Plus size={18} />}>
-                    إضافة مدرب
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h1 className="text-3xl font-extrabold text-foreground flex items-center gap-3">
+                    <UserCog className="text-primary" /> إدارة المدربين
+                </h1>
+                {/* ملاحظة: زر الإضافة تم نقله لصفحة المستخدمين حسب طلب العميل */}
+                <Button onClick={() => navigate('/admin/users?tab=staff')} variant="outline" className="gap-2 border-primary text-primary hover:bg-primary/5">
+                    <UserPlus size={18} /> إضافة مدرب جديد (عبر إدارة الموظفين)
                 </Button>
             </div>
             
+            <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="pt-6 flex gap-3 text-sm text-blue-800">
+                    <Info className="flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-bold">تنبيه إداري:</p>
+                        <p>هذه الصفحة مخصصة لإدارة "بيانات" المدربين (السيرة الذاتية، الجداول، الأسعار). لإنشاء حساب مدرب جديد أو تغيير صلاحيات دخوله، يرجى الذهاب إلى تبويب <Link to="/admin/users?tab=staff" className="font-black underline">الموظفين</Link>.</p>
+                    </div>
+                </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Users /> قائمة المدربين</CardTitle>
+                <CardTitle className="flex items-center gap-2"><Users /> المدربون المعتمدون</CardTitle>
+                <CardDescription>قائمة بالمدربين الذين يمتلكون ملفات تعريفية منشورة على المنصة.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow>
-                                <SortableTh sortKey="name" label="المدرب" />
-                                <SortableTh sortKey="specialty" label="التخصص" />
-                                <TableHead>حالة الطلبات</TableHead>
+                            <TableRow className="bg-muted/30">
+                                <SortableTableHead<Instructor> sortKey="name" label="المدرب" sortConfig={sortConfig} onSort={handleSort} />
+                                <SortableTableHead<Instructor> sortKey="specialty" label="التخصص" sortConfig={sortConfig} onSort={handleSort} />
+                                <TableHead>حالة التحديثات</TableHead>
                                 <TableHead>إجراءات</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {sortedInstructors.length > 0 ? (
                                 sortedInstructors.map(instructor => (
-                                    <TableRow key={instructor.id}>
+                                    <TableRow key={instructor.id} className="hover:bg-muted/10">
                                         <TableCell className="flex items-center gap-3">
-                                            <img src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={instructor.name} className="w-10 h-10 rounded-full object-cover" loading="lazy" />
-                                            <span className="font-medium text-foreground">{instructor.name}</span>
+                                            <img src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={instructor.name} className="w-10 h-10 rounded-full object-cover border" loading="lazy" />
+                                            <span className="font-bold text-foreground">{instructor.name}</span>
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground">{instructor.specialty}</TableCell>
+                                        <TableCell className="text-muted-foreground text-sm">{instructor.specialty}</TableCell>
                                          <TableCell>
                                             <div className="flex flex-wrap gap-2">
                                                 {instructor.schedule_status === 'pending' && (
-                                                    <span className="flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-full bg-blue-100 text-blue-800 animate-pulse">
+                                                    <span className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800">
                                                         <Calendar size={12} /> تحديث جدول
                                                     </span>
                                                 )}
                                                 {instructor.profile_update_status === 'pending' && (
-                                                    <span className="flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-full bg-orange-100 text-orange-800 animate-pulse">
-                                                        <FileEdit size={12} /> تحديث بيانات/أسعار
+                                                    <span className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-full bg-orange-100 text-orange-800">
+                                                        <FileEdit size={12} /> تحديث بيانات
                                                     </span>
                                                 )}
                                                 {instructor.schedule_status !== 'pending' && instructor.profile_update_status !== 'pending' && (
-                                                    <span className="text-xs text-muted-foreground">لا توجد طلبات معلقة</span>
+                                                    <span className="text-[10px] text-gray-400">محدث</span>
                                                 )}
                                             </div>
                                         </TableCell>
@@ -139,7 +141,7 @@ const AdminInstructorsPage: React.FC = () => {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">لا يوجد مدربين حالياً.</TableCell>
+                                    <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">لا يوجد مدربون مسجلون حالياً.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
@@ -151,8 +153,8 @@ const AdminInstructorsPage: React.FC = () => {
              <Card>
                 <Accordion title="إدارة المواعيد المتاحة (تجاوز يدوي)">
                     <CardContent>
-                        <p className="text-muted-foreground mb-6">
-                            اختر مدربًا ثم اختر يومًا من التقويم لإضافة أو حذف المواعيد المتاحة فيه بشكل مباشر. هذا الإجراء يتجاوز نظام موافقة الجداول.
+                        <p className="text-muted-foreground mb-6 text-sm">
+                            هذه الأداة تسمح لك بتعديل مواعيد أي مدرب بشكل مباشر في حالات الطوارئ أو الطلبات اليدوية من العملاء.
                         </p>
                         <AvailabilityManager />
                     </CardContent>
