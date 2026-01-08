@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import type { BlogPost } from '../../lib/database.types';
@@ -9,28 +10,30 @@ interface PostCardProps {
     post: BlogPost;
 }
 
-const PostCard = React.forwardRef<HTMLElement, PostCardProps>(({ post }, ref) => {
+const PostCard = React.forwardRef<HTMLAnchorElement, PostCardProps>(({ post }, ref) => {
     return (
-        <Card ref={ref} as={Link} to={`/blog/${post.slug}`} className="overflow-hidden transition-transform transform hover:-translate-y-2 duration-300 h-full flex flex-col no-underline group">
-            <div className="h-48 w-full overflow-hidden">
-                <Image 
-                    src={post.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} 
-                    alt={post.title} 
-                    className="w-full h-full transition-transform duration-500 group-hover:scale-110" 
-                    objectFit="cover"
-                />
-            </div>
-            <CardHeader>
-                <CardTitle className="line-clamp-2">{post.title}</CardTitle>
-                <CardDescription>{formatDate(post.published_at)}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground line-clamp-3">{post.content}</p>
-            </CardContent>
-            <CardFooter>
-                <span className="text-sm font-semibold text-primary group-hover:underline">اقرأ المزيد</span>
-            </CardFooter>
-        </Card>
+        <Link to={`/blog/${post.slug}`} ref={ref} className="block h-full group no-underline">
+            <Card className="overflow-hidden transition-transform transform hover:-translate-y-2 duration-300 h-full flex flex-col">
+                <div className="h-48 w-full overflow-hidden">
+                    <Image 
+                        src={post.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} 
+                        alt={post.title} 
+                        className="w-full h-full transition-transform duration-500 group-hover:scale-110" 
+                        objectFit="cover"
+                    />
+                </div>
+                <CardHeader>
+                    <CardTitle className="line-clamp-2">{post.title}</CardTitle>
+                    <CardDescription>{formatDate(post.published_at)}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                    <p className="text-sm text-muted-foreground line-clamp-3">{post.content}</p>
+                </CardContent>
+                <CardFooter>
+                    <span className="text-sm font-semibold text-primary group-hover:underline">اقرأ المزيد</span>
+                </CardFooter>
+            </Card>
+        </Link>
     );
 });
 PostCard.displayName = 'PostCard';

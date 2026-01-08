@@ -324,6 +324,7 @@ export interface CreativeWritingBooking {
   progress_notes: string | null;
   receipt_url: string | null;
   session_id: string;
+  details?: any; // Added details field if needed by backend
 }
 
 export interface BookingWithRelations extends CreativeWritingBooking {

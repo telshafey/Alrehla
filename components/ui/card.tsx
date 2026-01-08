@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { cn } from '../../lib/utils';
 
 const Card = React.forwardRef<
   HTMLElement,
-  React.HTMLAttributes<HTMLDivElement> & { as?: React.ElementType }
+  React.HTMLAttributes<HTMLDivElement> & { as?: React.ElementType } & { [key: string]: any }
 >(({ className, as: Component = 'div', ...props }, ref) => (
   <Component
     ref={ref}

@@ -1,5 +1,5 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { reportingService } from '../../../services/reportingService';
 import { UserRole } from '../../../lib/roles';
 
@@ -47,7 +47,7 @@ export const useAdminReportDataQuery = (reportType: 'orders' | 'users' | 'instru
     return useQuery({
         queryKey: ['adminReportData', reportType, filters],
         queryFn: () => reportingService.getReportData(reportType, filters),
-        keepPreviousData: true,
+        placeholderData: keepPreviousData,
         enabled,
     });
 };

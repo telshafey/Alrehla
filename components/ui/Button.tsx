@@ -44,16 +44,15 @@ const buttonVariants = cva(
   }
 );
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+// Define prop types that include everything a Button OR a Link might need
+export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & Partial<LinkProps> & {
   variant?: 'default' | 'primary' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | 'success' | 'pink' | 'special' | 'subtle';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   loading?: boolean;
   icon?: React.ReactNode;
-  as?: any; 
+  as?: React.ElementType; 
   to?: string; 
-  // Add other LinkProps if needed, or simply use [key: string]: any for flexibility
-  [key: string]: any; 
-}
+};
 
 const Button = React.forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
   ({ className, variant, size, loading = false, icon, children, as, ...props }, ref) => {
@@ -61,7 +60,7 @@ const Button = React.forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPro
     // Explicitly handle disabling when loading
     const isDisabled = props.disabled || loading;
 
-    // Use Link if 'to' prop is present, unless 'as' is overridden
+    // Determine the component to render: 'as' prop > Link (if 'to' is present) > 'button'
     const Component = as || (props.to ? Link : 'button');
 
     return (

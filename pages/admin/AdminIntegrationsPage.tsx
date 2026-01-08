@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Save, Plug, Camera } from 'lucide-react';
 import { useAdminJitsiSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
@@ -31,7 +32,8 @@ const AdminIntegrationsPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await updateJitsiSettings.mutateAsync(settings);
+        // Force cast to JitsiSettings since we know form fields cover necessary props or they are optional
+        await updateJitsiSettings.mutateAsync(settings as JitsiSettings);
     };
 
     const handleTestRoom = () => {
