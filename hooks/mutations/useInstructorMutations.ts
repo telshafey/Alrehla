@@ -81,6 +81,8 @@ export const useInstructorMutations = () => {
                 .single();
             
             if (fetchError) throw fetchError;
+            if (!instructor) throw new Error("Instructor not found");
+
             const pendingSchedule = instructor.pending_profile_data?.proposed_schedule;
             if (!pendingSchedule) throw new Error("لا يوجد جدول مقترح.");
 
@@ -126,7 +128,8 @@ export const useInstructorMutations = () => {
                 .single();
             
             if (fetchError) throw fetchError;
-            
+            if (!instructor) throw new Error("Instructor not found");
+
             // نستخدم البيانات المعدلة من المدير إذا وجدت، وإلا نستخدم بيانات الطلب الأصلي
             const finalUpdates = modifiedUpdates || instructor.pending_profile_data?.updates;
             

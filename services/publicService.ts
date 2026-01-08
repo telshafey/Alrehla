@@ -1,5 +1,29 @@
 
 import { supabase } from '../lib/supabaseClient';
+import type {
+    Instructor,
+    BlogPost,
+    PersonalizedProduct,
+    CreativeWritingPackage,
+    SiteContent,
+    SocialLinks,
+    SubscriptionPlan,
+    StandaloneService,
+    CommunicationSettings
+} from '../lib/database.types';
+
+interface PublicData {
+    instructors: Instructor[];
+    blogPosts: BlogPost[];
+    personalizedProducts: PersonalizedProduct[];
+    creativeWritingPackages: CreativeWritingPackage[];
+    siteContent: SiteContent;
+    socialLinks: SocialLinks;
+    publicHolidays: string[];
+    subscriptionPlans: SubscriptionPlan[];
+    standaloneServices: StandaloneService[];
+    communicationSettings: CommunicationSettings;
+}
 
 export const publicService = {
     async getAllPublicData() {
@@ -20,13 +44,14 @@ export const publicService = {
             supabase.from('creative_writing_packages').select('*'),
             supabase.from('subscription_plans').select('*').order('price'),
             supabase.from('standalone_services').select('*'),
-            supabase.from('site_settings').select('*'),
+            (supabase.from('site_settings') as any).select('*'), // Cast to any to avoid property access issues
             supabase.from('badges').select('*'),
             supabase.from('comparison_items').select('*').order('sort_order')
         ]);
 
         const getSetting = (key: string) => {
-            const item = settingsData?.find(s => s.key === key);
+            // Using as any for item to access properties safely
+            const item = (settingsData as any[])?.find(s => s.key === key);
             return item ? item.value : null;
         };
 

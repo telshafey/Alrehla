@@ -203,7 +203,12 @@ const SessionPage: React.FC = () => {
                 notes: finishNotes 
             });
             addToast('تم إنهاء الجلسة بنجاح وتوثيقها.', 'success');
-            navigate(`/journey/${session.booking_id}`);
+            // Check for booking_id existence to avoid TS error
+            if (session.booking_id) {
+                navigate(`/journey/${session.booking_id}`);
+            } else {
+                 navigate('/admin'); // Fallback route
+            }
         } catch (e) {
             addToast('حدث خطأ أثناء إنهاء الجلسة.', 'error');
         } finally {

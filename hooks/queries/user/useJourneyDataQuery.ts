@@ -91,8 +91,8 @@ export const useTrainingJourneyData = (journeyId: string | undefined) => {
             return {
                 booking,
                 package: packagesRes.data,
-                instructor: booking.instructors,
-                childProfile: booking.child_profiles,
+                instructor: (booking as any).instructors,
+                childProfile: (booking as any).child_profiles,
                 scheduledSessions: sessionsRes.data || [],
                 messages: messagesRes.data || [],
                 attachments: attachmentsRes.data || []

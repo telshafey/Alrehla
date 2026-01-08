@@ -103,7 +103,7 @@ export const userService = {
             .eq('id', payload.childProfileId)
             .single();
 
-        if (child?.student_user_id) {
+        if (child && child.student_user_id) {
             throw new Error(`ملف الطفل ${child.name} مرتبط بالفعل بحساب طالب آخر.`);
         }
 
@@ -148,7 +148,7 @@ export const userService = {
 
     async unlinkStudentFromChildProfile(childProfileId: number) {
         const { data: child } = await supabase.from('child_profiles').select('student_user_id').eq('id', childProfileId).single();
-        if (child?.student_user_id) {
+        if (child && child.student_user_id) {
             await (supabase.from('profiles') as any).update({ role: 'user' }).eq('id', child.student_user_id);
         }
         const { error } = await (supabase.from('child_profiles') as any).update({ student_user_id: null }).eq('id', childProfileId);

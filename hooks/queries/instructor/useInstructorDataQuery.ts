@@ -41,7 +41,8 @@ export const useInstructorData = () => {
                 bookingService.getAllScheduledSessions(),
                 userService.getAllChildProfiles(),
                 supabase.from('service_orders').select('*').eq('assigned_instructor_id', currentInstructor.id).then(res => res.data as ServiceOrder[] || []),
-                supabase.from('instructor_payouts').select('*').eq('instructor_id', currentInstructor.id).then(res => res.data as InstructorPayout[] || []).catch(() => []),
+                // Fix: Chain .then() to handle null data instead of relying on catch on the query builder result
+                supabase.from('instructor_payouts').select('*').eq('instructor_id', currentInstructor.id).then(res => res.data as InstructorPayout[] || []),
                 supabase.from('session_attachments').select('*').then(res => res.data as SessionAttachment[] || [])
             ]);
 

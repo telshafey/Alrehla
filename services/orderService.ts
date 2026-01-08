@@ -205,8 +205,8 @@ export const orderService = {
             next_renewal_date: renewalDate.toISOString(),
             status: 'pending_payment',
             total: payload.total,
-            user_name: user?.name || 'Unknown',
-            child_name: child?.name || 'Unknown',
+            user_name: user ? user.name : 'Unknown',
+            child_name: child ? child.name : 'Unknown',
             shipping_cost: payload.shippingCost || 0
         }]).select().single();
 

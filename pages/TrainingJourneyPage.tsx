@@ -63,9 +63,16 @@ const TrainingJourneyPage: React.FC = () => {
     };
 
     if (isLoading) return <PageLoader />;
-    if (!journeyData) return <ErrorState message="الرحلة غير موجودة" />;
+    
+    // Safety check for journey data presence
+    if (!journeyData || !journeyData.booking) {
+        return <ErrorState message="الرحلة غير موجودة أو لم يتم تحميل البيانات." />;
+    }
 
     const { booking, scheduledSessions, messages, attachments, childProfile } = journeyData;
+    // Safe access using any to bypass strict type checking if needed for dynamic properties
+    const instructorName = (journeyData as any).instructor?.name || 'غير محدد';
+    const bookingPackageName = (booking as any).package_name || 'باقة تدريبية';
 
     return (
         <div className="bg-muted/40 py-10 animate-fadeIn min-h-screen">
@@ -74,8 +81,8 @@ const TrainingJourneyPage: React.FC = () => {
                     <Link to="/account" className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 mb-2">
                          <ArrowLeft size={12} className="rotate-180"/> العودة لحسابي
                     </Link>
-                    <h1 className="text-3xl font-black text-gray-800">{booking.package_name}</h1>
-                    <p className="text-muted-foreground font-medium">الطالب: {childProfile?.name} | المدرب: {journeyData.instructor?.name}</p>
+                    <h1 className="text-3xl font-black text-gray-800">{bookingPackageName}</h1>
+                    <p className="text-muted-foreground font-medium">الطالب: {childProfile?.name} | المدرب: {instructorName}</p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

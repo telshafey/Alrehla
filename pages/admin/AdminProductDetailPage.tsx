@@ -128,11 +128,17 @@ const AdminProductDetailPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const payload = {
+        const payload: any = {
             ...product,
             price_printed: product.has_printed_version ? Number(product.price_printed) : null,
             price_electronic: Number(product.price_electronic) || null
         };
+
+        // Ensure key is present if creating new
+        if (isNew && !payload.key) {
+             payload.key = `prod_${uuidv4().slice(0,8)}`;
+        }
+
         if (isNew) await createPersonalizedProduct.mutateAsync(payload);
         else await updatePersonalizedProduct.mutateAsync(payload);
         navigate('/admin/personalized-products');
