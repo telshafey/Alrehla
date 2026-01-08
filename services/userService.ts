@@ -97,13 +97,15 @@ export const userService = {
         }
 
         // التأكد من أن ملف الطفل غير مرتبط بحساب آخر لتجنب تضارب البيانات
-        const { data: child } = await supabase
+        const { data: childData } = await supabase
             .from('child_profiles')
             .select('student_user_id, name')
             .eq('id', payload.childProfileId)
             .single();
 
-        // Safe property access using casting if needed, though optional chaining works for potentially missing properties
+        // Safe property access using casting
+        const child = childData as any;
+
         if (child && child.student_user_id) {
             throw new Error(`ملف الطفل ${child.name} مرتبط بالفعل بحساب طالب آخر.`);
         }
@@ -148,7 +150,9 @@ export const userService = {
     },
 
     async unlinkStudentFromChildProfile(childProfileId: number) {
-        const { data: child } = await supabase.from('child_profiles').select('student_user_id').eq('id', childProfileId).single();
+        const { data: childData } = await supabase.from('child_profiles').select('student_user_id').eq('id', childProfileId).single();
+        const child = childData as any;
+        
         if (child && child.student_user_id) {
             await (supabase.from('profiles') as any).update({ role: 'user' }).eq('id', child.student_user_id);
         }

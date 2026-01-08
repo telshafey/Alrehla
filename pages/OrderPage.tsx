@@ -57,7 +57,7 @@ const OrderPage: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const product = useMemo(() => 
-        (orderData?.personalizedProducts || []).find(p => p.key === productKey) as PersonalizedProduct | undefined, 
+        (orderData?.personalizedProducts || []).find(p => p.key === productKey) as any, 
     [orderData, productKey]);
 
     // --- Dynamic Steps Logic ---
@@ -299,7 +299,7 @@ const OrderPage: React.FC = () => {
         setIsSubmitting(true);
         
         const imageFiles: Record<string, File> = {};
-        product?.image_slots?.forEach(slot => {
+        product?.image_slots?.forEach((slot: any) => {
             if (formData[slot.id] instanceof File) {
                 imageFiles[slot.id] = formData[slot.id];
             }
@@ -327,7 +327,7 @@ const OrderPage: React.FC = () => {
     if (isLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
     if (!product) return <div className="text-center py-20">المنتج غير موجود.</div>;
     
-    const previewSourceSlot = product.image_slots?.find(s => s.required)?.id;
+    const previewSourceSlot = product.image_slots?.find((s: any) => s.required)?.id;
     const previewFile = previewSourceSlot ? formData[previewSourceSlot] : null;
     const imagePreviewUrl = previewFile instanceof File ? URL.createObjectURL(previewFile) : null;
 

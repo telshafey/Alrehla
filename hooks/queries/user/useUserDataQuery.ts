@@ -82,12 +82,12 @@ export const useUserAccountData = () => {
                     const { data: packages } = await supabase.from('creative_writing_packages').select('*');
                     const { data: sessions } = await supabase.from('scheduled_sessions').select('*');
 
-                    enrichedBookings = rawBookings.map((booking: any) => ({
-                        ...booking,
-                        sessions: sessions?.filter(s => s.booking_id === booking.id) || [],
-                        packageDetails: packages?.find(p => p.name === booking.package_name),
-                        instructorName: instructors?.find(i => i.id === booking.instructor_id)?.name || 'غير محدد',
-                        child_profiles: booking.child_profiles
+                    enrichedBookings = rawBookings.map((b: any) => ({
+                        ...b,
+                        sessions: sessions?.filter(s => s.booking_id === b.id) || [],
+                        packageDetails: packages?.find(p => p.name === b.package_name),
+                        instructorName: instructors?.find(i => i.id === b.instructor_id)?.name || 'غير محدد',
+                        child_profiles: b.child_profiles
                     }));
                 } catch (e) {
                     console.error("Enrichment failed", e);
