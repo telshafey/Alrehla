@@ -1,9 +1,9 @@
 
 import React, { useMemo, useState } from 'react';
-import { CalendarDays, Clock, CheckCircle2, AlertCircle, RefreshCw, ExternalLink, Calendar, Plus } from 'lucide-react';
+import { CalendarDays, Clock, CheckCircle2, AlertCircle, RefreshCw, ExternalLink, Calendar, Plus, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/Button';
-import { formatDate } from '../../../utils/helpers';
+import { formatDate, formatTime } from '../../../utils/helpers';
 import SessionReportModal from './SessionReportModal';
 import RequestSessionChangeModal from './RequestSessionChangeModal';
 import GoogleCalendarSyncModal from './GoogleCalendarSyncModal';
@@ -18,11 +18,10 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
     const [rescheduleModalSession, setRescheduleModalSession] = useState<any>(null);
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
-    // 1. حساب حدود الأسبوع الحالي (من السبت للجمعة)
+    // حساب حدود الأسبوع الحالي (من السبت للجمعة)
     const weekData = useMemo(() => {
         const now = new Date();
         const startOfWeek = new Date(now);
-        // السبت هو 6 في JS، لذا نحسب الإزاحة لتبدأ من السبت
         const day = now.getDay(); 
         const diff = (day === 6 ? 0 : day + 1); 
         startOfWeek.setDate(now.getDate() - diff);
@@ -37,12 +36,10 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
             return sDate >= startOfWeek && sDate <= endOfWeek;
         });
 
-        // جلسات فائتة: تاريخها قبل الآن ولكن حالتها لم تتغير لـ Completed
         const pastNeedsAction = currentWeekSessions.filter(s => 
             new Date(s.session_date) < now && s.status === 'upcoming'
         );
 
-        // جلسات متبقية في الأسبوع
         const upcomingThisWeek = currentWeekSessions.filter(s => 
             new Date(s.session_date) >= now
         ).sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
@@ -63,9 +60,11 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
                     <h2 className="text-xl font-black text-gray-800 flex items-center gap-2">
                         <CalendarDays className="text-primary" /> أجندة الأسبوع الحالي
                     </h2>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                        من السبت {formatDate(weekData.startOfWeek.toISOString())} إلى الجمعة {formatDate(weekData.endOfWeek.toISOString())}
-                    </p>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-1">
+                        <p>من {formatDate(weekData.startOfWeek.toISOString())} إلى {formatDate(weekData.endOfWeek.toISOString())}</p>
+                        <span>•</span>
+                        <p className="flex items-center gap-1 font-bold text-indigo-600"><Globe size={10}/> توقيت القاهرة</p>
+                    </div>
                 </div>
                 <Button 
                     variant="outline" 
@@ -94,7 +93,7 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
                                         <div>
                                             <p className="font-bold text-sm text-gray-800">{session.child_name || 'طالب'}</p>
                                             <p className="text-[10px] text-red-700 font-bold">
-                                                فات موعدها: {formatDate(session.session_date)} - الساعة {new Date(session.session_date).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}
+                                                فات موعدها: {formatDate(session.session_date)} - الساعة {formatTime(session.session_date)}
                                             </p>
                                         </div>
                                     </div>
@@ -141,7 +140,7 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
                                                     {isToday ? 'اليوم' : formatDate(session.session_date).split(' ')[0]}
                                                 </span>
                                                 <span className="text-[10px] font-black text-gray-400">
-                                                    {new Date(session.session_date).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}
+                                                    {formatTime(session.session_date)}
                                                 </span>
                                             </div>
                                             <Button variant="ghost" size="icon" className="h-6 w-6" asChild>

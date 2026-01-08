@@ -69,17 +69,6 @@ const AdminLayout: React.FC = () => {
 
     if (authLoading) return <PageLoader text="جاري التحقق من الصلاحيات..." />;
 
-    // Helper to determine the default index route
-    const renderIndexRoute = () => {
-        if (permissions.canViewGlobalStats) {
-            return <Route index element={<AdminDashboardPage />} />;
-        }
-        if (permissions.isInstructor) {
-            return <Route index element={<InstructorDashboardPage />} />;
-        }
-        return <Route index element={<Navigate to="/" replace />} />;
-    };
-
     return (
         <div className="flex h-screen bg-muted/30 overflow-hidden" dir="rtl">
             {isMobileMenuOpen && (
@@ -107,21 +96,21 @@ const AdminLayout: React.FC = () => {
                          <div className="flex-1 p-4 sm:p-6 lg:p-8">
                             <Suspense fallback={<PageLoader text="جاري تحميل الصفحة..." />}>
                                 <Routes>
-                                    {/* Default Landing Page based on Permissions */}
-                                    {renderIndexRoute()}
+                                    {/* مسار البداية (Index) حسب الصلاحيات */}
+                                    <Route index element={
+                                        permissions.canViewGlobalStats ? <AdminDashboardPage /> :
+                                        permissions.isInstructor ? <InstructorDashboardPage /> :
+                                        <Navigate to="/" replace />
+                                    } />
 
-                                    {/* Shared Instructor Routes (Visible to Instructors or Admins with access) */}
-                                    {(permissions.isInstructor || permissions.canManageInstructors) && (
-                                        <>
-                                            <Route path="profile" element={<InstructorProfilePage />} />
-                                            <Route path="schedule" element={<InstructorSchedulePage />} />
-                                            <Route path="journeys" element={<InstructorJourneysPage />} />
-                                            <Route path="pricing" element={<InstructorPricingPage />} />
-                                            <Route path="instructor-financials" element={<InstructorFinancialsPage />} />
-                                        </>
-                                    )}
+                                    {/* مسارات المدرب - تظهر للمدرب أو المدير المسؤول */}
+                                    <Route path="profile" element={<InstructorProfilePage />} />
+                                    <Route path="schedule" element={<InstructorSchedulePage />} />
+                                    <Route path="journeys" element={<InstructorJourneysPage />} />
+                                    <Route path="pricing" element={<InstructorPricingPage />} />
+                                    <Route path="instructor-financials" element={<InstructorFinancialsPage />} />
 
-                                    {/* Core Admin Management Routes */}
+                                    {/* مسارات الإدارة الأساسية */}
                                     <Route path="users" element={<PermissionBasedRoute permission="canManageUsers"><AdminUsersPage /></PermissionBasedRoute>} />
                                     <Route path="users/new" element={<PermissionBasedRoute permission="canManageUsers"><AdminUserFormPage /></PermissionBasedRoute>} />
                                     <Route path="users/:id" element={<PermissionBasedRoute permission="canManageUsers"><AdminUserFormPage /></PermissionBasedRoute>} />
@@ -140,7 +129,7 @@ const AdminLayout: React.FC = () => {
                                     <Route path="join-requests/:id" element={<PermissionBasedRoute permission="canManageJoinRequests"><AdminJoinRequestDetailPage /></PermissionBasedRoute>} />
                                     <Route path="blog" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPage /></PermissionBasedRoute>} />
                                     <Route path="blog/:id" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPostEditorPage /></PermissionBasedRoute>} />
-                                    <Route path="content/:sectionKey" element={<PermissionBasedRoute permission="canManageSiteContent"><AdminContentManagementPage /></PermissionBasedRoute>} />
+                                    <Route path="content/:sectionKey" element={<PermissionBasedRoute permission="canManageSiteContent"><AdminContentManagementPage key={location.pathname} /></PermissionBasedRoute>} />
                                     <Route path="shipping" element={<PermissionBasedRoute permission="canManageSettings"><AdminShippingPage /></PermissionBasedRoute>} />
                                     <Route path="subscriptions" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminSubscriptionsPage /></PermissionBasedRoute>} />
                                     <Route path="subscription-box" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminSubscriptionBoxPage /></PermissionBasedRoute>} />
@@ -158,7 +147,7 @@ const AdminLayout: React.FC = () => {
                                     <Route path="audit-log" element={<PermissionBasedRoute permission="canViewAuditLog"><AdminAuditLogPage /></PermissionBasedRoute>} />
                                     <Route path="database-inspector" element={<PermissionBasedRoute permission="canManageSettings"><AdminDatabaseInspectorPage /></PermissionBasedRoute>} />
                                     
-                                    {/* Global Financials Section */}
+                                    {/* قسم الماليات المركزي */}
                                     <Route path="financials" element={<PermissionBasedRoute permission="canManageFinancials"><AdminFinancialsLayout /></PermissionBasedRoute>}>
                                         <Route index element={<FinancialOverviewPage />} />
                                         <Route path="instructor-payouts" element={<InstructorPayoutsPage />} />
@@ -167,7 +156,7 @@ const AdminLayout: React.FC = () => {
                                         <Route path="transactions-log" element={<TransactionsLogPage />} />
                                     </Route>
 
-                                    {/* Safe Fallback: Redirect to admin root if sub-path not found */}
+                                    {/* سقوط آمن: العودة للرئيسية في حال عدم مطابقة أي مسار فرعي */}
                                     <Route path="*" element={<Navigate to="/admin" replace />} />
                                 </Routes>
                             </Suspense>

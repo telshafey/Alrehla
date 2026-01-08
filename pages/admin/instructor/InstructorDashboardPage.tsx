@@ -11,36 +11,38 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 const InstructorDashboardPage: React.FC = () => {
     const { data, isLoading } = useInstructorData();
 
+    // 1. استخلاص البيانات الأساسية بشكل آمن
     const instructor = data?.instructor;
-    const bookings = data?.bookings;
-    const introSessionsThisMonth = data?.introSessionsThisMonth;
+    const bookings = data?.bookings || [];
+    const introSessionsThisMonth = data?.introSessionsThisMonth || 0;
 
-    // تجميع كافة الجلسات المجدولة من كل الحجوزات لتمريرها للويدجت الأسبوعي
+    // 2. معالجة الجلسات المجدولة باستخدام useMemo لمنع إعادة الحساب غير الضرورية
     const allScheduledSessions = useMemo(() => {
-        if (!bookings) return [];
+        if (!bookings.length) return [];
         return bookings.flatMap((b: any) => 
             (b.sessions || []).map((s: any) => ({
                 ...s,
-                child_name: b.child_profiles?.name,
+                child_name: b.child_profiles?.name || 'طالب',
                 package_name: b.package_name
             }))
         );
     }, [bookings]);
 
-    const upcomingTotal = useMemo(() => {
+    // 3. حساب الإحصائيات
+    const stats = useMemo(() => {
         const now = new Date();
-        return allScheduledSessions.filter((s: any) => 
+        const upcomingTotal = allScheduledSessions.filter((s: any) => 
             s.status === 'upcoming' && new Date(s.session_date) >= now
         ).length;
-    }, [allScheduledSessions]);
 
-    const activeStudentsCount = useMemo(() => {
-        if (!bookings) return 0;
-        return bookings.filter((b: any) => b.status === 'مؤكد').length;
-    }, [bookings]);
+        const activeStudentsCount = bookings.filter((b: any) => b.status === 'مؤكد').length;
+        
+        return { upcomingTotal, activeStudentsCount };
+    }, [allScheduledSessions, bookings]);
 
-    const introSessionGoalMet = (introSessionsThisMonth || 0) >= 1;
+    const introSessionGoalMet = introSessionsThisMonth >= 1;
 
+    // 4. معالجة حالات العرض (بعد تعريف كل الـ Hooks)
     if (isLoading) {
         return <PageLoader text="جاري تحميل لوحة التحكم..." />;
     }
@@ -74,17 +76,17 @@ const InstructorDashboardPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard 
                     title="جلساتك المجدولة" 
-                    value={upcomingTotal} 
+                    value={stats.upcomingTotal} 
                     icon={<Calendar className="h-4 w-4 text-blue-500" />} 
                 />
                 <StatCard 
                     title="الطلاب النشطون" 
-                    value={activeStudentsCount} 
+                    value={stats.activeStudentsCount} 
                     icon={<BookOpen className="h-4 w-4 text-purple-500" />} 
                 />
                 <StatCard 
                     title="جلسات تعريفية (هذا الشهر)" 
-                    value={`${introSessionsThisMonth || 0} / 1`}
+                    value={`${introSessionsThisMonth} / 1`}
                     icon={<Award className={`h-4 w-4 ${introSessionGoalMet ? "text-green-500" : "text-yellow-500"}`} />} 
                 />
                  <Card className={introSessionGoalMet ? "bg-green-50/50 border-green-100" : "bg-blue-50/50 border-blue-100"}>
@@ -106,7 +108,7 @@ const InstructorDashboardPage: React.FC = () => {
                 </div>
                 
                 <div className="xl:col-span-1">
-                    <InstructorJourneysPanel instructorBookings={(bookings as any[]) || []} />
+                    <InstructorJourneysPanel instructorBookings={(bookings as any[])} />
                 </div>
             </div>
         </div>

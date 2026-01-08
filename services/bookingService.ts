@@ -18,63 +18,54 @@ import { v4 as uuidv4 } from 'uuid';
 export const bookingService = {
     // --- Queries ---
     
-    // Fix: Added missing getAllBookings method to retrieve all bookings from the database
     async getAllBookings() {
         const { data, error } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
         if (error) throw error;
         return data as CreativeWritingBooking[];
     },
 
-    // Fix: Added missing getAllInstructors method to retrieve all active instructors
     async getAllInstructors() {
         const { data, error } = await supabase.from('instructors').select('*').is('deleted_at', null);
         if (error) throw error;
         return data as Instructor[];
     },
 
-    // Fix: Added missing getInstructorByUserId method to find instructor profile by user account ID
     async getInstructorByUserId(userId: string) {
         const { data, error } = await supabase.from('instructors').select('*').eq('user_id', userId).maybeSingle();
         if (error) throw error;
         return data as Instructor | null;
     },
 
-    // Fix: Added missing getInstructorBookings method to retrieve bookings assigned to a specific instructor
     async getInstructorBookings(instructorId: number) {
         const { data, error } = await supabase.from('bookings').select('*').eq('instructor_id', instructorId);
         if (error) throw error;
         return data as CreativeWritingBooking[];
     },
 
-    // Fix: Added missing getAllScheduledSessions method to retrieve all training sessions
     async getAllScheduledSessions() {
         const { data, error } = await supabase.from('scheduled_sessions').select('*').order('session_date', { ascending: true });
         if (error) throw error;
         return data as ScheduledSession[];
     },
 
-    // Fix: Added missing getAllPackages method to retrieve all Creative Writing packages
     async getAllPackages() {
         const { data, error } = await supabase.from('creative_writing_packages').select('*');
         if (error) throw error;
         return data as CreativeWritingPackage[];
     },
 
-    // Fix: Added missing getAllStandaloneServices method to retrieve additional services
     async getAllStandaloneServices() {
         const { data, error } = await supabase.from('standalone_services').select('*');
         if (error) throw error;
         return data as StandaloneService[];
     },
 
-    // Fix: Added missing getAllComparisonItems method to retrieve package comparison criteria
     async getAllComparisonItems() {
         const { data, error } = await supabase.from('comparison_items').select('*').order('sort_order', { ascending: true });
         if (error) throw error;
         return data as ComparisonItem[];
     },
 
-    // Fix: Added missing getAllAttachments method to retrieve all shared files
     async getAllAttachments() {
         const { data, error } = await supabase.from('session_attachments').select('*').order('created_at', { ascending: false });
         if (error) throw error;
@@ -83,11 +74,15 @@ export const bookingService = {
 
     // --- Mutations ---
 
-    // Fix: Added missing createBooking method to process new training package orders
     async createBooking(payload: { userId: string, payload: any, receiptUrl: string }) {
         const { userId, payload: bookingData, receiptUrl } = payload;
         const bookingId = `BK-${Date.now().toString().slice(-6)}`;
         
+        // التأكد من أن التاريخ المسجل يحمل معلومات الوقت المختارة بتوقيت مصر
+        const [hours, minutes] = bookingData.dateTime.time.split(':');
+        const bookingDate = new Date(bookingData.dateTime.date);
+        bookingDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
         const { data, error } = await supabase.from('bookings').insert([{
             id: bookingId,
             user_id: userId,
@@ -95,7 +90,7 @@ export const bookingService = {
             child_id: bookingData.child.id,
             package_name: bookingData.package.name,
             instructor_id: bookingData.instructor.id,
-            booking_date: bookingData.dateTime.date.toISOString(),
+            booking_date: bookingDate.toISOString(),
             booking_time: bookingData.dateTime.time,
             total: bookingData.total,
             status: receiptUrl ? 'بانتظار المراجعة' : 'بانتظار الدفع',
@@ -107,7 +102,6 @@ export const bookingService = {
         return data as CreativeWritingBooking;
     },
 
-    // Fix: Completed the updateBookingStatus method to handle session generation on confirmation
     async updateBookingStatus(bookingId: string, newStatus: BookingStatus) {
         const { data: booking, error } = await supabase
             .from('bookings')
@@ -125,8 +119,12 @@ export const bookingService = {
             
             const now = new Date();
             const originalDate = new Date(booking.booking_date);
+            
+            // ضبط البداية لتكون في المستقبل دائماً (إذا كان تاريخ الحجز قد فات وقت المراجعة)
             let startDate = originalDate;
-            while (startDate < now) { startDate.setDate(startDate.getDate() + 7); }
+            while (startDate < now) { 
+                startDate.setDate(startDate.getDate() + 7); 
+            }
 
             const { data: pkg } = await supabase.from('creative_writing_packages').select('sessions').eq('name', booking.package_name).single();
             const sessionCount = parseInt(pkg?.sessions.match(/\d+/)?.[0] || '1');
@@ -139,7 +137,7 @@ export const bookingService = {
                     booking_id: bookingId,
                     child_id: booking.child_id,
                     instructor_id: booking.instructor_id,
-                    session_date: sDate.toISOString(),
+                    session_date: sDate.toISOString(), // UTC ISO String
                     status: 'upcoming'
                 });
             }
@@ -153,28 +151,24 @@ export const bookingService = {
         return { success: true };
     },
 
-    // Fix: Added missing updateScheduledSession method to update individual session statuses or notes
     async updateScheduledSession(sessionId: string, updates: any) {
         const { error } = await supabase.from('scheduled_sessions').update(updates).eq('id', sessionId);
         if (error) throw error;
         return { success: true };
     },
 
-    // Fix: Added missing updateBookingProgressNotes method to save instructor feedback
     async updateBookingProgressNotes(bookingId: string, notes: string) {
         const { error } = await supabase.from('bookings').update({ progress_notes: notes }).eq('id', bookingId);
         if (error) throw error;
         return { success: true };
     },
 
-    // Fix: Added missing saveBookingDraft method to store writing work-in-progress
     async saveBookingDraft(bookingId: string, draft: string) {
         const { error } = await supabase.from('bookings').update({ details: { draft } }).eq('id', bookingId);
         if (error) throw error;
         return { success: true };
     },
 
-    // Fix: Added missing sendSessionMessage method for journey chat
     async sendSessionMessage(payload: { bookingId: string, senderId: string, role: 'instructor' | 'student' | 'user', message: string }) {
         const { error } = await supabase.from('session_messages').insert([{
             booking_id: payload.bookingId,
@@ -186,7 +180,6 @@ export const bookingService = {
         return { success: true };
     },
 
-    // Fix: Added missing uploadSessionAttachment method for file sharing within journeys
     async uploadSessionAttachment(payload: { bookingId: string, uploaderId: string, role: 'instructor' | 'student' | 'user', file: File }) {
         const publicUrl = await cloudinaryService.uploadImage(payload.file, 'session_attachments');
         const { error } = await supabase.from('session_attachments').insert([{
@@ -202,7 +195,6 @@ export const bookingService = {
 
     // --- Instructor Management ---
 
-    // Fix: Added missing createInstructor method for admin use
     async createInstructor(payload: any) {
         let avatarUrl = null;
         if (payload.avatarFile) {
@@ -214,7 +206,6 @@ export const bookingService = {
         return data as Instructor;
     },
 
-    // Fix: Added missing updateInstructor method for admin use
     async updateInstructor(payload: any) {
         let avatarUrl = payload.avatar_url;
         if (payload.avatarFile) {
@@ -226,7 +217,6 @@ export const bookingService = {
         return data as Instructor;
     },
 
-    // Fix: Added missing deleteInstructor method (soft delete)
     async deleteInstructor(instructorId: number) {
         const { error } = await supabase.from('instructors').update({ deleted_at: new Date().toISOString() }).eq('id', instructorId);
         if (error) throw error;
@@ -235,60 +225,51 @@ export const bookingService = {
 
     // --- CW Settings Management ---
 
-    // Fix: Added missing createPackage method for package configuration
     async createPackage(payload: any) {
         const { data, error } = await supabase.from('creative_writing_packages').insert([payload]).select().single();
         if (error) throw error;
         return data as CreativeWritingPackage;
     },
-    // Fix: Added missing updatePackage method for package configuration
     async updatePackage(payload: any) {
         const { id, ...updates } = payload;
         const { data, error } = await supabase.from('creative_writing_packages').update(updates).eq('id', id).select().single();
         if (error) throw error;
         return data as CreativeWritingPackage;
     },
-    // Fix: Added missing deletePackage method
     async deletePackage(packageId: number) {
         const { error } = await supabase.from('creative_writing_packages').delete().eq('id', packageId);
         if (error) throw error;
         return { success: true };
     },
 
-    // Fix: Added missing createStandaloneService method
     async createStandaloneService(payload: any) {
         const { data, error } = await supabase.from('standalone_services').insert([payload]).select().single();
         if (error) throw error;
         return data as StandaloneService;
     },
-    // Fix: Added missing updateStandaloneService method
     async updateStandaloneService(payload: any) {
         const { id, ...updates } = payload;
         const { data, error } = await supabase.from('standalone_services').update(updates).eq('id', id).select().single();
         if (error) throw error;
         return data as StandaloneService;
     },
-    // Fix: Added missing deleteStandaloneService method
     async deleteStandaloneService(serviceId: number) {
         const { error } = await supabase.from('standalone_services').delete().eq('id', serviceId);
         if (error) throw error;
         return { success: true };
     },
 
-    // Fix: Added missing createComparisonItem method for the comparison matrix
     async createComparisonItem(payload: any) {
         const { data, error } = await supabase.from('comparison_items').insert([payload]).select().single();
         if (error) throw error;
         return data as ComparisonItem;
     },
-    // Fix: Added missing updateComparisonItem method
     async updateComparisonItem(payload: any) {
         const { id, ...updates } = payload;
         const { data, error } = await supabase.from('comparison_items').update(updates).eq('id', id).select().single();
         if (error) throw error;
         return data as ComparisonItem;
     },
-    // Fix: Added missing deleteComparisonItem method
     async deleteComparisonItem(itemId: string) {
         const { error } = await supabase.from('comparison_items').delete().eq('id', itemId);
         if (error) throw error;

@@ -1,3 +1,4 @@
+
 import type { Subscription } from '../lib/database.types';
 
 export const calculateAge = (birthDateString: string | null | undefined): number | null => {
@@ -49,16 +50,33 @@ export const getStatusColor = (status: string | null): string => {
     }
 };
 
+// فرض توقيت القاهرة في عرض التاريخ
 export const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return 'غير محدد';
     try {
-        return new Date(dateString).toLocaleDateString('ar-EG', {
+        return new Intl.DateTimeFormat('ar-EG', {
             year: 'numeric',
             month: 'long',
-            day: 'numeric'
-        });
+            day: 'numeric',
+            timeZone: 'Africa/Cairo'
+        }).format(new Date(dateString));
     } catch(e) {
         return 'تاريخ غير صالح';
+    }
+};
+
+// دالة جديدة لعرض الوقت بتوقيت القاهرة
+export const formatTime = (dateString: string | null | undefined): string => {
+    if (!dateString) return '--:--';
+    try {
+        return new Intl.DateTimeFormat('ar-EG', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Africa/Cairo',
+            hour12: true
+        }).format(new Date(dateString));
+    } catch(e) {
+        return '--:--';
     }
 };
 

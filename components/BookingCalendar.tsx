@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Globe } from 'lucide-react';
 import type { Instructor, WeeklySchedule } from '../lib/database.types';
 
 interface BookingCalendarProps {
@@ -39,7 +39,6 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
     
     const handleDateClick = (day: number) => {
         const newSelectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-        // قاعدة الفاصل الزمني: منع الحجز في أقل من 7 أيام من اليوم
         const minDate = new Date();
         minDate.setDate(minDate.getDate() + 7);
         minDate.setHours(0, 0, 0, 0);
@@ -58,13 +57,11 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
         const templateSlots = weeklySchedule[dayOfWeek] || [];
         
         const dateString = selectedDate.toISOString().split('T')[0];
-        
-        // جلب المواعيد المشغولة (المؤكدة + التي تنتظر المراجعة + بانتظار الدفع)
         const busySlotsForDay = activeBookings
             .filter(b => 
                 b.instructor_id === instructor.id && 
                 b.booking_date.startsWith(dateString) &&
-                b.status !== 'ملغي' // أي حالة غير ملغي تعتبر حاجزاً للموعد
+                b.status !== 'ملغي'
             )
             .map(b => b.booking_time);
 
@@ -81,10 +78,15 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
                 <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-gray-200"><ChevronLeft size={20} /></button>
             </div>
 
-            {/* تنبيه قاعدة الـ 7 أيام */}
+            {/* تنبيه المنطقة الزمنية */}
+            <div className="mb-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center gap-3 text-[11px] text-indigo-700">
+                <Globe size={16} className="shrink-0" />
+                <p className="font-bold">جميع المواعيد المعروضة هي بـ <span className="underline decoration-double">توقيت مصر (القاهرة)</span>.</p>
+            </div>
+
             <div className="mb-4 p-2 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-2 text-[10px] text-blue-700">
                 <Clock size={12} />
-                <span>أقرب موعد متاح هو بعد 7 أيام من اليوم لضمان جودة التحضير.</span>
+                <span>أقرب موعد متاح هو بعد 7 أيام لضمان جودة التحضير.</span>
             </div>
             
             <div className="grid grid-cols-7 gap-1 text-center text-sm font-semibold text-gray-500 mb-2">
@@ -95,8 +97,6 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
                 {Array.from({ length: startingDay }).map((_, i) => <div key={`empty-${i}`}></div>)}
                 {daysArray.map(day => {
                     const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-                    
-                    // التاريخ الأدنى المسموح به (تاريخ اليوم + 7 أيام)
                     const minAllowedDate = new Date();
                     minAllowedDate.setDate(minAllowedDate.getDate() + 7);
                     minAllowedDate.setHours(0, 0, 0, 0);
@@ -108,7 +108,6 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
                     const slots = weeklySchedule[dayOfWeek] || [];
                     const dateStr = date.toISOString().split('T')[0];
                     
-                    // حساب المواعيد المشغولة فعلياً (بما فيها المعلقة)
                     const busyCount = activeBookings.filter(b => 
                         b.instructor_id === instructor?.id && 
                         b.booking_date.startsWith(dateStr) &&
@@ -138,7 +137,10 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
 
             {selectedDate && (
                 <div className="mt-6 pt-4 border-t animate-fadeIn">
-                    <h4 className="font-bold mb-3 text-sm">الأوقات المتاحة ليوم {selectedDate.toLocaleDateString('ar-EG')}</h4>
+                    <h4 className="font-bold mb-3 text-sm flex justify-between items-center">
+                        <span>أوقات {selectedDate.toLocaleDateString('ar-EG')} المتاحة</span>
+                        <span className="text-[9px] text-muted-foreground">(توقيت مصر)</span>
+                    </h4>
                     <div className="grid grid-cols-3 gap-2">
                         {availableTimes.length > 0 ? (
                             availableTimes.map(time => (
