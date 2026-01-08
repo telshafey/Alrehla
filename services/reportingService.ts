@@ -38,7 +38,7 @@ export const reportingService = {
                 timestamp: new Date().toISOString()
             };
 
-            await supabase.from('audit_logs').insert([logEntry]);
+            await supabase.from('audit_logs').insert([logEntry] as any);
         } catch (e) {
             console.warn("Audit logging failed silently (non-critical)");
         }

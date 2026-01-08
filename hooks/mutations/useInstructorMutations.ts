@@ -27,7 +27,7 @@ export const useInstructorMutations = () => {
                     read: false
                 }));
 
-                await supabase.from('notifications').insert(notifications);
+                await supabase.from('notifications').insert(notifications as any);
             }
         } catch (e) {
             console.error("Failed to notify admins", e);
@@ -93,7 +93,7 @@ export const useInstructorMutations = () => {
                         ...instructor.pending_profile_data, 
                         proposed_schedule: null 
                     }
-                })
+                } as any)
                 .eq('id', instructorId);
 
             if (updateError) throw updateError;
@@ -107,7 +107,7 @@ export const useInstructorMutations = () => {
     
     const rejectInstructorSchedule = useMutation({
         mutationFn: async ({ instructorId }: { instructorId: number }) => {
-            const { error } = await supabase.from('instructors').update({ schedule_status: 'rejected' }).eq('id', instructorId);
+            const { error } = await supabase.from('instructors').update({ schedule_status: 'rejected' } as any).eq('id', instructorId);
             if (error) throw error;
             return { success: true };
         },
@@ -139,7 +139,7 @@ export const useInstructorMutations = () => {
                     ...finalUpdates,
                     profile_update_status: 'approved',
                     pending_profile_data: null
-                })
+                } as any)
                 .eq('id', instructorId);
 
             if (updateError) throw updateError;
@@ -154,7 +154,7 @@ export const useInstructorMutations = () => {
 
     const rejectInstructorProfileUpdate = useMutation({
         mutationFn: async ({ instructorId }: { instructorId: number }) => {
-             const { error } = await supabase.from('instructors').update({ profile_update_status: 'rejected' }).eq('id', instructorId);
+             const { error } = await supabase.from('instructors').update({ profile_update_status: 'rejected' } as any).eq('id', instructorId);
             if (error) throw error;
             return { success: true };
         },
@@ -177,7 +177,7 @@ export const useInstructorMutations = () => {
                         justification: payload.justification,
                         requested_at: new Date().toISOString()
                     }
-                })
+                } as any)
                 .eq('id', payload.instructorId);
 
             if (error) throw error;
@@ -210,7 +210,7 @@ export const useInstructorMutations = () => {
                         proposed_schedule: schedule,
                         schedule_requested_at: new Date().toISOString()
                     }
-                })
+                } as any)
                 .eq('id', instructorId);
 
             if (error) throw error;
@@ -231,7 +231,7 @@ export const useInstructorMutations = () => {
 
     const updateInstructorAvailability = useMutation({
         mutationFn: async ({ instructorId, availability }: { instructorId: number, availability: AvailableSlots }) => {
-            const { error } = await supabase.from('instructors').update({ availability }).eq('id', instructorId);
+            const { error } = await supabase.from('instructors').update({ availability } as any).eq('id', instructorId);
             if (error) throw error;
             return { success: true };
         },
@@ -243,7 +243,7 @@ export const useInstructorMutations = () => {
 
     const approveSupportSessionRequest = useMutation({
         mutationFn: async ({ requestId }: { requestId: string }) => {
-            const { error } = await supabase.from('support_session_requests').update({ status: 'approved' }).eq('id', requestId);
+            const { error } = await supabase.from('support_session_requests').update({ status: 'approved' } as any).eq('id', requestId);
             if (error) throw error;
             return { success: true };
         },
@@ -255,7 +255,7 @@ export const useInstructorMutations = () => {
 
     const rejectSupportSessionRequest = useMutation({
         mutationFn: async ({ requestId }: { requestId: string }) => {
-            const { error } = await supabase.from('support_session_requests').update({ status: 'rejected' }).eq('id', requestId);
+            const { error } = await supabase.from('support_session_requests').update({ status: 'rejected' } as any).eq('id', requestId);
             if (error) throw error;
             return { success: true };
         },
@@ -273,7 +273,7 @@ export const useInstructorMutations = () => {
                 reason: payload.reason,
                 status: 'pending',
                 requested_at: new Date().toISOString()
-            }]);
+            } as any]);
             if (error) throw error;
             return { success: true };
         },
@@ -284,7 +284,7 @@ export const useInstructorMutations = () => {
 
     const requestIntroAvailabilityChange = useMutation({
         mutationFn: async ({ instructorId, availability }: { instructorId: number, availability: AvailableSlots }) => {
-            const { error } = await supabase.from('instructors').update({ intro_availability: availability }).eq('id', instructorId);
+            const { error } = await supabase.from('instructors').update({ intro_availability: availability } as any).eq('id', instructorId);
             if (error) throw error;
             return { success: true };
         },

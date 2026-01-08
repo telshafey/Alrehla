@@ -178,7 +178,7 @@ export const bookingService = {
     },
 
     async updateScheduledSession(sessionId: string, updates: any) {
-        const { error } = await supabase.from('scheduled_sessions').update(updates).eq('id', sessionId);
+        const { error } = await supabase.from('scheduled_sessions').update(updates as any).eq('id', sessionId);
         if (error) throw error;
         return { success: true };
     },

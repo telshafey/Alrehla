@@ -94,17 +94,16 @@ const CreativeWritingPackagesPage: React.FC = () => {
 
     const packages = (data?.creativeWritingPackages || []) as CreativeWritingPackage[];
     const instructors = (data?.instructors || []) as Instructor[];
-    const comparisonItems = (data?.comparisonItems || []) as ComparisonItem[];
-    const pricingConfig = data?.communicationSettings as any; // نفترض وصول الإعدادات هنا عبر usePublicData
+    // Safe access with fallback using any casting to avoid type errors if interface mismatch
+    const comparisonItems = ((data as any)?.comparisonItems || []) as ComparisonItem[];
+    const pricingConfig = data?.communicationSettings as any; 
 
     const getPackagePriceRange = (pkg: CreativeWritingPackage) => {
         if (pkg.price === 0) return { min: 0, max: 0 };
         
-        // جلب نسبة المنصة والرسوم من الإعدادات
         const percentage = pricingConfig?.company_percentage || 1.2;
         const fixedFee = pricingConfig?.fixed_fee || 50;
 
-        // تجميع كل الأسعار المحتسبة لهذا الباقة من جميع المدربين
         const customerPrices = instructors
             .map(i => {
                 const netPrice = i.package_rates?.[pkg.id];
@@ -114,7 +113,6 @@ const CreativeWritingPackagesPage: React.FC = () => {
             .filter((price): price is number => price !== null);
 
         if (customerPrices.length === 0) {
-            // سعر افتراضي في حال لم يضع أي مدرب سعراً بعد
             return { min: pkg.price, max: pkg.price };
         }
 

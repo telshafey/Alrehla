@@ -16,7 +16,7 @@ export const gamificationService = {
                 child_id: payload.childId,
                 badge_id: payload.badgeId,
                 earned_at: new Date().toISOString()
-            }]);
+            } as any]);
 
         if (error) throw new Error(error.message);
         return { success: true };

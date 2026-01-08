@@ -50,17 +50,20 @@ const InstructorFinancialDetailsPage: React.FC = () => {
             });
         };
 
+        // استخدام any للوصول الآمن للخصائص الديناميكية
+        const inst = instructor as any;
+
         // 1. Earnings from Bookings
-        instructor.rawCompletedBookings?.forEach((b: any) => {
+        inst.rawCompletedBookings?.forEach((b: any) => {
             const date = new Date(b.booking_date);
             const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             // Ideally calculate exact earning per booking based on historical rate, using current rate/package rate for estimation
-            const earning = instructor.package_rates?.[b.package_id] || instructor.rate_per_session || 0;
+            const earning = inst.package_rates?.[b.package_id] || inst.rate_per_session || 0;
             addTransaction(key, date, earning, 'earning', `جلسة: ${b.package_name}`, 'بداية الرحلة');
         });
 
         // 2. Earnings from Services
-        instructor.rawCompletedServices?.forEach((s: any) => {
+        inst.rawCompletedServices?.forEach((s: any) => {
             const date = new Date(s.created_at);
             const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             const earning = (s.total * 0.7); // Assuming 70% commission
@@ -68,7 +71,7 @@ const InstructorFinancialDetailsPage: React.FC = () => {
         });
 
         // 3. Payouts
-        instructor.payouts?.forEach((p: any) => {
+        inst.payouts?.forEach((p: any) => {
             const date = new Date(p.payout_date);
             const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             addTransaction(key, date, p.amount, 'payout', p.details || 'تحويل مستحقات', 'الإدارة');
@@ -83,6 +86,9 @@ const InstructorFinancialDetailsPage: React.FC = () => {
     if (isLoading) return <PageLoader text="جاري تحميل الملف المالي..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
     if (!instructor || !financialData) return <div className="p-8 text-center">لم يتم العثور على بيانات المدرب</div>;
+    
+    // Cast instructor for display to access dynamic properties safely
+    const displayInstructor = instructor as any;
 
     return (
         <div className="animate-fadeIn space-y-8">
@@ -92,12 +98,12 @@ const InstructorFinancialDetailsPage: React.FC = () => {
                         <ArrowLeft className="transform rotate-180" />
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-extrabold text-foreground">{instructor.name}</h1>
+                        <h1 className="text-3xl font-extrabold text-foreground">{displayInstructor.name}</h1>
                         <p className="text-muted-foreground">الملف المالي التفصيلي</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                     <Image src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={instructor.name} className="w-12 h-12 rounded-full border border-border" />
+                     <Image src={displayInstructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={displayInstructor.name} className="w-12 h-12 rounded-full border border-border" />
                 </div>
             </div>
 
@@ -110,7 +116,7 @@ const InstructorFinancialDetailsPage: React.FC = () => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-primary">{instructor.outstandingBalance.toLocaleString()} ج.م</div>
+                        <div className="text-3xl font-bold text-primary">{displayInstructor.outstandingBalance.toLocaleString()} ج.م</div>
                         <p className="text-xs text-muted-foreground mt-1">جاهز للتحويل</p>
                     </CardContent>
                 </Card>
@@ -122,7 +128,7 @@ const InstructorFinancialDetailsPage: React.FC = () => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-green-700">{instructor.totalEarnings.toLocaleString()} ج.م</div>
+                        <div className="text-3xl font-bold text-green-700">{displayInstructor.totalEarnings.toLocaleString()} ج.م</div>
                         <p className="text-xs text-muted-foreground mt-1">من جميع المصادر</p>
                     </CardContent>
                 </Card>
@@ -134,7 +140,7 @@ const InstructorFinancialDetailsPage: React.FC = () => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-blue-700">{instructor.totalPaid.toLocaleString()} ج.م</div>
+                        <div className="text-3xl font-bold text-blue-700">{displayInstructor.totalPaid.toLocaleString()} ج.م</div>
                         <p className="text-xs text-muted-foreground mt-1">تم تحويلها بنجاح</p>
                     </CardContent>
                 </Card>

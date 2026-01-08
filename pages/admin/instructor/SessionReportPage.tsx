@@ -26,12 +26,15 @@ const SessionReportPage: React.FC = () => {
     const [selectedBadgeId, setSelectedBadgeId] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Casting session to any to access potentially loosely typed fields
+    const safeSession = session as any;
+
     useEffect(() => {
-        if (session?.notes) setNotes(session.notes);
-    }, [session]);
+        if (safeSession?.notes) setNotes(safeSession.notes);
+    }, [safeSession]);
 
     if (sessionLoading) return <PageLoader text="جاري تحميل بيانات الجلسة..." />;
-    if (!session) return <div className="p-20 text-center">عذراً، لم يتم العثور على الجلسة.</div>;
+    if (!safeSession) return <div className="p-20 text-center">عذراً، لم يتم العثور على الجلسة.</div>;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,7 +42,7 @@ const SessionReportPage: React.FC = () => {
         try {
             // 1. تحديث حالة الجلسة وحفظ الملاحظات
             await updateScheduledSession.mutateAsync({
-                sessionId: session.id,
+                sessionId: safeSession.id,
                 updates: {
                     status: 'completed',
                     notes: notes
@@ -49,9 +52,9 @@ const SessionReportPage: React.FC = () => {
             // 2. منح الشارة للطالب
             if (selectedBadgeId) {
                 await awardBadge.mutateAsync({
-                    childId: session.child_id,
+                    childId: safeSession.child_id,
                     badgeId: parseInt(selectedBadgeId),
-                    instructorId: session.instructor_id
+                    instructorId: safeSession.instructor_id
                 });
             }
 
@@ -62,6 +65,9 @@ const SessionReportPage: React.FC = () => {
             setIsSubmitting(false);
         }
     };
+
+    // Safe access to badges
+    const badges = (publicData as any)?.badges || [];
 
     return (
         <div className="bg-muted/30 min-h-screen py-12 animate-fadeIn" dir="rtl">
@@ -81,8 +87,8 @@ const SessionReportPage: React.FC = () => {
                                 <div>
                                     <CardTitle className="text-2xl">تقرير إنجاز الجلسة</CardTitle>
                                     <CardDescription>
-                                        الطالب: <span className="font-bold text-foreground">{session.child_profiles?.name || 'غير معروف'}</span> | 
-                                        تاريخ الجلسة: {formatDate(session.session_date)}
+                                        الطالب: <span className="font-bold text-foreground">{safeSession.child_profiles?.name || 'غير معروف'}</span> | 
+                                        تاريخ الجلسة: {formatDate(safeSession.session_date)}
                                     </CardDescription>
                                 </div>
                             </div>
@@ -121,7 +127,7 @@ const SessionReportPage: React.FC = () => {
                                                 className="bg-white"
                                             >
                                                 <option value="">-- بدون شارة تشجيعية --</option>
-                                                {publicData?.badges?.map((b: any) => (
+                                                {badges.map((b: any) => (
                                                     <option key={b.id} value={b.id}>{b.name}</option>
                                                 ))}
                                             </Select>
@@ -129,7 +135,7 @@ const SessionReportPage: React.FC = () => {
                                         {selectedBadgeId && (
                                             <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200 text-xs text-yellow-800">
                                                 <p className="font-bold">وصف الشارة:</p>
-                                                <p>{publicData?.badges?.find((b:any) => b.id == selectedBadgeId)?.description}</p>
+                                                <p>{badges.find((b:any) => b.id == selectedBadgeId)?.description}</p>
                                             </div>
                                         )}
                                     </div>

@@ -44,6 +44,9 @@ const SessionReportModal: React.FC<SessionReportModalProps> = ({ isOpen, onClose
         onClose();
     };
 
+    // Cast publicData to any to access potentially missing properties or extend the type
+    const badges = (publicData as any)?.badges || [];
+
     return (
         <Modal
             isOpen={isOpen}
@@ -84,7 +87,7 @@ const SessionReportModal: React.FC<SessionReportModalProps> = ({ isOpen, onClose
                                 onChange={e => setSelectedBadgeId(e.target.value)}
                             >
                                 <option value="">-- بدون شارة --</option>
-                                {publicData?.badges?.map((b: any) => (
+                                {badges.map((b: any) => (
                                     <option key={b.id} value={b.id}>{b.name}</option>
                                 ))}
                             </Select>

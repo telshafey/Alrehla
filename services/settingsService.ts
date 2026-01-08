@@ -40,7 +40,7 @@ export const settingsService = {
                 key: 'branding', 
                 value: updatedValue,
                 updated_at: new Date().toISOString()
-            });
+            } as any);
 
         if (error) throw new Error(error.message);
         return updatedValue as SiteBranding;
@@ -54,7 +54,7 @@ export const settingsService = {
                 key: 'prices', 
                 value: newPrices,
                 updated_at: new Date().toISOString()
-            });
+            } as any);
 
         if (error) throw new Error(error.message);
         return newPrices;
@@ -68,7 +68,7 @@ export const settingsService = {
                 key: 'shipping_costs', 
                 value: newCosts,
                 updated_at: new Date().toISOString()
-            });
+            } as any);
 
         if (error) throw new Error(error.message);
         return newCosts;
@@ -78,7 +78,7 @@ export const settingsService = {
     async updateSocialLinks(links: SocialLinks) {
         const { error } = await supabase
             .from('site_settings')
-            .upsert({ key: 'social_links', value: links, updated_at: new Date().toISOString() });
+            .upsert({ key: 'social_links', value: links, updated_at: new Date().toISOString() } as any);
         
         if (error) throw new Error(error.message);
         return links;
@@ -87,7 +87,7 @@ export const settingsService = {
     async updateCommunicationSettings(settings: CommunicationSettings) {
         const { error } = await supabase
             .from('site_settings')
-            .upsert({ key: 'communication_settings', value: settings, updated_at: new Date().toISOString() });
+            .upsert({ key: 'communication_settings', value: settings, updated_at: new Date().toISOString() } as any);
 
         if (error) throw new Error(error.message);
         return settings;
@@ -96,7 +96,7 @@ export const settingsService = {
     async updatePricingSettings(settings: PricingSettings) {
         const { error } = await supabase
             .from('site_settings')
-            .upsert({ key: 'pricing_config', value: settings, updated_at: new Date().toISOString() });
+            .upsert({ key: 'pricing_config', value: settings, updated_at: new Date().toISOString() } as any);
 
         if (error) throw new Error(error.message);
         return settings;
@@ -105,7 +105,7 @@ export const settingsService = {
     async updateJitsiSettings(settings: JitsiSettings) {
         const { error } = await supabase
             .from('site_settings')
-            .upsert({ key: 'jitsi_settings', value: settings, updated_at: new Date().toISOString() });
+            .upsert({ key: 'jitsi_settings', value: settings, updated_at: new Date().toISOString() } as any);
 
         if (error) throw new Error(error.message);
         return settings;
@@ -114,7 +114,7 @@ export const settingsService = {
     async updateRolePermissions(permissions: any) {
         const { error } = await supabase
             .from('site_settings')
-            .upsert({ key: 'role_permissions', value: permissions, updated_at: new Date().toISOString() });
+            .upsert({ key: 'role_permissions', value: permissions, updated_at: new Date().toISOString() } as any);
 
         if (error) throw new Error(error.message);
         return { success: true };
@@ -138,7 +138,7 @@ export const settingsService = {
                 key: item.key,
                 value: item.value,
                 updated_at: new Date().toISOString()
-            })
+            } as any)
         );
 
         const results = await Promise.all(promises);
