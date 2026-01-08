@@ -1,13 +1,13 @@
 
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import type { Instructor, WeeklySchedule } from '../lib/database.types';
 
 interface BookingCalendarProps {
     instructor: Instructor | null;
     onDateTimeSelect: (date: Date, time: string) => void;
     holidays?: string[];
-    activeBookings?: any[]; // قائمة بالحجوزات الحالية لفلترة المواعيد المشغولة
+    activeBookings?: any[]; 
 }
 
 const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTimeSelect, holidays = [], activeBookings = [] }) => {
@@ -39,7 +39,12 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
     
     const handleDateClick = (day: number) => {
         const newSelectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-        if (newSelectedDate < new Date(new Date().toDateString())) return; 
+        // قاعدة الفاصل الزمني: منع الحجز في أقل من 7 أيام من اليوم
+        const minDate = new Date();
+        minDate.setDate(minDate.getDate() + 7);
+        minDate.setHours(0, 0, 0, 0);
+
+        if (newSelectedDate < minDate) return; 
         setSelectedDate(newSelectedDate);
     };
     
@@ -52,13 +57,17 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
         const dayOfWeek = selectedDate.toLocaleString('en-US', { weekday: 'long' }).toLowerCase() as keyof WeeklySchedule;
         const templateSlots = weeklySchedule[dayOfWeek] || [];
         
-        // جلب مواعيد هذا المدرب في هذا اليوم تحديداً
         const dateString = selectedDate.toISOString().split('T')[0];
+        
+        // جلب المواعيد المشغولة (المؤكدة + التي تنتظر المراجعة + بانتظار الدفع)
         const busySlotsForDay = activeBookings
-            .filter(b => b.instructor_id === instructor.id && b.booking_date.startsWith(dateString))
+            .filter(b => 
+                b.instructor_id === instructor.id && 
+                b.booking_date.startsWith(dateString) &&
+                b.status !== 'ملغي' // أي حالة غير ملغي تعتبر حاجزاً للموعد
+            )
             .map(b => b.booking_time);
 
-        // فلترة: عرض الساعات الكاملة فقط + استبعاد المحجوز مسبقاً
         return templateSlots.filter(time => 
             time.endsWith(':00') && !busySlotsForDay.includes(time)
         );
@@ -71,6 +80,12 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
                 <h3 className="font-bold text-lg">{monthName} {year}</h3>
                 <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-gray-200"><ChevronLeft size={20} /></button>
             </div>
+
+            {/* تنبيه قاعدة الـ 7 أيام */}
+            <div className="mb-4 p-2 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-2 text-[10px] text-blue-700">
+                <Clock size={12} />
+                <span>أقرب موعد متاح هو بعد 7 أيام من اليوم لضمان جودة التحضير.</span>
+            </div>
             
             <div className="grid grid-cols-7 gap-1 text-center text-sm font-semibold text-gray-500 mb-2">
                 {dayNames.map(day => <div key={day}>{day}</div>)}
@@ -80,30 +95,39 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
                 {Array.from({ length: startingDay }).map((_, i) => <div key={`empty-${i}`}></div>)}
                 {daysArray.map(day => {
                     const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-                    const isToday = date.toDateString() === new Date().toDateString();
-                    const isSelected = selectedDate?.toDateString() === date.toDateString();
-                    const isPast = date < new Date(new Date().toDateString());
-                    const dayOfWeek = date.toLocaleString('en-US', { weekday: 'long' }).toLowerCase() as keyof WeeklySchedule;
                     
+                    // التاريخ الأدنى المسموح به (تاريخ اليوم + 7 أيام)
+                    const minAllowedDate = new Date();
+                    minAllowedDate.setDate(minAllowedDate.getDate() + 7);
+                    minAllowedDate.setHours(0, 0, 0, 0);
+
+                    const isSelected = selectedDate?.toDateString() === date.toDateString();
+                    const isTooSoon = date < minAllowedDate;
+                    
+                    const dayOfWeek = date.toLocaleString('en-US', { weekday: 'long' }).toLowerCase() as keyof WeeklySchedule;
                     const slots = weeklySchedule[dayOfWeek] || [];
                     const dateStr = date.toISOString().split('T')[0];
-                    const busyCount = activeBookings.filter(b => b.instructor_id === instructor?.id && b.booking_date.startsWith(dateStr)).length;
                     
-                    // اليوم متاح إذا كان فيه ساعات في القالب ولم تُحجز بالكامل بعد
+                    // حساب المواعيد المشغولة فعلياً (بما فيها المعلقة)
+                    const busyCount = activeBookings.filter(b => 
+                        b.instructor_id === instructor?.id && 
+                        b.booking_date.startsWith(dateStr) &&
+                        b.status !== 'ملغي'
+                    ).length;
+                    
                     const isAvailableDay = slots.some(time => time.endsWith(':00')) && (slots.filter(t => t.endsWith(':00')).length > busyCount);
-                    
-                    const isHoliday = holidays.includes(date.toISOString().split('T')[0]);
-                    const isDisabled = isPast || !isAvailableDay || isHoliday;
+                    const isHoliday = holidays.includes(dateStr);
+                    const isDisabled = isTooSoon || !isAvailableDay || isHoliday;
 
                     return (
                         <button 
                             key={day}
                             onClick={() => handleDateClick(day)}
                             disabled={isDisabled}
-                            className={`w-10 h-10 rounded-full transition-colors ${
-                                isDisabled ? 'text-gray-300 opacity-50 cursor-not-allowed' :
+                            className={`w-10 h-10 rounded-full text-xs transition-colors ${
+                                isDisabled ? 'text-gray-300 opacity-40 cursor-not-allowed' :
                                 isSelected ? 'bg-blue-600 text-white font-bold' :
-                                isToday ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-200'
+                                'hover:bg-blue-100 text-gray-700 font-semibold'
                             }`}
                         >
                             {day}
@@ -113,21 +137,21 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
             </div>
 
             {selectedDate && (
-                <div className="mt-6 pt-4 border-t">
-                    <h4 className="font-bold mb-3">الأوقات المتاحة ليوم {selectedDate.toLocaleDateString('ar-EG')}</h4>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                <div className="mt-6 pt-4 border-t animate-fadeIn">
+                    <h4 className="font-bold mb-3 text-sm">الأوقات المتاحة ليوم {selectedDate.toLocaleDateString('ar-EG')}</h4>
+                    <div className="grid grid-cols-3 gap-2">
                         {availableTimes.length > 0 ? (
                             availableTimes.map(time => (
                                 <button
                                     key={time}
                                     onClick={() => onDateTimeSelect(selectedDate, time)}
-                                    className="p-2 border rounded-lg text-sm bg-white hover:bg-blue-100 hover:border-blue-500 transition-colors font-bold shadow-sm"
+                                    className="p-2 border rounded-lg text-xs bg-white hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all font-bold shadow-sm"
                                 >
                                     {time}
                                 </button>
                             ))
                         ) : (
-                            <p className="col-span-full text-center text-gray-500 py-4 text-xs">عذراً، هذا اليوم محجوز بالكامل أو غير متاح حالياً.</p>
+                            <p className="col-span-full text-center text-gray-500 py-4 text-[10px]">لا توجد مواعيد متبقية متاحة لهذا اليوم.</p>
                         )}
                     </div>
                 </div>

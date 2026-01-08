@@ -30,7 +30,8 @@ export interface InstructorReportItem {
     completedSessions: number;
     upcomingSessions: number;
     introSessions: number;
-    availableSlots: number;
+    totalNetEarnings: number; // الصافي للمدرب
+    totalGrossRevenue: number; // الإجمالي من العميل
 }
 
 export type ReportData = OrderReportItem | UserReportItem | InstructorReportItem;

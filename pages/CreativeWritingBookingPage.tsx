@@ -53,31 +53,47 @@ const CreativeWritingBookingPage: React.FC = () => {
             setSelectedInstructor(location.state.instructor);
             setStep('schedule');
         }
-        if (location.state?.selectedDateTime) {
-            setSelectedDateTime(location.state.selectedDateTime);
-        }
     }, [location.state]);
     
-    const { instructors = [], cw_packages = [], holidays = [], activeBookings = [] } = bookingData || {};
+    const { instructors = [], cw_packages = [], holidays = [], activeBookings = [], pricingConfig } = (bookingData as any) || {};
     
+    // المعادلة الديناميكية لحساب سعر العميل النهائي
     const finalPrice = useMemo(() => {
         if (!selectedPackage) return null;
         if (selectedPackage.price === 0) return 0;
+        
         if (selectedInstructor && selectedPackage) {
-            return selectedInstructor.package_rates?.[selectedPackage.id] ?? selectedPackage.price;
+            const netPrice = selectedInstructor.package_rates?.[selectedPackage.id];
+            
+            // إذا لم يحدد المدرب سعراً خاصاً، نستخدم السعر الأساسي للباقة (أو منطق آخر تفضله)
+            const baseNet = netPrice !== undefined ? netPrice : selectedPackage.price;
+            
+            const percentage = pricingConfig?.company_percentage || 1.2;
+            const fixedFee = pricingConfig?.fixed_fee || 50;
+
+            return Math.ceil((baseNet * percentage) + fixedFee);
         }
         return null;
-    }, [selectedPackage, selectedInstructor]);
+    }, [selectedPackage, selectedInstructor, pricingConfig]);
 
+    // حساب نطاق الأسعار للباقة المختارة قبل اختيار المدرب
     const priceRange = useMemo(() => {
         if (!selectedPackage || finalPrice !== null) return null;
+        if (selectedPackage.price === 0) return { min: 0, max: 0 };
+
+        const percentage = pricingConfig?.company_percentage || 1.2;
+        const fixedFee = pricingConfig?.fixed_fee || 50;
+
         const prices = (instructors as Instructor[])
-            .map((i: Instructor) => i.package_rates?.[selectedPackage.id])
-            .filter((price): price is number => price !== undefined && price !== null);
+            .map((i: Instructor) => {
+                const net = i.package_rates?.[selectedPackage.id];
+                return net !== undefined ? Math.ceil((net * percentage) + fixedFee) : null;
+            })
+            .filter((p): p is number => p !== null);
 
         if (prices.length === 0) return { min: selectedPackage.price, max: selectedPackage.price };
         return { min: Math.min(...prices), max: Math.max(...prices) };
-    }, [selectedPackage, finalPrice, instructors]);
+    }, [selectedPackage, finalPrice, instructors, pricingConfig]);
 
 
     const isLoading = authLoading || bookingDataLoading;
@@ -86,8 +102,8 @@ const CreativeWritingBookingPage: React.FC = () => {
     if (!isLoggedIn) {
         return (
             <div className="container mx-auto px-4 py-12 text-center">
-                <p className="mb-4">يجب تسجيل الدخول أولاً لحجز جلسة.</p>
-                <Button as={Link} to="/account" state={{ from: location }}>تسجيل الدخول</Button>
+                <p className="mb-4 text-lg">يجب تسجيل الدخول أولاً لحجز رحلتك التدريبية.</p>
+                <Button as={Link} to="/account" state={{ from: location }} size="lg">تسجيل الدخول / إنشاء حساب</Button>
             </div>
         );
     }
@@ -96,6 +112,7 @@ const CreativeWritingBookingPage: React.FC = () => {
         const currentIndex = stepsConfig.findIndex(s => s.key === step);
         if (currentIndex < stepsConfig.length - 1) {
             setStep(stepsConfig[currentIndex + 1].key as BookingStep);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
     
@@ -158,7 +175,7 @@ const CreativeWritingBookingPage: React.FC = () => {
                 instructor: selectedInstructor,
                 dateTime: selectedDateTime,
                 total: finalPrice,
-                summary: `${selectedPackage.name} لـ ${childData.childName}`
+                summary: `${selectedPackage.name} لـ ${childData.childName} (مع ${selectedInstructor.name})`
             }
         });
         
@@ -174,10 +191,10 @@ const CreativeWritingBookingPage: React.FC = () => {
             <ChildProfileModal isOpen={isChildModalOpen} onClose={() => setIsChildModalOpen(false)} childToEdit={null} />
             <div className="bg-muted/50 py-12 sm:py-16">
                 <div className="container mx-auto px-4">
-                    <div className="max-w-5xl mx-auto">
+                    <div className="max-w-6xl mx-auto">
                         <div className="mb-12 text-center">
-                            <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">حجز جلسة "بداية الرحلة"</h1>
-                            <p className="mt-2 text-muted-foreground">اتبع الخطوات التالية لحجز باقتك التدريبية.</p>
+                            <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">حجز رحلة إبداعية</h1>
+                            <p className="mt-2 text-muted-foreground">اختر باقتك ومدربك المفضل لبدء الرحلة.</p>
                         </div>
                         <div className="mb-12">
                             <OrderStepper steps={stepsConfig} currentStep={step} />
@@ -200,13 +217,23 @@ const CreativeWritingBookingPage: React.FC = () => {
                                       {step !== 'schedule' ? (
                                           <Button onClick={handleNext} disabled={isNextDisabled()}>التالي <ArrowLeft /></Button>
                                       ) : (
-                                           <p className="text-sm text-muted-foreground font-bold text-blue-600 animate-pulse">أكمل الحجز من ملخص الطلب على اليسار</p>
+                                           <p className="text-sm text-blue-600 font-bold animate-pulse">يرجى مراجعة الملخص النهائي للتأكيد</p>
                                       )}
                                   </div>
                                </CardContent>
                             </Card>
                             <div className="lg:col-span-1 sticky top-24">
-                               <BookingSummary childName={childData.childName} pkg={selectedPackage} instructor={selectedInstructor} dateTime={selectedDateTime} onSubmit={handleSubmit} isSubmitting={isSubmitting} isConfirmStep={step === 'schedule'} finalPrice={finalPrice} priceRange={priceRange} />
+                               <BookingSummary 
+                                    childName={childData.childName} 
+                                    pkg={selectedPackage} 
+                                    instructor={selectedInstructor} 
+                                    dateTime={selectedDateTime} 
+                                    onSubmit={handleSubmit} 
+                                    isSubmitting={isSubmitting} 
+                                    isConfirmStep={step === 'schedule'} 
+                                    finalPrice={finalPrice} 
+                                    priceRange={priceRange} 
+                                />
                             </div>
                         </div>
                     </div>

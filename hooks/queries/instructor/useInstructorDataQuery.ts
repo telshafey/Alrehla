@@ -45,8 +45,9 @@ export const useInstructorData = () => {
                 supabase.from('session_attachments').select('*').then(res => res.data as SessionAttachment[] || [])
             ]);
 
-            // الفلترة الجوهرية: المدرب لا يرى إلا الحجوزات المؤكدة أو المكتملة
-            const instructorBookings = allInstructorBookings.filter(b => b.status === 'مؤكد' || b.status === 'مكتمل');
+            // الفلترة: المدرب يرى الحجوزات (المؤكدة + بانتظار المراجعة + بانتظار الدفع)
+            // الطلبات الملغية فقط هي التي تُستبعد
+            const instructorBookings = allInstructorBookings.filter(b => b.status !== 'ملغي');
 
             const enrichedBookings = instructorBookings.map(booking => {
                 const journeySessions = allScheduledSessions.filter(s => s.booking_id === booking.id);
@@ -63,6 +64,8 @@ export const useInstructorData = () => {
 
             const currentMonth = new Date().getMonth();
             const currentYear = new Date().getFullYear();
+            
+            // احتساب الجلسات المكتملة فقط للإحصائيات
             const introSessionsThisMonth = enrichedBookings.filter(b => 
                 b.package_name === 'الجلسة التعريفية' &&
                 b.status === 'مكتمل' &&
@@ -78,7 +81,7 @@ export const useInstructorData = () => {
                 bookings: enrichedBookings,
                 introSessionsThisMonth,
                 payouts: instructorPayouts,
-                serviceOrders: instructorServiceOrders.filter(o => o.status === 'مؤكد' || o.status === 'مكتمل' || o.status === 'قيد التنفيذ'),
+                serviceOrders: instructorServiceOrders.filter(o => o.status !== 'ملغي'),
                 attachments: relevantAttachments,
             };
         },
