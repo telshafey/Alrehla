@@ -114,20 +114,17 @@ export const orderService = {
         const orderId = `ORD-${Date.now().toString().slice(-6)}`;
         const initialStatus: OrderStatus = payload.receiptUrl ? 'بانتظار المراجعة' : 'بانتظار الدفع';
         
-        const { data, error } = await supabase
-            .from('orders')
-            .insert([{
-                id: orderId,
-                user_id: payload.userId,
-                child_id: payload.childId, 
-                item_summary: payload.summary,
-                total: payload.total,
-                status: initialStatus,
-                details: payload.details,
-                receipt_url: payload.receiptUrl || null,
-                order_date: new Date().toISOString()
-            } as any]) // Type cast to avoid strict JSON type checking failures during build
-            .select().single();
+        const { data, error } = await (supabase.from('orders') as any).insert([{
+            id: orderId,
+            user_id: payload.userId,
+            child_id: payload.childId, 
+            item_summary: payload.summary,
+            total: payload.total,
+            status: initialStatus,
+            details: payload.details,
+            receipt_url: payload.receiptUrl || null,
+            order_date: new Date().toISOString()
+        }]).select().single();
 
         if (error) throw new Error(error.message);
         return data as Order;
@@ -137,27 +134,24 @@ export const orderService = {
         const orderId = `SRV-${Date.now().toString().slice(-6)}`;
         const initialStatus: OrderStatus = payload.receiptUrl ? 'بانتظار المراجعة' : 'بانتظار الدفع';
         
-        const { data, error } = await supabase
-            .from('service_orders')
-            .insert([{
-                id: orderId,
-                user_id: payload.userId,
-                child_id: payload.childId,
-                service_id: payload.details.serviceId,
-                total: payload.total,
-                status: initialStatus,
-                details: payload.details,
-                assigned_instructor_id: payload.details.assigned_instructor_id || null,
-                created_at: new Date().toISOString()
-            } as any])
-            .select().single();
+        const { data, error } = await (supabase.from('service_orders') as any).insert([{
+            id: orderId,
+            user_id: payload.userId,
+            child_id: payload.childId,
+            service_id: payload.details.serviceId,
+            total: payload.total,
+            status: initialStatus,
+            details: payload.details,
+            assigned_instructor_id: payload.details.assigned_instructor_id || null,
+            created_at: new Date().toISOString()
+        }]).select().single();
 
         if (error) throw new Error(error.message);
         return data as ServiceOrder;
     },
 
     async updateOrderStatus(orderId: string, newStatus: OrderStatus) {
-        const { error } = await supabase.from('orders').update({ status: newStatus } as any).eq('id', orderId);
+        const { error } = await (supabase.from('orders') as any).update({ status: newStatus }).eq('id', orderId);
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('UPDATE_ORDER_STATUS', orderId, `طلب رقم #${orderId}`, `تغيير الحالة إلى: ${newStatus}`);
@@ -165,7 +159,7 @@ export const orderService = {
     },
 
     async updateServiceOrderStatus(orderId: string, newStatus: OrderStatus) {
-        const { error } = await supabase.from('service_orders').update({ status: newStatus } as any).eq('id', orderId);
+        const { error } = await (supabase.from('service_orders') as any).update({ status: newStatus }).eq('id', orderId);
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('UPDATE_SERVICE_STATUS', orderId, `طلب خدمة #${orderId}`, `تغيير الحالة إلى: ${newStatus}`);
@@ -173,7 +167,7 @@ export const orderService = {
     },
 
     async assignInstructorToServiceOrder(orderId: string, instructorId: number | null) {
-        const { error } = await supabase.from('service_orders').update({ assigned_instructor_id: instructorId } as any).eq('id', orderId);
+        const { error } = await (supabase.from('service_orders') as any).update({ assigned_instructor_id: instructorId }).eq('id', orderId);
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('ASSIGN_INSTRUCTOR', orderId, `طلب خدمة #${orderId}`, `تعيين مدرب معرف: ${instructorId}`);
@@ -187,7 +181,7 @@ export const orderService = {
         else if (itemType === 'subscription') table = 'subscriptions';
         else if (itemType === 'service_order') table = 'service_orders';
 
-        const { error: updateError } = await supabase.from(table).update({ receipt_url: publicUrl, status: 'بانتظار المراجعة' } as any).eq('id', itemId);
+        const { error: updateError } = await (supabase.from(table) as any).update({ receipt_url: publicUrl, status: 'بانتظار المراجعة' }).eq('id', itemId);
         if (updateError) throw new Error(updateError.message);
         return { receiptUrl: publicUrl };
     },
@@ -201,7 +195,7 @@ export const orderService = {
         const { data: child } = await supabase.from('child_profiles').select('name').eq('id', payload.childId).single();
         const { data: user } = await supabase.from('profiles').select('name').eq('id', payload.userId).single();
 
-        const { data, error } = await supabase.from('subscriptions').insert([{
+        const { data, error } = await (supabase.from('subscriptions') as any).insert([{
             id: subId,
             user_id: payload.userId,
             child_id: payload.childId,
@@ -214,7 +208,7 @@ export const orderService = {
             user_name: user?.name || 'Unknown',
             child_name: child?.name || 'Unknown',
             shipping_cost: payload.shippingCost || 0
-        } as any]).select().single();
+        }]).select().single();
 
         if (error) throw new Error(error.message);
         return data as Subscription;
@@ -222,7 +216,7 @@ export const orderService = {
 
     async updateSubscriptionStatus(subscriptionId: string, action: 'pause' | 'cancel' | 'reactivate') {
         let status = action === 'pause' ? 'paused' : action === 'cancel' ? 'cancelled' : 'active';
-        const { error } = await supabase.from('subscriptions').update({ status } as any).eq('id', subscriptionId);
+        const { error } = await (supabase.from('subscriptions') as any).update({ status }).eq('id', subscriptionId);
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('UPDATE_SUBSCRIPTION', subscriptionId, `اشتراك #${subscriptionId}`, `إجراء: ${action}`);
@@ -234,13 +228,13 @@ export const orderService = {
     },
 
     async updateOrderComment(orderId: string, comment: string) {
-        const { error } = await supabase.from('orders').update({ admin_comment: comment } as any).eq('id', orderId);
+        const { error } = await (supabase.from('orders') as any).update({ admin_comment: comment }).eq('id', orderId);
         if (error) throw new Error(error.message);
         return { success: true };
     },
 
     async bulkUpdateOrderStatus(orderIds: string[], status: OrderStatus) {
-        const { error } = await supabase.from('orders').update({ status } as any).in('id', orderIds);
+        const { error } = await (supabase.from('orders') as any).update({ status }).in('id', orderIds);
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('BULK_ORDER_UPDATE', 'multiple', `${orderIds.length} طلبات`, `تغيير الحالة مجمع إلى: ${status}`);
@@ -256,7 +250,7 @@ export const orderService = {
     },
 
     async createSubscriptionPlan(payload: Partial<SubscriptionPlan>) {
-        const { data, error } = await supabase.from('subscription_plans').insert([payload as any]).select().single();
+        const { data, error } = await (supabase.from('subscription_plans') as any).insert([payload]).select().single();
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('CREATE_SUB_PLAN', data.id.toString(), `باقة اشتراك: ${data.name}`, `إنشاء باقة جديدة بسعر ${data.price}`);
@@ -266,7 +260,7 @@ export const orderService = {
     async updateSubscriptionPlan(payload: Partial<SubscriptionPlan>) {
         const { id, ...updates } = payload;
         if (!id) throw new Error("Plan ID is required");
-        const { data, error } = await supabase.from('subscription_plans').update(updates as any).eq('id', id).select().single();
+        const { data, error } = await (supabase.from('subscription_plans') as any).update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('UPDATE_SUB_PLAN', id.toString(), `باقة اشتراك: ${data.name}`, `تحديث بيانات الباقة`);
@@ -274,7 +268,7 @@ export const orderService = {
     },
 
     async deleteSubscriptionPlan(planId: number) {
-        const { error } = await supabase.from('subscription_plans').update({ deleted_at: new Date().toISOString() } as any).eq('id', planId);
+        const { error } = await (supabase.from('subscription_plans') as any).update({ deleted_at: new Date().toISOString() }).eq('id', planId);
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('DELETE_SUB_PLAN', planId.toString(), `باقة اشتراك ID: ${planId}`, `حذف ناعم للباقة`);
@@ -282,7 +276,7 @@ export const orderService = {
     },
 
     async createPersonalizedProduct(payload: CreateProductPayload) {
-        const { data, error } = await supabase.from('personalized_products').insert([payload as any]).select().single();
+        const { data, error } = await (supabase.from('personalized_products') as any).insert([payload]).select().single();
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('CREATE_PRODUCT', data.id.toString(), `منتج: ${data.title}`, `إضافة منتج جديد للمتجر`);
@@ -292,7 +286,7 @@ export const orderService = {
     async updatePersonalizedProduct(payload: Partial<PersonalizedProduct>) {
         const { id, ...updates } = payload;
         if (!id) throw new Error("Product ID is required");
-        const { data, error } = await supabase.from('personalized_products').update(updates as any).eq('id', id).select().single();
+        const { data, error } = await (supabase.from('personalized_products') as any).update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('UPDATE_PRODUCT', id.toString(), `منتج: ${data.title}`, `تحديث بيانات المنتج`);
@@ -300,7 +294,7 @@ export const orderService = {
     },
 
     async deletePersonalizedProduct(productId: number) {
-        const { error } = await supabase.from('personalized_products').update({ deleted_at: new Date().toISOString() } as any).eq('id', productId);
+        const { error } = await (supabase.from('personalized_products') as any).update({ deleted_at: new Date().toISOString() }).eq('id', productId);
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('DELETE_PRODUCT', productId.toString(), `منتج ID: ${productId}`, `حذف ناعم للمنتج`);

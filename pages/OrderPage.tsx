@@ -57,7 +57,7 @@ const OrderPage: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const product = useMemo(() => 
-        orderData?.personalizedProducts.find(p => p.key === productKey) as PersonalizedProduct | undefined, 
+        (orderData?.personalizedProducts || []).find(p => p.key === productKey) as PersonalizedProduct | undefined, 
     [orderData, productKey]);
 
     // --- Dynamic Steps Logic ---

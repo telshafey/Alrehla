@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
 import Modal from '../components/ui/Modal';
-// Added FormField import to fix missing name error
 import FormField from '../components/ui/FormField';
 import { bookingService } from '../services/bookingService';
 import { useToast } from '../contexts/ToastContext';
@@ -196,7 +195,7 @@ const SessionPage: React.FC = () => {
     }, [status, currentUser, session, jitsiSettings, jitsiScriptLoaded, isInstructor, navigate]);
 
     const handleFinishSession = async () => {
-        if (!sessionId) return;
+        if (!sessionId || !session) return;
         setIsSubmittingFinish(true);
         try {
             await bookingService.updateScheduledSession(sessionId, { 

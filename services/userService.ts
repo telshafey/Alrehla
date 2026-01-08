@@ -53,8 +53,7 @@ export const userService = {
         const userId = uuidv4();
 
         // 1. إنشاء الملف الشخصي
-        const { data: profile, error: pError } = await supabase
-            .from('profiles')
+        const { data: profile, error: pError } = await (supabase.from('profiles') as any)
             .insert([{
                 id: userId,
                 name,
@@ -63,7 +62,7 @@ export const userService = {
                 phone,
                 address,
                 created_at: new Date().toISOString()
-            } as any])
+            }])
             .select()
             .single();
 
@@ -72,7 +71,7 @@ export const userService = {
         // 2. معالجة حساب المدرب
         if (role === 'instructor') {
             const slug = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(Math.random() * 1000);
-            await supabase.from('instructors').insert([{
+            await (supabase.from('instructors') as any).insert([{
                 user_id: userId,
                 name: name,
                 slug: slug,
@@ -81,7 +80,7 @@ export const userService = {
                 rate_per_session: 150,
                 schedule_status: 'approved',
                 profile_update_status: 'approved'
-            } as any]);
+            }]);
         }
 
         await reportingService.logAction('CREATE_USER', userId, `مستخدم: ${name}`, `إنشاء حساب جديد برتبة: ${role}`);
@@ -111,22 +110,20 @@ export const userService = {
         const newStudentId = uuidv4();
 
         // 1. إنشاء حساب الطالب في profiles بالبريد الفريد
-        const { error: profileError } = await supabase
-            .from('profiles')
+        const { error: profileError } = await (supabase.from('profiles') as any)
             .insert([{
                 id: newStudentId,
                 name: payload.name,
                 email: normalizedEmail,
                 role: 'student',
                 created_at: new Date().toISOString()
-            } as any]);
+            }]);
 
         if (profileError) throw new Error(`فشل إنشاء حساب الطالب: ${profileError.message}`);
 
         // 2. تحديث ملف الطفل لربطه بالحساب الجديد (العلاقة: ولي أمر -> طفل -> طالب)
-        const { error: linkError } = await supabase
-            .from('child_profiles')
-            .update({ student_user_id: newStudentId } as any)
+        const { error: linkError } = await (supabase.from('child_profiles') as any)
+            .update({ student_user_id: newStudentId })
             .eq('id', payload.childProfileId);
 
         if (linkError) {
@@ -139,13 +136,12 @@ export const userService = {
     },
 
     async linkStudentToChildProfile(payload: { studentUserId: string, childProfileId: number }) {
-        const { error } = await supabase
-            .from('child_profiles')
-            .update({ student_user_id: payload.studentUserId } as any)
+        const { error } = await (supabase.from('child_profiles') as any)
+            .update({ student_user_id: payload.studentUserId })
             .eq('id', payload.childProfileId);
         
         if (error) throw error;
-        await supabase.from('profiles').update({ role: 'student' } as any).eq('id', payload.studentUserId);
+        await (supabase.from('profiles') as any).update({ role: 'student' }).eq('id', payload.studentUserId);
         
         return { success: true };
     },
@@ -153,9 +149,9 @@ export const userService = {
     async unlinkStudentFromChildProfile(childProfileId: number) {
         const { data: child } = await supabase.from('child_profiles').select('student_user_id').eq('id', childProfileId).single();
         if (child?.student_user_id) {
-            await supabase.from('profiles').update({ role: 'user' } as any).eq('id', child.student_user_id);
+            await (supabase.from('profiles') as any).update({ role: 'user' }).eq('id', child.student_user_id);
         }
-        const { error } = await supabase.from('child_profiles').update({ student_user_id: null } as any).eq('id', childProfileId);
+        const { error } = await (supabase.from('child_profiles') as any).update({ student_user_id: null }).eq('id', childProfileId);
         if (error) throw error;
         
         return { success: true };
@@ -170,14 +166,14 @@ export const userService = {
     async createChildProfile(payload: Partial<ChildProfile>) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("جلسة غير صالحة");
-        const { data, error } = await supabase.from('child_profiles').insert([{ ...payload, user_id: user.id } as any]).select().single();
+        const { data, error } = await (supabase.from('child_profiles') as any).insert([{ ...payload, user_id: user.id }]).select().single();
         if (error) throw error;
         return data as ChildProfile;
     },
 
     async updateChildProfile(payload: Partial<ChildProfile> & { id: number }) {
         const { id, ...updates } = payload;
-        const { data, error } = await supabase.from('child_profiles').update(updates as any).eq('id', id).select().single();
+        const { data, error } = await (supabase.from('child_profiles') as any).update(updates).eq('id', id).select().single();
         if (error) throw error;
         return data as ChildProfile;
     },
@@ -197,7 +193,7 @@ export const userService = {
             }
         }
 
-        const { data, error } = await supabase.from('profiles').update(updates as any).eq('id', id).select().single();
+        const { data, error } = await (supabase.from('profiles') as any).update(updates).eq('id', id).select().single();
         if (error) throw error;
 
         await reportingService.logAction('UPDATE_USER_PROFILE', id, `مستخدم: ${data.name}`, `تحديث بيانات الحساب`);

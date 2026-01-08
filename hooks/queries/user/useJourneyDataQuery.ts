@@ -79,6 +79,7 @@ export const useTrainingJourneyData = (journeyId: string | undefined) => {
                 .single();
 
             if (bookingError) throw bookingError;
+            if (!booking) throw new Error("Journey not found");
 
             const [sessionsRes, messagesRes, attachmentsRes, packagesRes] = await Promise.all([
                 supabase.from('scheduled_sessions').select('*').eq('booking_id', journeyId).order('session_date', { ascending: true }),

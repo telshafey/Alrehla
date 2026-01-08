@@ -27,7 +27,7 @@ export const useInstructorMutations = () => {
                     read: false
                 }));
 
-                await supabase.from('notifications').insert(notifications as any);
+                await (supabase.from('notifications') as any).insert(notifications);
             }
         } catch (e) {
             console.error("Failed to notify admins", e);
@@ -84,8 +84,7 @@ export const useInstructorMutations = () => {
             const pendingSchedule = instructor.pending_profile_data?.proposed_schedule;
             if (!pendingSchedule) throw new Error("لا يوجد جدول مقترح.");
 
-            const { error: updateError } = await supabase
-                .from('instructors')
+            const { error: updateError } = await (supabase.from('instructors') as any)
                 .update({
                     weekly_schedule: pendingSchedule,
                     schedule_status: 'approved',
@@ -93,7 +92,7 @@ export const useInstructorMutations = () => {
                         ...instructor.pending_profile_data, 
                         proposed_schedule: null 
                     }
-                } as any)
+                })
                 .eq('id', instructorId);
 
             if (updateError) throw updateError;
@@ -107,7 +106,7 @@ export const useInstructorMutations = () => {
     
     const rejectInstructorSchedule = useMutation({
         mutationFn: async ({ instructorId }: { instructorId: number }) => {
-            const { error } = await supabase.from('instructors').update({ schedule_status: 'rejected' } as any).eq('id', instructorId);
+            const { error } = await (supabase.from('instructors') as any).update({ schedule_status: 'rejected' }).eq('id', instructorId);
             if (error) throw error;
             return { success: true };
         },
@@ -133,13 +132,12 @@ export const useInstructorMutations = () => {
             
             if (!finalUpdates) throw new Error("لا توجد تحديثات بانتظار الموافقة.");
 
-            const { error: updateError } = await supabase
-                .from('instructors')
+            const { error: updateError } = await (supabase.from('instructors') as any)
                 .update({
                     ...finalUpdates,
                     profile_update_status: 'approved',
                     pending_profile_data: null
-                } as any)
+                })
                 .eq('id', instructorId);
 
             if (updateError) throw updateError;
@@ -154,7 +152,7 @@ export const useInstructorMutations = () => {
 
     const rejectInstructorProfileUpdate = useMutation({
         mutationFn: async ({ instructorId }: { instructorId: number }) => {
-             const { error } = await supabase.from('instructors').update({ profile_update_status: 'rejected' } as any).eq('id', instructorId);
+             const { error } = await (supabase.from('instructors') as any).update({ profile_update_status: 'rejected' }).eq('id', instructorId);
             if (error) throw error;
             return { success: true };
         },
@@ -168,8 +166,7 @@ export const useInstructorMutations = () => {
         mutationFn: async (payload: { instructorId: number, updates: any, justification: string }) => {
             const { data: instructor } = await supabase.from('instructors').select('name').eq('id', payload.instructorId).single();
             
-            const { error } = await supabase
-                .from('instructors')
+            const { error } = await (supabase.from('instructors') as any)
                 .update({
                     profile_update_status: 'pending',
                     pending_profile_data: {
@@ -177,7 +174,7 @@ export const useInstructorMutations = () => {
                         justification: payload.justification,
                         requested_at: new Date().toISOString()
                     }
-                } as any)
+                })
                 .eq('id', payload.instructorId);
 
             if (error) throw error;
@@ -201,8 +198,7 @@ export const useInstructorMutations = () => {
             const { data: instructor } = await supabase.from('instructors').select('name').eq('id', instructorId).single();
             const { data: current } = await supabase.from('instructors').select('pending_profile_data').eq('id', instructorId).single();
             
-            const { error } = await supabase
-                .from('instructors')
+            const { error } = await (supabase.from('instructors') as any)
                 .update({
                     schedule_status: 'pending',
                     pending_profile_data: {
@@ -210,7 +206,7 @@ export const useInstructorMutations = () => {
                         proposed_schedule: schedule,
                         schedule_requested_at: new Date().toISOString()
                     }
-                } as any)
+                })
                 .eq('id', instructorId);
 
             if (error) throw error;
@@ -231,7 +227,7 @@ export const useInstructorMutations = () => {
 
     const updateInstructorAvailability = useMutation({
         mutationFn: async ({ instructorId, availability }: { instructorId: number, availability: AvailableSlots }) => {
-            const { error } = await supabase.from('instructors').update({ availability } as any).eq('id', instructorId);
+            const { error } = await (supabase.from('instructors') as any).update({ availability }).eq('id', instructorId);
             if (error) throw error;
             return { success: true };
         },
@@ -243,7 +239,7 @@ export const useInstructorMutations = () => {
 
     const approveSupportSessionRequest = useMutation({
         mutationFn: async ({ requestId }: { requestId: string }) => {
-            const { error } = await supabase.from('support_session_requests').update({ status: 'approved' } as any).eq('id', requestId);
+            const { error } = await (supabase.from('support_session_requests') as any).update({ status: 'approved' }).eq('id', requestId);
             if (error) throw error;
             return { success: true };
         },
@@ -255,7 +251,7 @@ export const useInstructorMutations = () => {
 
     const rejectSupportSessionRequest = useMutation({
         mutationFn: async ({ requestId }: { requestId: string }) => {
-            const { error } = await supabase.from('support_session_requests').update({ status: 'rejected' } as any).eq('id', requestId);
+            const { error } = await (supabase.from('support_session_requests') as any).update({ status: 'rejected' }).eq('id', requestId);
             if (error) throw error;
             return { success: true };
         },
@@ -267,13 +263,13 @@ export const useInstructorMutations = () => {
 
     const createSupportSessionRequest = useMutation({
         mutationFn: async (payload: { instructorId: number, childId: number, reason: string }) => {
-            const { error } = await supabase.from('support_session_requests').insert([{
+            const { error } = await (supabase.from('support_session_requests') as any).insert([{
                 instructor_id: payload.instructorId,
                 child_id: payload.childId,
                 reason: payload.reason,
                 status: 'pending',
                 requested_at: new Date().toISOString()
-            } as any]);
+            }]);
             if (error) throw error;
             return { success: true };
         },
@@ -284,7 +280,7 @@ export const useInstructorMutations = () => {
 
     const requestIntroAvailabilityChange = useMutation({
         mutationFn: async ({ instructorId, availability }: { instructorId: number, availability: AvailableSlots }) => {
-            const { error } = await supabase.from('instructors').update({ intro_availability: availability } as any).eq('id', instructorId);
+            const { error } = await (supabase.from('instructors') as any).update({ intro_availability: availability }).eq('id', instructorId);
             if (error) throw error;
             return { success: true };
         },

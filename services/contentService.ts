@@ -22,13 +22,12 @@ export const contentService = {
     },
 
     async updateSiteContent(newContent: SiteContent) {
-        const { data, error } = await supabase
-            .from('site_settings')
+        const { data, error } = await (supabase.from('site_settings') as any)
             .upsert({ 
                 key: 'global_content', 
                 value: newContent,
                 updated_at: new Date().toISOString()
-            } as any)
+            })
             .select()
             .single();
 
@@ -69,9 +68,8 @@ export const contentService = {
             created_at: new Date().toISOString()
         };
 
-        const { data, error } = await supabase
-            .from('blog_posts')
-            .insert([insertData as any])
+        const { data, error } = await (supabase.from('blog_posts') as any)
+            .insert([insertData])
             .select()
             .single();
 
@@ -91,9 +89,8 @@ export const contentService = {
         const { id, imageFile, ...updates } = payload;
         const updateData = { ...updates, image_url: imageUrl };
 
-        const { data, error } = await supabase
-            .from('blog_posts')
-            .update(updateData as any)
+        const { data, error } = await (supabase.from('blog_posts') as any)
+            .update(updateData)
             .eq('id', id)
             .select()
             .single();
@@ -105,9 +102,8 @@ export const contentService = {
     },
 
     async deleteBlogPost(postId: number) {
-        const { error } = await supabase
-            .from('blog_posts')
-            .update({ deleted_at: new Date().toISOString() } as any)
+        const { error } = await (supabase.from('blog_posts') as any)
+            .update({ deleted_at: new Date().toISOString() })
             .eq('id', postId);
 
         if (error) throw new Error(error.message);
@@ -117,9 +113,8 @@ export const contentService = {
     },
 
     async bulkUpdateBlogPostsStatus(postIds: number[], status: 'published' | 'draft') {
-        const { error } = await supabase
-            .from('blog_posts')
-            .update({ status } as any)
+        const { error } = await (supabase.from('blog_posts') as any)
+            .update({ status })
             .in('id', postIds);
 
         if (error) throw new Error(error.message);
@@ -129,9 +124,8 @@ export const contentService = {
     },
 
     async bulkDeleteBlogPosts(postIds: number[]) {
-        const { error } = await supabase
-            .from('blog_posts')
-            .update({ deleted_at: new Date().toISOString() } as any)
+        const { error } = await (supabase.from('blog_posts') as any)
+            .update({ deleted_at: new Date().toISOString() })
             .in('id', postIds);
 
         if (error) throw new Error(error.message);

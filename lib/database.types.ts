@@ -12,123 +12,123 @@ export interface Database {
     Tables: {
       profiles: {
         Row: UserProfile
-        Insert: Partial<UserProfile>
-        Update: Partial<UserProfile>
+        Insert: any
+        Update: any
       }
       child_profiles: {
         Row: ChildProfile
-        Insert: Partial<ChildProfile>
-        Update: Partial<ChildProfile>
+        Insert: any
+        Update: any
       }
       instructors: {
         Row: Instructor
-        Insert: Partial<Instructor>
-        Update: Partial<Instructor>
+        Insert: any
+        Update: any
       }
       orders: {
         Row: Order
-        Insert: Partial<Order>
-        Update: Partial<Order>
+        Insert: any
+        Update: any
       }
       subscriptions: {
         Row: Subscription
-        Insert: Partial<Subscription>
-        Update: Partial<Subscription>
+        Insert: any
+        Update: any
       }
       bookings: {
         Row: CreativeWritingBooking
-        Insert: Partial<CreativeWritingBooking>
-        Update: Partial<CreativeWritingBooking>
+        Insert: any
+        Update: any
       }
       service_orders: {
         Row: ServiceOrder
-        Insert: Partial<ServiceOrder>
-        Update: Partial<ServiceOrder>
+        Insert: any
+        Update: any
       }
       scheduled_sessions: {
         Row: ScheduledSession
-        Insert: Partial<ScheduledSession>
-        Update: Partial<ScheduledSession>
+        Insert: any
+        Update: any
       }
       session_messages: {
         Row: SessionMessage
-        Insert: Partial<SessionMessage>
-        Update: Partial<SessionMessage>
+        Insert: any
+        Update: any
       }
       session_attachments: {
         Row: SessionAttachment
-        Insert: Partial<SessionAttachment>
-        Update: Partial<SessionAttachment>
+        Insert: any
+        Update: any
       }
       notifications: {
         Row: Notification
-        Insert: Partial<Notification>
-        Update: Partial<Notification>
+        Insert: any
+        Update: any
       }
       blog_posts: {
         Row: BlogPost
-        Insert: Partial<BlogPost>
-        Update: Partial<BlogPost>
+        Insert: any
+        Update: any
       }
       support_tickets: {
         Row: SupportTicket
-        Insert: Partial<SupportTicket>
-        Update: Partial<SupportTicket>
+        Insert: any
+        Update: any
       }
       join_requests: {
         Row: JoinRequest
-        Insert: Partial<JoinRequest>
-        Update: Partial<JoinRequest>
+        Insert: any
+        Update: any
       }
       site_settings: {
         Row: { key: string; value: any; updated_at: string }
-        Insert: { key: string; value: any; updated_at?: string }
-        Update: { key?: string; value?: any; updated_at?: string }
+        Insert: any
+        Update: any
       }
       personalized_products: {
         Row: PersonalizedProduct
-        Insert: Partial<PersonalizedProduct>
-        Update: Partial<PersonalizedProduct>
+        Insert: any
+        Update: any
       }
       creative_writing_packages: {
         Row: CreativeWritingPackage
-        Insert: Partial<CreativeWritingPackage>
-        Update: Partial<CreativeWritingPackage>
+        Insert: any
+        Update: any
       }
       standalone_services: {
         Row: StandaloneService
-        Insert: Partial<StandaloneService>
-        Update: Partial<StandaloneService>
+        Insert: any
+        Update: any
       }
       subscription_plans: {
         Row: SubscriptionPlan
-        Insert: Partial<SubscriptionPlan>
-        Update: Partial<SubscriptionPlan>
+        Insert: any
+        Update: any
       }
       badges: {
         Row: Badge
-        Insert: Partial<Badge>
-        Update: Partial<Badge>
+        Insert: any
+        Update: any
       }
       child_badges: {
         Row: ChildBadge
-        Insert: Partial<ChildBadge>
-        Update: Partial<ChildBadge>
+        Insert: any
+        Update: any
       }
       comparison_items: {
         Row: ComparisonItem
-        Insert: Partial<ComparisonItem>
-        Update: Partial<ComparisonItem>
+        Insert: any
+        Update: any
       }
       instructor_payouts: {
         Row: InstructorPayout
-        Insert: Partial<InstructorPayout>
-        Update: Partial<InstructorPayout>
+        Insert: any
+        Update: any
       }
       support_session_requests: {
         Row: SupportSessionRequest
-        Insert: Partial<SupportSessionRequest>
-        Update: Partial<SupportSessionRequest>
+        Insert: any
+        Update: any
       }
       audit_logs: {
         Row: {
@@ -140,24 +140,8 @@ export interface Database {
             details: string | null;
             timestamp: string;
         }
-        Insert: {
-            id?: string;
-            user_id?: string | null;
-            user_name?: string | null;
-            action: string;
-            target_description?: string | null;
-            details?: string | null;
-            timestamp?: string;
-        }
-        Update: {
-            id?: string;
-            user_id?: string | null;
-            user_name?: string | null;
-            action?: string;
-            target_description?: string | null;
-            details?: string | null;
-            timestamp?: string;
-        }
+        Insert: any
+        Update: any
       }
     }
   }

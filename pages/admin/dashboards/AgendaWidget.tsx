@@ -2,9 +2,9 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Paperclip, ArrowLeft } from 'lucide-react';
-import AdminSection from '../AdminSection';
+import AdminSection from '../../../components/admin/AdminSection';
 import { formatDate } from '../../../utils/helpers';
-import { Button } from '../../ui/Button';
+import { Button } from '../../../components/ui/Button';
 
 const AgendaWidget = React.forwardRef<HTMLElement, { bookings: any[], attachments: any[] } & React.HTMLAttributes<HTMLElement>>(
     ({ bookings, attachments, ...props }, ref) => {
