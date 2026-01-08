@@ -46,8 +46,15 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
     const fullSchedule = useMemo(() => {
         if (!pkg || !dateTime) return [];
         
-        const match = pkg.sessions.match(/\d+/);
-        const count = match ? parseInt(match[0]) : 1;
+        // منطق استخراج العدد المحدث
+        let count = 1;
+        if (pkg.name.includes('التعريفية') || pkg.sessions.includes('واحدة')) {
+            count = 1;
+        } else {
+            const match = pkg.sessions.match(/^(\d+)/);
+            count = match ? parseInt(match[1]) : 1;
+        }
+
         const schedule = [];
         const baseDate = new Date(dateTime.date);
 

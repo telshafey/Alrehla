@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Star, BookOpen, CreditCard, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -19,7 +20,15 @@ const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }
 
     const { packageDetails, sessions, instructorName } = journey;
 
-    const totalSessions = parseInt(packageDetails?.sessions.match(/\d+/)?.[0] || '0', 10);
+    // استخراج العدد بشكل آمن
+    const getTotalSessionsCount = (pkg: CreativeWritingPackage | undefined) => {
+        if (!pkg) return 0;
+        if (pkg.name.includes('التعريفية') || pkg.sessions.includes('واحدة')) return 1;
+        const match = pkg.sessions.match(/^(\d+)/);
+        return match ? parseInt(match[1], 10) : 0;
+    };
+
+    const totalSessions = getTotalSessionsCount(packageDetails);
     const completedSessions = sessions.filter(s => s.status === 'completed');
     const upcomingSessions = sessions.filter(s => s.status === 'upcoming')
         .sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());

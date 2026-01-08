@@ -37,6 +37,19 @@ export const useBookingMutations = () => {
             addToast(`فشل حفظ الملاحظات: ${error.message}`, 'error');
         }
     });
+
+    // Added missing updateScheduledSession mutation for session reporting and rescheduling
+    const updateScheduledSession = useMutation({
+        mutationFn: (payload: { sessionId: string, updates: any }) => bookingService.updateScheduledSession(payload.sessionId, payload.updates),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['sessionDetails'] });
+            queryClient.invalidateQueries({ queryKey: ['adminScheduledSessions'] });
+            queryClient.invalidateQueries({ queryKey: ['instructorData'] });
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث الجلسة: ${error.message}`, 'error');
+        }
+    });
     
     const updateBookingDraft = useMutation({
         mutationFn: (payload: { bookingId: string, draft: string }) => bookingService.saveBookingDraft(payload.bookingId, payload.draft),
@@ -75,6 +88,7 @@ export const useBookingMutations = () => {
         updateBookingProgressNotes, 
         updateBookingDraft,
         sendSessionMessage,
-        uploadSessionAttachment
+        uploadSessionAttachment,
+        updateScheduledSession
     };
 };

@@ -15,6 +15,16 @@ import type {
 } from '../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
 
+// دالة مساعدة لاستخراج عدد الجلسات بشكل صحيح من النص
+const parseSessionCount = (sessionString: string | undefined): number => {
+    if (!sessionString) return 1;
+    // إذا كان النص يحتوي على كلمة "واحدة" فالعدد 1
+    if (sessionString.includes('واحدة')) return 1;
+    // البحث عن الرقم في بداية النص (مثل "4 جلسات")
+    const match = sessionString.match(/^(\d+)/);
+    return match ? parseInt(match[1], 10) : 1;
+};
+
 export const bookingService = {
     // --- Queries ---
     
@@ -78,7 +88,6 @@ export const bookingService = {
         const { userId, payload: bookingData, receiptUrl } = payload;
         const bookingId = `BK-${Date.now().toString().slice(-6)}`;
         
-        // التأكد من أن التاريخ المسجل يحمل معلومات الوقت المختارة بتوقيت مصر
         const [hours, minutes] = bookingData.dateTime.time.split(':');
         const bookingDate = new Date(bookingData.dateTime.date);
         bookingDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
@@ -120,14 +129,13 @@ export const bookingService = {
             const now = new Date();
             const originalDate = new Date(booking.booking_date);
             
-            // ضبط البداية لتكون في المستقبل دائماً (إذا كان تاريخ الحجز قد فات وقت المراجعة)
             let startDate = originalDate;
             while (startDate < now) { 
                 startDate.setDate(startDate.getDate() + 7); 
             }
 
             const { data: pkg } = await supabase.from('creative_writing_packages').select('sessions').eq('name', booking.package_name).single();
-            const sessionCount = parseInt(pkg?.sessions.match(/\d+/)?.[0] || '1');
+            const sessionCount = parseSessionCount(pkg?.sessions);
             
             const sessionsToInsert = [];
             for (let i = 0; i < sessionCount; i++) {
@@ -137,7 +145,7 @@ export const bookingService = {
                     booking_id: bookingId,
                     child_id: booking.child_id,
                     instructor_id: booking.instructor_id,
-                    session_date: sDate.toISOString(), // UTC ISO String
+                    session_date: sDate.toISOString(),
                     status: 'upcoming'
                 });
             }
@@ -193,8 +201,6 @@ export const bookingService = {
         return { success: true };
     },
 
-    // --- Instructor Management ---
-
     async createInstructor(payload: any) {
         let avatarUrl = null;
         if (payload.avatarFile) {
@@ -222,8 +228,6 @@ export const bookingService = {
         if (error) throw error;
         return { success: true };
     },
-
-    // --- CW Settings Management ---
 
     async createPackage(payload: any) {
         const { data, error } = await supabase.from('creative_writing_packages').insert([payload]).select().single();

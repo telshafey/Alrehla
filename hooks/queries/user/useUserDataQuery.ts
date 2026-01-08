@@ -63,17 +63,15 @@ export const useUserAccountData = () => {
         queryFn: async () => {
             if (!currentUser) return { userOrders: [], userSubscriptions: [], userBookings: [], childBadges: [], allBadges: [], attachments: [], childProfiles: [] };
 
-            // نستخدم allSettled لضمان أن الآدمن (مثل تامر) يفتح صفحته حتى لو فشل استعلام "أطفاله"
-            const results = await Promise.allSettled([
-                supabase.from('orders').select('*').order('order_date', { ascending: false }),
-                supabase.from('subscriptions').select('*'),
-                supabase.from('bookings').select('*, child_profiles(name)'),
-                supabase.from('child_profiles').select('*'),
-                supabase.from('child_badges').select('*'),
+            // الفلترة هنا هي المفتاح: .eq('user_id', currentUser.id) تضمن الخصوصية
+            const [ordersRes, subsRes, bookingsRes, childrenRes, badgesRes, allBadgesRes] = await Promise.all([
+                supabase.from('orders').select('*').eq('user_id', currentUser.id).order('order_date', { ascending: false }),
+                supabase.from('subscriptions').select('*').eq('user_id', currentUser.id),
+                supabase.from('bookings').select('*, child_profiles(name)').eq('user_id', currentUser.id),
+                supabase.from('child_profiles').select('*').eq('user_id', currentUser.id),
+                supabase.from('child_badges').select('*'), // سيتم ربطها لاحقاً بالهوية
                 supabase.from('badges').select('*')
             ]);
-
-            const [ordersRes, subsRes, bookingsRes, childrenRes, badgesRes, allBadgesRes] = results.map(r => r.status === 'fulfilled' ? r.value : { data: [] });
 
             let enrichedBookings: EnrichedBooking[] = [];
             const rawBookings = bookingsRes.data || [];

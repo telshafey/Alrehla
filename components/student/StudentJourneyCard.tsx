@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, ArrowLeft, Clock } from 'lucide-react';
@@ -15,11 +16,12 @@ interface StudentJourneyCardProps {
     journey: EnrichedStudentBooking;
 }
 
-const parseTotalSessions = (sessionString: string | undefined): number => {
-    if (!sessionString) return 0;
-    if (sessionString.includes('واحدة')) return 1;
-    const match = sessionString.match(/\d+/);
-    return match ? parseInt(match[0], 10) : 0;
+const parseTotalSessions = (sessionString: string | undefined, packageName: string): number => {
+    if (!sessionString) return 1;
+    // استثناء خاص للجلسة التعريفية
+    if (packageName.includes('التعريفية') || sessionString.includes('واحدة')) return 1;
+    const match = sessionString.match(/^(\d+)/);
+    return match ? parseInt(match[0], 10) : 1;
 };
 
 const StudentJourneyCard = React.forwardRef<HTMLElement, StudentJourneyCardProps & React.HTMLAttributes<HTMLElement>>(
@@ -30,7 +32,7 @@ const StudentJourneyCard = React.forwardRef<HTMLElement, StudentJourneyCardProps
         
         const nextSession = upcomingSessions[0];
         
-        const totalSessions = parseTotalSessions(journey.packageDetails?.sessions);
+        const totalSessions = parseTotalSessions(journey.packageDetails?.sessions, journey.package_name);
         const completedSessionsCount = journey.sessions.filter(s => s.status === 'completed').length;
         const progress = totalSessions > 0 ? (completedSessionsCount / totalSessions) * 100 : 0;
 
@@ -51,7 +53,7 @@ const StudentJourneyCard = React.forwardRef<HTMLElement, StudentJourneyCardProps
                                 <span>{completedSessionsCount}/{totalSessions} جلسة مكتملة</span>
                             </div>
                             <div className="w-full bg-muted rounded-full h-2.5">
-                                <div className="bg-primary h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                                <div className="bg-primary h-2.5 rounded-full" style={{ width: `${Math.min(progress, 100)}%` }}></div>
                             </div>
                         </div>
                         {nextSession && (
