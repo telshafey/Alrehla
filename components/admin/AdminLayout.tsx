@@ -61,18 +61,27 @@ const InstructorJourneysPage = lazy(() => import('../../pages/admin/instructor/I
 const InstructorFinancialsPage = lazy(() => import('../../pages/admin/instructor/InstructorFinancialsPage'));
 const InstructorPricingPage = lazy(() => import('../../pages/admin/instructor/InstructorPricingPage'));
 
-
 const AdminLayout: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const { permissions } = useAuth();
+    const { permissions, loading: authLoading } = useAuth();
     const location = useLocation();
 
-    const isInstructorOnly = permissions.isInstructor && !permissions.canViewGlobalStats;
+    if (authLoading) return <PageLoader text="جاري التحقق من الصلاحيات..." />;
+
+    // Helper to determine the default index route
+    const renderIndexRoute = () => {
+        if (permissions.canViewGlobalStats) {
+            return <Route index element={<AdminDashboardPage />} />;
+        }
+        if (permissions.isInstructor) {
+            return <Route index element={<InstructorDashboardPage />} />;
+        }
+        return <Route index element={<Navigate to="/" replace />} />;
+    };
 
     return (
         <div className="flex h-screen bg-muted/30 overflow-hidden" dir="rtl">
-            {/* Mobile Backdrop */}
             {isMobileMenuOpen && (
                 <div 
                     className="fixed inset-0 bg-black/50 z-40 md:hidden animate-fadeIn"
@@ -86,7 +95,6 @@ const AdminLayout: React.FC = () => {
                 onMobileClose={() => setIsMobileMenuOpen(false)}
             />
             
-            {/* Main Content Wrapper */}
             <main className="flex-1 flex flex-col w-full md:w-auto min-w-0 overflow-hidden relative transition-all duration-300">
                 <AdminNavbar 
                     onMobileMenuToggle={() => setIsMobileMenuOpen(prev => !prev)} 
@@ -94,83 +102,73 @@ const AdminLayout: React.FC = () => {
                     onSidebarToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                 />
                 
-                {/* Scrollable Page Content Container */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth relative">
                     <div className="flex flex-col min-h-full">
                          <div className="flex-1 p-4 sm:p-6 lg:p-8">
-                            <Suspense fallback={<PageLoader />}>
+                            <Suspense fallback={<PageLoader text="جاري تحميل الصفحة..." />}>
                                 <Routes>
-                                    {isInstructorOnly ? (
+                                    {/* Default Landing Page based on Permissions */}
+                                    {renderIndexRoute()}
+
+                                    {/* Shared Instructor Routes (Visible to Instructors or Admins with access) */}
+                                    {(permissions.isInstructor || permissions.canManageInstructors) && (
                                         <>
-                                            <Route index element={<InstructorDashboardPage />} />
                                             <Route path="profile" element={<InstructorProfilePage />} />
                                             <Route path="schedule" element={<InstructorSchedulePage />} />
                                             <Route path="journeys" element={<InstructorJourneysPage />} />
                                             <Route path="pricing" element={<InstructorPricingPage />} />
-                                            <Route path="financials" element={<InstructorFinancialsPage />} />
-                                            <Route path="*" element={<Navigate to="/admin" replace />} />
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Route index element={<AdminDashboardPage />} />
-                                            <Route path="users" element={<PermissionBasedRoute permission="canManageUsers"><AdminUsersPage /></PermissionBasedRoute>} />
-                                            <Route path="users/new" element={<PermissionBasedRoute permission="canManageUsers"><AdminUserFormPage /></PermissionBasedRoute>} />
-                                            <Route path="users/:id" element={<PermissionBasedRoute permission="canManageUsers"><AdminUserFormPage /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="orders" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminOrdersPage /></PermissionBasedRoute>} />
-                                            <Route path="orders/:id" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminOrderDetailPage /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="creative-writing" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminCreativeWritingPage /></PermissionBasedRoute>} />
-                                            <Route path="creative-writing/bookings/:id" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminBookingDetailPage /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="personalized-products" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminPersonalizedProductsPage /></PermissionBasedRoute>} />
-                                            <Route path="personalized-products/:id" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminProductDetailPage /></PermissionBasedRoute>} />
-                                            <Route path="settings" element={<PermissionBasedRoute permission="canManageSettings"><AdminSettingsPage /></PermissionBasedRoute>} />
-                                            <Route path="instructors" element={<PermissionBasedRoute permission="canManageInstructors"><AdminInstructorsPage /></PermissionBasedRoute>} />
-                                            <Route path="instructors/:id" element={<PermissionBasedRoute permission="canManageInstructors"><AdminInstructorDetailPage /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="support" element={<PermissionBasedRoute permission="canManageSupportTickets"><AdminSupportPage /></PermissionBasedRoute>} />
-                                            <Route path="support/:id" element={<PermissionBasedRoute permission="canManageSupportTickets"><AdminTicketDetailPage /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="join-requests" element={<PermissionBasedRoute permission="canManageJoinRequests"><AdminJoinRequestsPage /></PermissionBasedRoute>} />
-                                            <Route path="join-requests/:id" element={<PermissionBasedRoute permission="canManageJoinRequests"><AdminJoinRequestDetailPage /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="blog" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPage /></PermissionBasedRoute>} />
-                                            <Route path="blog/:id" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPostEditorPage /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="content/:sectionKey" element={<PermissionBasedRoute permission="canManageSiteContent"><AdminContentManagementPage key={location.pathname} /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="shipping" element={<PermissionBasedRoute permission="canManageSettings"><AdminShippingPage /></PermissionBasedRoute>} />
-                                            <Route path="subscriptions" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminSubscriptionsPage /></PermissionBasedRoute>} />
-                                            <Route path="subscription-box" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminSubscriptionBoxPage /></PermissionBasedRoute>} />
-                                            <Route path="creative-writing-packages" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminCreativeWritingPackagesPage /></PermissionBasedRoute>} />
-                                            <Route path="creative-writing-packages/:id" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminPackageDetailPage /></PermissionBasedRoute>} />
-                                            <Route path="creative-writing-services" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminCreativeWritingServicesPage /></PermissionBasedRoute>} />
-                                            <Route path="creative-writing-services/:id" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminServiceDetailPage /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="service-orders" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminServiceOrdersPage /></PermissionBasedRoute>} />
-                                            <Route path="service-orders/:id" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminServiceOrderDetailPage /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="scheduled-sessions" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminScheduledSessionsPage /></PermissionBasedRoute>} />
-                                            <Route path="introductory-sessions" element={<PermissionBasedRoute permission="canManageInstructors"><AdminIntroductorySessionsPage/></PermissionBasedRoute>} />
-                                            <Route path="integrations" element={<PermissionBasedRoute permission="canManageSettings"><AdminIntegrationsPage/></PermissionBasedRoute>} />
-                                            <Route path="price-review" element={<PermissionBasedRoute permission="canManageInstructors"><AdminPriceReviewPage/></PermissionBasedRoute>} />
-                                            <Route path="reports" element={<PermissionBasedRoute permission="canManageFinancials"><AdminReportsPage /></PermissionBasedRoute>} />
-                                            <Route path="audit-log" element={<PermissionBasedRoute permission="canViewAuditLog"><AdminAuditLogPage /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="database-inspector" element={<PermissionBasedRoute permission="canManageSettings"><AdminDatabaseInspectorPage /></PermissionBasedRoute>} />
-                                            
-                                            <Route path="financials" element={<PermissionBasedRoute permission="canManageFinancials"><AdminFinancialsLayout /></PermissionBasedRoute>}>
-                                                <Route index element={<FinancialOverviewPage />} />
-                                                <Route path="instructor-payouts" element={<InstructorPayoutsPage />} />
-                                                <Route path="instructor-payouts/:id" element={<InstructorFinancialDetailsPage />} />
-                                                <Route path="revenue-streams" element={<RevenueStreamsPage />} />
-                                                <Route path="transactions-log" element={<TransactionsLogPage />} />
-                                            </Route>
-
-                                            <Route path="*" element={<Navigate to="/admin" replace />} />
+                                            <Route path="instructor-financials" element={<InstructorFinancialsPage />} />
                                         </>
                                     )}
+
+                                    {/* Core Admin Management Routes */}
+                                    <Route path="users" element={<PermissionBasedRoute permission="canManageUsers"><AdminUsersPage /></PermissionBasedRoute>} />
+                                    <Route path="users/new" element={<PermissionBasedRoute permission="canManageUsers"><AdminUserFormPage /></PermissionBasedRoute>} />
+                                    <Route path="users/:id" element={<PermissionBasedRoute permission="canManageUsers"><AdminUserFormPage /></PermissionBasedRoute>} />
+                                    <Route path="orders" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminOrdersPage /></PermissionBasedRoute>} />
+                                    <Route path="orders/:id" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminOrderDetailPage /></PermissionBasedRoute>} />
+                                    <Route path="creative-writing" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminCreativeWritingPage /></PermissionBasedRoute>} />
+                                    <Route path="creative-writing/bookings/:id" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminBookingDetailPage /></PermissionBasedRoute>} />
+                                    <Route path="personalized-products" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminPersonalizedProductsPage /></PermissionBasedRoute>} />
+                                    <Route path="personalized-products/:id" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminProductDetailPage /></PermissionBasedRoute>} />
+                                    <Route path="settings" element={<PermissionBasedRoute permission="canManageSettings"><AdminSettingsPage /></PermissionBasedRoute>} />
+                                    <Route path="instructors" element={<PermissionBasedRoute permission="canManageInstructors"><AdminInstructorsPage /></PermissionBasedRoute>} />
+                                    <Route path="instructors/:id" element={<PermissionBasedRoute permission="canManageInstructors"><AdminInstructorDetailPage /></PermissionBasedRoute>} />
+                                    <Route path="support" element={<PermissionBasedRoute permission="canManageSupportTickets"><AdminSupportPage /></PermissionBasedRoute>} />
+                                    <Route path="support/:id" element={<PermissionBasedRoute permission="canManageSupportTickets"><AdminTicketDetailPage /></PermissionBasedRoute>} />
+                                    <Route path="join-requests" element={<PermissionBasedRoute permission="canManageJoinRequests"><AdminJoinRequestsPage /></PermissionBasedRoute>} />
+                                    <Route path="join-requests/:id" element={<PermissionBasedRoute permission="canManageJoinRequests"><AdminJoinRequestDetailPage /></PermissionBasedRoute>} />
+                                    <Route path="blog" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPage /></PermissionBasedRoute>} />
+                                    <Route path="blog/:id" element={<PermissionBasedRoute permission="canManageBlog"><AdminBlogPostEditorPage /></PermissionBasedRoute>} />
+                                    <Route path="content/:sectionKey" element={<PermissionBasedRoute permission="canManageSiteContent"><AdminContentManagementPage /></PermissionBasedRoute>} />
+                                    <Route path="shipping" element={<PermissionBasedRoute permission="canManageSettings"><AdminShippingPage /></PermissionBasedRoute>} />
+                                    <Route path="subscriptions" element={<PermissionBasedRoute permission="canManageEnhaLakOrders"><AdminSubscriptionsPage /></PermissionBasedRoute>} />
+                                    <Route path="subscription-box" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminSubscriptionBoxPage /></PermissionBasedRoute>} />
+                                    <Route path="creative-writing-packages" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminCreativeWritingPackagesPage /></PermissionBasedRoute>} />
+                                    <Route path="creative-writing-packages/:id" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminPackageDetailPage /></PermissionBasedRoute>} />
+                                    <Route path="creative-writing-services" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminCreativeWritingServicesPage /></PermissionBasedRoute>} />
+                                    <Route path="creative-writing-services/:id" element={<PermissionBasedRoute permission="canManageCreativeWritingSettings"><AdminServiceDetailPage /></PermissionBasedRoute>} />
+                                    <Route path="service-orders" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminServiceOrdersPage /></PermissionBasedRoute>} />
+                                    <Route path="service-orders/:id" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminServiceOrderDetailPage /></PermissionBasedRoute>} />
+                                    <Route path="scheduled-sessions" element={<PermissionBasedRoute permission="canManageCreativeWritingBookings"><AdminScheduledSessionsPage /></PermissionBasedRoute>} />
+                                    <Route path="introductory-sessions" element={<PermissionBasedRoute permission="canManageInstructors"><AdminIntroductorySessionsPage/></PermissionBasedRoute>} />
+                                    <Route path="integrations" element={<PermissionBasedRoute permission="canManageSettings"><AdminIntegrationsPage/></PermissionBasedRoute>} />
+                                    <Route path="price-review" element={<PermissionBasedRoute permission="canManageInstructors"><AdminPriceReviewPage/></PermissionBasedRoute>} />
+                                    <Route path="reports" element={<PermissionBasedRoute permission="canManageFinancials"><AdminReportsPage /></PermissionBasedRoute>} />
+                                    <Route path="audit-log" element={<PermissionBasedRoute permission="canViewAuditLog"><AdminAuditLogPage /></PermissionBasedRoute>} />
+                                    <Route path="database-inspector" element={<PermissionBasedRoute permission="canManageSettings"><AdminDatabaseInspectorPage /></PermissionBasedRoute>} />
+                                    
+                                    {/* Global Financials Section */}
+                                    <Route path="financials" element={<PermissionBasedRoute permission="canManageFinancials"><AdminFinancialsLayout /></PermissionBasedRoute>}>
+                                        <Route index element={<FinancialOverviewPage />} />
+                                        <Route path="instructor-payouts" element={<InstructorPayoutsPage />} />
+                                        <Route path="instructor-payouts/:id" element={<InstructorFinancialDetailsPage />} />
+                                        <Route path="revenue-streams" element={<RevenueStreamsPage />} />
+                                        <Route path="transactions-log" element={<TransactionsLogPage />} />
+                                    </Route>
+
+                                    {/* Safe Fallback: Redirect to admin root if sub-path not found */}
+                                    <Route path="*" element={<Navigate to="/admin" replace />} />
                                 </Routes>
                             </Suspense>
                          </div>
