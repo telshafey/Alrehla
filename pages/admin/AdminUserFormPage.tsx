@@ -28,9 +28,6 @@ const AdminUserFormPage: React.FC = () => {
     const { data: children = [] } = useAdminAllChildProfiles();
     const { updateUser, createUser, updateUserPassword } = useUserMutations(); 
 
-    // FIX: Defined isSaving variable to track mutation pending states
-    const isSaving = createUser.isPending || updateUser.isPending || updateUserPassword.isPending;
-
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -78,6 +75,8 @@ const AdminUserFormPage: React.FC = () => {
             // Error handling via mutation feedback
         }
     };
+
+    const isSaving = createUser.isPending || updateUser.isPending;
 
     if (usersLoading && !isNew) return <PageLoader />;
 

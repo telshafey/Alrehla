@@ -37,7 +37,6 @@ const AdminUsersPage: React.FC = () => {
     }, [users, children, isLoading, error]);
 
     const { staffUsers, customerUsers } = useMemo(() => {
-        // فلترة دقيقة بناءً على قوائم الأدوار الجديدة في lib/roles.ts
         const staff = enrichedUsers.filter(u => STAFF_ROLES.includes(u.role));
         const customers = enrichedUsers.filter(u => CUSTOMER_ROLES.includes(u.role));
         return { staffUsers: staff, customerUsers: customers };
@@ -75,15 +74,10 @@ const AdminUsersPage: React.FC = () => {
     };
 
     const handleDelete = (userId: string, name: string) => {
-        if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟ سيتم حذف كافة بياناته المرتبطة.`)) {
+        if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟ سيتم حذف كافة بياناته المرتبطة ولن يتمكن من الدخول ثانية.`)) {
             bulkDeleteUsers.mutate({ userIds: [userId] });
         }
     };
-
-    const addOptions = [
-        { label: 'إضافة عميل/طالب جديد', action: () => navigate('/admin/users/new?type=customer'), icon: <User size={16} /> },
-        { label: 'إضافة موظف/مدرب جديد', action: () => navigate('/admin/users/new?type=staff'), icon: <Shield size={16} /> },
-    ];
 
     if (error) return <ErrorState message={(error as Error).message} onRetry={() => { refetchUsers(); refetchChildren(); }} />;
 
@@ -98,11 +92,8 @@ const AdminUsersPage: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h1 className="text-3xl font-extrabold text-foreground">إدارة المستخدمين</h1>
                 <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => { refetchUsers(); refetchChildren(); }} variant="ghost" icon={<RefreshCw className={isRefetching ? 'animate-spin' : ''} size={16}/>}>تحديث</Button>
-                    <Dropdown 
-                        trigger={<span className="flex items-center gap-2"><Plus size={18} /> إضافة مستخدم</span>}
-                        items={addOptions}
-                    />
+                    <Button onClick={() => { refetchUsers(); refetchChildren(); }} variant="ghost" icon={<RefreshCw className={isRefetching ? 'animate-spin' : ''} size={16}/>}>تحديث البيانات</Button>
+                    <Button onClick={() => navigate('/admin/users/new?type=customer')} icon={<Plus size={18} />}>إضافة مستخدم</Button>
                 </div>
             </div>
 
@@ -136,9 +127,7 @@ const AdminUsersPage: React.FC = () => {
                                                 <SortableTableHead sortKey="name" label="الاسم" sortConfig={sortConfig} onSort={handleSort} />
                                                 <SortableTableHead sortKey="email" label="البريد" sortConfig={sortConfig} onSort={handleSort} />
                                                 <SortableTableHead sortKey="role" label="الدور / الرتبة" sortConfig={sortConfig} onSort={handleSort} />
-                                                {activeTab === 'customers' && (
-                                                    <TableHead className="text-center">الأطفال (طلاب/كل)</TableHead>
-                                                )}
+                                                <TableHead className="text-center">الحالة / الربط</TableHead>
                                                 <TableHead>إجراءات</TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -149,8 +138,8 @@ const AdminUsersPage: React.FC = () => {
                                                         <TableCell className="font-medium">
                                                             <div>{user.name}</div>
                                                             {user.parentName && (
-                                                                <div className="flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-blue-100">
-                                                                    <ArrowRight size={10} />
+                                                                <div className="flex items-center gap-1 text-[9px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-blue-100">
+                                                                    <LinkIcon size={10} />
                                                                     <span>تابع لـ: {user.parentName}</span>
                                                                 </div>
                                                             )}
@@ -163,36 +152,26 @@ const AdminUsersPage: React.FC = () => {
                                                                 user.role === 'instructor' ? 'bg-orange-100 text-orange-800' :
                                                                 user.role === 'user' ? 'bg-gray-100 text-gray-800' : 'bg-purple-100 text-purple-800'
                                                             }`}>
-                                                                {user.role === 'student' ? <GraduationCap size={10}/> : 
-                                                                 user.role === 'parent' ? <Heart size={10}/> :
-                                                                 user.role === 'instructor' ? <UserCheck size={10}/> :
-                                                                 user.role === 'user' ? <User size={10}/> : <Shield size={10}/>}
                                                                 {roleNames[user.role]}
                                                             </span>
                                                         </TableCell>
-                                                        {activeTab === 'customers' && (
-                                                            <TableCell className="text-center">
-                                                                <div className="flex flex-col items-center">
-                                                                    <span className={`font-bold ${user.activeStudentsCount > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
-                                                                        {user.activeStudentsCount} طالب
-                                                                    </span>
-                                                                    <span className="text-[10px] text-muted-foreground">
-                                                                        من أصل {user.totalChildrenCount} ملف
-                                                                    </span>
-                                                                </div>
-                                                            </TableCell>
-                                                        )}
+                                                        <TableCell className="text-center">
+                                                            {user.role === 'student' ? (
+                                                                <span className="text-[10px] text-muted-foreground italic">حساب دخول طالب</span>
+                                                            ) : (
+                                                                <span className="text-[10px] font-bold text-gray-400">{user.totalChildrenCount} ملفات أطفال</span>
+                                                            )}
+                                                        </TableCell>
                                                         <TableCell>
                                                             <div className="flex items-center gap-1">
-                                                                <Button variant="ghost" size="icon" onClick={() => { setSelectedUserForLink(user); setLinkModalOpen(true); }} className={user.role !== 'student' && user.role !== 'user' ? 'hidden' : 'text-blue-500'} title="ربط بحساب طفل"><LinkIcon size={18} /></Button>
-                                                                <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}${activeTab === 'staff' ? '?type=staff' : '?type=customer'}`)} title="تعديل"><Edit size={18} /></Button>
+                                                                <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}`)} title="تعديل"><Edit size={18} /></Button>
                                                                 <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(user.id, user.name)} title="حذف"><Trash2 size={18} /></Button>
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>
                                                 ))
                                             ) : (
-                                                <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">لا توجد بيانات لهذه الفئة حالياً.</TableCell></TableRow>
+                                                <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">لا توجد بيانات تطابق بحثك.</TableCell></TableRow>
                                             )}
                                         </TableBody>
                                     </Table>

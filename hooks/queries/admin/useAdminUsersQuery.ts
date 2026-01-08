@@ -11,19 +11,19 @@ export interface UserWithParent extends UserProfileWithRelations {
 }
 
 export const transformUsersWithRelations = (users: UserProfile[], children: ChildProfile[]): UserWithParent[] => {
-    // خريطة لتحديد هوية ولي الأمر لكل حساب طالب
+    // خريطة لتحديد هوية ولي الأمر لكل حساب دخول طالب
     const studentIdToParentInfoMap = new Map<string, { name: string, email: string }>();
     const parentIdToChildrenMap = new Map<string, ChildProfile[]>();
 
     // 1. بناء هيكل العلاقات
     children.forEach(child => {
-        // تجميع الأطفال تحت مظلة ولي الأمر
+        // تجميع الأطفال تحت مظلة ولي الأمر (المنشئ)
         if (!parentIdToChildrenMap.has(child.user_id)) {
             parentIdToChildrenMap.set(child.user_id, []);
         }
         parentIdToChildrenMap.get(child.user_id)!.push(child);
 
-        // إذا كان هذا الطفل يملك حساب دخول (Student Login)، نربط حساب الدخول ببيانات ولي الأمر
+        // إذا كان هذا الطفل يملك حساب دخول (Student Login)، نربط حساب الدخول ببيانات ولي الأمر للتحقق
         if (child.student_user_id) {
             const parent = users.find(u => u.id === child.user_id);
             if (parent) {
@@ -35,14 +35,14 @@ export const transformUsersWithRelations = (users: UserProfile[], children: Chil
         }
     });
 
-    // 2. معالجة كل مستخدم وإضافة بيانات الربط
+    // 2. معالجة كل مستخدم وإضافة بيانات الربط التوضيحية
     return users.map(user => {
         const userChildren = parentIdToChildrenMap.get(user.id) || [];
         const parentInfo = studentIdToParentInfoMap.get(user.id);
         
         let displayRole: UserRole = user.role;
         
-        // تصحيح الرتبة تلقائياً في العرض بناءً على الواقع العملي
+        // تصحيح الرتبة تلقائياً في العرض بناءً على وجود أطفال
         if (['user', 'parent'].includes(user.role)) {
             displayRole = userChildren.length > 0 ? 'parent' : 'user';
         }
