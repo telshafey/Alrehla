@@ -29,8 +29,9 @@ export const settingsService = {
             .select('value')
             .eq('key', 'branding')
             .single();
-            
-        const currentVal = current?.value || mockSiteBranding;
+        
+        // Safe access with optional chaining and casting
+        const currentVal = (current as any)?.value || mockSiteBranding;
         const updatedValue = { ...currentVal, ...newBranding };
 
         // 2. Save to DB

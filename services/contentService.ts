@@ -14,11 +14,12 @@ export const contentService = {
             .eq('key', 'global_content')
             .single();
         
-        if (error || !data) {
+        // Use casting to bypass strict type check for data object access
+        if (error || !data || !(data as any).value) {
             console.warn("Could not fetch site content from DB, falling back to mock:", error?.message);
             return mockSiteContent;
         }
-        return data.value as SiteContent;
+        return (data as any).value as SiteContent;
     },
 
     async updateSiteContent(newContent: SiteContent) {

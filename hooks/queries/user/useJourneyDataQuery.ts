@@ -22,12 +22,14 @@ export const useStudentDashboardData = () => {
             const childId = childProfile.id;
 
             // 2. جلب اسم ولي الأمر الحقيقي
-            const { data: parentProfile } = await supabase
+            const { data: parentData } = await supabase
                 .from('profiles')
                 .select('name')
                 .eq('id', childProfile.user_id)
                 .single();
             
+            // Cast to any to avoid strict null checks if type definition is too strict
+            const parentProfile = parentData as any;
             const parentName = parentProfile?.name || 'ولي أمر';
 
             // 3. جلب البيانات المرتبطة من الجداول الحقيقية فقط

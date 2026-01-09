@@ -151,8 +151,10 @@ export const bookingService = {
                 startDate.setDate(startDate.getDate() + 7); 
             }
 
-            const { data: pkg } = await supabase.from('creative_writing_packages').select('sessions').eq('name', booking.package_name).single();
-            const sessionCount = parseSessionCount(pkg?.sessions);
+            const { data: pkgData } = await supabase.from('creative_writing_packages').select('sessions').eq('name', booking.package_name).single();
+            // Cast to any to safely access potentially null result if query fails or returns empty
+            const pkg = pkgData as any;
+            const sessionCount = pkg ? parseSessionCount(pkg.sessions) : 1;
             
             const sessionsToInsert = [];
             for (let i = 0; i < sessionCount; i++) {

@@ -14,7 +14,11 @@ import { bookingService } from '../../../services/bookingService';
 // Helper to fetch single setting
 const fetchSetting = async (key: string, fallback: any) => {
     const { data } = await supabase.from('site_settings').select('value').eq('key', key).single();
-    return data?.value || fallback;
+    // Explicit check for data before accessing value
+    if (data && data.value) {
+        return data.value;
+    }
+    return fallback;
 };
 
 export const useAdminCWSettings = () => useQuery({

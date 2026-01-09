@@ -26,7 +26,8 @@ export const reportingService = {
             let userName = 'System';
             if (user) {
                 const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
-                userName = profile?.name || user.email || 'Admin';
+                // Check if profile exists before accessing name property
+                userName = (profile as any)?.name || user.email || 'Admin';
             }
 
             const logEntry = {
@@ -166,7 +167,9 @@ export const reportingService = {
         const { data, error } = await query.order('timestamp', { ascending: false });
         if (error) return { logs: [], actionTypes: [] };
 
-        const types = Array.from(new Set((data || []).map(l => l.action)));
-        return { logs: data || [], actionTypes: types };
+        // Force cast data to any[] to avoid strict type checking on 'action' property access
+        const safeData = data as any[];
+        const types = Array.from(new Set(safeData.map(l => l.action)));
+        return { logs: safeData || [], actionTypes: types };
     }
 };

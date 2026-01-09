@@ -18,7 +18,7 @@ export const useInstructorMutations = () => {
                 .in('role', ['super_admin', 'general_supervisor', 'creative_writing_supervisor']);
 
             if (admins && admins.length > 0) {
-                const notifications = admins.map(admin => ({
+                const notifications = admins.map((admin: any) => ({
                     user_id: admin.id,
                     message,
                     link,
@@ -74,16 +74,19 @@ export const useInstructorMutations = () => {
 
     const approveInstructorSchedule = useMutation({
         mutationFn: async ({ instructorId }: { instructorId: number }) => {
-            const { data: instructor, error: fetchError } = await supabase
+            const { data: instructorData, error: fetchError } = await supabase
                 .from('instructors')
                 .select('pending_profile_data')
                 .eq('id', instructorId)
                 .single();
             
             if (fetchError) throw fetchError;
-            if (!instructor) throw new Error("Instructor not found");
+            if (!instructorData) throw new Error("Instructor not found");
 
+            // Explicitly cast to any to avoid 'never' type error on property access
+            const instructor = instructorData as any;
             const pendingSchedule = instructor.pending_profile_data?.proposed_schedule;
+            
             if (!pendingSchedule) throw new Error("لا يوجد جدول مقترح.");
 
             const { error: updateError } = await (supabase.from('instructors') as any)
@@ -121,14 +124,17 @@ export const useInstructorMutations = () => {
     // تحديث دالة الاعتماد لتقبل بيانات معدلة من قبل المدير (modifiedUpdates)
     const approveInstructorProfileUpdate = useMutation({
         mutationFn: async ({ instructorId, modifiedUpdates }: { instructorId: number, modifiedUpdates?: any }) => {
-             const { data: instructor, error: fetchError } = await supabase
+             const { data: instructorData, error: fetchError } = await supabase
                 .from('instructors')
                 .select('*')
                 .eq('id', instructorId)
                 .single();
             
             if (fetchError) throw fetchError;
-            if (!instructor) throw new Error("Instructor not found");
+            if (!instructorData) throw new Error("Instructor not found");
+
+             // Explicitly cast to any to avoid 'never' type error on property access
+            const instructor = instructorData as any;
 
             // نستخدم البيانات المعدلة من المدير إذا وجدت، وإلا نستخدم بيانات الطلب الأصلي
             const finalUpdates = modifiedUpdates || instructor.pending_profile_data?.updates;
@@ -169,6 +175,9 @@ export const useInstructorMutations = () => {
         mutationFn: async (payload: { instructorId: number, updates: any, justification: string }) => {
             const { data: instructor } = await supabase.from('instructors').select('name').eq('id', payload.instructorId).single();
             
+            // Cast instructor to any to avoid null check error if needed, though optional chaining handles it
+            const instructorName = (instructor as any)?.name || '';
+
             const { error } = await (supabase.from('instructors') as any)
                 .update({
                     profile_update_status: 'pending',
@@ -183,7 +192,7 @@ export const useInstructorMutations = () => {
             if (error) throw error;
             
             await notifyAdmins(
-                `قام المدرب ${instructor?.name || ''} بطلب تحديث بياناته وأسعاره.`,
+                `قام المدرب ${instructorName} بطلب تحديث بياناته وأسعاره.`,
                 `/admin/instructors/${payload.instructorId}`
             );
 
@@ -198,14 +207,17 @@ export const useInstructorMutations = () => {
 
     const requestScheduleChange = useMutation({
         mutationFn: async ({ instructorId, schedule }: { instructorId: number, schedule: WeeklySchedule }) => {
-            const { data: instructor } = await supabase.from('instructors').select('name').eq('id', instructorId).single();
-            const { data: current } = await supabase.from('instructors').select('pending_profile_data').eq('id', instructorId).single();
+            const { data: instructorData } = await supabase.from('instructors').select('name').eq('id', instructorId).single();
+            const { data: currentData } = await supabase.from('instructors').select('pending_profile_data').eq('id', instructorId).single();
             
+            const instructorName = (instructorData as any)?.name || '';
+            const currentPending = (currentData as any)?.pending_profile_data || {};
+
             const { error } = await (supabase.from('instructors') as any)
                 .update({
                     schedule_status: 'pending',
                     pending_profile_data: {
-                        ...(current?.pending_profile_data || {}),
+                        ...currentPending,
                         proposed_schedule: schedule,
                         schedule_requested_at: new Date().toISOString()
                     }
@@ -215,7 +227,7 @@ export const useInstructorMutations = () => {
             if (error) throw error;
 
             await notifyAdmins(
-                `قام المدرب ${instructor?.name || ''} بطلب تعديل جدوله الأسبوعي.`,
+                `قام المدرب ${instructorName} بطلب تعديل جدوله الأسبوعي.`,
                 `/admin/instructors/${instructorId}`
             );
 
