@@ -21,7 +21,7 @@ export const communicationService = {
     },
 
     async createSupportTicket(payload: { name: string, email: string, subject: string, message: string }) {
-        const { error } = await supabase.from('support_tickets').insert([{
+        const { error } = await (supabase.from('support_tickets') as any).insert([{
             ...payload,
             status: 'جديدة',
             created_at: new Date().toISOString()
@@ -45,7 +45,7 @@ export const communicationService = {
     },
 
     async createJoinRequest(payload: { name: string, email: string, phone: string, role: string, message: string, portfolio_url?: string }) {
-        const { error } = await supabase.from('join_requests').insert([{
+        const { error } = await (supabase.from('join_requests') as any).insert([{
             ...payload,
             status: 'جديد',
             created_at: new Date().toISOString()

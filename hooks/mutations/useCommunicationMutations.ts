@@ -32,7 +32,7 @@ export const useCommunicationMutations = () => {
 
     const updateSupportTicketStatus = useMutation({
         mutationFn: async ({ ticketId, newStatus }: { ticketId: string, newStatus: TicketStatus }) => {
-            const { error } = await import('../../lib/supabaseClient').then(m => m.supabase.from('support_tickets').update({ status: newStatus }).eq('id', ticketId));
+            const { error } = await import('../../lib/supabaseClient').then(m => (m.supabase.from('support_tickets') as any).update({ status: newStatus }).eq('id', ticketId));
             if (error) throw error;
             return { success: true };
         },
@@ -45,7 +45,7 @@ export const useCommunicationMutations = () => {
 
     const updateJoinRequestStatus = useMutation({
         mutationFn: async ({ requestId, newStatus }: { requestId: string, newStatus: RequestStatus }) => {
-             const { error } = await import('../../lib/supabaseClient').then(m => m.supabase.from('join_requests').update({ status: newStatus }).eq('id', requestId));
+             const { error } = await import('../../lib/supabaseClient').then(m => (m.supabase.from('join_requests') as any).update({ status: newStatus }).eq('id', requestId));
             if (error) throw error;
             return { success: true };
         },
