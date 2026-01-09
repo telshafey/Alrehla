@@ -13,7 +13,7 @@ export default defineConfig({
         output: {
             manualChunks: {
                 'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-                'vendor-ui': ['lucide-react', 'framer-motion'], 
+                'vendor-ui': ['lucide-react'], 
                 'vendor-utils': ['@tanstack/react-query', 'zod', 'react-hook-form', 'uuid'],
                 'vendor-supabase': ['@supabase/supabase-js']
             }
