@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Layout } from 'lucide-react';
+import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Layout, Database, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
 import { useAdminSocialLinks, useAdminPricingSettings, useAdminCommunicationSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
@@ -14,6 +14,8 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../..
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 import PermissionsManager from '../../components/admin/PermissionsManager';
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
+import { settingsService } from '../../services/settingsService';
+import { useToast } from '../../contexts/ToastContext';
 
 const AdminSettingsPage: React.FC = () => {
     const { siteBranding: initialBranding, setSiteBranding, loading: brandingLoading } = useProduct();
@@ -32,6 +34,8 @@ const AdminSettingsPage: React.FC = () => {
     const { updateSocialLinks, updateCommunicationSettings, updatePricingSettings } = useSettingsMutations();
     
     const [pricing, setPricing] = useState({ company_percentage: 1.2, fixed_fee: 50 });
+    const [isSeeding, setIsSeeding] = useState(false);
+    const { addToast } = useToast();
 
     useEffect(() => {
         if (initialBranding) setBranding(initialBranding);
@@ -66,30 +70,66 @@ const AdminSettingsPage: React.FC = () => {
         await updatePricingSettings.mutateAsync(pricing);
     };
 
+    const handleSeedDatabase = async () => {
+        if (!window.confirm("تحذير: هذا الإجراء سيقوم بإعادة تعيين كافة نصوص الموقع وإعداداته إلى القيم الافتراضية (البيانات الوهمية). هل أنت متأكد؟")) return;
+        
+        setIsSeeding(true);
+        try {
+            await settingsService.initializeDefaults();
+            addToast('تمت استعادة البيانات الافتراضية بنجاح.', 'success');
+            setTimeout(() => window.location.reload(), 1500); // Reload to reflect changes
+        } catch (error: any) {
+            addToast(`فشل العملية: ${error.message}`, 'error');
+        } finally {
+            setIsSeeding(false);
+        }
+    };
+
     const isLoading = brandingLoading || socialsLoading || pricingLoading || commsLoading || contentLoading;
     if (isLoading) return <PageLoader />;
 
     return (
-        <div className="animate-fadeIn space-y-8">
+        <div className="animate-fadeIn space-y-8 pb-20">
             <h1 className="text-3xl font-extrabold text-foreground">الإعدادات العامة</h1>
             
-            <Tabs defaultValue="pricing">
-                <TabsList>
+            <Tabs defaultValue="branding">
+                <TabsList className="mb-8 flex-wrap h-auto">
                     <TabsTrigger value="branding"><ImageIcon className="ml-2 w-4 h-4" /> هوية الموقع</TabsTrigger>
                     <TabsTrigger value="communication"><Mail className="ml-2 w-4 h-4" /> التواصل</TabsTrigger>
-                    <TabsTrigger value="pricing"><DollarSign className="ml-2 w-4 h-4" /> إعدادات الماليات</TabsTrigger>
+                    <TabsTrigger value="pricing"><DollarSign className="ml-2 w-4 h-4" /> الماليات</TabsTrigger>
                     <TabsTrigger value="permissions"><Shield className="ml-2 w-4 h-4" /> الصلاحيات</TabsTrigger>
+                    <TabsTrigger value="data"><Database className="ml-2 w-4 h-4" /> البيانات</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="branding" className="space-y-6">
                     <Card>
-                        <CardHeader><CardTitle>الشعار والصور</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>الشعار والصورة الرئيسية</CardTitle></CardHeader>
                         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <ImageUploadField label="شعار المنصة" fieldKey="logoUrl" currentUrl={branding.logoUrl} onUrlChange={handleBrandingChange} />
-                            <ImageUploadField label="صورة الهيرو الرئيسية" fieldKey="heroImageUrl" currentUrl={branding.heroImageUrl} onUrlChange={handleBrandingChange} />
+                            <ImageUploadField label="شعار المنصة (Logo)" fieldKey="logoUrl" currentUrl={branding.logoUrl} onUrlChange={handleBrandingChange} />
+                            <ImageUploadField label="صورة الهيرو (الصفحة الرئيسية)" fieldKey="heroImageUrl" currentUrl={branding.heroImageUrl} onUrlChange={handleBrandingChange} />
                         </CardContent>
                     </Card>
-                    <div className="flex justify-end"><Button onClick={handleImagesSubmit} icon={<Save />}>حفظ الهوية</Button></div>
+
+                    <Card>
+                        <CardHeader><CardTitle>صور بطاقات الأقسام (الصفحة الرئيسية)</CardTitle></CardHeader>
+                        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <ImageUploadField label="بطاقة إنها لك" fieldKey="enhaLakPortalImageUrl" currentUrl={branding.enhaLakPortalImageUrl} onUrlChange={handleBrandingChange} />
+                            <ImageUploadField label="بطاقة بداية الرحلة" fieldKey="creativeWritingPortalImageUrl" currentUrl={branding.creativeWritingPortalImageUrl} onUrlChange={handleBrandingChange} />
+                            <ImageUploadField label="بطاقة من نحن" fieldKey="aboutPortalImageUrl" currentUrl={branding.aboutPortalImageUrl} onUrlChange={handleBrandingChange} />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader><CardTitle>صور الصفحات الداخلية</CardTitle></CardHeader>
+                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <ImageUploadField label="هيرو صفحة من نحن" fieldKey="aboutHeroImageUrl" currentUrl={branding.aboutHeroImageUrl} onUrlChange={handleBrandingChange} />
+                            <ImageUploadField label="صورة صفحة انضم إلينا" fieldKey="joinUsImageUrl" currentUrl={branding.joinUsImageUrl} onUrlChange={handleBrandingChange} />
+                        </CardContent>
+                    </Card>
+
+                    <div className="flex justify-end sticky bottom-6 z-10">
+                        <Button onClick={handleImagesSubmit} icon={<Save />} className="shadow-lg" size="lg">حفظ الهوية البصرية</Button>
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="communication" className="space-y-6">
@@ -136,6 +176,31 @@ const AdminSettingsPage: React.FC = () => {
 
                 <TabsContent value="permissions">
                     <PermissionsManager />
+                </TabsContent>
+
+                <TabsContent value="data" className="space-y-6">
+                     <Card className="border-t-4 border-yellow-400">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-yellow-700">
+                                <Database /> التهيئة الأولية للمحتوى
+                            </CardTitle>
+                            <CardDescription>
+                                استخدم هذه الأداة لملء قاعدة البيانات بالبيانات الافتراضية (النصوص، الأسعار، الإعدادات) في حال كانت القاعدة فارغة أو أردت إعادة التعيين.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 flex items-start gap-3 text-sm text-yellow-800 mb-6">
+                                <AlertTriangle className="flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="font-bold">تنبيه هام:</p>
+                                    <p>هذا الإجراء سيقوم بحفظ البيانات الافتراضية في قاعدة البيانات (Supabase). إذا قمت بتعديل محتوى الموقع سابقاً، قد يتم استبداله بالقيم الافتراضية.</p>
+                                </div>
+                            </div>
+                            <Button onClick={handleSeedDatabase} loading={isSeeding} variant="outline" className="w-full sm:w-auto" icon={<RefreshCw />}>
+                                استعادة/تثبيت المحتوى الافتراضي
+                            </Button>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
         </div>

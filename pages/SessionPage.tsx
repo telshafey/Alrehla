@@ -6,7 +6,7 @@ import { useSessionDetails } from '../hooks/queries/user/useJourneyDataQuery';
 import { useAdminJitsiSettings } from '../hooks/queries/admin/useAdminSettingsQuery';
 import { 
     Loader2, ShieldAlert, Clock, CheckCircle, Headphones, 
-    Video, Wind, Sparkles, LogOut, Save, MessageSquare 
+    Video, Wind, Sparkles, LogOut, Save, MessageSquare, Calendar
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/Button';
@@ -15,6 +15,7 @@ import Modal from '../components/ui/Modal';
 import FormField from '../components/ui/FormField';
 import { bookingService } from '../services/bookingService';
 import { useToast } from '../contexts/ToastContext';
+import { formatTime, formatDate } from '../utils/helpers';
 
 declare global {
   interface Window {
@@ -58,7 +59,7 @@ const CountdownTimer: React.FC<{ targetDate: Date; onComplete: () => void }> = (
         `${timeLeft.seconds} ثانية`,
     ].filter(Boolean).join(' و ');
 
-    return <p className="text-xl sm:text-2xl font-bold text-primary">{timerComponents}</p>;
+    return <p className="text-xl sm:text-3xl font-black text-primary mt-2" dir="ltr">{timerComponents || "جاري الدخول..."}</p>;
 };
 
 const SessionPage: React.FC = () => {
@@ -80,20 +81,25 @@ const SessionPage: React.FC = () => {
     const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
     const [finishNotes, setFinishNotes] = useState('');
     const [isSubmittingFinish, setIsSubmittingFinish] = useState(false);
+    const [allowedWindow, setAllowedWindow] = useState(10);
 
-    const isInstructor = currentUser?.role === 'instructor';
+    const isInstructor = currentUser?.role === 'instructor' || currentUser?.role === 'super_admin' || currentUser?.role === 'creative_writing_supervisor';
     
     // Explicitly cast session to any to bypass strict type checking during build
     const sessionData = session as any;
 
     // 1. Load Jitsi Script
     useEffect(() => {
-        const script = document.createElement('script');
-        script.src = 'https://meet.jit.si/external_api.js';
-        script.async = true;
-        script.onload = () => setJitsiScriptLoaded(true);
-        document.head.appendChild(script);
-        return () => { if (document.head.contains(script)) { document.head.removeChild(script); } };
+        if (!document.getElementById('jitsi-script')) {
+            const script = document.createElement('script');
+            script.id = 'jitsi-script';
+            script.src = 'https://meet.jit.si/external_api.js';
+            script.async = true;
+            script.onload = () => setJitsiScriptLoaded(true);
+            document.head.appendChild(script);
+        } else {
+            setJitsiScriptLoaded(true);
+        }
     }, []);
 
     // 2. Validate Session & State
@@ -117,7 +123,13 @@ const SessionPage: React.FC = () => {
         }
 
         const startTime = new Date(sessionData.session_date);
-        const joinMinutesBefore = jitsiSettings?.join_minutes_before ?? 10;
+        
+        // تحديد نافذة الدخول: 
+        // المدربين والمشرفين: 30 دقيقة قبل الموعد للتجهيز
+        // الطلاب: 10 دقائق قبل الموعد (كما هو مطلوب)
+        const joinMinutesBefore = isInstructor ? 30 : 10;
+        setAllowedWindow(joinMinutesBefore);
+
         const calculatedJoinTime = new Date(startTime.getTime() - joinMinutesBefore * 60000);
         const now = new Date();
 
@@ -129,7 +141,7 @@ const SessionPage: React.FC = () => {
             setStatus('active');
         }
 
-    }, [authLoading, sessionLoading, settingsLoading, currentUser, sessionData, jitsiSettings, navigate]);
+    }, [authLoading, sessionLoading, settingsLoading, currentUser, sessionData, jitsiSettings, navigate, isInstructor]);
 
     // 3. Initialize Jitsi
     useEffect(() => {
@@ -139,12 +151,12 @@ const SessionPage: React.FC = () => {
 
         const initializeJitsi = async () => {
             try {
+                // Request permissions early to avoid Jitsi blocking
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 stream.getTracks().forEach(track => track.stop());
             } catch (err: any) {
-                setError("يرجى السماح بالوصول إلى الكاميرا والميكروفون للانضمام.");
-                setStatus('error');
-                return;
+                console.warn("Media permissions check:", err);
+                // We don't block here, let Jitsi handle the UI prompt
             }
 
             if (window.JitsiMeetExternalAPI && jitsiContainerRef.current) {
@@ -159,6 +171,7 @@ const SessionPage: React.FC = () => {
                             prejoinPageEnabled: false,
                             startWithAudioMuted: jitsiSettings.start_with_audio_muted,
                             startWithVideoMuted: jitsiSettings.start_with_video_muted,
+                            disableDeepLinking: true, 
                         },
                         interfaceConfigOverwrite: {
                             SHOW_JITSI_WATERMARK: false,
@@ -166,7 +179,7 @@ const SessionPage: React.FC = () => {
                             TOOLBAR_BUTTONS: [
                                 'microphone', 'camera', 'desktop', 'fullscreen', 
                                 'fodeviceselection', 'hangup', 'profile', 'chat', 
-                                'settings', 'tileview'
+                                'settings', 'tileview', 'raisehand'
                             ],
                         },
                     };
@@ -181,7 +194,7 @@ const SessionPage: React.FC = () => {
                     });
 
                 } catch (e) {
-                    setError("فشل تحميل مكون الفيديو.");
+                    setError("فشل تحميل مكون الفيديو. يرجى تحديث الصفحة.");
                     setStatus('error');
                 }
             }
@@ -207,11 +220,10 @@ const SessionPage: React.FC = () => {
             });
             addToast('تم إنهاء الجلسة بنجاح وتوثيقها.', 'success');
             
-            // Check for booking_id existence to avoid TS error
             if (sessionData.booking_id) {
                 navigate(`/journey/${sessionData.booking_id}`);
             } else {
-                 navigate('/admin'); // Fallback route
+                 navigate('/admin'); 
             }
         } catch (e) {
             addToast('حدث خطأ أثناء إنهاء الجلسة.', 'error');
@@ -222,25 +234,52 @@ const SessionPage: React.FC = () => {
 
     const renderContent = () => {
         if (status === 'loading') return (
-            <div className="flex flex-col justify-center items-center h-full">
-                <Loader2 className="animate-spin h-12 w-12 text-white" />
-                <p className="mt-4 text-gray-300">جاري تجهيز الغرفة...</p>
+            <div className="flex flex-col justify-center items-center h-full bg-slate-900">
+                <Loader2 className="animate-spin h-12 w-12 text-blue-500" />
+                <p className="mt-4 text-gray-300 font-bold">جاري الاتصال بالقاعة...</p>
             </div>
         );
 
         if (status === 'waiting') return (
             <div className="flex flex-col justify-center items-center h-full text-white text-center p-4 bg-slate-900">
-                <Card className="max-w-lg w-full">
+                <Card className="max-w-lg w-full bg-white/10 border-white/20 backdrop-blur-md text-white">
                     <CardHeader>
-                        <Clock className="h-12 w-12 text-primary mx-auto mb-4" />
-                        <CardTitle className="text-2xl">الجلسة لم تبدأ بعد</CardTitle>
-                        <CardDescription>موعد البدء:</CardDescription>
+                        <Clock className="h-16 w-16 text-yellow-400 mx-auto mb-4 animate-pulse" />
+                        <CardTitle className="text-3xl font-bold">الجلسة لم تبدأ بعد</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {joinTime && <CountdownTimer targetDate={joinTime} onComplete={() => setStatus('active')} />}
-                        <div className="text-right border-t pt-4 space-y-2">
-                            <p className="text-xs font-bold text-muted-foreground flex items-center gap-2"><Wind size={14}/> تأكد من الهدوء حولك.</p>
-                            <p className="text-xs font-bold text-muted-foreground flex items-center gap-2"><Headphones size={14}/> استخدم سماعات الأذن لتركيز أفضل.</p>
+                        <div className="bg-black/30 p-4 rounded-xl border border-white/10">
+                            <p className="text-sm text-gray-300 mb-1">يبدأ الدخول خلال:</p>
+                            {joinTime && <CountdownTimer targetDate={joinTime} onComplete={() => setStatus('active')} />}
+                        </div>
+                        
+                        <div className="flex flex-col gap-2 text-sm text-gray-300">
+                             <div className="flex items-center justify-center gap-2">
+                                <Calendar size={16} className="text-blue-300"/>
+                                <span>موعد الجلسة: {formatDate(sessionData?.session_date)}</span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2">
+                                <Clock size={16} className="text-blue-300"/>
+                                <span>الساعة: {formatTime(sessionData?.session_date)}</span>
+                            </div>
+                            <p className="text-xs text-yellow-200/80 mt-2 font-semibold">
+                                {isInstructor 
+                                    ? `* بصفتك مدرباً، يمكنك الدخول قبل الموعد بـ ${allowedWindow} دقيقة للتجهيز.`
+                                    : `* يمكن للطالب الدخول قبل الموعد بـ ${allowedWindow} دقائق فقط.`
+                                }
+                            </p>
+                        </div>
+
+                        <div className="text-right border-t border-white/10 pt-4 space-y-3">
+                            <p className="text-xs font-bold text-gray-300 flex items-center gap-2"><Wind size={14} className="text-blue-400"/> تأكد من وجودك في مكان هادئ.</p>
+                            <p className="text-xs font-bold text-gray-300 flex items-center gap-2"><Headphones size={14} className="text-pink-400"/> استخدم سماعات الرأس لضمان جودة الصوت.</p>
+                            <p className="text-xs font-bold text-gray-300 flex items-center gap-2"><Video size={14} className="text-green-400"/> تأكد من عمل الكاميرا بشكل جيد.</p>
+                        </div>
+
+                        <div className="pt-4">
+                            <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10" onClick={() => navigate(-1)}>
+                                العودة للخلف
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
@@ -248,93 +287,101 @@ const SessionPage: React.FC = () => {
         );
 
         if (status === 'ended') return (
-            <div className="flex flex-col justify-center items-center h-full text-white text-center p-4 bg-slate-900">
-                <CheckCircle className="h-20 w-20 text-green-400 mb-6" />
-                <h2 className="text-3xl font-black mb-2">انتهت هذه الجلسة</h2>
-                <p className="max-w-md text-gray-400 mb-8">تم إغلاق القاعة وتوثيق الحضور. يمكنك العودة لمتابعة رحلتك التعليمية.</p>
-                <Button as={Link} to="/account">العودة لحسابي</Button>
+            <div className="flex flex-col justify-center items-center h-full bg-slate-900 p-4">
+                <Card className="max-w-md w-full text-center">
+                    <CardHeader>
+                        <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                        <CardTitle>انتهت الجلسة</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground mb-6">شكراً لحضورك. نتمنى أن تكون الجلسة مفيدة وممتعة.</p>
+                        <div className="flex flex-col gap-3">
+                            <Button as={Link} to="/account" variant="default">العودة للوحة التحكم</Button>
+                            {sessionData?.booking_id && (
+                                <Button as={Link} to={`/journey/${sessionData.booking_id}`} variant="outline">الذهاب لصفحة الرحلة</Button>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         );
 
         if (status === 'error') return (
-             <div className="flex flex-col justify-center items-center h-full text-white text-center p-4">
-                <ShieldAlert className="h-16 w-16 text-red-400 mb-4" />
-                <h2 className="text-xl font-bold mb-2">تعذر الدخول</h2>
-                <p className="max-w-md text-gray-400 mb-6">{error}</p>
-                <Button onClick={() => window.location.reload()}>تحديث الصفحة</Button>
+            <div className="flex flex-col justify-center items-center h-full bg-slate-900 p-4">
+                <Card className="max-w-md w-full text-center border-red-200 bg-red-50">
+                    <CardHeader>
+                        <ShieldAlert className="h-16 w-16 text-red-500 mx-auto mb-4" />
+                        <CardTitle className="text-red-700">خطأ في الاتصال</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-red-600 mb-6">{error || 'حدث خطأ غير متوقع.'}</p>
+                        <Button onClick={() => window.location.reload()} variant="outline" className="border-red-200 text-red-700 hover:bg-red-100">
+                            إعادة المحاولة
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
 
-        return null;
+        return (
+            <div className="relative w-full h-full bg-slate-900">
+                <div ref={jitsiContainerRef} className="w-full h-full" />
+                
+                {/* Floating Controls for Instructor */}
+                {isInstructor && (
+                    <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
+                         <div className="bg-black/50 backdrop-blur text-white p-2 rounded-lg text-xs mb-2 border border-white/10">
+                            <p className="font-bold flex items-center gap-2"><Sparkles size={12} className="text-yellow-400"/> وضع المدرب</p>
+                        </div>
+                        <Button 
+                            onClick={() => setIsFinishModalOpen(true)} 
+                            variant="destructive" 
+                            size="sm" 
+                            className="shadow-lg font-bold border-2 border-red-400/50"
+                            icon={<LogOut size={16}/>}
+                        >
+                            إنهاء الجلسة
+                        </Button>
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
-        <div className="w-full h-screen bg-black flex flex-col overflow-hidden">
-            {/* Instructor Controls Header */}
-            {status === 'active' && isInstructor && (
-                <div className="bg-gray-900 border-b border-gray-800 p-3 flex justify-between items-center z-50">
-                    <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full bg-green-500 animate-pulse flex items-center justify-center">
-                            <Video size={16} className="text-white" />
-                         </div>
-                         <span className="text-white font-bold text-sm">الجلسة جارية الآن</span>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button 
-                            variant="destructive" 
-                            size="sm" 
-                            icon={<LogOut size={16}/>}
-                            onClick={() => setIsFinishModalOpen(true)}
-                        >
-                            إنهاء الجلسة رسمياً
-                        </Button>
-                    </div>
-                </div>
-            )}
-
-            <div className="flex-1 relative">
-                {renderContent()}
-                <div ref={jitsiContainerRef} className={`w-full h-full ${status === 'active' ? 'block' : 'hidden'}`} />
-            </div>
-
-            {/* Finish Session Modal */}
-            <Modal
+        <div className="fixed inset-0 z-[100] bg-background">
+             {/* Instructor Finish Modal */}
+             <Modal
                 isOpen={isFinishModalOpen}
                 onClose={() => setIsFinishModalOpen(false)}
-                title="إنهاء وتوثيق الجلسة"
+                title="إنهاء الجلسة وتوثيقها"
                 footer={
                     <>
-                        <Button variant="ghost" onClick={() => setIsFinishModalOpen(false)}>تراجع</Button>
-                        <Button 
-                            variant="success" 
-                            onClick={handleFinishSession} 
-                            loading={isSubmittingFinish}
-                            icon={<Save />}
-                        >
-                            تأكيد الإنهاء والحفظ
-                        </Button>
+                        <Button variant="ghost" onClick={() => setIsFinishModalOpen(false)}>إلغاء</Button>
+                        <Button onClick={handleFinishSession} loading={isSubmittingFinish} icon={<Save />}>تأكيد وحفظ</Button>
                     </>
                 }
             >
                 <div className="space-y-4">
-                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start gap-3">
-                        <MessageSquare className="text-blue-600 shrink-0 mt-1" />
-                        <p className="text-sm text-blue-800">
-                            عند تأكيد الإنهاء، سيتم إغلاق القاعة لجميع المشاركين وتحديث حالة الجلسة إلى "مكتملة" في سجل الطالب.
+                    <div className="bg-yellow-50 p-3 rounded-lg flex items-start gap-3 border border-yellow-200">
+                        <MessageSquare className="text-yellow-600 shrink-0 mt-1" size={18}/>
+                        <p className="text-sm text-yellow-800">
+                            ملاحظاتك هنا ستظهر لولي الأمر في تقرير الجلسة. يرجى كتابة ملخص سريع لما تم إنجازه.
                         </p>
                     </div>
-                    {/* Fixed FormField usage with missing import resolved */}
-                    <FormField label="ملخص سريع للجلسة (اختياري)" htmlFor="finish-notes">
+                    <FormField label="ملاحظات الجلسة" htmlFor="finishNotes">
                         <Textarea 
-                            id="finish-notes" 
+                            id="finishNotes" 
                             value={finishNotes} 
                             onChange={e => setFinishNotes(e.target.value)} 
                             rows={4} 
-                            placeholder="ما الذي تم إنجازه اليوم؟ هل هناك ملاحظات للطالب أو الإدارة؟"
+                            placeholder="مثال: تم شرح أساسيات بناء الشخصية، وتفاعل الطالب كان ممتازاً..."
                         />
                     </FormField>
                 </div>
             </Modal>
+
+            {renderContent()}
         </div>
     );
 };

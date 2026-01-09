@@ -20,21 +20,39 @@ import type {
     ShippingCosts
 } from '../lib/database.types';
 
+// Helper to fetch single setting safely with Auto-Seed capability
+const fetchSetting = async (key: string, seedValue: any) => {
+    const { data, error } = await supabase.from('site_settings').select('value').eq('key', key).maybeSingle();
+    
+    // Auto-Seed logic
+    if (error || !data || (data as any).value === undefined || (data as any).value === null) {
+        console.warn(`Setting '${key}' missing in DB. Auto-seeding...`);
+        const { data: seedData, error: seedError } = await supabase
+            .from('site_settings')
+            .upsert({ 
+                key: key, 
+                value: seedValue,
+                updated_at: new Date().toISOString()
+            } as any)
+            .select('value')
+            .single();
+
+        if (seedError) {
+             console.error(`Failed to seed ${key}:`, seedError);
+             return seedValue; // Fallback only on critical failure
+        }
+        return (seedData as any).value;
+    }
+    
+    return (data as any).value;
+};
+
 export const settingsService = {
     // --- Branding ---
     async updateBranding(newBranding: Partial<SiteBranding>) {
-        // 1. Get current branding to merge
-        const { data: current } = await supabase
-            .from('site_settings')
-            .select('value')
-            .eq('key', 'branding')
-            .single();
-        
-        // Safe access with optional chaining and casting
-        const currentVal = (current as any)?.value || mockSiteBranding;
+        const currentVal = await fetchSetting('branding', mockSiteBranding);
         const updatedValue = { ...currentVal, ...newBranding };
 
-        // 2. Save to DB
         const { error } = await supabase
             .from('site_settings')
             .upsert({ 
@@ -121,7 +139,7 @@ export const settingsService = {
         return { success: true };
     },
 
-    // --- Database Initialization ---
+    // --- Database Initialization (Can be called manually too) ---
     async initializeDefaults() {
         const defaults = [
             { key: 'branding', value: mockSiteBranding },
@@ -146,7 +164,7 @@ export const settingsService = {
         const errors = results.filter(r => r.error);
         
         if (errors.length > 0) {
-            throw new Error(`Fails to seed ${errors.length} settings. Ensure table 'site_settings' exists.`);
+            throw new Error(`Fails to seed ${errors.length} settings.`);
         }
         
         return { success: true };

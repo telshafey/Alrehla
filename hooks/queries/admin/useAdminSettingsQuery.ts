@@ -11,22 +11,21 @@ import {
 } from '../../../data/mockData';
 import { bookingService } from '../../../services/bookingService';
 
-// Helper to fetch single setting safely
-const fetchSetting = async (key: string, fallback: any) => {
+// Helper to fetch single setting safely with Auto-Seed logic embedded in the query
+const fetchSetting = async (key: string, seedValue: any) => {
     const { data, error } = await supabase.from('site_settings').select('value').eq('key', key).maybeSingle();
     
-    if (error) {
-        console.warn(`Error fetching setting ${key}:`, error.message);
-        return fallback;
+    if (error || !data || (data as any).value === undefined || (data as any).value === null) {
+        // Trigger auto-seed
+        await supabase.from('site_settings').upsert({
+             key: key,
+             value: seedValue,
+             updated_at: new Date().toISOString()
+        } as any);
+        return seedValue;
     }
     
-    // Cast to any to avoid TS inference issues where data might be considered 'never'
-    const record = data as any;
-    
-    if (record && record.value !== undefined && record.value !== null) {
-        return record.value;
-    }
-    return fallback;
+    return (data as any).value;
 };
 
 export const useAdminCWSettings = () => useQuery({

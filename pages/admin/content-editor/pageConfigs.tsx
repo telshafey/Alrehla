@@ -8,7 +8,8 @@ import {
     Settings as SettingsIcon, 
     Globe as GlobeIcon, 
     Phone as PhoneIcon,
-    FileText
+    FileText,
+    HelpCircle
 } from 'lucide-react';
 
 export type FieldType = 'input' | 'textarea' | 'image' | 'array' | 'object_array';
@@ -259,6 +260,40 @@ export const pageConfigs: PageConfig[] = [
                     { key: 'creativeWritingPage.about.mainTitle', label: 'العنوان الداخلي', type: 'input' },
                     { key: 'creativeWritingPage.about.mainContent', label: 'المحتوى التفصيلي', type: 'textarea', rows: 6 },
                     { key: 'creativeWritingPage.about.heroImageUrl', label: 'صورة عرض الفلسفة', type: 'image' }
+                ]
+            }
+        ]
+    },
+    {
+        key: 'supportPage',
+        title: 'صفحة الدعم والمساعدة',
+        description: 'الأسئلة الشائعة وعناوين الصفحة.',
+        icon: <HelpCircle />,
+        sections: [
+            {
+                key: 'hero',
+                title: 'القسم الافتتاحي (Hero)',
+                fields: [
+                    { key: 'supportPage.heroTitle', label: 'العنوان الرئيسي', type: 'input' },
+                    { key: 'supportPage.heroSubtitle', label: 'النص التعريفي', type: 'textarea', rows: 2 },
+                ]
+            },
+            {
+                key: 'faqs',
+                title: 'الأسئلة الشائعة (FAQs)',
+                description: 'لتوزيع الأسئلة على التبويبات، استخدم الكلمات المفتاحية في حقل "التصنيف": (إنها لك، شحن، منتجات) للتبويب الأول، و (بداية الرحلة، مدرب، جلسة) للتبويب الثاني. أي شيء آخر سيظهر في "عام".',
+                fields: [
+                    { 
+                        key: 'supportPage.faqs', 
+                        label: 'قائمة الأسئلة', 
+                        type: 'object_array',
+                        itemLabel: 'سؤال',
+                        objectSchema: [
+                            { key: 'question', label: 'السؤال', type: 'input' },
+                            { key: 'answer', label: 'الإجابة', type: 'textarea', rows: 3 },
+                            { key: 'category', label: 'التصنيف (إنها لك / بداية الرحلة / عام)', type: 'input', placeholder: 'مثال: بداية الرحلة' }
+                        ]
+                    }
                 ]
             }
         ]

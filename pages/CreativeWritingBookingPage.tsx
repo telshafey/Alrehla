@@ -17,6 +17,7 @@ import { ArrowLeft } from 'lucide-react';
 import type { ChildProfile, CreativeWritingPackage, Instructor } from '../lib/database.types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import ChildProfileModal from '../components/account/ChildProfileModal';
+import { bookingService } from '../services/bookingService'; // Import Service
 
 type BookingStep = 'package' | 'child' | 'instructor' | 'schedule';
 
@@ -158,30 +159,51 @@ const CreativeWritingBookingPage: React.FC = () => {
         }
         
         setIsSubmitting(true);
-        const childForCart: Partial<ChildProfile> = selectedChildId
-            ? childProfiles.find(c => c.id === selectedChildId)!
-            : {
-                id: -1,
-                name: childData.childName,
-                birth_date: childData.childBirthDate,
-                gender: childData.childGender as 'ذكر' | 'أنثى',
-            };
 
-        addItemToCart({
-            type: 'booking',
-            payload: {
-                child: childForCart,
-                package: selectedPackage,
-                instructor: selectedInstructor,
-                dateTime: selectedDateTime,
-                total: finalPrice,
-                summary: `${selectedPackage.name} لـ ${childData.childName} (مع ${selectedInstructor.name})`
+        try {
+            // Check availability one last time before adding to cart
+            const isAvailable = await bookingService.checkSlotAvailability(
+                selectedInstructor.id, 
+                selectedDateTime.date.toISOString(), 
+                selectedDateTime.time
+            );
+
+            if (!isAvailable) {
+                addToast('عذراً، يبدو أن هذا الموعد تم حجزه للتو. يرجى اختيار موعد آخر.', 'error');
+                setStep('schedule'); // Go back to schedule
+                // Optionally refetch booking data here
+                setIsSubmitting(false);
+                return;
             }
-        });
-        
-        addToast('تمت إضافة الحجز إلى السلة بنجاح!', 'success');
-        navigate('/cart');
-        setIsSubmitting(false);
+
+            const childForCart: Partial<ChildProfile> = selectedChildId
+                ? childProfiles.find(c => c.id === selectedChildId)!
+                : {
+                    id: -1,
+                    name: childData.childName,
+                    birth_date: childData.childBirthDate,
+                    gender: childData.childGender as 'ذكر' | 'أنثى',
+                };
+
+            addItemToCart({
+                type: 'booking',
+                payload: {
+                    child: childForCart,
+                    package: selectedPackage,
+                    instructor: selectedInstructor,
+                    dateTime: selectedDateTime,
+                    total: finalPrice,
+                    summary: `${selectedPackage.name} لـ ${childData.childName} (مع ${selectedInstructor.name})`
+                }
+            });
+            
+            addToast('تمت إضافة الحجز إلى السلة بنجاح!', 'success');
+            navigate('/cart');
+        } catch (error) {
+            addToast('حدث خطأ أثناء التحقق من الموعد.', 'error');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const currentStepTitle = stepsConfig.find(s => s.key === step)?.title;
