@@ -6,6 +6,7 @@ import type { UserRole } from '../../lib/database.types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import FormField from '../ui/FormField';
+import { STAFF_ROLES } from '../../lib/roles';
 
 
 interface AuthFormProps {
@@ -23,19 +24,38 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
     const role: UserRole = 'user'; // All signups are now standard 'user' role
 
     const isLogin = mode === 'login';
-    const from = location.state?.from?.pathname || '/account';
+    // If user came from a specific protected page, use that. Otherwise default logic applies.
+    const from = location.state?.from?.pathname;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        let success = false;
+        
+        let userResult = null;
+        
         if (isLogin) {
-            success = await signIn(email, password);
+            userResult = await signIn(email, password);
         } else {
-            success = await signUp(email, password, name, role);
+            userResult = await signUp(email, password, name, role);
         }
 
-        if (success) {
-            navigate(from, { replace: true });
+        if (userResult) {
+            // Priority 1: If user was redirected from a specific page (e.g. checkout), send them back there
+            if (from) {
+                navigate(from, { replace: true });
+                return;
+            }
+
+            // Priority 2: Smart routing based on Role
+            if (userResult.role === 'student') {
+                navigate('/student/dashboard', { replace: true });
+            } 
+            else if (STAFF_ROLES.includes(userResult.role)) {
+                navigate('/admin', { replace: true });
+            } 
+            else {
+                // Parents and regular users go to account
+                navigate('/account', { replace: true });
+            }
         }
     };
 

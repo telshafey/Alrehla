@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations, type UserWithParent } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import { Users, Plus, Edit, Trash2, Search, Briefcase, Shield, Link as LinkIcon, RefreshCw, User, Baby, GraduationCap, AlertCircle, ShoppingBag } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Briefcase, Shield, Link as LinkIcon, RefreshCw, User, Baby, GraduationCap, AlertCircle, ShoppingBag, UserPlus } from 'lucide-react';
 import { roleNames, STAFF_ROLES } from '../../lib/roles';
 import { Button } from '../../components/ui/Button';
 import ErrorState from '../../components/ui/ErrorState';
@@ -12,6 +12,7 @@ import { Input } from '../../components/ui/Input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 import LinkStudentModal from '../../components/admin/LinkStudentModal';
 import DataTable from '../../components/admin/ui/DataTable';
+import Dropdown from '../../components/ui/Dropdown';
 
 const AdminUsersPage: React.FC = () => {
     const navigate = useNavigate();
@@ -67,6 +68,19 @@ const AdminUsersPage: React.FC = () => {
             bulkDeleteUsers.mutate({ userIds: [userId] });
         }
     };
+    
+    const addUserOptions = [
+        { 
+            label: 'إضافة عميل / ولي أمر', 
+            action: () => navigate('/admin/users/new?type=customer'),
+            icon: <User size={16} />
+        },
+        { 
+            label: 'إضافة موظف / إداري', 
+            action: () => navigate('/admin/users/new?type=staff'),
+            icon: <Shield size={16} />
+        }
+    ];
 
     if (error) return <ErrorState message={(error as Error).message} onRetry={() => { refetchUsers(); refetchChildren(); }} />;
 
@@ -82,7 +96,14 @@ const AdminUsersPage: React.FC = () => {
                 <h1 className="text-3xl font-extrabold text-foreground">إدارة المستخدمين</h1>
                 <div className="flex flex-wrap gap-2">
                     <Button onClick={() => { refetchUsers(); refetchChildren(); }} variant="ghost" icon={<RefreshCw className={isRefetching ? 'animate-spin' : ''} size={16}/>}>تحديث البيانات</Button>
-                    <Button onClick={() => navigate('/admin/users/new?type=customer')} icon={<Plus size={18} />}>إضافة مستخدم</Button>
+                    <Dropdown 
+                        trigger={
+                            <span className="flex items-center gap-2">
+                                <Plus size={18} /> إضافة مستخدم
+                            </span>
+                        }
+                        items={addUserOptions}
+                    />
                 </div>
             </div>
 

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PageLoader from '../components/ui/PageLoader';
@@ -13,11 +13,12 @@ import MyLibraryPanel from '../components/account/MyLibraryPanel';
 import PaymentModal from '../components/PaymentModal';
 import { LayoutDashboard, Settings, Bell, Users, GalleryVertical, BookOpen } from 'lucide-react';
 import { Card } from '../components/ui/card';
+import { STAFF_ROLES } from '../lib/roles';
 
 type AccountTab = 'dashboard' | 'myLibrary' | 'portfolio' | 'familyCenter' | 'settings' | 'notifications';
 
 const AccountPage: React.FC = () => {
-    const { isLoggedIn, loading: authLoading, hasAdminAccess, currentUser } = useAuth();
+    const { isLoggedIn, loading: authLoading, currentUser } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     
@@ -25,20 +26,29 @@ const AccountPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<AccountTab>(defaultTab);
     const [paymentItem, setPaymentItem] = useState<{ id: string; type: 'order' | 'subscription' | 'booking' } | null>(null);
 
-    // توجيه ذكي وفوري بناءً على الرتبة (نتخطى وضع التحميل إذا كنا متأكدين من الرتبة)
-    useEffect(() => {
-        if (isLoggedIn && currentUser) {
-            const role = currentUser.role;
-            if (role === 'student') {
-                navigate('/student/dashboard', { replace: true });
-            } else if (['super_admin', 'general_supervisor', 'instructor', 'enha_lak_supervisor', 'creative_writing_supervisor', 'content_editor', 'support_agent'].includes(role)) {
-                navigate('/admin', { replace: true });
-            }
-        }
-    }, [isLoggedIn, currentUser, navigate]);
+    // التحقق من حالة التوجيه
+    const shouldRedirect = useMemo(() => {
+        if (!isLoggedIn || !currentUser) return false;
+        
+        // إذا كان طالباً أو موظفاً، يجب توجيهه (إلا إذا كان الموظف يريد تعديل حسابه، لكن الافتراضي هو التوجيه)
+        // سنفترض التوجيه القسري عند الدخول للحفاظ على تجربة سلسة
+        if (currentUser.role === 'student') return '/student/dashboard';
+        if (STAFF_ROLES.includes(currentUser.role)) return '/admin';
+        
+        return false;
+    }, [isLoggedIn, currentUser]);
 
-    if (authLoading) {
-        return <PageLoader text="جاري التحقق من صلاحيات الدخول..." />;
+    // توجيه فوري
+    useEffect(() => {
+        if (shouldRedirect) {
+            navigate(shouldRedirect as string, { replace: true });
+        }
+    }, [shouldRedirect, navigate]);
+
+    // عرض شاشة تحميل إذا كنا نتحقق من الجلسة أو إذا كان هناك توجيه قادم
+    // هذا يمنع ظهور لوحة تحكم المستخدم للحظات قبل الانتقال للإدارة
+    if (authLoading || shouldRedirect) {
+        return <PageLoader text={shouldRedirect ? "جاري التوجيه..." : "جاري التحقق من الحساب..."} />;
     }
 
     if (!isLoggedIn) {

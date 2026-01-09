@@ -14,8 +14,8 @@ interface AuthContextType {
     currentChildProfile: ChildProfile | null;
     isLoggedIn: boolean;
     signOut: () => Promise<void>;
-    signIn: (email: string, password: string) => Promise<boolean>;
-    signUp: (email: string, password: string, name: string, role: UserRole) => Promise<boolean>;
+    signIn: (email: string, password: string) => Promise<UserProfile | null>;
+    signUp: (email: string, password: string, name: string, role: UserRole) => Promise<UserProfile | null>;
     updateCurrentUser: (updatedData: Partial<UserProfile>) => void;
     loading: boolean;
     error: string | null;
@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         validateSession();
     }, []);
 
-    const signIn = async (email: string, password: string): Promise<boolean> => {
+    const signIn = async (email: string, password: string): Promise<UserProfile | null> => {
         setLoading(true);
         setError(null);
         try {
@@ -78,18 +78,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setCurrentUser(user);
             await fetchUserData(user);
             addToast(`مرحباً بك، ${user.name}!`, 'success');
-            return true;
+            return user;
         } catch (e: any) {
             const msg = e.message || 'بيانات الدخول غير صحيحة';
             setError(msg);
             addToast(msg, 'error');
-            return false;
+            return null;
         } finally {
             setLoading(false);
         }
     };
 
-    const signUp = async (email: string, password: string, name: string, role: UserRole) => {
+    const signUp = async (email: string, password: string, name: string, role: UserRole): Promise<UserProfile | null> => {
         setLoading(true);
         setError(null);
         try {
@@ -97,11 +97,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (accessToken) setToken(accessToken);
             setCurrentUser(user);
             addToast('تم إنشاء الحساب بنجاح!', 'success');
-            return true;
+            return user;
         } catch (e: any) {
             setError(e.message);
             addToast(e.message, 'error');
-            return false;
+            return null;
         } finally {
             setLoading(false);
         }

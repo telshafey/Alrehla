@@ -209,9 +209,16 @@ const AdminUserFormPage: React.FC = () => {
                                 onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
                                 disabled={enrichedUser?.role === 'student' || (enrichedUser && (enrichedUser.totalChildrenCount ?? 0) > 0)}
                             >
-                                {(isStaffFlow ? STAFF_ROLES : CUSTOMER_ROLES).map(role => (
-                                    <option key={role} value={role}>{roleNames[role]}</option>
-                                ))}
+                                <optgroup label="العملاء">
+                                    {CUSTOMER_ROLES.map(role => (
+                                        <option key={role} value={role}>{roleNames[role]}</option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="فريق العمل والإدارة">
+                                    {STAFF_ROLES.map(role => (
+                                        <option key={role} value={role}>{roleNames[role]}</option>
+                                    ))}
+                                </optgroup>
                             </Select>
                             {enrichedUser && (enrichedUser.totalChildrenCount ?? 0) > 0 && <p className="text-xs text-orange-600 mt-1 italic">لا يمكن تغيير رتبة ولي الأمر لوجود أطفال مرتبطين.</p>}
                         </FormField>
