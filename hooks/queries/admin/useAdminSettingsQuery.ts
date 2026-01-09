@@ -20,9 +20,11 @@ const fetchSetting = async (key: string, fallback: any) => {
         return fallback;
     }
     
-    // Explicit check for data object and value existence
-    if (data && typeof data === 'object' && 'value' in data && data.value !== null) {
-        return (data as any).value;
+    // Cast to any to avoid TS inference issues where data might be considered 'never'
+    const record = data as any;
+    
+    if (record && record.value !== undefined && record.value !== null) {
+        return record.value;
     }
     return fallback;
 };
