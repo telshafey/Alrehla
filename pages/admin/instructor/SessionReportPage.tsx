@@ -13,6 +13,7 @@ import FormField from '../../../components/ui/FormField';
 import { Select } from '../../../components/ui/Select';
 import { CheckCircle, ArrowRight, Star, Award, User } from 'lucide-react';
 import { formatDate } from '../../../utils/helpers';
+import { useToast } from '../../../contexts/ToastContext';
 
 const SessionReportPage: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
@@ -21,6 +22,7 @@ const SessionReportPage: React.FC = () => {
     const { updateScheduledSession } = useBookingMutations();
     const { awardBadge } = useGamificationMutations();
     const { data: publicData } = usePublicData();
+    const { addToast } = useToast();
 
     const [notes, setNotes] = useState('');
     const [selectedBadgeId, setSelectedBadgeId] = useState<string>('');
@@ -40,7 +42,7 @@ const SessionReportPage: React.FC = () => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            // 1. تحديث حالة الجلسة وحفظ الملاحظات
+            // 1. تحديث حالة الجلسة وحفظ الملاحظات (عملية أساسية)
             await updateScheduledSession.mutateAsync({
                 sessionId: safeSession.id,
                 updates: {
@@ -49,18 +51,26 @@ const SessionReportPage: React.FC = () => {
                 }
             });
 
-            // 2. منح الشارة للطالب
+            // 2. منح الشارة للطالب (عملية ثانوية - لا توقف التدفق إذا فشلت)
             if (selectedBadgeId) {
-                await awardBadge.mutateAsync({
-                    childId: safeSession.child_id,
-                    badgeId: parseInt(selectedBadgeId),
-                    instructorId: safeSession.instructor_id
-                });
+                try {
+                    await awardBadge.mutateAsync({
+                        childId: safeSession.child_id,
+                        badgeId: parseInt(selectedBadgeId),
+                        instructorId: safeSession.instructor_id
+                    });
+                } catch (badgeError) {
+                    console.warn("Badge awarding skipped due to permissions/error:", badgeError);
+                    addToast("تم حفظ التقرير، ولكن تعذر منح الشارة (يرجى مراجعة الصلاحيات).", "warning");
+                }
+            } else {
+                addToast("تم حفظ التقرير وإغلاق الجلسة بنجاح.", "success");
             }
 
             navigate('/admin');
         } catch (error) {
             console.error("Report saving failed", error);
+            // الخطأ هنا يعني فشل حفظ التقرير نفسه، لذا نبقي المستخدم في الصفحة
         } finally {
             setIsSubmitting(false);
         }

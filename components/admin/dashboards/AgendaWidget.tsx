@@ -9,28 +9,35 @@ const AgendaWidget = React.forwardRef<HTMLElement, { bookings: any[], attachment
     ({ bookings, attachments, ...props }, ref) => {
     
     const todaysSessions = useMemo(() => {
-        const today = new Date().toDateString();
-        const sessions: any[] = [];
-        bookings.forEach(booking => {
-            booking.sessions?.forEach((session: any) => {
-                if (new Date(session.session_date).toDateString() === today && session.status === 'upcoming') {
-                    sessions.push({
-                        ...session,
-                        childName: booking.child_profiles?.name || 'طالب',
-                        packageName: booking.package_name,
-                    });
-                }
-            });
-        });
-        return sessions.sort((a,b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
+        const todayStr = new Date().toDateString();
+        
+        // Use flatMap for efficient mapping and filtering in one go structure (conceptually)
+        const upcoming = bookings.flatMap(booking => 
+            (booking.sessions || [])
+                .filter((session: any) => 
+                    session.status === 'upcoming' && 
+                    new Date(session.session_date).toDateString() === todayStr
+                )
+                .map((session: any) => ({
+                    ...session,
+                    childName: booking.child_profiles?.name || 'طالب',
+                    packageName: booking.package_name,
+                }))
+        );
+
+        return upcoming.sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
     }, [bookings]);
 
     const recentAttachments = useMemo(() => {
+        // Only process if we have attachments
+        if (!attachments || attachments.length === 0) return [];
+
         return [...attachments]
             .filter(att => att.uploader_role !== 'instructor')
-            .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
             .slice(0, 3)
             .map(att => {
+                // Find booking efficiently - assuming bookings list isn't massive in this view context
                 const booking = bookings.find(b => b.id === att.booking_id);
                 return {
                     ...att,
@@ -51,7 +58,9 @@ const AgendaWidget = React.forwardRef<HTMLElement, { bookings: any[], attachment
                                 <div key={session.id} className="p-3 bg-muted rounded-lg flex justify-between items-center">
                                     <div>
                                         <p className="font-semibold text-sm">{session.childName}</p>
-                                        <p className="text-xs text-muted-foreground">{new Date(session.session_date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })} - {session.packageName}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {new Date(session.session_date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })} - {session.packageName}
+                                        </p>
                                     </div>
                                     <Button as={Link} to={`/session/${session.id}`} size="sm" variant="outline">
                                         انضم

@@ -1,28 +1,32 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { userService } from '../../../services/userService';
-import type { UserProfile, ChildProfile, UserProfileWithRelations, UserRole } from '../../../lib/database.types';
+import { supabase } from '../../../lib/supabaseClient';
+import type { UserProfile, ChildProfile, UserProfileWithRelations } from '../../../lib/database.types';
 
 export interface UserWithParent extends UserProfileWithRelations {
     parentName?: string;
     parentEmail?: string;
     activeStudentsCount: number;
     totalChildrenCount: number;
+    // حقل جديد لتحديد ما إذا كان "فعلياً" ولي أمر بناءً على البيانات
+    isActuallyParent: boolean;
 }
 
 export const transformUsersWithRelations = (users: UserProfile[], children: ChildProfile[]): UserWithParent[] => {
     const studentIdToParentInfoMap = new Map<string, { name: string, email: string }>();
     const parentIdToChildrenMap = new Map<string, ChildProfile[]>();
 
-    // 1. مسح ملفات الأطفال لبناء خريطة التبعية
+    // 1. بناء خريطة العلاقات من جدول الأطفال الحقيقي
     children.forEach(child => {
-        // ولي الأمر المنشئ للملف
-        if (!parentIdToChildrenMap.has(child.user_id)) {
-            parentIdToChildrenMap.set(child.user_id, []);
+        // ربط الأبناء بالآباء
+        if (child.user_id) {
+            if (!parentIdToChildrenMap.has(child.user_id)) {
+                parentIdToChildrenMap.set(child.user_id, []);
+            }
+            parentIdToChildrenMap.get(child.user_id)!.push(child);
         }
-        parentIdToChildrenMap.get(child.user_id)!.push(child);
 
-        // إذا كان الطفل لديه حساب دخول، نربط حساب الدخول ببيانات ولي الأمر للعرض في الإدارة
+        // ربط حسابات الطلاب ببيانات أولياء الأمور
         if (child.student_user_id) {
             const parent = users.find(u => u.id === child.user_id);
             if (parent) {
@@ -34,25 +38,22 @@ export const transformUsersWithRelations = (users: UserProfile[], children: Chil
         }
     });
 
-    // 2. دمج البيانات في قائمة مستخدمين واحدة ذكية
+    // 2. دمج البيانات
     return users.map(user => {
         const userChildren = parentIdToChildrenMap.get(user.id) || [];
         const parentInfo = studentIdToParentInfoMap.get(user.id);
         
-        let displayRole: UserRole = user.role;
+        // الحقيقة: هو ولي أمر فقط إذا كان لديه أطفال لديهم حسابات طلاب مفعلة
+        const isActuallyParent = userChildren.some(c => c.student_user_id !== null);
         
-        // تصحيح الرتبة تلقائياً في العرض: أي حساب لديه أطفال هو "ولي أمر"
-        if (['user', 'parent'].includes(user.role)) {
-            displayRole = userChildren.length > 0 ? 'parent' : 'user';
-        }
-
         return {
             ...user,
-            role: displayRole,
+            role: user.role, 
             parentName: parentInfo?.name,
             parentEmail: parentInfo?.email,
             activeStudentsCount: userChildren.filter(c => !!c.student_user_id).length,
             totalChildrenCount: userChildren.length,
+            isActuallyParent: isActuallyParent,
             children: userChildren
         };
     });
@@ -60,10 +61,18 @@ export const transformUsersWithRelations = (users: UserProfile[], children: Chil
 
 export const useAdminUsers = () => useQuery({
     queryKey: ['adminUsers'],
-    queryFn: () => userService.getAllUsers(),
+    queryFn: async () => {
+        const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        return (data || []) as UserProfile[];
+    },
 });
 
 export const useAdminAllChildProfiles = () => useQuery({
     queryKey: ['adminAllChildProfiles'],
-    queryFn: () => userService.getAllChildProfiles(),
+    queryFn: async () => {
+        const { data, error } = await supabase.from('child_profiles').select('*');
+        if (error) throw error;
+        return (data || []) as ChildProfile[];
+    },
 });

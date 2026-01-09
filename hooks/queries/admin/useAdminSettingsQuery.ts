@@ -11,11 +11,17 @@ import {
 } from '../../../data/mockData';
 import { bookingService } from '../../../services/bookingService';
 
-// Helper to fetch single setting
+// Helper to fetch single setting safely
 const fetchSetting = async (key: string, fallback: any) => {
-    const { data } = await supabase.from('site_settings').select('value').eq('key', key).single();
-    // Explicit check for data before accessing value to satisfy TS and prevent runtime errors
-    if (data && typeof data === 'object' && 'value' in data) {
+    const { data, error } = await supabase.from('site_settings').select('value').eq('key', key).maybeSingle();
+    
+    if (error) {
+        console.warn(`Error fetching setting ${key}:`, error.message);
+        return fallback;
+    }
+    
+    // Explicit check for data object and value existence
+    if (data && typeof data === 'object' && 'value' in data && data.value !== null) {
         return (data as any).value;
     }
     return fallback;
@@ -32,6 +38,7 @@ export const useAdminCWSettings = () => useQuery({
         ]);
         return { packages, services, standaloneServices, comparisonItems };
     },
+    staleTime: 1000 * 60 * 5 // 5 minutes
 });
 
 export const useAdminSocialLinks = () => useQuery({

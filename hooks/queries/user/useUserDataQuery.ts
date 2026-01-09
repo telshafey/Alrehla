@@ -62,8 +62,18 @@ export const useUserAccountData = () => {
     return useQuery<UserAccountData>({
         queryKey: ['userAccountData', currentUser?.id],
         queryFn: async () => {
-            if (!currentUser) return { userOrders: [], userSubscriptions: [], userBookings: [], childBadges: [], allBadges: [], attachments: [], childProfiles: [] };
+            // Return empty structure if no user
+            if (!currentUser) return { 
+                userOrders: [], 
+                userSubscriptions: [], 
+                userBookings: [], 
+                childBadges: [], 
+                allBadges: [], 
+                attachments: [], 
+                childProfiles: [] 
+            };
 
+            // 1. Fetch primary user data in parallel
             const [ordersRes, subsRes, bookingsRes, childrenRes, badgesRes, allBadgesRes] = await Promise.all([
                 supabase.from('orders').select('*').eq('user_id', currentUser.id).order('order_date', { ascending: false }),
                 supabase.from('subscriptions').select('*').eq('user_id', currentUser.id),
@@ -73,19 +83,26 @@ export const useUserAccountData = () => {
                 supabase.from('badges').select('*')
             ]);
 
-            let enrichedBookings: EnrichedBooking[] = [];
-            // Fix: Cast explicitly to any[] to avoid never[] inference on empty array
             const rawBookings = (bookingsRes.data || []) as any[];
-            
-            if (rawBookings.length > 0) {
-                try {
-                    const { data: instructorsData } = await supabase.from('instructors').select('id, name');
-                    const { data: packagesData } = await supabase.from('creative_writing_packages').select('*');
-                    const { data: sessionsData } = await supabase.from('scheduled_sessions').select('*');
+            let enrichedBookings: EnrichedBooking[] = [];
+            let attachments: SessionAttachment[] = [];
 
-                    const instructors = (instructorsData || []) as any[];
-                    const packages = (packagesData || []) as CreativeWritingPackage[];
-                    const sessions = (sessionsData || []) as ScheduledSession[];
+            // 2. Fetch related booking data (Optimized: Filter by IDs)
+            if (rawBookings.length > 0) {
+                const bookingIds = rawBookings.map(b => b.id);
+                
+                try {
+                    const [instructorsRes, packagesRes, sessionsRes, attachmentsRes] = await Promise.all([
+                        supabase.from('instructors').select('id, name'),
+                        supabase.from('creative_writing_packages').select('*'),
+                        supabase.from('scheduled_sessions').select('*').in('booking_id', bookingIds),
+                        supabase.from('session_attachments').select('*').in('booking_id', bookingIds).order('created_at', { ascending: false })
+                    ]);
+
+                    const instructors = (instructorsRes.data || []) as any[];
+                    const packages = (packagesRes.data || []) as CreativeWritingPackage[];
+                    const sessions = (sessionsRes.data || []) as ScheduledSession[];
+                    attachments = (attachmentsRes.data || []) as SessionAttachment[];
 
                     enrichedBookings = rawBookings.map((b: any) => ({
                         ...b,
@@ -100,15 +117,16 @@ export const useUserAccountData = () => {
             }
 
             return {
-                userOrders: (ordersRes.data as Order[]) || [],
-                userSubscriptions: (subsRes.data as Subscription[]) || [],
+                userOrders: (ordersRes.data || []) as Order[],
+                userSubscriptions: (subsRes.data || []) as Subscription[],
                 userBookings: enrichedBookings,
-                childBadges: (badgesRes.data as ChildBadge[]) || [],
-                allBadges: (allBadgesRes.data as Badge[]) || [],
-                attachments: [],
-                childProfiles: (childrenRes.data as EnrichedChildProfile[]) || []
+                childBadges: (badgesRes.data || []) as ChildBadge[],
+                allBadges: (allBadgesRes.data || []) as Badge[],
+                attachments: attachments,
+                childProfiles: (childrenRes.data || []) as EnrichedChildProfile[]
             };
         },
         enabled: !!currentUser,
+        staleTime: 1000 * 60 * 2, // 2 minutes cache
     });
 };

@@ -3,8 +3,8 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations, type UserWithParent } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import { Users, Plus, Edit, Trash2, Search, Briefcase, Shield, Link as LinkIcon, RefreshCw } from 'lucide-react';
-import { roleNames, STAFF_ROLES, CUSTOMER_ROLES } from '../../lib/roles';
+import { Users, Plus, Edit, Trash2, Search, Briefcase, Shield, Link as LinkIcon, RefreshCw, User, Baby, GraduationCap, AlertCircle, ShoppingBag } from 'lucide-react';
+import { roleNames, STAFF_ROLES } from '../../lib/roles';
 import { Button } from '../../components/ui/Button';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
@@ -19,7 +19,7 @@ const AdminUsersPage: React.FC = () => {
     const { data: children = [], isLoading: childrenLoading, error: childrenError, refetch: refetchChildren } = useAdminAllChildProfiles();
     const { bulkDeleteUsers } = useUserMutations();
 
-    const [activeTab, setActiveTab] = useState<'staff' | 'customers'>('customers');
+    const [activeTab, setActiveTab] = useState<'parents' | 'customers' | 'students' | 'staff'>('parents');
     const [searchTerm, setSearchTerm] = useState('');
     
     const [linkModalOpen, setLinkModalOpen] = useState(false);
@@ -33,12 +33,31 @@ const AdminUsersPage: React.FC = () => {
     }, [users, children, usersLoading, childrenLoading, error]);
 
     const filteredUsers = useMemo(() => {
-        const roleFilter = activeTab === 'staff' ? STAFF_ROLES : CUSTOMER_ROLES;
         return enrichedUsers.filter(user => {
-            const matchesRole = roleFilter.includes(user.role);
+            let matchesRole = false;
+
+            // منطق الفلترة الصارم
+            if (activeTab === 'staff') {
+                matchesRole = STAFF_ROLES.includes(user.role);
+            } 
+            else if (activeTab === 'parents') {
+                // ولي الأمر: لديه حسابات طلاب مفعلة
+                matchesRole = user.isActuallyParent || user.role === 'parent';
+            } 
+            else if (activeTab === 'customers') {
+                // العميل: ليس ولي أمر، ليس طالباً، ليس موظفاً
+                // قد يكون لديه ملفات أطفال (للقصص) لكن بدون حسابات طلاب
+                matchesRole = !user.isActuallyParent && user.role === 'user';
+            } 
+            else if (activeTab === 'students') {
+                matchesRole = user.role === 'student';
+            }
+
+            // Search Filtering
             const matchesSearch = searchTerm === '' || 
                 user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                 user.email.toLowerCase().includes(searchTerm.toLowerCase());
+            
             return matchesRole && matchesSearch;
         });
     }, [enrichedUsers, activeTab, searchTerm]);
@@ -69,7 +88,7 @@ const AdminUsersPage: React.FC = () => {
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Users /> قائمة الحسابات</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><Users /> قاعدة البيانات الحية</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col gap-6">
@@ -83,9 +102,11 @@ const AdminUsersPage: React.FC = () => {
                             />
                         </div>
 
-                        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'staff' | 'customers')}>
-                            <TabsList className="w-full justify-start bg-muted/50 p-1">
-                                <TabsTrigger value="customers" className="gap-2"><Briefcase size={16}/> العملاء والطلاب</TabsTrigger>
+                        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)}>
+                            <TabsList className="w-full justify-start bg-muted/50 p-1 flex-wrap h-auto">
+                                <TabsTrigger value="parents" className="gap-2"><Baby size={16}/> أولياء الأمور (مفعلين)</TabsTrigger>
+                                <TabsTrigger value="customers" className="gap-2"><ShoppingBag size={16}/> عملاء (قصص/زوار)</TabsTrigger>
+                                <TabsTrigger value="students" className="gap-2"><GraduationCap size={16}/> حسابات الطلاب</TabsTrigger>
                                 <TabsTrigger value="staff" className="gap-2"><Shield size={16}/> الموظفون والمدربون</TabsTrigger>
                             </TabsList>
 
@@ -115,26 +136,51 @@ const AdminUsersPage: React.FC = () => {
                                         },
                                         {
                                             accessorKey: 'role',
-                                            header: 'الرتبة',
-                                            cell: ({ value }) => (
-                                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                                                    value === 'student' ? 'bg-blue-100 text-blue-800' : 
-                                                    value === 'parent' ? 'bg-green-100 text-green-800' :
-                                                    value === 'instructor' ? 'bg-orange-100 text-orange-800' :
-                                                    value === 'user' ? 'bg-gray-100 text-gray-800' : 'bg-purple-100 text-purple-800'
-                                                }`}>
-                                                    {roleNames[value as keyof typeof roleNames]}
-                                                </span>
+                                            header: 'الرتبة المسجلة',
+                                            cell: ({ value, row }) => (
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`inline-flex w-fit items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                                        value === 'student' ? 'bg-indigo-100 text-indigo-800' : 
+                                                        value === 'parent' ? 'bg-green-100 text-green-800' :
+                                                        value === 'instructor' ? 'bg-orange-100 text-orange-800' :
+                                                        value === 'user' ? 'bg-gray-100 text-gray-800' : 'bg-purple-100 text-purple-800'
+                                                    }`}>
+                                                        {roleNames[value as keyof typeof roleNames]}
+                                                    </span>
+                                                    {row.isActuallyParent && value === 'user' && (
+                                                        <span className="text-[9px] text-orange-600 flex items-center gap-1 font-semibold animate-pulse">
+                                                            <AlertCircle size={10} />
+                                                            يجب ترقيته لولي أمر
+                                                        </span>
+                                                    )}
+                                                </div>
                                             )
                                         },
                                         {
                                             accessorKey: 'totalChildrenCount',
-                                            header: 'الملفات / الحالة',
-                                            cell: ({ row }) => row.role === 'student' ? (
-                                                <span className="text-[10px] text-muted-foreground italic">حساب طالب</span>
-                                            ) : (
-                                                <span className="text-[10px] font-bold text-gray-400">{row.totalChildrenCount} ملفات أطفال</span>
-                                            )
+                                            header: 'بيانات العائلة',
+                                            cell: ({ row }) => {
+                                                if (row.role === 'student') return <span className="text-[10px] text-muted-foreground">-</span>;
+                                                
+                                                if (row.totalChildrenCount > 0) {
+                                                    return (
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="text-[10px] font-bold text-gray-700">{row.totalChildrenCount} ملف طفل</span>
+                                                            {row.activeStudentsCount > 0 && (
+                                                                <span className="text-[9px] text-green-600 font-bold bg-green-50 px-1 rounded w-fit">
+                                                                    {row.activeStudentsCount} طالب مفعل
+                                                                </span>
+                                                            )}
+                                                            {row.activeStudentsCount === 0 && (
+                                                                <span className="text-[9px] text-muted-foreground italic">
+                                                                    بدون حسابات طلاب
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                }
+                                                return <span className="text-[10px] text-muted-foreground italic">لا يوجد أطفال</span>;
+                                            }
                                         }
                                     ]}
                                     renderRowActions={(user) => (

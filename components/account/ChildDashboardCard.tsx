@@ -1,13 +1,14 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Edit, UserPlus, ShoppingBag, BookOpen, Star, ArrowLeft, Award, Lock, Mail, Key } from 'lucide-react';
+import { Edit, UserPlus, ShoppingBag, BookOpen, Star, ArrowLeft, Award, Lock, Mail, Key, Trash2, Link2Off } from 'lucide-react';
 import type { Order, CreativeWritingBooking, Subscription, Badge, ChildBadge } from '../../lib/database.types';
 import type { EnrichedChildProfile } from '../../hooks/queries/user/useUserDataQuery';
 import { Button } from '../ui/Button';
 import { formatDate, calculateAge } from '../../utils/helpers';
 import BadgeDisplay from '../shared/BadgeDisplay';
 import Image from '../ui/Image';
+import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 
 interface ChildDashboardCardProps {
     child: EnrichedChildProfile;
@@ -33,7 +34,8 @@ const ActivityIcon: React.FC<{type: string}> = ({type}) => {
     }
 }
 
-const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childActivity, allBadges, childBadges, onEdit, onCreateStudentAccount, onResetPassword }) => {
+const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childActivity, allBadges, childBadges, onEdit, onDelete, onCreateStudentAccount, onResetPassword }) => {
+    const { unlinkStudentFromChildProfile } = useUserMutations();
     
     const recentActivity = useMemo(() => {
         const { orders, bookings, subscriptions } = childActivity;
@@ -54,9 +56,15 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
     }, [child, childBadges, allBadges]);
     
     const age = calculateAge(child.birth_date);
+    
+    const handleUnlink = async () => {
+        if(window.confirm(`هل أنت متأكد من فك ارتباط حساب الطالب بملف "${child.name}"؟\n\nاستخدم هذا الخيار إذا كان الطالب يواجه مشاكل في الدخول أو يظهر كـ "غير مرتبط" في لوحته.\n\nسيحتاج الطالب لإنشاء حساب جديد للدخول.`)) {
+            await unlinkStudentFromChildProfile.mutateAsync({ childProfileId: child.id });
+        }
+    };
 
     return (
-        <div className="bg-gray-50 p-6 rounded-2xl shadow-md border animate-fadeIn">
+        <div className="bg-gray-50 p-6 rounded-2xl shadow-md border animate-fadeIn group">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start gap-4 border-b pb-4">
                 <Image 
@@ -71,35 +79,46 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
                             <p className="text-gray-500 text-sm mb-2">{age !== null ? `${age} سنوات` : 'غير محدد'}</p>
                         </div>
                         <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => onEdit(child)} aria-label={`تعديل ${child.name}`}><Edit size={18} /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => onEdit(child)} aria-label={`تعديل ${child.name}`} className="text-muted-foreground hover:text-blue-600">
+                                <Edit size={18} />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => onDelete(child.id)} aria-label={`حذف ${child.name}`} className="text-muted-foreground hover:text-red-600">
+                                <Trash2 size={18} />
+                            </Button>
                         </div>
                     </div>
                     
                     {/* حساب الطالب والبريد الإلكتروني المخصص */}
-                    <div className="mt-2 p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
+                    <div className="mt-2 p-3 bg-white rounded-lg border border-gray-100 shadow-sm relative">
                         {child.student_user_id ? (
                             <div className="space-y-2">
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between flex-wrap gap-2">
                                     <div className="flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                        <span className="text-xs font-bold text-green-700">حساب طالب نشط</span>
+                                        <span className="text-xs font-bold text-green-700">حساب طالب مرتبط</span>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => onResetPassword(child)} className="h-7 text-xs px-2" icon={<Key size={12} />}>
-                                        تغيير كلمة المرور
-                                    </Button>
-                                </div>
-                                <div className="text-sm bg-muted/30 p-2 rounded border border-dashed">
-                                    <div className="flex items-center gap-2 text-gray-700 font-mono text-xs">
-                                        <Mail size={14} className="text-primary"/>
-                                        <span>{child.student_email || 'البريد قيد التحديث...'}</span>
+                                    <div className="flex gap-1">
+                                        <Button variant="outline" size="sm" onClick={() => onResetPassword(child)} className="h-7 text-xs px-2" icon={<Key size={12} />}>
+                                            كلمة المرور
+                                        </Button>
+                                        <Button variant="ghost" size="sm" onClick={handleUnlink} className="h-7 text-xs px-2 text-red-500 hover:text-red-700 hover:bg-red-50" title="فك الارتباط لإصلاح مشاكل الدخول">
+                                            <Link2Off size={14} />
+                                        </Button>
                                     </div>
                                 </div>
+                                <div className="text-sm bg-muted/30 p-2 rounded border border-dashed flex justify-between items-center">
+                                    <div className="flex items-center gap-2 text-gray-700 font-mono text-xs overflow-hidden">
+                                        <Mail size={14} className="text-primary flex-shrink-0"/>
+                                        <span className="truncate" dir="ltr">{child.student_email || 'البريد قيد التحديث...'}</span>
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-gray-400">استخدم هذا البريد وكلمة المرور للدخول كطالب.</p>
                             </div>
                         ) : (
                             <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground italic">لا يوجد حساب دخول لهذا الطفل بعد</span>
-                                <Button variant="outline" size="sm" onClick={() => onCreateStudentAccount(child)} icon={<UserPlus size={14} />} className="h-8 text-xs">
-                                    إنشاء حساب طالب
+                                <span className="text-xs text-muted-foreground italic">لا يوجد حساب دخول للطالب</span>
+                                <Button variant="outline" size="sm" onClick={() => onCreateStudentAccount(child)} icon={<UserPlus size={14} />} className="h-8 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200">
+                                    إنشاء حساب
                                 </Button>
                             </div>
                         )}

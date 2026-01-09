@@ -9,6 +9,7 @@ import { useBookingMutations } from '../../../hooks/mutations/useBookingMutation
 import { useGamificationMutations } from '../../../hooks/mutations/useGamificationMutations';
 import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
 import { Select } from '../../ui/Select';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface SessionReportModalProps {
     isOpen: boolean;
@@ -20,28 +21,40 @@ const SessionReportModal: React.FC<SessionReportModalProps> = ({ isOpen, onClose
     const { updateBookingProgressNotes } = useBookingMutations();
     const { awardBadge } = useGamificationMutations();
     const { data: publicData } = usePublicData();
+    const { addToast } = useToast();
     const [notes, setNotes] = useState('');
     const [selectedBadgeId, setSelectedBadgeId] = useState<string>('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        // 1. تحديث الملاحظات وإغلاق الجلسة
-        await updateBookingProgressNotes.mutateAsync({
-            bookingId: session.booking_id,
-            notes: notes
-        });
-
-        // 2. منح شارة إذا تم اختيار واحدة
-        if (selectedBadgeId) {
-            await awardBadge.mutateAsync({
-                childId: session.child_id,
-                badgeId: parseInt(selectedBadgeId),
-                instructorId: session.instructor_id
+        try {
+            // 1. تحديث الملاحظات وإغلاق الجلسة
+            await updateBookingProgressNotes.mutateAsync({
+                bookingId: session.booking_id,
+                notes: notes
             });
-        }
 
-        onClose();
+            // 2. منح شارة إذا تم اختيار واحدة (مع معالجة الأخطاء)
+            if (selectedBadgeId) {
+                try {
+                    await awardBadge.mutateAsync({
+                        childId: session.child_id,
+                        badgeId: parseInt(selectedBadgeId),
+                        instructorId: session.instructor_id
+                    });
+                } catch (badgeError) {
+                    console.warn("Could not award badge:", badgeError);
+                    addToast('تم حفظ الملاحظات، ولكن تعذر منح الشارة.', 'warning');
+                }
+            } else {
+                addToast('تم حفظ التقرير بنجاح.', 'success');
+            }
+
+            onClose();
+        } catch (error) {
+            // Error already handled by booking mutation hook toast
+        }
     };
 
     // Cast publicData to any to access potentially missing properties or extend the type

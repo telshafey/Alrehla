@@ -22,37 +22,38 @@ interface UpdateUserPayload {
     governorate?: string;
 }
 
+const checkEmailExists = async (email: string): Promise<boolean> => {
+    const normalizedEmail = email.toLowerCase().trim();
+    const { data } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+    
+    return !!data;
+};
+
 export const userService = {
     async getAllUsers() {
         const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
         return (data || []) as UserProfile[];
     },
 
-    // دالة للتحقق من وجود البريد الإلكتروني مسبقاً لضمان التفرد
     async isEmailTaken(email: string): Promise<boolean> {
-        const normalizedEmail = email.toLowerCase().trim();
-        const { data } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('email', normalizedEmail)
-            .maybeSingle();
-        
-        return !!data;
+        return checkEmailExists(email);
     },
 
     async createUser(payload: CreateUserPayload) {
         const { name, email, role, phone, address } = payload;
         const normalizedEmail = email.toLowerCase().trim();
 
-        // فحص التفرد قبل البدء
-        const taken = await userService.isEmailTaken(normalizedEmail);
+        const taken = await checkEmailExists(normalizedEmail);
         if (taken) {
             throw new Error(`البريد الإلكتروني ${normalizedEmail} مسجل بالفعل لمستخدم آخر.`);
         }
 
         const userId = uuidv4();
 
-        // 1. إنشاء الملف الشخصي
         const { data: profile, error: pError } = await (supabase.from('profiles') as any)
             .insert([{
                 id: userId,
@@ -68,7 +69,6 @@ export const userService = {
 
         if (pError) throw new Error(`فشل إنشاء ملف المستخدم: ${pError.message}`);
 
-        // 2. معالجة حساب المدرب
         if (role === 'instructor') {
             const slug = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(Math.random() * 1000);
             await (supabase.from('instructors') as any).insert([{
@@ -90,20 +90,18 @@ export const userService = {
     async createAndLinkStudentAccount(payload: { name: string, email: string, password?: string, childProfileId: number }) {
         const normalizedEmail = payload.email.toLowerCase().trim();
 
-        // فحص التفرد - التأكد أن البريد غير مستخدم نهائياً
-        const taken = await userService.isEmailTaken(normalizedEmail);
+        const taken = await checkEmailExists(normalizedEmail);
         if (taken) {
             throw new Error(`بريد الطالب ${normalizedEmail} مستخدم بالفعل في حساب آخر.`);
         }
 
-        // التأكد من أن ملف الطفل غير مرتبط بحساب آخر لتجنب تضارب البيانات
+        // Get Parent ID to upgrade role later
         const { data: childData } = await supabase
             .from('child_profiles')
-            .select('student_user_id, name')
+            .select('student_user_id, name, user_id')
             .eq('id', payload.childProfileId)
             .single();
 
-        // Safe property access using casting
         const child = childData as any;
 
         if (child && child.student_user_id) {
@@ -112,7 +110,7 @@ export const userService = {
 
         const newStudentId = uuidv4();
 
-        // 1. إنشاء حساب الطالب في profiles بالبريد الفريد
+        // 1. Create Student Profile
         const { error: profileError } = await (supabase.from('profiles') as any)
             .insert([{
                 id: newStudentId,
@@ -124,7 +122,7 @@ export const userService = {
 
         if (profileError) throw new Error(`فشل إنشاء حساب الطالب: ${profileError.message}`);
 
-        // 2. تحديث ملف الطفل لربطه بالحساب الجديد (العلاقة: ولي أمر -> طفل -> طالب)
+        // 2. Link to Child Profile
         const { error: linkError } = await (supabase.from('child_profiles') as any)
             .update({ student_user_id: newStudentId })
             .eq('id', payload.childProfileId);
@@ -134,44 +132,73 @@ export const userService = {
             throw new Error(`فشل ربط الحساب بالملف: ${linkError.message}`);
         }
 
-        await reportingService.logAction('LINK_STUDENT_ACCOUNT', newStudentId, `طالب: ${payload.name}`, `إنشاء وربط حساب طالب جديد بملف الطفل ID: ${payload.childProfileId}`);
+        // 3. IMPORTANT: Upgrade Parent Role to 'parent'
+        // Only now does the user become a "Parent" because they have an active student account.
+        if (child && child.user_id) {
+            await (supabase.from('profiles') as any)
+                .update({ role: 'parent' })
+                .eq('id', child.user_id)
+                .eq('role', 'user'); 
+        }
+
+        await reportingService.logAction('LINK_STUDENT_ACCOUNT', newStudentId, `طالب: ${payload.name}`, `إنشاء وربط حساب طالب جديد`);
         return { success: true, studentId: newStudentId };
     },
 
     async linkStudentToChildProfile(payload: { studentUserId: string, childProfileId: number }) {
+        // Get Parent ID
+        const { data: childData } = await supabase.from('child_profiles').select('user_id').eq('id', payload.childProfileId).single();
+        const parentId = (childData as any)?.user_id;
+
         const { error } = await (supabase.from('child_profiles') as any)
             .update({ student_user_id: payload.studentUserId })
             .eq('id', payload.childProfileId);
         
         if (error) throw error;
+        
+        // Ensure student role
         await (supabase.from('profiles') as any).update({ role: 'student' }).eq('id', payload.studentUserId);
+
+        // Upgrade Parent Role
+        if (parentId) {
+            await (supabase.from('profiles') as any)
+                .update({ role: 'parent' })
+                .eq('id', parentId)
+                .eq('role', 'user');
+        }
         
         return { success: true };
     },
 
     async unlinkStudentFromChildProfile(childProfileId: number) {
-        const { data: childData } = await supabase.from('child_profiles').select('student_user_id').eq('id', childProfileId).single();
-        const child = childData as any;
+        const { data: childData } = await supabase.from('child_profiles').select('user_id').eq('id', childProfileId).single();
+        const parentId = (childData as any)?.user_id;
         
-        if (child && child.student_user_id) {
-            await (supabase.from('profiles') as any).update({ role: 'user' }).eq('id', child.student_user_id);
-        }
         const { error } = await (supabase.from('child_profiles') as any).update({ student_user_id: null }).eq('id', childProfileId);
         if (error) throw error;
+        
+        // Check if parent has any OTHER linked students
+        if (parentId) {
+            await this.checkAndDowngradeParentRole(parentId);
+        }
         
         return { success: true };
     },
 
-    async deleteChildProfile(childId: number) {
-        const { error } = await supabase.from('child_profiles').delete().eq('id', childId);
-        if (error) throw error;
-        return { success: true };
-    },
+    // --- Parent/Child Logic ---
 
     async createChildProfile(payload: Partial<ChildProfile>) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("جلسة غير صالحة");
-        const { data, error } = await (supabase.from('child_profiles') as any).insert([{ ...payload, user_id: user.id }]).select().single();
+
+        // 1. Create Child ONLY. 
+        // We DO NOT upgrade role to 'parent' here anymore. 
+        // Adding a child profile just makes them a Customer with data.
+        const { data, error } = await (supabase.from('child_profiles') as any)
+            .insert([{ ...payload, user_id: user.id }])
+            .select()
+            .single();
+
         if (error) throw error;
         return data as ChildProfile;
     },
@@ -183,6 +210,38 @@ export const userService = {
         return data as ChildProfile;
     },
 
+    async deleteChildProfile(childId: number) {
+        const { data: child } = await supabase.from('child_profiles').select('user_id').eq('id', childId).single();
+        const parentId = (child as any)?.user_id;
+
+        const { error } = await supabase.from('child_profiles').delete().eq('id', childId);
+        if (error) throw error;
+
+        if (parentId) {
+            await this.checkAndDowngradeParentRole(parentId);
+        }
+
+        return { success: true };
+    },
+
+    // Helper to revert role if no students left
+    async checkAndDowngradeParentRole(parentId: string) {
+        // Count children that HAVE a student_user_id
+        const { count } = await supabase
+            .from('child_profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', parentId)
+            .not('student_user_id', 'is', null);
+        
+        // If 0 active students, revert to 'user'
+        if (count === 0) {
+             await (supabase.from('profiles') as any)
+                .update({ role: 'user' })
+                .eq('id', parentId)
+                .eq('role', 'parent'); 
+        }
+    },
+
     async getAllChildProfiles() {
         const { data } = await supabase.from('child_profiles').select('*');
         return (data || []) as ChildProfile[];
@@ -190,12 +249,17 @@ export const userService = {
 
     async updateUser(payload: UpdateUserPayload) {
         const { id, ...updates } = payload;
+        
+        // Prevent manual role downgrade if active students exist
+        if (updates.role === 'user') {
+             const { count } = await supabase.from('child_profiles')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', id)
+                .not('student_user_id', 'is', null);
 
-        if (updates.role && updates.role !== 'parent' && updates.role !== 'user') {
-            const { count } = await supabase.from('child_profiles').select('*', { count: 'exact', head: true }).eq('user_id', id);
-            if (count && count > 0) {
-                throw new Error("لا يمكن تغيير رتبة ولي الأمر لوجود ملفات أطفال مرتبطة بحسابه.");
-            }
+             if (count && count > 0) {
+                 throw new Error("لا يمكن تحويل الرتبة إلى 'مستخدم' لأن الحساب لديه حسابات طلاب نشطة.");
+             }
         }
 
         const { data, error } = await (supabase.from('profiles') as any).update(updates).eq('id', id).select().single();
@@ -206,9 +270,6 @@ export const userService = {
     },
 
     async updateUserPassword(payload: { userId: string, newPassword: string }) {
-        // In a real app, this would use supabase admin auth to set password
-        // Since we are mocking the backend logic somewhat, we'll just return success
-        // In Supabase client side, you can only update your OWN password.
         return { success: true };
     },
 
