@@ -10,7 +10,7 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
-import { ArrowLeft, Save, User, Lock, Shield, Briefcase, GraduationCap, Link as LinkIcon, Users, AlertTriangle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, User, Lock, Shield, Briefcase, GraduationCap, Link as LinkIcon, Users, AlertTriangle, Trash2, Info } from 'lucide-react';
 import PageLoader from '../../components/ui/PageLoader';
 import { useAuth } from '../../contexts/AuthContext';
 import Modal from '../../components/ui/Modal';
@@ -27,7 +27,7 @@ const AdminUserFormPage: React.FC = () => {
 
     const { data: users = [], isLoading: usersLoading } = useAdminUsers();
     const { data: children = [] } = useAdminAllChildProfiles();
-    const { updateUser, createUser, updateUserPassword, bulkDeleteUsers } = useUserMutations(); 
+    const { updateUser, createUser, bulkDeleteUsers } = useUserMutations(); 
 
     const [formData, setFormData] = useState({
         name: '',
@@ -68,10 +68,8 @@ const AdminUserFormPage: React.FC = () => {
             if (isNew) {
                 await createUser.mutateAsync(formData);
             } else {
+                // updateUser now handles password updates internally if provided
                 await updateUser.mutateAsync({ id: id!, ...formData });
-                if (formData.password) {
-                    await updateUserPassword.mutateAsync({ userId: id!, newPassword: formData.password });
-                }
             }
             navigate('/admin/users');
         } catch (error) {
@@ -201,6 +199,27 @@ const AdminUserFormPage: React.FC = () => {
                                 <Input id="email" name="email" type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required disabled={!isNew} />
                             </FormField>
                         </div>
+                        
+                        {/* New Password Field - Only visible when creating a NEW user */}
+                        {isNew && (
+                            <FormField label="كلمة المرور*" htmlFor="password">
+                                <Input 
+                                    id="password" 
+                                    name="password" 
+                                    type="password" 
+                                    value={formData.password} 
+                                    onChange={e => setFormData({...formData, password: e.target.value})} 
+                                    required 
+                                    placeholder="كلمة المرور للحساب الجديد"
+                                    minLength={6}
+                                />
+                                <div className="mt-2 flex items-start gap-2 text-xs text-blue-700 bg-blue-50 p-2 rounded-md">
+                                    <Info size={16} className="flex-shrink-0" />
+                                    <span>سيتم إنشاء هذا الحساب في قاعدة بيانات الدخول فوراً. يرجى حفظ كلمة المرور وإعطائها للمستخدم.</span>
+                                </div>
+                            </FormField>
+                        )}
+
                         <FormField label="الدور / الرتبة" htmlFor="role">
                             <Select 
                                 id="role" 

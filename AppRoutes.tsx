@@ -19,6 +19,9 @@ import PaymentStatusPage from './pages/PaymentStatusPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfUsePage from './pages/TermsOfUsePage';
 
+// --- Auth Pages ---
+import AdminLoginPage from './pages/admin/AdminLoginPage'; // New Page
+
 import StudentLayout from './components/student/StudentLayout';
 import StudentDashboardPage from './pages/student/StudentDashboardPage';
 import StudentPortfolioPage from './pages/student/StudentPortfolioPage';
@@ -64,6 +67,10 @@ const AppRoutes: React.FC = () => {
                     <Route path="/blog/:slug" element={<BlogPostPage />} />
                     <Route path="/account" element={<AccountPage />} />
                     <Route path="/register" element={<RegisterPage />} />
+                    
+                    {/* Dedicated Admin Login */}
+                    <Route path="/admin/login" element={<AdminLoginPage />} />
+
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
                     <Route path="/payment-status" element={<PaymentStatusPage />} />

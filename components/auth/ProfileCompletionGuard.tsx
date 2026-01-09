@@ -1,38 +1,57 @@
 
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
+import { useToast } from '../../contexts/ToastContext';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/Button';
 import FormField from '../ui/FormField';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { supportedCountries } from '../../data/mockData';
-import { AlertCircle, Globe } from 'lucide-react';
+import { AlertCircle, Globe, LogOut } from 'lucide-react';
 import { STAFF_ROLES } from '../../lib/roles';
 
 const ProfileCompletionGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { currentUser, loading, updateCurrentUser } = useAuth();
+    // 1. All Hooks must be called unconditionally at the top level
+    const { currentUser, loading, updateCurrentUser, signOut } = useAuth();
     const { updateUser } = useUserMutations();
+    const { addToast } = useToast();
+    const location = useLocation();
+    
     const [isOpen, setIsOpen] = useState(false);
-    const [country, setCountry] = useState('EG'); // Default
+    const [country, setCountry] = useState('EG');
     const [city, setCity] = useState('');
     const [phone, setPhone] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
-    // Check if profile is complete
+    // 2. useEffect logic (moved before any returns)
     useEffect(() => {
+        // If on admin route, ensure modal is closed
+        if (location.pathname.startsWith('/admin')) {
+            setIsOpen(false);
+            return;
+        }
+
         if (!loading && currentUser) {
-            // استثناء فريق العمل من التحقق الإجباري
+            // Staff don't need profile completion checks here
             if (STAFF_ROLES.includes(currentUser.role)) {
                 setIsOpen(false);
                 return;
             }
 
+            // Check if profile is complete for regular users
             const isComplete = currentUser.country && currentUser.city && currentUser.phone;
             setIsOpen(!isComplete);
         }
-    }, [loading, currentUser]);
+    }, [loading, currentUser, location.pathname]);
+
+    const handleSignOut = async () => {
+        await signOut();
+        setIsOpen(false);
+        window.location.href = '/';
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,19 +61,19 @@ const ProfileCompletionGuard: React.FC<{ children: React.ReactNode }> = ({ child
         try {
             const selectedCountryData = supportedCountries.find(c => c.code === country);
             
-            await updateUser.mutateAsync({
+            const payload = {
                 id: currentUser.id,
                 country: selectedCountryData?.name || 'مصر',
                 timezone: selectedCountryData?.timezone || 'Africa/Cairo',
                 currency: selectedCountryData?.currency || 'EGP',
                 city,
                 phone,
-                // Map city to governorate/address for backward compatibility if needed
-                address: city, 
-                governorate: city
-            });
+                address: city, // Fallback
+                governorate: city // Fallback
+            };
+
+            await updateUser.mutateAsync(payload);
             
-            // Local update to close modal immediately
             updateCurrentUser({
                 country: selectedCountryData?.name || 'مصر',
                 city,
@@ -64,22 +83,53 @@ const ProfileCompletionGuard: React.FC<{ children: React.ReactNode }> = ({ child
             });
             
             setIsOpen(false);
-        } catch (error) {
+            addToast('تم تحديث البيانات بنجاح', 'success');
+        } catch (error: any) {
             console.error("Failed to update profile", error);
         } finally {
             setIsSaving(false);
         }
     };
 
+    // 3. Conditional Rendering
+
+    // If loading, we can return null (though often better to show a spinner, null is fine here)
     if (loading) return null;
 
+    // Admin routes bypass the guard entirely visually
+    if (location.pathname.startsWith('/admin')) {
+        return <>{children}</>;
+    }
+
+    // Staff bypass the guard
+    if (currentUser && STAFF_ROLES.includes(currentUser.role)) {
+        return <>{children}</>;
+    }
+
+    // If open, show modal
     if (isOpen) {
         return (
             <Modal
                 isOpen={true}
-                onClose={() => {}} // Cannot close without saving
+                onClose={() => {}} // Prevent closing by clicking outside
                 title="استكمال البيانات الأساسية"
                 size="md"
+                footer={
+                     <div className="w-full flex justify-between items-center gap-4">
+                        <Button 
+                            type="button"
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={handleSignOut} 
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 gap-2"
+                        >
+                            <LogOut size={16} /> تسجيل الخروج
+                        </Button>
+                         <Button type="submit" form="completion-form" loading={isSaving} size="default">
+                            حفظ ومتابعة
+                        </Button>
+                    </div>
+                }
             >
                 <div className="space-y-6">
                     <div className="bg-blue-50 p-4 rounded-lg flex gap-3 text-blue-800 text-sm">
@@ -89,7 +139,7 @@ const ProfileCompletionGuard: React.FC<{ children: React.ReactNode }> = ({ child
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form id="completion-form" onSubmit={handleSubmit} className="space-y-4">
                         <FormField label="الدولة" htmlFor="country">
                             <Select id="country" value={country} onChange={(e) => setCountry(e.target.value)} required>
                                 {supportedCountries.map(c => (
@@ -118,10 +168,6 @@ const ProfileCompletionGuard: React.FC<{ children: React.ReactNode }> = ({ child
                                 required 
                             />
                         </FormField>
-
-                        <Button type="submit" loading={isSaving} className="w-full mt-4" size="lg">
-                            حفظ ومتابعة
-                        </Button>
                     </form>
                 </div>
             </Modal>

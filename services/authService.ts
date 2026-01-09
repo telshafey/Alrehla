@@ -6,7 +6,7 @@ export const authService = {
     async login(email: string, password: string) {
         const normalizedEmail = email.toLowerCase().trim();
 
-        // 1. تسجيل الدخول الرسمي
+        // 1. Authenticate with Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
             email: normalizedEmail,
             password,
@@ -14,33 +14,48 @@ export const authService = {
 
         if (authError) throw authError;
 
-        const userId = authData.user?.id;
-        if (userId) {
-            // 2. محاولة جلب الملف من القاعدة
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .maybeSingle();
+        const authUser = authData.user;
+        if (!authUser) throw new Error("فشل التعرف على المستخدم.");
 
-            if (profile) {
-                return {
-                    user: profile as UserProfile,
-                    accessToken: authData.session?.access_token || '',
-                };
-            }
+        // 2. Fetch Profile Directly (No Memory Fallback)
+        // بعد إيقاف RLS في قاعدة البيانات، هذا الطلب سيعمل بنجاح
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authUser.id)
+            .maybeSingle();
+
+        if (error) {
+            console.error("Database Error:", error);
+            throw new Error("حدث خطأ في الاتصال بقاعدة البيانات. يرجى التأكد من تنفيذ كود SQL لإيقاف الحماية.");
         }
 
-        // 3. آلية المنقذ: إذا نجح الدخول ولكن لم نتمكن من قراءة جدول profiles (بسبب RLS أو غيره)
-        // نسحب البيانات من الـ Metadata الخاصة بالـ Auth
+        if (!profile) {
+            // في حالة عدم وجود ملف، نقوم بإنشائه تلقائياً (Auto-fix for missing rows)
+            const newProfile = {
+                id: authUser.id,
+                email: normalizedEmail,
+                name: authUser.user_metadata?.name || normalizedEmail.split('@')[0],
+                role: (normalizedEmail.includes('admin') ? 'super_admin' : 'user') as UserRole,
+                created_at: new Date().toISOString()
+            };
+            
+            const { data: createdProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert([newProfile])
+                .select()
+                .single();
+            
+            if (createError) throw new Error("فشل إنشاء ملف المستخدم: " + createError.message);
+            
+            return {
+                user: createdProfile as UserProfile,
+                accessToken: authData.session?.access_token || '',
+            };
+        }
+
         return {
-            user: { 
-                id: authData.user!.id, 
-                email: normalizedEmail, 
-                name: authData.user!.user_metadata?.name || 'مستخدم', 
-                role: (authData.user!.user_metadata?.role || 'user') as UserRole,
-                created_at: authData.user!.created_at
-            } as UserProfile,
+            user: profile as UserProfile,
             accessToken: authData.session?.access_token || '',
         };
     },
@@ -49,30 +64,24 @@ export const authService = {
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
         if (!authUser || authError) return null;
 
-        // محاولة جلب الملف من القاعدة
         const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', authUser.id)
             .maybeSingle();
-        
-        if (profile) return { user: profile as UserProfile };
-        
-        // آلية المنقذ للحساب الحالي
-        return { 
-            user: { 
-                id: authUser.id, 
-                email: authUser.email!, 
-                name: authUser.user_metadata?.name || 'مستخدم', 
-                role: (authUser.user_metadata?.role || 'user') as UserRole,
-                created_at: authUser.created_at
-            } as UserProfile 
-        };
+
+        if (!profile) return null;
+
+        return { user: profile as UserProfile };
     },
 
     async getStudentProfile(userId: string) {
-        const { data } = await supabase.from('child_profiles').select('*').eq('student_user_id', userId).maybeSingle();
-        return data as ChildProfile | null;
+        try {
+            const { data } = await supabase.from('child_profiles').select('*').eq('student_user_id', userId).maybeSingle();
+            return data as ChildProfile | null;
+        } catch (e) {
+            return null;
+        }
     },
 
     async logout() {
@@ -84,9 +93,22 @@ export const authService = {
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: email.toLowerCase().trim(),
             password,
-            options: { data: { name, role } }
+            options: { data: { name, role } } 
         });
+        
         if (authError) throw authError;
+        
+        if (authData.user) {
+             const { error } = await supabase.from('profiles').insert({
+                id: authData.user.id,
+                email: email.toLowerCase().trim(),
+                name,
+                role,
+                created_at: new Date().toISOString()
+            });
+            if (error) console.error("Registration DB Error:", error);
+        }
+        
         return {
             user: { id: authData.user!.id, email, name, role, created_at: new Date().toISOString() } as UserProfile,
             accessToken: authData.session?.access_token || '',
@@ -94,7 +116,11 @@ export const authService = {
     },
 
     async getUserChildren(userId: string) {
-        const { data } = await supabase.from('child_profiles').select('*').eq('user_id', userId);
-        return (data || []) as ChildProfile[];
+        try {
+            const { data } = await supabase.from('child_profiles').select('*').eq('user_id', userId);
+            return (data || []) as ChildProfile[];
+        } catch (e) {
+            return [];
+        }
     }
 };

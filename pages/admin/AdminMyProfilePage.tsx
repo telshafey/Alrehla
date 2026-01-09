@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
+import { useToast } from '../../contexts/ToastContext';
 import { User, Key, Globe } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
@@ -13,6 +14,7 @@ import { supportedCountries } from '../../data/mockData';
 const AdminMyProfilePage: React.FC = () => {
     const { currentUser, updateCurrentUser } = useAuth();
     const { updateUser, updateUserPassword } = useUserMutations();
+    const { addToast } = useToast();
     
     const [name, setName] = useState(currentUser?.name || '');
     const [email, setEmail] = useState(currentUser?.email || '');
@@ -40,8 +42,13 @@ const AdminMyProfilePage: React.FC = () => {
             currency: selectedCountryData?.currency
         };
 
-        await updateUser.mutateAsync(payload);
-        updateCurrentUser(payload);
+        try {
+            await updateUser.mutateAsync(payload);
+            updateCurrentUser(payload);
+        } catch (error) {
+            console.error("Profile update failed", error);
+            // Toast is handled by hook
+        }
     };
 
     const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -49,13 +56,18 @@ const AdminMyProfilePage: React.FC = () => {
         if (!currentUser) return;
         
         if (newPassword !== confirmPassword) {
-            alert("كلمتا المرور الجديدتان غير متطابقتين.");
+            addToast("كلمتا المرور الجديدتان غير متطابقتين.", "warning");
             return;
         }
-        await updateUserPassword.mutateAsync({ userId: currentUser.id, newPassword });
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
+        
+        try {
+            await updateUserPassword.mutateAsync({ userId: currentUser.id, newPassword });
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (error) {
+            // Toast handled by hook
+        }
     };
 
     return (

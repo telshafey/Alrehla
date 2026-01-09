@@ -167,12 +167,12 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   address?: string | null;
-  governorate?: string | null; // Keep for backward compatibility or map to State
-  city?: string | null;
-  country?: string | null;
-  phone?: string | null;
-  timezone?: string | null;
-  currency?: string | null;
+  governorate?: string | null; 
+  city?: string | null; // Added
+  country?: string | null; // Added
+  phone?: string | null; // Added
+  timezone?: string | null; // Added
+  currency?: string | null; // Added
 }
 
 export interface UserProfileWithRelations extends UserProfile {
@@ -191,7 +191,7 @@ export interface ChildProfile {
   interests: string[] | null;
   strengths: string[] | null;
   student_user_id: string | null;
-  student_email?: string; // Virtual field for display
+  student_email?: string; 
   age?: number;
 }
 
@@ -312,7 +312,7 @@ export interface CreativeWritingBooking {
   progress_notes: string | null;
   receipt_url: string | null;
   session_id: string;
-  details?: any; // Added details field if needed by backend
+  details?: any; 
 }
 
 export interface BookingWithRelations extends CreativeWritingBooking {

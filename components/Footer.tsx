@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Loader2 } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Loader2, ShieldCheck } from 'lucide-react';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 
 const Footer: React.FC = () => {
@@ -70,9 +70,14 @@ const Footer: React.FC = () => {
 
                 <div className="mt-8 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground gap-4">
                     <p>&copy; {new Date().getFullYear()} منصة الرحلة. جميع الحقوق محفوظة.</p>
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 items-center">
                         <Link to="/privacy" className="hover:text-primary transition-colors">الخصوصية</Link>
                         <Link to="/terms" className="hover:text-primary transition-colors">الشروط</Link>
+                        <span className="text-border">|</span>
+                        <Link to="/admin/login" className="hover:text-primary transition-colors flex items-center gap-1">
+                             <ShieldCheck size={14} />
+                             الإدارة
+                        </Link>
                     </div>
                 </div>
             </div>

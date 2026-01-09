@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,10 +18,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
     return <PageLoader text="جاري التحقق من صلاحيات الدخول..." />;
   }
 
-  // 1. If user is not logged in, redirect to login page
+  // 1. If user is not logged in
   if (!isLoggedIn) {
-    // Save the current location they were trying to go to.
-    // This allows us to redirect them back to that page after they log in.
+    // If trying to access admin area, redirect to Admin Login
+    if (adminOnly) {
+        return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    }
+    // Otherwise redirect to standard Account Login
     return <Navigate to="/account" state={{ from: location }} replace />;
   }
   

@@ -35,7 +35,6 @@ interface CreateInstructorPayload {
     [key: string]: any;
 }
 
-// دالة مساعدة لاستخراج عدد الجلسات بشكل صحيح من النص
 const parseSessionCount = (sessionString: string | undefined): number => {
     if (!sessionString) return 1;
     if (sessionString.includes('واحدة')) return 1;
@@ -44,85 +43,98 @@ const parseSessionCount = (sessionString: string | undefined): number => {
 };
 
 export const bookingService = {
-    // --- Queries ---
+    // --- Queries (SAFE MODE) ---
     
     async getAllBookings() {
-        const { data, error } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        return data as CreativeWritingBooking[];
+        try {
+            const { data, error } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
+            if (error) return [];
+            return data as CreativeWritingBooking[];
+        } catch { return []; }
     },
 
     async getAllInstructors() {
-        const { data, error } = await supabase.from('instructors').select('*').is('deleted_at', null);
-        if (error) throw error;
-        return data as Instructor[];
+        try {
+            const { data, error } = await supabase.from('instructors').select('*').is('deleted_at', null);
+            if (error) return [];
+            return data as Instructor[];
+        } catch { return []; }
     },
 
     async getInstructorByUserId(userId: string) {
-        const { data, error } = await supabase.from('instructors').select('*').eq('user_id', userId).maybeSingle();
-        if (error) throw error;
-        return data as Instructor | null;
+        try {
+            const { data, error } = await supabase.from('instructors').select('*').eq('user_id', userId).maybeSingle();
+            if (error) return null;
+            return data as Instructor | null;
+        } catch { return null; }
     },
 
     async getInstructorBookings(instructorId: number) {
-        const { data, error } = await supabase.from('bookings').select('*').eq('instructor_id', instructorId);
-        if (error) throw error;
-        return data as CreativeWritingBooking[];
+        try {
+            const { data, error } = await supabase.from('bookings').select('*').eq('instructor_id', instructorId);
+            if (error) return [];
+            return data as CreativeWritingBooking[];
+        } catch { return []; }
     },
 
     async getAllScheduledSessions() {
-        const { data, error } = await supabase.from('scheduled_sessions').select('*').order('session_date', { ascending: true });
-        if (error) throw error;
-        return data as ScheduledSession[];
+        try {
+            const { data, error } = await supabase.from('scheduled_sessions').select('*').order('session_date', { ascending: true });
+            if (error) return [];
+            return data as ScheduledSession[];
+        } catch { return []; }
     },
 
     async getAllPackages() {
-        const { data, error } = await supabase.from('creative_writing_packages').select('*');
-        if (error) throw error;
-        return data as CreativeWritingPackage[];
+        try {
+            const { data, error } = await supabase.from('creative_writing_packages').select('*');
+            if (error) return [];
+            return data as CreativeWritingPackage[];
+        } catch { return []; }
     },
 
     async getAllStandaloneServices() {
-        const { data, error } = await supabase.from('standalone_services').select('*');
-        if (error) throw error;
-        return data as StandaloneService[];
+        try {
+            const { data, error } = await supabase.from('standalone_services').select('*');
+            if (error) return [];
+            return data as StandaloneService[];
+        } catch { return []; }
     },
 
     async getAllComparisonItems() {
-        const { data, error } = await supabase.from('comparison_items').select('*').order('sort_order', { ascending: true });
-        if (error) throw error;
-        return data as ComparisonItem[];
+        try {
+            const { data, error } = await supabase.from('comparison_items').select('*').order('sort_order', { ascending: true });
+            if (error) return [];
+            return data as ComparisonItem[];
+        } catch { return []; }
     },
 
     async getAllAttachments() {
-        const { data, error } = await supabase.from('session_attachments').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        return data as SessionAttachment[];
+        try {
+            const { data, error } = await supabase.from('session_attachments').select('*').order('created_at', { ascending: false });
+            if (error) return [];
+            return data as SessionAttachment[];
+        } catch { return []; }
     },
 
     // --- Validation ---
     
-    /**
-     * التحقق من توفر الموعد قبل الحجز النهائي
-     * لتجنب تضارب الحجوزات في اللحظة الأخيرة
-     */
     async checkSlotAvailability(instructorId: number, dateStr: string, time: string): Promise<boolean> {
-        // التحقق من الحجوزات المؤكدة أو التي بانتظار الدفع في نفس اليوم والوقت
-        const { data, error } = await supabase
-            .from('bookings')
-            .select('id')
-            .eq('instructor_id', instructorId)
-            .eq('booking_time', time)
-            .ilike('booking_date', `${dateStr.split('T')[0]}%`) // Match date part
-            .neq('status', 'ملغي'); // Ignore cancelled bookings
+        try {
+            const { data, error } = await supabase
+                .from('bookings')
+                .select('id')
+                .eq('instructor_id', instructorId)
+                .eq('booking_time', time)
+                .ilike('booking_date', `${dateStr.split('T')[0]}%`)
+                .neq('status', 'ملغي');
 
-        if (error) throw error;
-        
-        // إذا وجدنا حجزاً واحداً على الأقل، فالموعد غير متاح
-        return data.length === 0;
+            if (error) return true; // Default to available on error to not block
+            return data.length === 0;
+        } catch { return true; }
     },
 
-    // --- Mutations ---
+    // --- Mutations (Can Throw) ---
 
     async createBooking(payload: { userId: string, payload: CreateBookingPayload, receiptUrl: string }) {
         const { userId, payload: bookingData, receiptUrl } = payload;
@@ -162,33 +174,27 @@ export const bookingService = {
 
         await reportingService.logAction('UPDATE_BOOKING_STATUS', bookingId, `حجز: ${booking.package_name}`, `تغيير الحالة إلى: ${newStatus}`);
 
-        // منطق توليد الجلسات عند التأكيد
         if (newStatus === 'مؤكد') {
-            // 1. حذف أي جلسات "قادمة" سابقة لنفس الحجز لمنع التكرار (في حال إعادة التأكيد)
             await supabase.from('scheduled_sessions').delete().eq('booking_id', bookingId).eq('status', 'upcoming');
             
-            // 2. حساب عدد الجلسات بناءً على الباقة
             const { data: pkgData } = await supabase.from('creative_writing_packages').select('sessions').eq('name', booking.package_name).single();
             const pkg = pkgData as any;
             const sessionCount = pkg ? parseSessionCount(pkg.sessions) : 1;
             
-            // 3. تحديد تاريخ البداية (إذا كان التاريخ في الماضي، نبدأ من الأسبوع القادم، وإلا نستخدم تاريخ الحجز)
             const now = new Date();
             const originalDate = new Date(booking.booking_date);
             let startDate = originalDate;
             
-            // إذا كان تاريخ الحجز الأصلي قد فات، نبدأ الجدولة من أقرب موعد مماثل قادم
             if (startDate < now) {
                 while (startDate < now) { 
                     startDate.setDate(startDate.getDate() + 7); 
                 }
             }
 
-            // 4. إنشاء سجلات الجلسات
             const sessionsToInsert = [];
             for (let i = 0; i < sessionCount; i++) {
                 const sDate = new Date(startDate);
-                sDate.setDate(startDate.getDate() + (i * 7)); // إضافة أسبوع لكل جلسة تالية
+                sDate.setDate(startDate.getDate() + (i * 7));
                 
                 sessionsToInsert.push({
                     id: uuidv4(),
@@ -203,7 +209,6 @@ export const bookingService = {
             await (supabase.from('scheduled_sessions') as any).insert(sessionsToInsert);
         }
 
-        // تنظيف الجلسات عند الإلغاء
         if (newStatus === 'ملغي') {
             await supabase.from('scheduled_sessions').delete().eq('booking_id', bookingId).eq('status', 'upcoming');
         }

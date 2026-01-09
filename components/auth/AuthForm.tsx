@@ -8,52 +8,70 @@ import { Input } from '../ui/Input';
 import FormField from '../ui/FormField';
 import { STAFF_ROLES } from '../../lib/roles';
 
-
 interface AuthFormProps {
     mode: 'login' | 'signup';
+    redirectTo?: string; // Explicit redirect path override
 }
 
-export const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
-    const { signIn, signUp, loading, error } = useAuth();
+export const AuthForm: React.FC<AuthFormProps> = ({ mode, redirectTo }) => {
+    const { signIn, signUp, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
-    const role: UserRole = 'user'; // All signups are now standard 'user' role
+    const [localError, setLocalError] = useState<string | null>(null);
+    
+    const role: UserRole = 'user'; // All public signups default to 'user'
 
     const isLogin = mode === 'login';
-    // If user came from a specific protected page, use that. Otherwise default logic applies.
-    const from = location.state?.from?.pathname;
+    const from = location.state?.from?.pathname || redirectTo;
+    
+    // هل يحاول المستخدم الدخول من بوابة الإدارة؟
+    const isAdminPortal = redirectTo === '/admin' || location.pathname.includes('admin');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLocalError(null);
         
         let userResult = null;
         
-        if (isLogin) {
-            userResult = await signIn(email, password);
-        } else {
-            userResult = await signUp(email, password, name, role);
-        }
+        // استدعاء دالة الدخول (التي ستجلب الرتبة الحقيقية من القاعدة الآن)
+        userResult = isLogin 
+            ? await signIn(email, password) 
+            : await signUp(email, password, name, role);
 
         if (userResult) {
-            // Priority 1: If user was redirected from a specific page (e.g. checkout), send them back there
+            // التحقق الصارم من الرتبة القادمة من قاعدة البيانات
+            const userRole = userResult.role;
+            const isStaff = STAFF_ROLES.includes(userRole);
+
+            // 1. سيناريو محاولة دخول مستخدم عادي لبوابة الإدارة
+            if (isAdminPortal && !isStaff) {
+                setLocalError("عذراً، هذا الحساب لا يملك صلاحيات إدارية. يرجى الدخول من الصفحة الرئيسية.");
+                return; // نوقف التوجيه
+            }
+
+            // 2. التوجيه بناءً على الرتبة والمصدر
+            if (redirectTo) {
+                navigate(redirectTo, { replace: true });
+                return;
+            }
+
             if (from) {
                 navigate(from, { replace: true });
                 return;
             }
 
-            // Priority 2: Smart routing based on Role
-            if (userResult.role === 'student') {
+            // التوجيه الذكي الافتراضي
+            if (userRole === 'student') {
                 navigate('/student/dashboard', { replace: true });
             } 
-            else if (STAFF_ROLES.includes(userResult.role)) {
+            else if (isStaff) {
                 navigate('/admin', { replace: true });
             } 
             else {
-                // Parents and regular users go to account
                 navigate('/account', { replace: true });
             }
         }
@@ -76,9 +94,13 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
                      <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                 </FormField>
                 
-                {error && <p className="text-red-500 text-sm bg-red-50 p-2 rounded">{error}</p>}
+                {localError && (
+                    <div className="text-red-600 text-sm bg-red-50 p-3 rounded border border-red-100 font-semibold">
+                        {localError}
+                    </div>
+                )}
                 
-                <Button type="submit" loading={loading} className="w-full">
+                <Button type="submit" loading={authLoading} className="w-full">
                     {isLogin ? 'دخول' : 'إنشاء حساب'}
                 </Button>
             </form>
