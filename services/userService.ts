@@ -16,10 +16,15 @@ interface CreateUserPayload {
 interface UpdateUserPayload {
     id: string;
     name?: string;
+    email?: string;
     role?: UserRole;
     phone?: string;
     address?: string;
     governorate?: string;
+    city?: string;
+    country?: string;
+    timezone?: string;
+    currency?: string;
 }
 
 const checkEmailExists = async (email: string): Promise<boolean> => {
