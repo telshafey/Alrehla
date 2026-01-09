@@ -15,8 +15,8 @@ import { bookingService } from '../../../services/bookingService';
 const fetchSetting = async (key: string, fallback: any) => {
     const { data } = await supabase.from('site_settings').select('value').eq('key', key).single();
     // Explicit check for data before accessing value
-    if (data && data.value) {
-        return data.value;
+    if (data) {
+        return (data as any).value;
     }
     return fallback;
 };

@@ -154,8 +154,11 @@ const OrderPage: React.FC = () => {
     }, [product, setValue]);
 
     const isLoading = productContextLoading || orderDataLoading;
-    const allProducts = useMemo(() => orderData?.personalizedProducts || [], [orderData]);
+    
+    // Explicitly typed empty array fallback to prevent 'never[]' inference
+    const allProducts = useMemo(() => (orderData?.personalizedProducts || []) as PersonalizedProduct[], [orderData]);
     const addonProducts = useMemo(() => allProducts.filter(p => p.is_addon), [allProducts]);
+    
     const storyGoals = useMemo(() => product?.story_goals || [], [product]);
 
     // --- Price Calculations ---

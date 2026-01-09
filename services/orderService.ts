@@ -192,8 +192,11 @@ export const orderService = {
         const renewalDate = new Date(startDate);
         renewalDate.setMonth(renewalDate.getMonth() + (payload.durationMonths || 1)); 
 
-        const { data: child } = await supabase.from('child_profiles').select('name').eq('id', payload.childId).single();
-        const { data: user } = await supabase.from('profiles').select('name').eq('id', payload.userId).single();
+        const { data: childData } = await supabase.from('child_profiles').select('name').eq('id', payload.childId).single();
+        const { data: userData } = await supabase.from('profiles').select('name').eq('id', payload.userId).single();
+
+        const child = childData as { name: string } | null;
+        const user = userData as { name: string } | null;
 
         const { data, error } = await (supabase.from('subscriptions') as any).insert([{
             id: subId,
@@ -253,8 +256,9 @@ export const orderService = {
         const { data, error } = await (supabase.from('subscription_plans') as any).insert([payload]).select().single();
         if (error) throw new Error(error.message);
         
-        await reportingService.logAction('CREATE_SUB_PLAN', data.id.toString(), `باقة اشتراك: ${data.name}`, `إنشاء باقة جديدة بسعر ${data.price}`);
-        return data as SubscriptionPlan;
+        const planData = data as SubscriptionPlan;
+        await reportingService.logAction('CREATE_SUB_PLAN', planData.id.toString(), `باقة اشتراك: ${planData.name}`, `إنشاء باقة جديدة بسعر ${planData.price}`);
+        return planData;
     },
 
     async updateSubscriptionPlan(payload: Partial<SubscriptionPlan>) {
@@ -263,8 +267,9 @@ export const orderService = {
         const { data, error } = await (supabase.from('subscription_plans') as any).update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
         
-        await reportingService.logAction('UPDATE_SUB_PLAN', id.toString(), `باقة اشتراك: ${data.name}`, `تحديث بيانات الباقة`);
-        return data as SubscriptionPlan;
+        const planData = data as SubscriptionPlan;
+        await reportingService.logAction('UPDATE_SUB_PLAN', id.toString(), `باقة اشتراك: ${planData.name}`, `تحديث بيانات الباقة`);
+        return planData;
     },
 
     async deleteSubscriptionPlan(planId: number) {
@@ -279,8 +284,9 @@ export const orderService = {
         const { data, error } = await (supabase.from('personalized_products') as any).insert([payload]).select().single();
         if (error) throw new Error(error.message);
         
-        await reportingService.logAction('CREATE_PRODUCT', data.id.toString(), `منتج: ${data.title}`, `إضافة منتج جديد للمتجر`);
-        return data as PersonalizedProduct;
+        const productData = data as PersonalizedProduct;
+        await reportingService.logAction('CREATE_PRODUCT', productData.id.toString(), `منتج: ${productData.title}`, `إضافة منتج جديد للمتجر`);
+        return productData;
     },
 
     async updatePersonalizedProduct(payload: Partial<PersonalizedProduct>) {
@@ -289,8 +295,9 @@ export const orderService = {
         const { data, error } = await (supabase.from('personalized_products') as any).update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
         
-        await reportingService.logAction('UPDATE_PRODUCT', id.toString(), `منتج: ${data.title}`, `تحديث بيانات المنتج`);
-        return data as PersonalizedProduct;
+        const productData = data as PersonalizedProduct;
+        await reportingService.logAction('UPDATE_PRODUCT', id.toString(), `منتج: ${productData.title}`, `تحديث بيانات المنتج`);
+        return productData;
     },
 
     async deletePersonalizedProduct(productId: number) {

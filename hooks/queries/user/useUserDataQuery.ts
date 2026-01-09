@@ -12,7 +12,8 @@ import type {
     ChildBadge, 
     Badge, 
     SessionAttachment,
-    ChildProfile 
+    ChildProfile,
+    Instructor
 } from '../../../lib/database.types';
 
 export type { SessionAttachment };
@@ -78,15 +79,20 @@ export const useUserAccountData = () => {
             
             if (rawBookings.length > 0) {
                 try {
-                    const { data: instructors } = await supabase.from('instructors').select('id, name');
-                    const { data: packages } = await supabase.from('creative_writing_packages').select('*');
-                    const { data: sessions } = await supabase.from('scheduled_sessions').select('*');
+                    // Fetch related data with explicit type casting to avoid 'never' inference
+                    const { data: instructorsData } = await supabase.from('instructors').select('id, name');
+                    const { data: packagesData } = await supabase.from('creative_writing_packages').select('*');
+                    const { data: sessionsData } = await supabase.from('scheduled_sessions').select('*');
+
+                    const instructors = (instructorsData || []) as any[];
+                    const packages = (packagesData || []) as CreativeWritingPackage[];
+                    const sessions = (sessionsData || []) as ScheduledSession[];
 
                     enrichedBookings = rawBookings.map((b: any) => ({
                         ...b,
-                        sessions: sessions?.filter(s => s.booking_id === b.id) || [],
-                        packageDetails: packages?.find(p => p.name === b.package_name),
-                        instructorName: instructors?.find(i => i.id === b.instructor_id)?.name || 'غير محدد',
+                        sessions: sessions.filter((s) => s.booking_id === b.id) || [],
+                        packageDetails: packages.find((p) => p.name === b.package_name),
+                        instructorName: instructors.find((i) => i.id === b.instructor_id)?.name || 'غير محدد',
                         child_profiles: b.child_profiles
                     }));
                 } catch (e) {
