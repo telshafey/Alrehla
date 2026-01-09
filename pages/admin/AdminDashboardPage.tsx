@@ -11,7 +11,8 @@ import ActionCenterWidget from '../../components/admin/dashboards/ActionCenterWi
 import RecentActivityWidget from '../../components/admin/dashboards/RecentActivityWidget';
 import QuickActionsWidget from '../../components/admin/dashboards/QuickActionsWidget';
 import ContentSummaryWidget from '../../components/admin/dashboards/ContentSummaryWidget';
-import AgendaWidget from '../../components/admin/dashboards/AgendaWidget';
+// Corrected import path to match existing file location
+import AgendaWidget from './dashboards/AgendaWidget';
 
 const AdminDashboardPage: React.FC = () => {
     const { currentUser, permissions } = useAuth();

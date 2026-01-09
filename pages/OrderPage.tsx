@@ -56,9 +56,15 @@ const OrderPage: React.FC = () => {
     const [isChildModalOpen, setIsChildModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // CRITICAL FIX: Ensure 'allProducts' is strictly typed array to avoid 'never' inference
+    const allProducts: PersonalizedProduct[] = useMemo(() => {
+        const products = orderData?.personalizedProducts;
+        return Array.isArray(products) ? (products as PersonalizedProduct[]) : [];
+    }, [orderData]);
+
     const product = useMemo(() => 
-        (orderData?.personalizedProducts || []).find(p => p.key === productKey) as any, 
-    [orderData, productKey]);
+        allProducts.find(p => p.key === productKey), 
+    [allProducts, productKey]);
 
     // --- Dynamic Steps Logic ---
     const stepsConfig = useMemo(() => {
@@ -155,10 +161,7 @@ const OrderPage: React.FC = () => {
 
     const isLoading = productContextLoading || orderDataLoading;
     
-    // Explicitly typed empty array fallback to prevent 'never[]' inference
-    const allProducts = useMemo(() => (orderData?.personalizedProducts || []) as PersonalizedProduct[], [orderData]);
     const addonProducts = useMemo(() => allProducts.filter(p => p.is_addon), [allProducts]);
-    
     const storyGoals = useMemo(() => product?.story_goals || [], [product]);
 
     // --- Price Calculations ---

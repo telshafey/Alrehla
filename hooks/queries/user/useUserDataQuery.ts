@@ -64,22 +64,21 @@ export const useUserAccountData = () => {
         queryFn: async () => {
             if (!currentUser) return { userOrders: [], userSubscriptions: [], userBookings: [], childBadges: [], allBadges: [], attachments: [], childProfiles: [] };
 
-            // الفلترة هنا هي المفتاح: .eq('user_id', currentUser.id) تضمن الخصوصية
             const [ordersRes, subsRes, bookingsRes, childrenRes, badgesRes, allBadgesRes] = await Promise.all([
                 supabase.from('orders').select('*').eq('user_id', currentUser.id).order('order_date', { ascending: false }),
                 supabase.from('subscriptions').select('*').eq('user_id', currentUser.id),
                 supabase.from('bookings').select('*, child_profiles(name)').eq('user_id', currentUser.id),
                 supabase.from('child_profiles').select('*').eq('user_id', currentUser.id),
-                supabase.from('child_badges').select('*'), // سيتم ربطها لاحقاً بالهوية
+                supabase.from('child_badges').select('*'),
                 supabase.from('badges').select('*')
             ]);
 
             let enrichedBookings: EnrichedBooking[] = [];
-            const rawBookings = bookingsRes.data || [];
+            // Fix: Cast explicitly to any[] to avoid never[] inference on empty array
+            const rawBookings = (bookingsRes.data || []) as any[];
             
             if (rawBookings.length > 0) {
                 try {
-                    // Fetch related data with explicit type casting to avoid 'never' inference
                     const { data: instructorsData } = await supabase.from('instructors').select('id, name');
                     const { data: packagesData } = await supabase.from('creative_writing_packages').select('*');
                     const { data: sessionsData } = await supabase.from('scheduled_sessions').select('*');

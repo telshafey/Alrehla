@@ -14,8 +14,8 @@ import { bookingService } from '../../../services/bookingService';
 // Helper to fetch single setting
 const fetchSetting = async (key: string, fallback: any) => {
     const { data } = await supabase.from('site_settings').select('value').eq('key', key).single();
-    // Explicit check for data before accessing value
-    if (data) {
+    // Explicit check for data before accessing value to satisfy TS and prevent runtime errors
+    if (data && typeof data === 'object' && 'value' in data) {
         return (data as any).value;
     }
     return fallback;
