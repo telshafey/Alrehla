@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 import PageLoader from './components/ui/PageLoader';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import ProfileCompletionGuard from './components/auth/ProfileCompletionGuard'; // Import Guard
 
 // --- Core Pages ---
 import PortalPage from './pages/PortalPage';
@@ -51,49 +52,51 @@ const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
 const AppRoutes: React.FC = () => {
     return (
         <Suspense fallback={<PageLoader />}>
-            <Routes>
-                <Route path="/" element={<PortalPage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/support" element={<SupportPage />} />
-                <Route path="/join-us" element={<JoinUsPage />} />
-                <Route path="/privacy" element={<PrivacyPolicyPage />} />
-                <Route path="/terms" element={<TermsOfUsePage />} />
-                <Route path="/blog" element={<BlogPage />} />
-                <Route path="/blog/:slug" element={<BlogPostPage />} />
-                <Route path="/account" element={<AccountPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
-                <Route path="/payment-status" element={<PaymentStatusPage />} />
-                <Route path="/enha-lak" element={<EnhaLakPage />} />
-                <Route path="/enha-lak/store" element={<PersonalizedStoriesPage />} />
-                <Route path="/enha-lak/subscription" element={<SubscriptionPage />} />
-                <Route path="/enha-lak/order/:productKey" element={<OrderPage />} />
-                <Route path="/creative-writing" element={<CreativeWritingPage />} />
-                <Route path="/creative-writing/about" element={<CreativeWritingAboutPage />} />
-                <Route path="/creative-writing/instructors" element={<CreativeWritingInstructorsPage />} />
-                <Route path="/creative-writing/packages" element={<CreativeWritingPackagesPage />} />
-                <Route path="/creative-writing/services" element={<CreativeWritingServicesPage />} />
-                <Route path="/creative-writing/services/:serviceId/providers" element={<ServiceProvidersPage />} />
-                <Route path="/creative-writing/services/:serviceId/order" element={<ServiceOrderPage />} />
-                <Route path="/instructor/:slug" element={<InstructorProfilePage />} />
-                <Route path="/creative-writing/booking" element={<ProtectedRoute><CreativeWritingBookingPage /></ProtectedRoute>} />
-                
-                <Route path="/student" element={<ProtectedRoute studentOnly><StudentLayout /></ProtectedRoute>}>
-                    <Route index element={<Navigate to="dashboard" replace />} />
-                    <Route path="dashboard" element={<StudentDashboardPage />} />
-                    <Route path="portfolio" element={<StudentPortfolioPage />} />
-                </Route>
+            <ProfileCompletionGuard>
+                <Routes>
+                    <Route path="/" element={<PortalPage />} />
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/support" element={<SupportPage />} />
+                    <Route path="/join-us" element={<JoinUsPage />} />
+                    <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                    <Route path="/terms" element={<TermsOfUsePage />} />
+                    <Route path="/blog" element={<BlogPage />} />
+                    <Route path="/blog/:slug" element={<BlogPostPage />} />
+                    <Route path="/account" element={<AccountPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/cart" element={<CartPage />} />
+                    <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+                    <Route path="/payment-status" element={<PaymentStatusPage />} />
+                    <Route path="/enha-lak" element={<EnhaLakPage />} />
+                    <Route path="/enha-lak/store" element={<PersonalizedStoriesPage />} />
+                    <Route path="/enha-lak/subscription" element={<SubscriptionPage />} />
+                    <Route path="/enha-lak/order/:productKey" element={<OrderPage />} />
+                    <Route path="/creative-writing" element={<CreativeWritingPage />} />
+                    <Route path="/creative-writing/about" element={<CreativeWritingAboutPage />} />
+                    <Route path="/creative-writing/instructors" element={<CreativeWritingInstructorsPage />} />
+                    <Route path="/creative-writing/packages" element={<CreativeWritingPackagesPage />} />
+                    <Route path="/creative-writing/services" element={<CreativeWritingServicesPage />} />
+                    <Route path="/creative-writing/services/:serviceId/providers" element={<ServiceProvidersPage />} />
+                    <Route path="/creative-writing/services/:serviceId/order" element={<ServiceOrderPage />} />
+                    <Route path="/instructor/:slug" element={<InstructorProfilePage />} />
+                    <Route path="/creative-writing/booking" element={<ProtectedRoute><CreativeWritingBookingPage /></ProtectedRoute>} />
+                    
+                    <Route path="/student" element={<ProtectedRoute studentOnly><StudentLayout /></ProtectedRoute>}>
+                        <Route index element={<Navigate to="dashboard" replace />} />
+                        <Route path="dashboard" element={<StudentDashboardPage />} />
+                        <Route path="portfolio" element={<StudentPortfolioPage />} />
+                    </Route>
 
-                <Route path="/journey/:journeyId" element={<ProtectedRoute><TrainingJourneyPage /></ProtectedRoute>} />
-                <Route path="/session/:sessionId" element={<ProtectedRoute><SessionPage /></ProtectedRoute>} />
-                
-                {/* Dedicated Report Page for Instructors */}
-                <Route path="/admin/session-report/:sessionId" element={<ProtectedRoute adminOnly><SessionReportPage /></ProtectedRoute>} />
+                    <Route path="/journey/:journeyId" element={<ProtectedRoute><TrainingJourneyPage /></ProtectedRoute>} />
+                    <Route path="/session/:sessionId" element={<ProtectedRoute><SessionPage /></ProtectedRoute>} />
+                    
+                    {/* Dedicated Report Page for Instructors */}
+                    <Route path="/admin/session-report/:sessionId" element={<ProtectedRoute adminOnly><SessionReportPage /></ProtectedRoute>} />
 
-                <Route path="/admin/*" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+                    <Route path="/admin/*" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </ProfileCompletionGuard>
         </Suspense>
     );
 };

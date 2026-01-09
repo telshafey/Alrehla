@@ -17,6 +17,32 @@ import type {
 } from '../lib/database.types';
 import { permissionsByRole } from '../lib/roles';
 
+// Supported Countries Configuration
+export const supportedCountries = [
+    { code: 'EG', name: 'مصر', currency: 'EGP', timezone: 'Africa/Cairo', label: 'ج.م' },
+    { code: 'SA', name: 'المملكة العربية السعودية', currency: 'SAR', timezone: 'Asia/Riyadh', label: 'ر.س' },
+    { code: 'AE', name: 'الإمارات العربية المتحدة', currency: 'AED', timezone: 'Asia/Dubai', label: 'د.إ' },
+    { code: 'KW', name: 'الكويت', currency: 'KWD', timezone: 'Asia/Kuwait', label: 'د.ك' },
+    { code: 'QA', name: 'قطر', currency: 'QAR', timezone: 'Asia/Qatar', label: 'ر.ق' },
+    { code: 'OM', name: 'سلطنة عمان', currency: 'OMR', timezone: 'Asia/Muscat', label: 'ر.ع' },
+    { code: 'BH', name: 'البحرين', currency: 'BHD', timezone: 'Asia/Bahrain', label: 'د.ب' },
+    { code: 'JO', name: 'الأردن', currency: 'JOD', timezone: 'Asia/Amman', label: 'د.أ' },
+    { code: 'other', name: 'دولة أخرى', currency: 'USD', timezone: 'UTC', label: '$' }
+];
+
+// Approximate Exchange Rates (Relative to EGP for estimation, ideally fetched live)
+export const exchangeRates: Record<string, number> = {
+    'EGP': 1,
+    'SAR': 0.08, // 1 EGP = 0.08 SAR (Approx)
+    'AED': 0.075,
+    'KWD': 0.006,
+    'QAR': 0.075,
+    'OMR': 0.008,
+    'BHD': 0.008,
+    'JOD': 0.015,
+    'USD': 0.02
+};
+
 // New Comparison Criteria Data (Removed num_sessions)
 export const mockComparisonItems: ComparisonItem[] = [
     { id: 'level_compare', label: 'المستوى التعليمي', type: 'text', sort_order: 1 },

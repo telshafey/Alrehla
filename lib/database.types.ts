@@ -167,8 +167,12 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   address?: string | null;
-  governorate?: string | null;
+  governorate?: string | null; // Keep for backward compatibility or map to State
+  city?: string | null;
+  country?: string | null;
   phone?: string | null;
+  timezone?: string | null;
+  currency?: string | null;
 }
 
 export interface UserProfileWithRelations extends UserProfile {

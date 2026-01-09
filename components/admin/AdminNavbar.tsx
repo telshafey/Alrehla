@@ -1,7 +1,8 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { Menu, LogOut, PanelRightOpen, PanelRightClose, User } from 'lucide-react';
+import { Menu, LogOut, PanelRightOpen, PanelRightClose, User, Settings } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '../ui/card';
 import { Button } from '../ui/Button';
 import Image from '../ui/Image';
@@ -58,9 +59,14 @@ const AdminNavbar: React.FC<AdminNavbarProps> = ({ onMobileMenuToggle, isSidebar
                         <User size={20} className="text-muted-foreground"/>
                     </Button>
                     {isMenuOpen && (
-                        <Card className="absolute left-0 mt-2 w-48 origin-top-left animate-fadeIn z-50">
+                        <Card className="absolute left-0 mt-2 w-56 origin-top-left animate-fadeIn z-50">
                             <CardContent className="p-1">
-                                <Link to="/" className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent">
+                                <Link to="/admin/my-profile" onClick={() => setIsMenuOpen(false)} className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent flex items-center gap-2">
+                                    <Settings size={16} />
+                                    إعدادات الحساب
+                                </Link>
+                                <Link to="/" className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent flex items-center gap-2">
+                                    <PanelRightOpen size={16} />
                                     العودة للموقع
                                 </Link>
                             </CardContent>

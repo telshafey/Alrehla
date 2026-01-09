@@ -44,6 +44,7 @@ const AdminPriceReviewPage = lazy(() => import('../../pages/admin/AdminPriceRevi
 const AdminReportsPage = lazy(() => import('../../pages/admin/AdminReportsPage'));
 const AdminAuditLogPage = lazy(() => import('../../pages/admin/AdminAuditLogPage'));
 const AdminDatabaseInspectorPage = lazy(() => import('../../pages/admin/AdminDatabaseInspectorPage'));
+const AdminMyProfilePage = lazy(() => import('../../pages/admin/AdminMyProfilePage')); // New Page
 
 // Financials
 const AdminFinancialsLayout = lazy(() => import('../../pages/admin/financials/AdminFinancialsLayout'));
@@ -102,6 +103,9 @@ const AdminLayout: React.FC = () => {
                                         permissions.isInstructor ? <InstructorDashboardPage /> :
                                         <Navigate to="/" replace />
                                     } />
+
+                                    {/* الصفحة الشخصية للإدارة والموظفين */}
+                                    <Route path="my-profile" element={<AdminMyProfilePage />} />
 
                                     {/* مسارات المدرب - تظهر للمدرب أو المدير المسؤول */}
                                     <Route path="profile" element={<InstructorProfilePage />} />

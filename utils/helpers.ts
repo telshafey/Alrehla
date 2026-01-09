@@ -1,5 +1,6 @@
 
 import type { Subscription } from '../lib/database.types';
+import { supportedCountries, exchangeRates } from '../data/mockData';
 
 export const calculateAge = (birthDateString: string | null | undefined): number | null => {
     if (!birthDateString) return null;
@@ -17,15 +18,31 @@ export const calculateAge = (birthDateString: string | null | undefined): number
     }
 };
 
-export const formatCurrency = (amount: number | null | undefined): string => {
+export const formatCurrency = (amount: number | null | undefined, userCurrency: string = 'EGP'): string => {
     if (amount === null || amount === undefined || isNaN(amount)) return '-';
-    return new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP' }).format(amount);
+    
+    // Simple conversion for display (In real app, backend handles this)
+    let convertedAmount = amount;
+    let currencyCode = userCurrency;
+    
+    if (userCurrency !== 'EGP') {
+        const rate = exchangeRates[userCurrency] || 1;
+        convertedAmount = amount * rate;
+    }
+
+    // Round to avoid decimals if possible for clean UI
+    convertedAmount = Math.ceil(convertedAmount);
+
+    return new Intl.NumberFormat('ar-EG', { 
+        style: 'currency', 
+        currency: currencyCode,
+        minimumFractionDigits: 0
+    }).format(convertedAmount);
 };
 
 export const getStatusColor = (status: string | null): string => {
     if (!status) return 'bg-gray-100 text-gray-800';
     
-    // تطبيع الحالة لإزالة المسافات الزائدة
     const s = status.trim();
 
     if (['مكتمل', 'تم التسليم', 'مؤكد', 'نشط', 'مقبول', 'تمت الموافقة'].includes(s)) return 'bg-green-100 text-green-800 border-green-200';
@@ -38,19 +55,19 @@ export const getStatusColor = (status: string | null): string => {
     return 'bg-gray-100 text-gray-800';
 };
 
-// دالة موحدة لجميع تواريخ الموقع
-export const formatDate = (dateString: string | null | undefined, includeTime: boolean = false): string => {
+// Updated: Uses user's browser timezone automatically or explicitly if passed
+export const formatDate = (dateString: string | null | undefined, includeTime: boolean = false, timeZone?: string): string => {
     if (!dateString) return 'غير محدد';
     try {
         const date = new Date(dateString);
-        // التحقق من صحة التاريخ
         if (isNaN(date.getTime())) return 'تاريخ غير صالح';
 
         const options: Intl.DateTimeFormatOptions = {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
-            timeZone: 'Africa/Cairo'
+            // If timeZone is undefined, it defaults to browser's local time
+            timeZone: timeZone || undefined
         };
 
         if (includeTime) {
@@ -65,13 +82,13 @@ export const formatDate = (dateString: string | null | undefined, includeTime: b
     }
 };
 
-export const formatTime = (dateString: string | null | undefined): string => {
+export const formatTime = (dateString: string | null | undefined, timeZone?: string): string => {
     if (!dateString) return '--:--';
     try {
         return new Intl.DateTimeFormat('ar-EG', {
             hour: '2-digit',
             minute: '2-digit',
-            timeZone: 'Africa/Cairo',
+            timeZone: timeZone || undefined, // Dynamic timezone
             hour12: true
         }).format(new Date(dateString));
     } catch(e) {

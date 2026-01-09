@@ -2,13 +2,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import { User, Key, LogOut, Edit, Home } from 'lucide-react';
+import { User, Key, LogOut, Edit, Home, Globe } from 'lucide-react';
 import { Button } from '../ui/Button';
 import FormField from '../ui/FormField';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
-import { EGYPTIAN_GOVERNORATES } from '../../utils/governorates';
+import { supportedCountries } from '../../data/mockData';
 
 
 const Section: React.FC<{title: string, icon: React.ReactNode, children: React.ReactNode}> = ({title, icon, children}) => (
@@ -35,14 +35,15 @@ const AccountSettingsPanel: React.FC = () => {
 
     const [isEditingAddress, setIsEditingAddress] = useState(false);
     const [address, setAddress] = useState(currentUser!.address || '');
-    const [governorate, setGovernorate] = useState(currentUser!.governorate || 'القاهرة');
+    const [city, setCity] = useState(currentUser!.city || '');
+    const [country, setCountry] = useState(currentUser!.country ? supportedCountries.find(c => c.name === currentUser!.country)?.code || 'EG' : 'EG');
     const [phone, setPhone] = useState(currentUser!.phone || '');
 
     const handleNameSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const payload = { id: currentUser!.id, name };
         await updateUser.mutateAsync(payload);
-        updateCurrentUser({ name }); // Manually update context state
+        updateCurrentUser({ name }); 
         setIsEditingName(false);
     };
     
@@ -52,8 +53,6 @@ const AccountSettingsPanel: React.FC = () => {
             alert("كلمتا المرور الجديدتان غير متطابقتين.");
             return;
         }
-        // Removing currentPassword as client-side supabase update doesn't strictly need it if session is active,
-        // or the server function handles it. Keeping it simple to match the mutation signature.
         await updateUserPassword.mutateAsync({ userId: currentUser!.id, newPassword });
         setIsEditingPassword(false);
         setCurrentPassword('');
@@ -63,11 +62,17 @@ const AccountSettingsPanel: React.FC = () => {
     
     const handleAddressSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        const selectedCountryData = supportedCountries.find(c => c.code === country);
+
         const payload = { 
             id: currentUser!.id,
             address,
-            governorate,
-            phone
+            city,
+            phone,
+            country: selectedCountryData?.name,
+            timezone: selectedCountryData?.timezone,
+            currency: selectedCountryData?.currency
         };
         await updateUser.mutateAsync(payload);
         updateCurrentUser(payload);
@@ -103,31 +108,43 @@ const AccountSettingsPanel: React.FC = () => {
                 </div>
             </Section>
 
-            <Section title="عنوان التوصيل الافتراضي" icon={<Home />}>
+            <Section title="الموقع والتوقيت" icon={<Globe />}>
                 {!isEditingAddress ? (
                     <div>
-                        <div className="p-4 bg-gray-50 rounded-lg border space-y-2">
-                            <p><span className="font-semibold text-gray-600 text-sm">العنوان:</span> {currentUser?.address || 'لم يحدد'}</p>
-                            <p><span className="font-semibold text-gray-600 text-sm">المحافظة:</span> {currentUser?.governorate || 'لم يحدد'}</p>
-                            <p><span className="font-semibold text-gray-600 text-sm">رقم الهاتف:</span> {currentUser?.phone || 'لم يحدد'}</p>
+                        <div className="p-4 bg-gray-50 rounded-lg border space-y-3">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><p className="font-semibold text-gray-600 text-xs">الدولة:</p><p>{currentUser?.country || 'لم يحدد'}</p></div>
+                                <div><p className="font-semibold text-gray-600 text-xs">المدينة:</p><p>{currentUser?.city || 'لم يحدد'}</p></div>
+                                <div><p className="font-semibold text-gray-600 text-xs">التوقيت:</p><p className="dir-ltr text-right">{currentUser?.timezone || 'UTC'}</p></div>
+                                <div><p className="font-semibold text-gray-600 text-xs">رقم الهاتف:</p><p className="dir-ltr text-right">{currentUser?.phone || '-'}</p></div>
+                            </div>
+                            <div className="border-t pt-2">
+                                <p className="font-semibold text-gray-600 text-xs">العنوان التفصيلي:</p>
+                                <p>{currentUser?.address || '-'}</p>
+                            </div>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={() => setIsEditingAddress(true)} icon={<Edit size={14}/>} className="mt-2">تعديل العنوان</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setIsEditingAddress(true)} icon={<Edit size={14}/>} className="mt-2">تحديث الموقع</Button>
                     </div>
                 ) : (
                     <form onSubmit={handleAddressSubmit} className="p-4 bg-gray-50 rounded-lg border space-y-4">
-                        <FormField label="العنوان التفصيلي" htmlFor="address">
-                            <Textarea id="address" value={address} onChange={e => setAddress(e.target.value)} />
-                        </FormField>
-                        <FormField label="المحافظة" htmlFor="governorate">
-                            <Select id="governorate" value={governorate} onChange={e => setGovernorate(e.target.value)}>
-                                {EGYPTIAN_GOVERNORATES.map(gov => <option key={gov} value={gov}>{gov}</option>)}
-                            </Select>
-                        </FormField>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField label="الدولة" htmlFor="country">
+                                <Select id="country" value={country} onChange={e => setCountry(e.target.value)}>
+                                    {supportedCountries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                                </Select>
+                            </FormField>
+                            <FormField label="المدينة / المنطقة" htmlFor="city">
+                                <Input id="city" value={city} onChange={e => setCity(e.target.value)} />
+                            </FormField>
+                        </div>
                         <FormField label="رقم الهاتف" htmlFor="phone">
                             <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
                         </FormField>
+                        <FormField label="العنوان التفصيلي" htmlFor="address">
+                            <Textarea id="address" value={address} onChange={e => setAddress(e.target.value)} placeholder="اسم الشارع، رقم المبنى..." />
+                        </FormField>
                         <div className="flex gap-2">
-                            <Button type="submit" size="sm" loading={updateUser.isPending}>حفظ</Button>
+                            <Button type="submit" size="sm" loading={updateUser.isPending}>حفظ وتحديث التوقيت</Button>
                             <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditingAddress(false)}>إلغاء</Button>
                         </div>
                     </form>
@@ -142,7 +159,6 @@ const AccountSettingsPanel: React.FC = () => {
                     </div>
                  ) : (
                      <form onSubmit={handlePasswordSubmit} className="p-4 bg-gray-50 rounded-lg border space-y-4">
-                         {/* Removed Current Password Field as we are simplifying */}
                          <FormField label="كلمة المرور الجديدة" htmlFor="newPassword">
                              <Input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
                          </FormField>
