@@ -20,6 +20,17 @@ export const communicationService = {
         return data as SupportTicket[];
     },
 
+    async createSupportTicket(payload: { name: string, email: string, subject: string, message: string }) {
+        const { error } = await supabase.from('support_tickets').insert([{
+            ...payload,
+            status: 'جديدة',
+            created_at: new Date().toISOString()
+        }]);
+        
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
     async getAllJoinRequests() {
         const { data, error } = await supabase
             .from('join_requests')
@@ -31,6 +42,17 @@ export const communicationService = {
             return [];
         }
         return data as JoinRequest[];
+    },
+
+    async createJoinRequest(payload: { name: string, email: string, phone: string, role: string, message: string, portfolio_url?: string }) {
+        const { error } = await supabase.from('join_requests').insert([{
+            ...payload,
+            status: 'جديد',
+            created_at: new Date().toISOString()
+        }]);
+
+        if (error) throw new Error(error.message);
+        return { success: true };
     },
 
     async getAllSupportSessionRequests() {

@@ -12,7 +12,21 @@ export const authService = {
             password,
         });
 
-        if (authError) throw authError;
+        if (authError) {
+            console.error("Login Error:", authError);
+            let errorMessage = "فشل تسجيل الدخول.";
+            
+            // ترجمة أخطاء Supabase الشائعة
+            if (authError.message.includes("Invalid login credentials")) {
+                errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+            } else if (authError.message.includes("Email not confirmed")) {
+                errorMessage = "البريد الإلكتروني غير مفعل. يرجى التحقق من صندوق الوارد.";
+            } else if (authError.message.includes("Too many requests")) {
+                errorMessage = "تم تجاوز حد المحاولات المسموح به. يرجى الانتظار قليلاً.";
+            }
+
+            throw new Error(errorMessage);
+        }
 
         const authUser = authData.user;
         if (!authUser) throw new Error("فشل التعرف على المستخدم.");
@@ -27,7 +41,7 @@ export const authService = {
 
         if (error) {
             console.error("Database Error:", error);
-            throw new Error("حدث خطأ في الاتصال بقاعدة البيانات. يرجى التأكد من تنفيذ كود SQL لإيقاف الحماية.");
+            throw new Error("حدث خطأ في الاتصال بقاعدة البيانات.");
         }
 
         if (!profile) {
@@ -95,7 +109,15 @@ export const authService = {
             options: { data: { name, role } } 
         });
         
-        if (authError) throw authError;
+        if (authError) {
+             let errorMessage = authError.message;
+             if (errorMessage.includes("User already registered")) {
+                 errorMessage = "هذا البريد الإلكتروني مسجل بالفعل.";
+             } else if (errorMessage.includes("Password should be at least")) {
+                 errorMessage = "كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
+             }
+             throw new Error(errorMessage);
+        }
         
         if (authData.user) {
              const { error } = await (supabase.from('profiles') as any).insert({

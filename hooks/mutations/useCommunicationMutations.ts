@@ -1,21 +1,15 @@
 
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
+import { communicationService } from '../../services/communicationService';
 import type { TicketStatus, RequestStatus } from '../../lib/database.types';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const useCommunicationMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
 
     const createSupportTicket = useMutation({
-        mutationFn: async (data: { name: string, email: string, subject: string, message: string }) => {
-            await sleep(500);
-            console.log('Creating support ticket (mock)', data);
-            return { success: true };
-        },
+        mutationFn: communicationService.createSupportTicket,
         onSuccess: () => {
             addToast('تم إرسال رسالتك بنجاح! سنتواصل معك قريباً.', 'success');
         },
@@ -25,13 +19,11 @@ export const useCommunicationMutations = () => {
     });
 
      const createJoinRequest = useMutation({
-        mutationFn: async (data: { name: string, email: string, phone: string, role: string, message: string, portfolio_url?: string }) => {
-            await sleep(500);
-            console.log('Creating join request (mock)', data);
-            return { success: true };
-        },
+        mutationFn: communicationService.createJoinRequest,
         onSuccess: () => {
             addToast('تم إرسال طلبك بنجاح! سنراجعه ونتواصل معك.', 'success');
+            // Optional: Invalidate queries if the user happens to be an admin testing the form
+            queryClient.invalidateQueries({ queryKey: ['adminJoinRequests'] });
         },
         onError: (err: Error) => {
             addToast(`فشل إرسال الطلب: ${err.message}`, 'error');
@@ -40,8 +32,8 @@ export const useCommunicationMutations = () => {
 
     const updateSupportTicketStatus = useMutation({
         mutationFn: async ({ ticketId, newStatus }: { ticketId: string, newStatus: TicketStatus }) => {
-            await sleep(300);
-            console.log("Updating ticket status (mock)", { ticketId, newStatus });
+            const { error } = await import('../../lib/supabaseClient').then(m => m.supabase.from('support_tickets').update({ status: newStatus }).eq('id', ticketId));
+            if (error) throw error;
             return { success: true };
         },
         onSuccess: () => {
@@ -53,8 +45,8 @@ export const useCommunicationMutations = () => {
 
     const updateJoinRequestStatus = useMutation({
         mutationFn: async ({ requestId, newStatus }: { requestId: string, newStatus: RequestStatus }) => {
-            await sleep(300);
-            console.log("Updating request status (mock)", { requestId, newStatus });
+             const { error } = await import('../../lib/supabaseClient').then(m => m.supabase.from('join_requests').update({ status: newStatus }).eq('id', requestId));
+            if (error) throw error;
             return { success: true };
         },
         onSuccess: () => {
