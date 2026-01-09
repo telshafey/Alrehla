@@ -40,8 +40,7 @@ export const authService = {
                 created_at: new Date().toISOString()
             };
             
-            const { data: createdProfile, error: createError } = await supabase
-                .from('profiles')
+            const { data: createdProfile, error: createError } = await (supabase.from('profiles') as any)
                 .insert([newProfile])
                 .select()
                 .single();
@@ -99,7 +98,7 @@ export const authService = {
         if (authError) throw authError;
         
         if (authData.user) {
-             const { error } = await supabase.from('profiles').insert({
+             const { error } = await (supabase.from('profiles') as any).insert({
                 id: authData.user.id,
                 email: email.toLowerCase().trim(),
                 name,
