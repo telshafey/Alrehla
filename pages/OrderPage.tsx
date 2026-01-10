@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, ShoppingCart, Check } from 'lucide-react';
+import { Loader2, ArrowLeft, ShoppingCart, Check, Sparkles } from 'lucide-react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../contexts/AuthContext';
@@ -329,7 +329,6 @@ const OrderPage: React.FC = () => {
         setIsSubmitting(false);
     };
 
-
     if (isLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
     if (!product) return <div className="text-center py-20">المنتج غير موجود.</div>;
     
@@ -423,6 +422,7 @@ const OrderPage: React.FC = () => {
     return (
         <FormProvider {...methods}>
             <ChildProfileModal isOpen={isChildModalOpen} onClose={() => setIsChildModalOpen(false)} childToEdit={null} />
+
             <div className="bg-muted/30 py-12 sm:py-16">
                 <div className="container mx-auto px-4">
                     <div className="max-w-6xl mx-auto">
