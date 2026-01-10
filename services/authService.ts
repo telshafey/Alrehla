@@ -16,7 +16,6 @@ export const authService = {
             console.error("Login Error:", authError);
             let errorMessage = "فشل تسجيل الدخول.";
             
-            // ترجمة أخطاء Supabase الشائعة
             if (authError.message.includes("Invalid login credentials")) {
                 errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
             } else if (authError.message.includes("Email not confirmed")) {
@@ -31,8 +30,7 @@ export const authService = {
         const authUser = authData.user;
         if (!authUser) throw new Error("فشل التعرف على المستخدم.");
 
-        // 2. Fetch Profile Directly (No Memory Fallback)
-        // بعد إيقاف RLS في قاعدة البيانات، هذا الطلب سيعمل بنجاح
+        // 2. Fetch Profile Directly
         const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
@@ -45,7 +43,7 @@ export const authService = {
         }
 
         if (!profile) {
-            // في حالة عدم وجود ملف، نقوم بإنشائه تلقائياً (Auto-fix for missing rows)
+            // Auto-fix for missing rows (Fallback logic)
             const newProfile = {
                 id: authUser.id,
                 email: normalizedEmail,
@@ -54,12 +52,10 @@ export const authService = {
                 created_at: new Date().toISOString()
             };
             
-            const { data: createdProfile, error: createError } = await (supabase.from('profiles') as any)
+            const { data: createdProfile } = await (supabase.from('profiles') as any)
                 .insert([newProfile])
                 .select()
                 .single();
-            
-            if (createError) throw new Error("فشل إنشاء ملف المستخدم: " + createError.message);
             
             return {
                 user: createdProfile as UserProfile,
@@ -103,6 +99,17 @@ export const authService = {
     },
 
     async register(email: string, password: string, name: string, role: UserRole) {
+        // Strict check: Ensure email is unique across the entire system before creating
+        const { data: existingUser } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', email.toLowerCase().trim())
+            .maybeSingle();
+
+        if (existingUser) {
+            throw new Error("هذا البريد الإلكتروني مستخدم بالفعل. يرجى استخدام بريد آخر أو تسجيل الدخول.");
+        }
+
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: email.toLowerCase().trim(),
             password,
@@ -111,8 +118,8 @@ export const authService = {
         
         if (authError) {
              let errorMessage = authError.message;
-             if (errorMessage.includes("User already registered")) {
-                 errorMessage = "هذا البريد الإلكتروني مسجل بالفعل.";
+             if (errorMessage.includes("User already registered") || errorMessage.includes("already has been taken")) {
+                 errorMessage = "هذا البريد الإلكتروني مسجل بالفعل لمستخدم آخر.";
              } else if (errorMessage.includes("Password should be at least")) {
                  errorMessage = "كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
              }
@@ -143,5 +150,29 @@ export const authService = {
         } catch (e) {
             return [];
         }
+    },
+
+    // New Function for Password Reset
+    async resetPasswordForEmail(email: string) {
+        // Redirect to the reset-password page on your site
+        const redirectTo = `${window.location.origin}/reset-password`;
+        
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: redirectTo,
+        });
+
+        if (error) {
+            if (error.message.includes("Too many requests")) {
+                throw new Error("لقد طلبت إعادة تعيين كلمة المرور عدة مرات. يرجى الانتظار قليلاً.");
+            }
+            throw new Error(error.message);
+        }
+        return { success: true };
+    },
+
+    async updatePassword(newPassword: string) {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw new Error("فشل تحديث كلمة المرور. حاول مرة أخرى.");
+        return { success: true };
     }
 };

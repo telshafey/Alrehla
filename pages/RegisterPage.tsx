@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { ArrowLeft, AlertTriangle, Shield } from 'lucide-react';
 import { AuthForm } from '../components/auth/AuthForm';
-import type { UserRole } from '../lib/database.types';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import FormField from '../components/ui/FormField';
+import { CUSTOMER_ROLES } from '../lib/roles';
 
 const AgeGate: React.FC<{ onAgeSubmit: (age: number) => void }> = ({ onAgeSubmit }) => {
     const [age, setAge] = useState('');
@@ -102,7 +103,7 @@ const RegisterPage: React.FC = () => {
                         <ArrowLeft size={16} />
                         <span>العودة</span>
                     </button>
-                    <AuthForm mode="signup" />
+                    <AuthForm mode="signup" allowedRoles={CUSTOMER_ROLES} />
                 </div>
             )}
         </div>

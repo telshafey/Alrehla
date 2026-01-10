@@ -2,6 +2,7 @@
 import React from 'react';
 import { AuthForm } from '../../components/auth/AuthForm';
 import { ShieldCheck } from 'lucide-react';
+import { STAFF_ROLES } from '../../lib/roles';
 
 const AdminLoginPage: React.FC = () => {
     return (
@@ -16,10 +17,16 @@ const AdminLoginPage: React.FC = () => {
                     </div>
                     <h1 className="text-3xl font-black text-white mb-2">بوابة الإدارة</h1>
                     <p className="text-gray-400">منصة الرحلة - لوحة التحكم المركزية</p>
+                    <p className="text-xs text-red-400 mt-2 font-bold">للموظفين والمدربين فقط</p>
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-2xl overflow-hidden mb-6">
-                    <AuthForm mode="login" redirectTo="/admin" />
+                    <AuthForm 
+                        mode="login" 
+                        redirectTo="/admin" 
+                        allowedRoles={STAFF_ROLES} 
+                        disableSignup={true}
+                    />
                 </div>
                 
                 <div className="text-center mt-8 text-xs text-gray-500">

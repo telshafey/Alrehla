@@ -34,7 +34,7 @@ const checkEmailExists = async (email: string): Promise<boolean> => {
         const { data } = await supabase
             .from('profiles')
             .select('id')
-            .eq('email', normalizedEmail)
+            .ilike('email', normalizedEmail) // Use ilike for case-insensitive check
             .maybeSingle();
         return !!data;
     } catch (e) {

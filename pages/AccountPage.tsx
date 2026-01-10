@@ -13,7 +13,7 @@ import MyLibraryPanel from '../components/account/MyLibraryPanel';
 import PaymentModal from '../components/PaymentModal';
 import { LayoutDashboard, Settings, Bell, Users, GalleryVertical, BookOpen } from 'lucide-react';
 import { Card } from '../components/ui/card';
-import { STAFF_ROLES } from '../lib/roles';
+import { STAFF_ROLES, CUSTOMER_ROLES } from '../lib/roles';
 
 type AccountTab = 'dashboard' | 'myLibrary' | 'portfolio' | 'familyCenter' | 'settings' | 'notifications';
 
@@ -30,8 +30,7 @@ const AccountPage: React.FC = () => {
     const shouldRedirect = useMemo(() => {
         if (!isLoggedIn || !currentUser) return false;
         
-        // إذا كان طالباً أو موظفاً، يجب توجيهه (إلا إذا كان الموظف يريد تعديل حسابه، لكن الافتراضي هو التوجيه)
-        // سنفترض التوجيه القسري عند الدخول للحفاظ على تجربة سلسة
+        // إذا كان طالباً أو موظفاً، يجب توجيهه
         if (currentUser.role === 'student') return '/student/dashboard';
         if (STAFF_ROLES.includes(currentUser.role)) return '/admin';
         
@@ -46,7 +45,6 @@ const AccountPage: React.FC = () => {
     }, [shouldRedirect, navigate]);
 
     // عرض شاشة تحميل إذا كنا نتحقق من الجلسة أو إذا كان هناك توجيه قادم
-    // هذا يمنع ظهور لوحة تحكم المستخدم للحظات قبل الانتقال للإدارة
     if (authLoading || shouldRedirect) {
         return <PageLoader text={shouldRedirect ? "جاري التوجيه..." : "جاري التحقق من الحساب..."} />;
     }
@@ -55,7 +53,7 @@ const AccountPage: React.FC = () => {
         return (
             <div className="container mx-auto px-4 py-12 flex justify-center items-center min-h-[60vh]">
                 <div className="w-full max-w-md">
-                    <AuthForm mode="login" />
+                    <AuthForm mode="login" allowedRoles={CUSTOMER_ROLES} />
                 </div>
             </div>
         );

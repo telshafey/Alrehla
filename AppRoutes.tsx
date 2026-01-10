@@ -20,7 +20,8 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfUsePage from './pages/TermsOfUsePage';
 
 // --- Auth Pages ---
-import AdminLoginPage from './pages/admin/AdminLoginPage'; // New Page
+import AdminLoginPage from './pages/admin/AdminLoginPage';
+import ResetPasswordPage from './pages/ResetPasswordPage'; // New Page
 
 import StudentLayout from './components/student/StudentLayout';
 import StudentDashboardPage from './pages/student/StudentDashboardPage';
@@ -67,6 +68,9 @@ const AppRoutes: React.FC = () => {
                     <Route path="/blog/:slug" element={<BlogPostPage />} />
                     <Route path="/account" element={<AccountPage />} />
                     <Route path="/register" element={<RegisterPage />} />
+                    
+                    {/* Password Reset */}
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
                     
                     {/* Dedicated Admin Login */}
                     <Route path="/admin/login" element={<AdminLoginPage />} />
