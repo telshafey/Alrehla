@@ -70,7 +70,13 @@ export const useUserMutations = () => {
             queryClient.invalidateQueries({ queryKey: ['adminAllChildProfiles'] });
             addToast('تم حذف ملف الطفل بنجاح.', 'info');
         },
-        onError: (error: Error) => addToast(`فشل حذف الملف: ${error.message}`, 'error')
+        onError: (error: Error) => {
+            if (error.message.includes('violates foreign key constraint')) {
+                addToast('عذراً، لا يمكن حذف الطفل لوجود حجوزات أو طلبات مرتبطة به. يرجى حذفها أولاً أو تنفيذ أوامر SQL الخاصة بالحذف التلقائي.', 'error');
+            } else {
+                addToast(`فشل حذف الملف: ${error.message}`, 'error');
+            }
+        }
     });
 
     // Student account linking (admin & parent)

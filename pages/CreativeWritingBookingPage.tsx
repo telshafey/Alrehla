@@ -13,7 +13,7 @@ import InstructorSelection from '../components/creative-writing/booking/Instruct
 import CalendarSelection from '../components/creative-writing/booking/CalendarSelection';
 import BookingSummary from '../components/creative-writing/booking/BookingSummary';
 import { Button } from '../components/ui/Button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Info } from 'lucide-react';
 import type { ChildProfile, CreativeWritingPackage, Instructor } from '../lib/database.types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import ChildProfileModal from '../components/account/ChildProfileModal';
@@ -231,7 +231,27 @@ const CreativeWritingBookingPage: React.FC = () => {
                                <CardContent className="pt-2 space-y-10">
                                   {step === 'package' && <PackageSelection packages={cw_packages as CreativeWritingPackage[]} onSelect={setSelectedPackage} />}
                                   {step === 'child' && <ChildDetailsSection childProfiles={childProfiles} onSelectChild={handleSelectChild} selectedChildId={selectedChildId} formData={childData} handleChange={(e) => setChildData(p => ({...p, [e.target.name]: e.target.value}))} errors={{}} currentUser={currentUser} onSelectSelf={handleSelectSelf} onAddChild={() => setIsChildModalOpen(true)} />}
-                                  {step === 'instructor' && <InstructorSelection instructors={instructors as Instructor[]} onSelect={setSelectedInstructor} />}
+                                  
+                                  {step === 'instructor' && (
+                                      <>
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                                            <Info className="text-blue-600 mt-0.5 shrink-0" size={20} />
+                                            <div>
+                                                <p className="font-bold text-blue-800 text-sm">تنويه بخصوص الأسعار</p>
+                                                <p className="text-sm text-blue-700">
+                                                    يرجى العلم أن سعر الباقة قد يختلف من مدرب لآخر بناءً على الخبرة والتقييم. السعر النهائي موضح على بطاقة كل مدرب.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <InstructorSelection 
+                                            instructors={instructors as Instructor[]} 
+                                            onSelect={setSelectedInstructor} 
+                                            selectedPackage={selectedPackage}
+                                            pricingConfig={pricingConfig}
+                                        />
+                                      </>
+                                  )}
+                                  
                                   {step === 'schedule' && selectedInstructor && <CalendarSelection instructor={selectedInstructor} holidays={holidays as string[]} activeBookings={activeBookings as any[]} onSelect={(date, time) => setSelectedDateTime({ date, time })} />}
                                   
                                   <div className="flex justify-between items-center pt-6 border-t">

@@ -30,12 +30,12 @@ const InstructorPricingPanel: React.FC<InstructorPricingPanelProps> = ({ instruc
     useEffect(() => {
         if (instructor.service_rates) {
             const rates: Record<string, string> = {};
-            Object.entries(instructor.service_rates as Record<string, any>).forEach(([k, v]) => rates[k] = String(v));
+            Object.entries(instructor.service_rates).forEach(([k, v]) => rates[k] = String(v));
             setServiceRates(rates);
         }
         if (instructor.package_rates) {
             const rates: Record<string, string> = {};
-            Object.entries(instructor.package_rates as Record<string, any>).forEach(([k, v]) => rates[k] = String(v));
+            Object.entries(instructor.package_rates).forEach(([k, v]) => rates[k] = String(v));
             setPackageRates(rates);
         }
     }, [instructor]);
@@ -45,8 +45,8 @@ const InstructorPricingPanel: React.FC<InstructorPricingPanelProps> = ({ instruc
         
         const updates = {
             // We only send the maps, removing the generic rate_per_session dependency for logic
-            service_rates: Object.fromEntries(Object.entries(serviceRates).map(([k, v]) => [k, parseFloat(String(v)) || 0])),
-            package_rates: Object.fromEntries(Object.entries(packageRates).map(([k, v]) => [k, parseFloat(String(v)) || 0])),
+            service_rates: Object.fromEntries(Object.entries(serviceRates).map(([k, v]) => [k, parseFloat(v as string) || 0])),
+            package_rates: Object.fromEntries(Object.entries(packageRates).map(([k, v]) => [k, parseFloat(v as string) || 0])),
         };
 
         requestProfileUpdate.mutate({

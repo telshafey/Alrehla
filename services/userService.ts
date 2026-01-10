@@ -226,14 +226,13 @@ export const userService = {
             } else {
                 // B. Admin updating ANOTHER user's password
                 // This typically fails in client-side Supabase without a Service Role.
-                // We attempt it, but catch the error so we don't block the profile update success.
                 try {
                     const { error: adminError } = await supabase.auth.admin.updateUserById(id, { password: password });
                     if (adminError) throw adminError;
                 } catch (err: any) {
                     console.warn("Password update skipped (Client-side Admin restriction):", err.message);
-                    // We intentionally suppress the error here to allow the profile update to succeed in the UI.
-                    // In a production app, this would call a Backend Edge Function.
+                    // Use RPC as fallback
+                     await this.resetStudentPassword({ studentUserId: id, newPassword: password });
                 }
             }
         }
@@ -248,15 +247,34 @@ export const userService = {
              const { error } = await supabase.auth.updateUser({ password: payload.newPassword });
              if (error) throw new Error(error.message);
         } else {
-             const { error } = await supabase.auth.admin.updateUserById(payload.userId, { password: payload.newPassword });
-             if (error) throw new Error(error.message);
+             // Fallback to RPC if client admin call fails
+             try {
+                const { error } = await supabase.auth.admin.updateUserById(payload.userId, { password: payload.newPassword });
+                if (error) throw error;
+             } catch (e) {
+                 return this.resetStudentPassword({ studentUserId: payload.userId, newPassword: payload.newPassword });
+             }
         }
         return { success: true };
     },
 
     async resetStudentPassword(payload: { studentUserId: string; newPassword: string }) {
-        const { error } = await supabase.auth.admin.updateUserById(payload.studentUserId, { password: payload.newPassword });
-        if (error) throw new Error(error.message);
+        // Try RPC first for cleaner permission handling in this context
+        const { error } = await supabase.rpc('admin_reset_password', {
+            target_user_id: payload.studentUserId,
+            new_password: payload.newPassword
+        });
+
+        if (error) {
+            // If RPC doesn't exist, try the admin api (which might fail on client)
+            if (error.message.includes('function admin_reset_password') || error.message.includes('does not exist')) {
+                const { error: adminError } = await supabase.auth.admin.updateUserById(payload.studentUserId, { password: payload.newPassword });
+                if (adminError) throw new Error("فشل التغيير: " + adminError.message + " (يرجى تنفيذ أوامر SQL الخاصة بالصلاحيات)");
+            } else {
+                throw new Error(error.message);
+            }
+        }
+        
         return { success: true };
     },
 

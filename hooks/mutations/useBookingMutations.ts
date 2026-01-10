@@ -57,7 +57,11 @@ export const useBookingMutations = () => {
             addToast('تم حفظ المسودة بنجاح.', 'success');
         },
         onError: (error: Error) => {
-            addToast(`فشل حفظ المسودة: ${error.message}`, 'error');
+            if (error.message.includes('column') && error.message.includes('does not exist')) {
+                 addToast(`فشل الحفظ: يرجى تنفيذ أمر SQL لإضافة عمود 'details'.`, 'error');
+            } else {
+                 addToast(`فشل حفظ المسودة: ${error.message}`, 'error');
+            }
         }
     });
 
