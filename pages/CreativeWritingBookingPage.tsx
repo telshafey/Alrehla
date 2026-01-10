@@ -17,7 +17,7 @@ import { ArrowLeft, Info } from 'lucide-react';
 import type { ChildProfile, CreativeWritingPackage, Instructor } from '../lib/database.types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import ChildProfileModal from '../components/account/ChildProfileModal';
-import { bookingService } from '../services/bookingService'; // Import Service
+import { bookingService } from '../services/bookingService'; 
 
 type BookingStep = 'package' | 'child' | 'instructor' | 'schedule';
 
@@ -56,6 +56,7 @@ const CreativeWritingBookingPage: React.FC = () => {
         }
     }, [location.state]);
     
+    // تصحيح: استخدام pricingSettings من المستوى الأعلى
     const { instructors = [], cw_packages = [], holidays = [], activeBookings = [], pricingConfig } = (bookingData as any) || {};
     
     // المعادلة الديناميكية لحساب سعر العميل النهائي
@@ -66,9 +67,10 @@ const CreativeWritingBookingPage: React.FC = () => {
         if (selectedInstructor && selectedPackage) {
             const netPrice = selectedInstructor.package_rates?.[selectedPackage.id];
             
-            // إذا لم يحدد المدرب سعراً خاصاً، نستخدم السعر الأساسي للباقة (أو منطق آخر تفضله)
+            // إذا لم يحدد المدرب سعراً خاصاً، نستخدم السعر الأساسي للباقة
             const baseNet = netPrice !== undefined ? netPrice : selectedPackage.price;
             
+            // استخدام القيم الافتراضية إذا لم تتوفر إعدادات التسعير
             const percentage = pricingConfig?.company_percentage || 1.2;
             const fixedFee = pricingConfig?.fixed_fee || 50;
 
@@ -85,14 +87,19 @@ const CreativeWritingBookingPage: React.FC = () => {
         const percentage = pricingConfig?.company_percentage || 1.2;
         const fixedFee = pricingConfig?.fixed_fee || 50;
 
+        // نحسب الأسعار النهائية لكل المدربين لهذه الباقة
         const prices = (instructors as Instructor[])
             .map((i: Instructor) => {
                 const net = i.package_rates?.[selectedPackage.id];
-                return net !== undefined ? Math.ceil((net * percentage) + fixedFee) : null;
-            })
-            .filter((p): p is number => p !== null);
+                // إذا كان للمدرب سعر خاص، نستخدمه، وإلا نستخدم سعر الباقة الافتراضي كصافي ربح افتراضي
+                const baseNet = net !== undefined ? net : selectedPackage.price;
+                return Math.ceil((baseNet * percentage) + fixedFee);
+            });
 
-        if (prices.length === 0) return { min: selectedPackage.price, max: selectedPackage.price };
+        // نضيف أيضاً السعر الافتراضي للباقة (في حال لم يختر أي مدرب سعراً خاصاً)
+        const defaultCustomerPrice = Math.ceil((selectedPackage.price * percentage) + fixedFee);
+        prices.push(defaultCustomerPrice);
+
         return { min: Math.min(...prices), max: Math.max(...prices) };
     }, [selectedPackage, finalPrice, instructors, pricingConfig]);
 
@@ -161,7 +168,6 @@ const CreativeWritingBookingPage: React.FC = () => {
         setIsSubmitting(true);
 
         try {
-            // Check availability one last time before adding to cart
             const isAvailable = await bookingService.checkSlotAvailability(
                 selectedInstructor.id, 
                 selectedDateTime.date.toISOString(), 
@@ -170,8 +176,7 @@ const CreativeWritingBookingPage: React.FC = () => {
 
             if (!isAvailable) {
                 addToast('عذراً، يبدو أن هذا الموعد تم حجزه للتو. يرجى اختيار موعد آخر.', 'error');
-                setStep('schedule'); // Go back to schedule
-                // Optionally refetch booking data here
+                setStep('schedule'); 
                 setIsSubmitting(false);
                 return;
             }
@@ -229,7 +234,13 @@ const CreativeWritingBookingPage: React.FC = () => {
                                     </CardHeader>
                                 )}
                                <CardContent className="pt-2 space-y-10">
-                                  {step === 'package' && <PackageSelection packages={cw_packages as CreativeWritingPackage[]} onSelect={setSelectedPackage} />}
+                                  {step === 'package' && (
+                                      <PackageSelection 
+                                          packages={cw_packages as CreativeWritingPackage[]} 
+                                          onSelect={setSelectedPackage} 
+                                          pricingConfig={pricingConfig} // نمرر إعدادات التسعير هنا
+                                      />
+                                  )}
                                   {step === 'child' && <ChildDetailsSection childProfiles={childProfiles} onSelectChild={handleSelectChild} selectedChildId={selectedChildId} formData={childData} handleChange={(e) => setChildData(p => ({...p, [e.target.name]: e.target.value}))} errors={{}} currentUser={currentUser} onSelectSelf={handleSelectSelf} onAddChild={() => setIsChildModalOpen(true)} />}
                                   
                                   {step === 'instructor' && (
@@ -239,7 +250,7 @@ const CreativeWritingBookingPage: React.FC = () => {
                                             <div>
                                                 <p className="font-bold text-blue-800 text-sm">تنويه بخصوص الأسعار</p>
                                                 <p className="text-sm text-blue-700">
-                                                    يرجى العلم أن سعر الباقة قد يختلف من مدرب لآخر بناءً على الخبرة والتقييم. السعر النهائي موضح على بطاقة كل مدرب.
+                                                    السعر المعروض في بطاقة المدرب هو السعر النهائي الشامل (بما في ذلك رسوم المنصة).
                                                 </p>
                                             </div>
                                         </div>

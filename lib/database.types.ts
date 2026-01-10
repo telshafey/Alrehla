@@ -729,4 +729,5 @@ export interface PublicData {
     communicationSettings: CommunicationSettings;
     badges: Badge[];
     comparisonItems: ComparisonItem[];
+    pricingSettings: PricingSettings; // New field
 }

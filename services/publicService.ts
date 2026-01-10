@@ -9,8 +9,10 @@ import type {
     SocialLinks,
     SubscriptionPlan,
     StandaloneService,
-    CommunicationSettings
+    CommunicationSettings,
+    PricingSettings
 } from '../lib/database.types';
+import { mockPricingSettings } from '../data/mockData';
 
 interface PublicData {
     instructors: Instructor[];
@@ -23,6 +25,7 @@ interface PublicData {
     subscriptionPlans: SubscriptionPlan[];
     standaloneServices: StandaloneService[];
     communicationSettings: CommunicationSettings;
+    pricingSettings: PricingSettings;
 }
 
 export const publicService = {
@@ -49,10 +52,10 @@ export const publicService = {
             supabase.from('comparison_items').select('*').order('sort_order')
         ]);
 
-        const getSetting = (key: string) => {
+        const getSetting = (key: string, defaultValue?: any) => {
             // Using as any for item to access properties safely
             const item = (settingsData as any[])?.find(s => s.key === key);
-            return item ? item.value : null;
+            return item ? item.value : defaultValue || null;
         };
 
         return {
@@ -70,6 +73,7 @@ export const publicService = {
             siteBranding: getSetting('branding'),
             socialLinks: getSetting('social_links'),
             communicationSettings: getSetting('communication_settings'),
+            pricingSettings: getSetting('pricing_config', mockPricingSettings), // Ensure fallback to mock if missing
             
             publicHolidays: [], // يمكن جلبها من جدول خاص مستقبلاً
         };

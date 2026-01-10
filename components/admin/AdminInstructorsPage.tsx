@@ -1,6 +1,7 @@
+
 import React, { useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Users, Plus, UserCog, ArrowUp, ArrowDown } from 'lucide-react';
+import { Users, Plus, UserCog, ArrowUp, ArrowDown, Clock, AlertCircle } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import PageLoader from '../../components/ui/PageLoader';
 import AvailabilityManager from '../../components/admin/AvailabilityManager';
@@ -88,15 +89,30 @@ const AdminInstructorsPage: React.FC = () => {
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">{instructor.specialty}</TableCell>
                                      <TableCell>
-                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${
-                                            instructor.schedule_status === 'approved' ? 'bg-green-100 text-green-800' :
-                                            instructor.schedule_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                            instructor.schedule_status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-muted text-muted-foreground'
-                                        }`}>
-                                            {instructor.schedule_status === 'approved' ? 'معتمد' :
-                                             instructor.schedule_status === 'pending' ? 'قيد المراجعة' :
-                                             instructor.schedule_status === 'rejected' ? 'مرفوض' : 'غير محدد'}
-                                        </span>
+                                        {instructor.schedule_status === 'pending' ? (
+                                             <div className="flex items-center gap-2">
+                                                <span className="px-2 py-1 text-xs font-bold rounded-full bg-yellow-100 text-yellow-800 flex items-center gap-1 animate-pulse">
+                                                    <Clock size={12} /> تحديث معلق
+                                                </span>
+                                                <Button 
+                                                    as={Link} 
+                                                    to={`/admin/instructors/${instructor.id}`} 
+                                                    size="sm" 
+                                                    variant="outline" 
+                                                    className="h-7 text-xs border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+                                                >
+                                                    مراجعة الطلب
+                                                </Button>
+                                             </div>
+                                        ) : (
+                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+                                                instructor.schedule_status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                instructor.schedule_status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-muted text-muted-foreground'
+                                            }`}>
+                                                {instructor.schedule_status === 'approved' ? 'معتمد' :
+                                                 instructor.schedule_status === 'rejected' ? 'مرفوض' : 'غير محدد'}
+                                            </span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <Button as={Link} to={`/admin/instructors/${instructor.id}`} variant="ghost" size="icon" title="إدارة ملف المدرب">

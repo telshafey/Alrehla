@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { ArrowLeft, UserCheck, Star } from 'lucide-react';
 import Image from '../../components/ui/Image';
 import type { Instructor, StandaloneService } from '../../lib/database.types';
+import { calculateCustomerPrice } from '../../utils/pricingCalculator';
 
 const ServiceProvidersPage: React.FC = () => {
     const { serviceId } = useParams<{ serviceId: string }>();
@@ -17,6 +18,7 @@ const ServiceProvidersPage: React.FC = () => {
     if (isLoading) return <PageLoader text="جاري تحميل مقدمي الخدمة..." />;
 
     const service = data?.standaloneServices.find(s => s.id === Number(serviceId));
+    const pricingConfig = data?.pricingSettings;
     
     if (!service) {
         return (
@@ -53,7 +55,9 @@ const ServiceProvidersPage: React.FC = () => {
                 {providers.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {providers.map((instructor: Instructor) => {
-                            const price = instructor.service_rates?.[service.id] ?? service.price;
+                            const netPrice = instructor.service_rates?.[service.id] ?? service.price;
+                            const finalPrice = calculateCustomerPrice(netPrice, pricingConfig);
+
                             return (
                                 <Card key={instructor.id} className="hover:shadow-xl transition-shadow duration-300 border-2 border-transparent hover:border-primary/20">
                                     <CardContent className="pt-6 flex flex-col items-center text-center h-full">
@@ -71,7 +75,7 @@ const ServiceProvidersPage: React.FC = () => {
                                         <div className="mt-auto w-full pt-4 border-t">
                                             <div className="flex justify-between items-center mb-4">
                                                 <span className="text-sm text-gray-500">سعر الخدمة</span>
-                                                <span className="text-xl font-bold text-green-600">{price} ج.م</span>
+                                                <span className="text-xl font-bold text-green-600">{finalPrice} ج.م</span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
                                                 <Button as={Link} to={`/instructor/${instructor.slug}`} variant="outline" size="sm">

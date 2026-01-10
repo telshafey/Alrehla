@@ -6,6 +6,7 @@ import { Sparkles, ArrowLeft } from 'lucide-react';
 import { ServiceCard } from '../components/creative-writing/services/ServiceCard';
 import type { StandaloneService, Instructor } from '../lib/database.types';
 import { Link, useNavigate } from 'react-router-dom';
+import { calculateCustomerPrice } from '../utils/pricingCalculator';
 
 const CreativeWritingServicesPage: React.FC = () => {
     const { data, isLoading } = usePublicData();
@@ -13,6 +14,7 @@ const CreativeWritingServicesPage: React.FC = () => {
 
     const services = data?.standaloneServices || [];
     const instructors = data?.instructors || [];
+    const pricingConfig = data?.pricingSettings;
     
     const servicesByCategory = useMemo(() => {
         return (services as StandaloneService[]).reduce((acc, service) => {
@@ -26,16 +28,26 @@ const CreativeWritingServicesPage: React.FC = () => {
     }, [services]);
 
     const getPriceRange = (service: StandaloneService) => {
+        // 1. حساب السعر الأساسي للخدمة (للشركة)
+        const baseCustomerPrice = calculateCustomerPrice(service.price, pricingConfig);
+
         if (service.provider_type !== 'instructor' || !instructors) {
-            return { min: service.price, max: service.price };
+            return { min: baseCustomerPrice, max: baseCustomerPrice };
         }
+
+        // 2. حساب الأسعار لكل المدربين الذين يقدمون الخدمة
         const prices = instructors
             .map((i: Instructor) => i.service_rates?.[service.id])
-            .filter((price): price is number => price !== undefined && price !== null);
+            .filter((price): price is number => price !== undefined && price !== null)
+            .map(netPrice => calculateCustomerPrice(netPrice, pricingConfig));
 
         if (prices.length === 0) {
-            return { min: service.price, max: service.price }; // Fallback to base price
+            // إذا لم يحدد أي مدرب سعراً، نستخدم السعر الافتراضي للخدمة (المحسوب)
+            return { min: baseCustomerPrice, max: baseCustomerPrice };
         }
+
+        // نضيف السعر الافتراضي أيضاً للمقارنة (اختياري، حسب منطق العمل، هنا نركز على المدربين المتاحين)
+        // لكن لضمان عدم ظهور "0" أو أخطاء، نعتمد على القيم الموجودة
         return { min: Math.min(...prices), max: Math.max(...prices) };
     };
 

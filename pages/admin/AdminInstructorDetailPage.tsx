@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useAdminCWSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
@@ -9,13 +9,68 @@ import { Button } from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
-import { ArrowLeft, Save, User, FileEdit, Clock, Check, XCircle, AlertCircle, ArrowRightCircle } from 'lucide-react';
+import { ArrowLeft, Save, User, FileEdit, Clock, Check, XCircle, ArrowRightCircle, Calendar } from 'lucide-react';
 import type { Instructor } from '../../lib/database.types';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import Image from '../../components/ui/Image';
 import { formatDate } from '../../utils/helpers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+
+const ORDERED_DAYS = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+const dayNames: { [key: string]: string } = {
+    saturday: 'السبت', sunday: 'الأحد', monday: 'الاثنين', tuesday: 'الثلاثاء', wednesday: 'الأربعاء',
+    thursday: 'الخميس', friday: 'الجمعة'
+};
+
+const ScheduleViewer: React.FC<{ schedule: any, isEmptyMessage?: string, title: string, colorClass?: string }> = ({ 
+    schedule, 
+    isEmptyMessage = "لا توجد مواعيد محددة",
+    title,
+    colorClass = "bg-gray-50 border-gray-200"
+}) => {
+    // 1. تنظيف البيانات
+    const validSchedule = schedule && typeof schedule === 'object' && !Array.isArray(schedule) ? schedule : {};
+    
+    // 2. التحقق من وجود مواعيد
+    const hasAnySlots = ORDERED_DAYS.some(day => Array.isArray(validSchedule[day]) && validSchedule[day].length > 0);
+
+    return (
+        <div className={`rounded-xl border p-4 h-full ${colorClass}`}>
+            <h4 className="font-bold text-center mb-4 text-gray-700 border-b pb-2">{title}</h4>
+            
+            {!hasAnySlots ? (
+                <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                    <Calendar className="mb-2 opacity-20" size={32} />
+                    <p className="text-sm">{isEmptyMessage}</p>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {ORDERED_DAYS.map((day) => {
+                        const times = validSchedule[day];
+                        if (!Array.isArray(times) || times.length === 0) return null;
+
+                        return (
+                            <div key={day} className="flex items-start gap-2 bg-white p-2 rounded border shadow-sm">
+                                <div className="w-16 font-bold text-xs pt-1 text-gray-600 bg-gray-50 px-1 rounded text-center shrink-0">
+                                    {dayNames[day] || day}
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                     {times.map((t: string) => (
+                                         <span key={t} className="text-[10px] font-mono font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-100">
+                                            {t}
+                                         </span>
+                                     ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const AdminInstructorDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -33,7 +88,6 @@ const AdminInstructorDetailPage: React.FC = () => {
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     
-    // State for pending updates review
     const [adminFeedback, setAdminFeedback] = useState('');
     const [approvedRates, setApprovedRates] = useState<{
         package_rates: Record<string, number>,
@@ -42,13 +96,13 @@ const AdminInstructorDetailPage: React.FC = () => {
 
     const instructor = !isNew ? instructors.find(i => i.id === parseInt(id!)) : null;
     const pendingUpdates = instructor?.pending_profile_data?.updates;
+    const pendingSchedule = instructor?.pending_profile_data?.proposed_schedule || {};
 
     useEffect(() => {
         if (instructor) {
             setProfile(instructor);
             setPreview(instructor.avatar_url || null);
             
-            // Initialize approved rates with requested rates (default to accept all)
             if (instructor.profile_update_status === 'pending' && pendingUpdates) {
                 setApprovedRates({
                     package_rates: { ...pendingUpdates.package_rates },
@@ -93,7 +147,6 @@ const AdminInstructorDetailPage: React.FC = () => {
         navigate('/admin/instructors');
     };
 
-    // Granular Approval Logic
     const handleApprovedRateChange = (type: 'package' | 'service', id: string, value: string) => {
         const numValue = parseFloat(value) || 0;
         setApprovedRates(prev => ({
@@ -107,17 +160,12 @@ const AdminInstructorDetailPage: React.FC = () => {
 
     const handleApproveWithModifications = async () => {
         if (!instructor || !pendingUpdates) return;
-        
-        // Construct the final updates object merging non-pricing updates with approved pricing
-        // We include admin_feedback here, but the hook will extract it before DB update
         const finalUpdates = {
             ...pendingUpdates,
             package_rates: approvedRates.package_rates,
             service_rates: approvedRates.service_rates,
             admin_feedback: adminFeedback 
         };
-
-        // We use the mutation but inject our modified payload
         await approveInstructorProfileUpdate.mutateAsync({
             instructorId: instructor.id,
             modifiedUpdates: finalUpdates
@@ -133,7 +181,6 @@ const AdminInstructorDetailPage: React.FC = () => {
          setAdminFeedback('');
     };
 
-    // Helper to render pricing comparison row
     const renderPricingRow = (itemId: string, itemName: string, currentVal: number, requestedVal: number, type: 'package' | 'service') => {
         const approvedVal = type === 'package' ? approvedRates.package_rates[itemId] : approvedRates.service_rates[itemId];
         const isModified = approvedVal !== requestedVal;
@@ -177,14 +224,65 @@ const AdminInstructorDetailPage: React.FC = () => {
             
             {!isNew && instructor && (
                 <div className="space-y-8">
+                    
+                    {/* Schedule Update Review (Top Priority) */}
+                    {instructor.schedule_status === 'pending' && (
+                        <Card className="border-4 border-blue-500 shadow-xl bg-blue-50/10" id="schedule-review">
+                            <CardHeader className="bg-blue-100 border-b border-blue-200">
+                                <CardTitle className="flex items-center gap-2 text-blue-800 font-black"><Clock /> مراجعة تحديث الجدول الأسبوعي</CardTitle>
+                                <CardDescription className="text-blue-700">قام المدرب بتعديل أوقات توفره الأسبوعية. يرجى مقارنة الجدولين أدناه.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    {/* الجدول الحالي */}
+                                    <ScheduleViewer 
+                                        title="الجدول الحالي (القديم)"
+                                        schedule={instructor.weekly_schedule} 
+                                        isEmptyMessage="الجدول الحالي فارغ"
+                                        colorClass="bg-white border-gray-200"
+                                    />
+                                    
+                                    {/* الجدول الجديد */}
+                                    <ScheduleViewer 
+                                        title="الجدول الجديد (المقترح)"
+                                        schedule={pendingSchedule} 
+                                        isEmptyMessage="الجدول المقترح فارغ (مسح الكل)"
+                                        colorClass="bg-blue-50 border-blue-200 ring-2 ring-blue-500 ring-offset-2"
+                                    />
+                                </div>
+                                
+                                <div className="flex flex-col sm:flex-row gap-4 border-t pt-6">
+                                    <Button 
+                                        variant="success" 
+                                        className="flex-1 h-12 text-lg shadow-md" 
+                                        onClick={() => approveInstructorSchedule.mutate({instructorId: instructor.id})} 
+                                        loading={approveInstructorSchedule.isPending} 
+                                        icon={<Check />}
+                                    >
+                                        اعتماد الجدول الجديد
+                                    </Button>
+                                    <Button 
+                                        variant="destructive" 
+                                        className="sm:w-1/3 h-12" 
+                                        onClick={() => rejectInstructorSchedule.mutate({instructorId: instructor.id})} 
+                                        loading={rejectInstructorSchedule.isPending} 
+                                        icon={<XCircle />}
+                                    >
+                                        رفض التغيير
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     {/* --- PRICING & PROFILE UPDATE REQUEST SECTION --- */}
                     {instructor.profile_update_status === 'pending' && pendingUpdates && (
-                        <Card className="border-2 border-orange-400 shadow-xl bg-white overflow-hidden">
+                        <Card className="border-4 border-orange-400 shadow-xl bg-white overflow-hidden" id="profile-review">
                              <CardHeader className="bg-orange-50 border-b border-orange-100">
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <CardTitle className="flex items-center gap-2 text-orange-800"><FileEdit /> طلب تحديث بيانات/أسعار</CardTitle>
-                                        <CardDescription className="text-orange-700">قام المدرب بطلب تعديلات. يرجى مراجعتها واعتماد المناسب منها.</CardDescription>
+                                        <CardDescription className="text-orange-700">يرجى مراجعة التغييرات المطلوبة في الأسعار أو الملف الشخصي.</CardDescription>
                                     </div>
                                     <div className="text-left bg-white px-3 py-1 rounded-full border border-orange-200">
                                         <p className="text-xs font-bold text-gray-500">تاريخ الطلب: {formatDate(instructor.pending_profile_data?.requested_at)}</p>
@@ -212,14 +310,12 @@ const AdminInstructorDetailPage: React.FC = () => {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {/* Packages */}
                                                 {settingsData?.packages?.map(pkg => {
                                                     const reqVal = pendingUpdates.package_rates?.[pkg.id];
                                                     if (reqVal === undefined) return null;
                                                     const curVal = instructor.package_rates?.[pkg.id] || 0;
                                                     return renderPricingRow(pkg.id.toString(), `باقة: ${pkg.name}`, curVal, reqVal, 'package');
                                                 })}
-                                                {/* Services */}
                                                 {settingsData?.standaloneServices?.filter(s => s.provider_type === 'instructor').map(svc => {
                                                     const reqVal = pendingUpdates.service_rates?.[svc.id];
                                                     if (reqVal === undefined) return null;
@@ -251,24 +347,6 @@ const AdminInstructorDetailPage: React.FC = () => {
                                             رفض الطلب بالكامل
                                         </Button>
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Schedule Update Review */}
-                    {instructor.schedule_status === 'pending' && (
-                        <Card className="border-2 border-blue-400 shadow-lg bg-blue-50/10">
-                            <CardHeader className="bg-blue-400/10 border-b border-blue-200">
-                                <CardTitle className="flex items-center gap-2 text-blue-700 font-black"><Clock /> مراجعة تحديث الجدول الأسبوعي</CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-6">
-                                <div className="p-4 bg-white rounded border text-sm text-gray-600 mb-4">
-                                    يمكنك مراجعة الجدول المقترح في قسم الجدولة أو قبوله مباشرة من هنا.
-                                </div>
-                                <div className="flex gap-3">
-                                    <Button variant="success" className="flex-1" onClick={() => approveInstructorSchedule.mutate({instructorId: instructor.id})} loading={approveInstructorSchedule.isPending} icon={<Check />}>اعتماد الجدول</Button>
-                                    <Button variant="destructive" className="flex-1" onClick={() => rejectInstructorSchedule.mutate({instructorId: instructor.id})} loading={rejectInstructorSchedule.isPending} icon={<XCircle />}>رفض الطلب</Button>
                                 </div>
                             </CardContent>
                         </Card>

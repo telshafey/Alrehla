@@ -97,9 +97,8 @@ const CreativeWritingPackagesPage: React.FC = () => {
     // Safe access with fallback using any casting to avoid type errors if interface mismatch
     const comparisonItems = ((data as any)?.comparisonItems || []) as ComparisonItem[];
     
-    // محاولة الوصول لإعدادات التسعير، مع قيم افتراضية في حال عدم توفرها في الـ Public Data
-    // (عادة تكون 1.2 و 50)
-    const pricingConfig = (data as any)?.communicationSettings?.pricing_config || { company_percentage: 1.2, fixed_fee: 50 }; 
+    // تصحيح: استخدام pricingSettings مباشرة من البيانات العامة
+    const pricingConfig = data?.pricingSettings || { company_percentage: 1.2, fixed_fee: 50 }; 
 
     const getPackagePriceRange = (pkg: CreativeWritingPackage) => {
         if (pkg.price === 0) return { min: 0, max: 0 };

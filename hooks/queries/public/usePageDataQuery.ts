@@ -16,6 +16,8 @@ export const useBookingData = () => {
                 cw_packages: data.creativeWritingPackages,
                 holidays: data.publicHolidays,
                 cw_services: data.standaloneServices,
+                // تصحيح: تمرير إعدادات التسعير من الجذر مباشرة
+                pricingConfig: data.pricingSettings,
                 // نرسل فقط الحجوزات غير الملغية
                 activeBookings: bookings.filter(b => b.status !== 'ملغي')
             };

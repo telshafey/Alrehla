@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { StandaloneService } from '../../../lib/database.types';
 import { Button } from '../../ui/Button';
@@ -14,20 +15,10 @@ interface ServiceCardProps {
 export const ServiceCard: React.FC<ServiceCardProps> = ({ service, minPrice, maxPrice, onViewProviders, onOrderNow }) => {
     
     const renderPrice = () => {
-        if (service.provider_type === 'company') {
-            return (
-                <>
-                    السعر
-                    <span className="text-2xl font-extrabold text-gray-800 mx-1">{service.price}</span>
-                    ج.م
-                </>
-            );
-        }
-        
         if (minPrice === maxPrice) {
             return (
                 <>
-                    يبدأ من
+                    {service.provider_type === 'company' ? 'السعر' : 'يبدأ من'}
                     <span className="text-2xl font-extrabold text-gray-800 mx-1">{minPrice}</span>
                     ج.م
                 </>

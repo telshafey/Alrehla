@@ -12,6 +12,7 @@ import ReceiptUpload from '../../components/shared/ReceiptUpload';
 import FormField from '../../components/ui/FormField';
 import { Textarea } from '../../components/ui/Textarea';
 import Image from '../../components/ui/Image';
+import { calculateCustomerPrice } from '../../utils/pricingCalculator';
 
 const ServiceOrderPage: React.FC = () => {
     const { serviceId } = useParams<{ serviceId: string }>();
@@ -35,6 +36,8 @@ const ServiceOrderPage: React.FC = () => {
         instructorId ? data?.instructors.find(i => i.id === Number(instructorId)) : null,
     [data, instructorId]);
 
+    const pricingConfig = data?.pricingSettings;
+
     if (isLoading) return <PageLoader text="جاري تجهيز الطلب..." />;
 
     if (!service) {
@@ -46,11 +49,13 @@ const ServiceOrderPage: React.FC = () => {
         );
     }
 
-    // Calculate final price
-    let finalPrice = service.price;
+    // Calculate final price using the calculator logic
+    let netPrice = service.price;
     if (instructor && instructor.service_rates && instructor.service_rates[service.id]) {
-        finalPrice = instructor.service_rates[service.id];
+        netPrice = instructor.service_rates[service.id];
     }
+    
+    const finalPrice = calculateCustomerPrice(netPrice, pricingConfig);
 
     const handleConfirm = () => {
         if (service.requires_file_upload && !file) {
@@ -67,9 +72,8 @@ const ServiceOrderPage: React.FC = () => {
                 payload: {
                     productKey: `service_${service.id}`,
                     summary: instructor ? `خدمة: ${service.name} (مع ${instructor.name})` : `خدمة: ${service.name}`,
-                    totalPrice: finalPrice,
+                    totalPrice: finalPrice, // Use the calculated customer price
                     // If a file is uploaded, we pass it in the payload. 
-                    // In a real app, this might be uploaded first and a URL passed, or passed as File to be handled later.
                     files: file ? { service_file: file } : undefined,
                     details: {
                         serviceId: service.id,
