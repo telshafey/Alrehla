@@ -25,8 +25,23 @@ export const calculateInstructorNet = (customerPrice: number, config: PricingSet
 };
 
 /**
- * يحسب هامش ربح المنصة من عملية واحدة.
+ * يحسب هامش ربح المنصة من عملية تدريبية واحدة.
  */
 export const calculatePlatformMargin = (customerPrice: number, instructorNet: number): number => {
     return Math.max(0, customerPrice - instructorNet);
+};
+
+/**
+ * يحسب هامش ربح المنصة من المنتجات (إنها لك).
+ * القاعدة: نسبة ثابتة 20% للمنصة.
+ */
+export const calculateProductMargin = (totalPrice: number): number => {
+    return Math.floor(totalPrice * 0.20);
+};
+
+/**
+ * يحسب تكلفة المنتج (تشغيل/طباعة) وهي المتبقي بعد خصم هامش المنصة (80%).
+ */
+export const calculateProductCost = (totalPrice: number): number => {
+    return Math.ceil(totalPrice * 0.80);
 };

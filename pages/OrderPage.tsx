@@ -22,6 +22,7 @@ import type { ChildProfile, PersonalizedProduct } from '../lib/database.types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import DynamicTextFields from '../components/order/DynamicTextFields';
 import ChildProfileModal from '../components/account/ChildProfileModal';
+import { EGYPTIAN_GOVERNORATES } from '../utils/governorates';
 
 // --- Specialized Flows ---
 
@@ -118,6 +119,10 @@ const OrderPage: React.FC = () => {
     // --- React Hook Form Setup ---
     const schema = useMemo(() => createOrderSchema(product), [product]);
     
+    // Initialize defaults with user data if available
+    const defaultGovernorate = currentUser?.governorate || 
+        (currentUser?.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : 'القاهرة');
+
     const methods = useForm({
         resolver: zodResolver(schema),
         mode: 'onChange',
@@ -127,11 +132,11 @@ const OrderPage: React.FC = () => {
             childGender: '',
             deliveryType: 'printed',
             shippingOption: 'my_address',
-            governorate: 'القاهرة',
-            recipientName: '',
-            recipientAddress: '',
-            recipientPhone: '',
-            recipientEmail: '',
+            governorate: defaultGovernorate,
+            recipientName: currentUser?.name || '',
+            recipientAddress: currentUser?.address || '',
+            recipientPhone: currentUser?.phone || '',
+            recipientEmail: currentUser?.email || '',
             giftMessage: '',
             sendDigitalCard: true,
             storyValue: '',
@@ -141,6 +146,22 @@ const OrderPage: React.FC = () => {
 
     const { watch, trigger, setValue, formState: { errors } } = methods;
     const formData = watch();
+
+    // Effect to update form defaults if currentUser loads late or changes
+    useEffect(() => {
+        if (currentUser) {
+            const gov = currentUser.governorate || (currentUser.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : 'القاهرة');
+            
+            // Only update if the field is still at its "initial" empty state or default to avoid overwriting user input
+            if (formData.shippingOption === 'my_address') {
+                if (!formData.recipientName) setValue('recipientName', currentUser.name);
+                if (!formData.recipientAddress) setValue('recipientAddress', currentUser.address || '');
+                if (!formData.recipientPhone) setValue('recipientPhone', currentUser.phone || '');
+                if (!formData.recipientEmail) setValue('recipientEmail', currentUser.email);
+                if (formData.governorate === 'القاهرة' && gov !== 'القاهرة') setValue('governorate', gov);
+            }
+        }
+    }, [currentUser, setValue]); // Remove formData from deps to avoid loop
 
     useEffect(() => {
         if (product) {
@@ -258,8 +279,10 @@ const OrderPage: React.FC = () => {
                 break;
 
             case 'delivery':
-                if (formData.deliveryType === 'printed' && formData.shippingOption === 'gift') {
-                    fields.push('recipientName', 'recipientAddress', 'recipientPhone');
+                if (formData.deliveryType === 'printed') {
+                    // Always validate recipient fields for printed orders
+                    fields.push('recipientName', 'recipientAddress', 'recipientPhone', 'governorate');
+                    if (formData.sendDigitalCard) fields.push('recipientEmail');
                 }
                 break;
         }

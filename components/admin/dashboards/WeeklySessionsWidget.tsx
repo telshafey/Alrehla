@@ -1,10 +1,10 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, Clock, CheckCircle2, AlertCircle, Calendar, Globe, ExternalLink } from 'lucide-react';
+import { CalendarDays, Clock, CheckCircle2, AlertCircle, Calendar, Globe, ExternalLink, Plus } from 'lucide-react';
 import { Card, CardContent } from '../../ui/card';
 import { Button } from '../../ui/Button';
-import { formatDate, formatTime } from '../../../utils/helpers';
+import { formatDate, formatTime, generateGoogleCalendarUrl } from '../../../utils/helpers';
 import RequestSessionChangeModal from './RequestSessionChangeModal';
 import GoogleCalendarSyncModal from './GoogleCalendarSyncModal';
 
@@ -45,6 +45,15 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
 
         return { pastNeedsAction, upcomingThisWeek, startOfWeek, endOfWeek };
     }, [sessions]);
+
+    const handleAddToGoogleCalendar = (session: any) => {
+        const url = generateGoogleCalendarUrl(
+            `جلسة: ${session.child_name || 'طالب'} - ${session.package_name}`,
+            `جلسة تدريبية مع الطالب ${session.child_name}. يرجى الدخول للمنصة قبل الموعد بـ 10 دقائق.\nرابط الجلسة: ${window.location.origin}/session/${session.id}`,
+            session.session_date
+        );
+        window.open(url, '_blank');
+    };
 
     return (
         <div className="space-y-6">
@@ -118,15 +127,20 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
                 {weekData.upcomingThisWeek.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {weekData.upcomingThisWeek.map(session => (
-                            <Card key={session.id} className="bg-white">
+                            <Card key={session.id} className="bg-white group hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-start mb-3">
-                                        <span className="text-[10px] font-black text-gray-400">
+                                        <span className="text-[10px] font-black text-gray-400 bg-gray-50 px-2 py-1 rounded">
                                             {formatDate(session.session_date)} - {formatTime(session.session_date)}
                                         </span>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigate(`/admin/session-report/${session.id}`)}>
-                                            <ExternalLink size={14}/>
-                                        </Button>
+                                        <div className="flex gap-1">
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-blue-600" onClick={() => handleAddToGoogleCalendar(session)} title="إضافة للتقويم">
+                                                <Plus size={14}/>
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-blue-600" onClick={() => navigate(`/admin/session-report/${session.id}`)} title="تفاصيل الجلسة">
+                                                <ExternalLink size={14}/>
+                                            </Button>
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">

@@ -103,3 +103,28 @@ export const daysInMonth = (date: Date): number => {
 export const firstDayOfMonth = (date: Date): number => {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 };
+
+/**
+ * Generates a Google Calendar event URL
+ */
+export const generateGoogleCalendarUrl = (
+    title: string,
+    description: string,
+    startTime: string, // ISO String
+    durationMinutes: number = 60
+): string => {
+    const startDate = new Date(startTime);
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+
+    const formatGCalTime = (date: Date) => date.toISOString().replace(/-|:|\.\d\d\d/g, "");
+
+    const params = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: title,
+        details: description,
+        dates: `${formatGCalTime(startDate)}/${formatGCalTime(endDate)}`,
+        location: 'Alrehla Platform (Online)'
+    });
+
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+};

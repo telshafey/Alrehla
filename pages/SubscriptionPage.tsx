@@ -22,6 +22,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
 import ShippingAddressForm from '../components/shared/ShippingAddressForm';
 import ChildDetailsSection from '../components/order/ChildDetailsSection';
 import ChildProfileModal from '../components/account/ChildProfileModal';
+import { EGYPTIAN_GOVERNORATES } from '../utils/governorates';
 
 type SubscriptionStep = 'plan' | 'child' | 'customization' | 'images' | 'delivery';
 
@@ -66,28 +67,34 @@ const SubscriptionPage: React.FC = () => {
     const content = data?.siteContent?.enhaLakPage.subscription;
     const subscriptionPlans = data?.subscriptionPlans || [];
     const pageUrl = window.location.href;
-    const today = new Date().toISOString().split('T')[0];
 
     const [step, setStep] = useState<SubscriptionStep>('plan');
     const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
     const [isChildModalOpen, setIsChildModalOpen] = useState(false);
     
-    const [formData, setFormData] = useState({
-        childName: '',
-        childBirthDate: '',
-        childGender: '' as 'ذكر' | 'أنثى' | '',
-        childTraits: '',
-        familyNames: '',
-        friendNames: '',
-        shippingOption: 'my_address' as 'my_address' | 'gift',
-        governorate: 'القاهرة',
-        recipientName: '',
-        recipientAddress: '',
-        recipientPhone: '',
-        recipientEmail: '',
-        giftMessage: '',
-        sendDigitalCard: true,
+    // Initialize form data with user defaults
+    const [formData, setFormData] = useState(() => {
+        const defaultGov = currentUser?.governorate || 
+            (currentUser?.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : 'القاهرة');
+            
+        return {
+            childName: '',
+            childBirthDate: '',
+            childGender: '' as 'ذكر' | 'أنثى' | '',
+            childTraits: '',
+            familyNames: '',
+            friendNames: '',
+            shippingOption: 'my_address' as 'my_address' | 'gift',
+            governorate: defaultGov,
+            recipientName: currentUser?.name || '',
+            recipientAddress: currentUser?.address || '',
+            recipientPhone: currentUser?.phone || '',
+            recipientEmail: currentUser?.email || '',
+            giftMessage: '',
+            sendDigitalCard: true,
+        };
     });
+
     const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -184,11 +191,10 @@ const SubscriptionPage: React.FC = () => {
                  if (!imageFiles['child_photo_1']) newErrors['child_photo_1'] = 'صورة وجه الطفل إلزامية.';
                 break;
             case 'delivery':
-                if (formData.shippingOption === 'gift') {
-                    if (!formData.recipientName) newErrors.recipientName = 'اسم المستلم مطلوب.';
-                    if (!formData.recipientAddress) newErrors.recipientAddress = 'عنوان المستلم مطلوب.';
-                    if (!formData.recipientPhone) newErrors.recipientPhone = 'هاتف المستلم مطلوب.';
-                }
+                if (!formData.recipientName) newErrors.recipientName = 'اسم المستلم مطلوب.';
+                if (!formData.recipientAddress) newErrors.recipientAddress = 'عنوان المستلم مطلوب.';
+                if (!formData.recipientPhone) newErrors.recipientPhone = 'هاتف المستلم مطلوب.';
+                if (!formData.governorate) newErrors.governorate = 'المحافظة مطلوبة.';
                 break;
         }
         setErrors(newErrors);
