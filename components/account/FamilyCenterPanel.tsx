@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useUserAccountData, type EnrichedChildProfile } from '../../hooks/queries/user/useUserDataQuery';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
+import { useAuth } from '../../contexts/AuthContext';
 import { Users, UserPlus, Info } from 'lucide-react';
 import { Button } from '../ui/Button';
 import EmptyState from './EmptyState';
@@ -14,6 +15,7 @@ import PageLoader from '../ui/PageLoader';
 type ViewMode = 'list' | 'child-form' | 'student-form';
 
 const FamilyCenterPanel: React.FC = () => {
+    const { currentUser } = useAuth();
     const { data: accountData, isLoading } = useUserAccountData();
     const { deleteChildProfile } = useUserMutations();
 
@@ -64,7 +66,9 @@ const FamilyCenterPanel: React.FC = () => {
     if (isLoading) return <div className="p-8 bg-white rounded-2xl shadow-lg"><PageLoader text="جاري تحميل بيانات العائلة..." /></div>;
 
     if (viewMode === 'child-form') return <div className="bg-white p-8 rounded-2xl shadow-lg"><ChildForm childToEdit={selectedChild} onCancel={() => setViewMode('list')} onSuccess={() => setViewMode('list')} /></div>;
-    if (viewMode === 'student-form' && selectedChild) return <div className="bg-white p-8 rounded-2xl shadow-lg"><StudentAccountForm childProfile={selectedChild} onCancel={() => setViewMode('list')} onSuccess={() => setViewMode('list')} /></div>;
+    
+    // Pass parentEmail to enable auto-generation
+    if (viewMode === 'student-form' && selectedChild) return <div className="bg-white p-8 rounded-2xl shadow-lg"><StudentAccountForm childProfile={selectedChild} parentEmail={currentUser?.email} onCancel={() => setViewMode('list')} onSuccess={() => setViewMode('list')} /></div>;
 
     return (
         <>

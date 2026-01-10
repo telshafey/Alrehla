@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations, type UserWithParent } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import { Users, Plus, Edit, Trash2, Search, Briefcase, Shield, Link as LinkIcon, RefreshCw, User, Baby, GraduationCap, AlertCircle, ShoppingBag, UserPlus } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Briefcase, Shield, Link as LinkIcon, RefreshCw, User, Baby, GraduationCap, AlertCircle, ShoppingBag, UserPlus, Link2Off } from 'lucide-react';
 import { roleNames, STAFF_ROLES } from '../../lib/roles';
 import { Button } from '../../components/ui/Button';
 import ErrorState from '../../components/ui/ErrorState';
@@ -47,7 +47,6 @@ const AdminUsersPage: React.FC = () => {
             } 
             else if (activeTab === 'customers') {
                 // العميل: ليس ولي أمر، ليس طالباً، ليس موظفاً
-                // قد يكون لديه ملفات أطفال (للقصص) لكن بدون حسابات طلاب
                 matchesRole = !user.isActuallyParent && user.role === 'user';
             } 
             else if (activeTab === 'students') {
@@ -67,6 +66,11 @@ const AdminUsersPage: React.FC = () => {
         if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟ سيتم حذف كافة البيانات المرتبطة ولن يتمكن من الدخول ثانية.`)) {
             bulkDeleteUsers.mutate({ userIds: [userId] });
         }
+    };
+
+    const handleOpenLinkModal = (user: UserWithParent) => {
+        setSelectedUserForLink(user);
+        setLinkModalOpen(true);
     };
     
     const addUserOptions = [
@@ -141,12 +145,17 @@ const AdminUsersPage: React.FC = () => {
                                             cell: ({ row }) => (
                                                 <div>
                                                     <div className="font-medium">{row.name}</div>
-                                                    {row.parentName && (
+                                                    {row.parentName ? (
                                                         <div className="flex items-center gap-1 text-[9px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-blue-100">
                                                             <LinkIcon size={10} />
                                                             <span>تابع لـ: {row.parentName}</span>
                                                         </div>
-                                                    )}
+                                                    ) : row.role === 'student' ? (
+                                                        <div className="flex items-center gap-1 text-[9px] text-red-600 bg-red-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-red-100 font-bold animate-pulse">
+                                                            <Link2Off size={10} />
+                                                            <span>غير مرتبط بولي أمر!</span>
+                                                        </div>
+                                                    ) : null}
                                                 </div>
                                             )
                                         },
@@ -168,12 +177,6 @@ const AdminUsersPage: React.FC = () => {
                                                     }`}>
                                                         {roleNames[value as keyof typeof roleNames]}
                                                     </span>
-                                                    {row.isActuallyParent && value === 'user' && (
-                                                        <span className="text-[9px] text-orange-600 flex items-center gap-1 font-semibold animate-pulse">
-                                                            <AlertCircle size={10} />
-                                                            يجب ترقيته لولي أمر
-                                                        </span>
-                                                    )}
                                                 </div>
                                             )
                                         },
@@ -206,6 +209,17 @@ const AdminUsersPage: React.FC = () => {
                                     ]}
                                     renderRowActions={(user) => (
                                         <div className="flex items-center gap-1">
+                                            {user.role === 'student' && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    onClick={() => handleOpenLinkModal(user)} 
+                                                    title={user.parentName ? "تغيير الربط" : "ربط الطالب بولي أمر"}
+                                                    className={!user.parentName ? "text-orange-500 hover:text-orange-700 bg-orange-50" : ""}
+                                                >
+                                                    <LinkIcon size={18} />
+                                                </Button>
+                                            )}
                                             <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}`)} title="تعديل"><Edit size={18} /></Button>
                                             <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(user.id, user.name)} title="حذف"><Trash2 size={18} /></Button>
                                         </div>
