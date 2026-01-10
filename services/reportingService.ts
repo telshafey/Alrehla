@@ -1,6 +1,9 @@
 
 import { supabase } from '../lib/supabaseClient';
 import type { Order, CreativeWritingBooking, ServiceOrder, Subscription, Instructor, SubscriptionPlan } from '../lib/database.types';
+import { v4 as uuidv4 } from 'uuid';
+
+const LOCAL_STORAGE_KEY = 'admin_audit_logs_backup';
 
 const safeFetch = async <T>(promise: any, defaultValue: T): Promise<T> => {
     try {
@@ -17,27 +20,119 @@ const safeFetch = async <T>(promise: any, defaultValue: T): Promise<T> => {
 };
 
 export const reportingService = {
-    // وظيفة توثيق النشاطات الإدارية
+    // وظيفة توثيق النشاطات الإدارية (نظام هجين)
     async logAction(action: string, targetId: string, targetDesc: string, details: string) {
         try {
             const { data: userData } = await supabase.auth.getUser();
             const user = userData.user;
             
+            // 1. تجهيز بيانات السجل
             const logEntry = {
+                id: uuidv4(), // إنشاء معرف فريد محلياً
                 user_id: user?.id || null,
-                // user_name removed to prevent schema errors if column missing
                 action: action,
                 target_description: `${targetDesc} (#${targetId})`,
                 details: details,
                 timestamp: new Date().toISOString()
             };
 
-            const { error } = await (supabase.from('audit_logs') as any).insert([logEntry]);
-            if (error) console.error("Failed to insert audit log:", error);
+            // 2. محاولة الحفظ في قاعدة البيانات
+            const { error } = await (supabase.from('audit_logs') as any).insert([{
+                user_id: logEntry.user_id,
+                action: logEntry.action,
+                target_description: logEntry.target_description,
+                details: logEntry.details,
+                timestamp: logEntry.timestamp
+            }]);
+
+            // 3. في حال الفشل، الحفظ في التخزين المحلي كنسخة احتياطية
+            if (error) {
+                console.warn("Audit DB insert failed, using LocalStorage fallback:", error.message);
+                
+                try {
+                    const localLogs = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
+                    localLogs.unshift(logEntry);
+                    // الاحتفاظ بآخر 50 عملية فقط لتجنب امتلاء التخزين
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localLogs.slice(0, 50)));
+                } catch (lsError) {
+                    console.error("LocalStorage write failed:", lsError);
+                }
+            }
             
         } catch (e) {
-            console.warn("Audit logging failed silently (non-critical)", e);
+            console.warn("Audit logging failed silently", e);
         }
+    },
+
+    async getAuditLogs(filters: any) {
+        let dbLogs: any[] = [];
+        
+        // 1. محاولة جلب البيانات من قاعدة البيانات
+        try {
+            let query = supabase.from('audit_logs').select('*');
+            if (filters.startDate) query = query.gte('timestamp', filters.startDate);
+            if (filters.endDate) query = query.lte('timestamp', filters.endDate);
+            if (filters.actionType && filters.actionType !== 'all') query = query.eq('action', filters.actionType);
+            if (filters.userId && filters.userId !== 'all') query = query.eq('user_id', filters.userId);
+
+            const { data, error } = await query.order('timestamp', { ascending: false });
+            
+            if (!error && data) {
+                dbLogs = data;
+            } else if (error) {
+                console.warn("Failed to fetch audit logs from DB, falling back to local.", error.message);
+            }
+        } catch (e) {
+            console.warn("DB connection error for audit logs", e);
+        }
+
+        // 2. جلب البيانات المحلية (التي فشل إرسالها للسيرفر)
+        let localLogs: any[] = [];
+        try {
+            localLogs = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
+            
+            // تطبيق الفلاتر على البيانات المحلية
+            if (filters.startDate) localLogs = localLogs.filter((l: any) => l.timestamp >= filters.startDate);
+            if (filters.endDate) localLogs = localLogs.filter((l: any) => l.timestamp <= filters.endDate);
+            if (filters.actionType && filters.actionType !== 'all') localLogs = localLogs.filter((l: any) => l.action === filters.actionType);
+        } catch (e) {
+            console.error("Failed to parse local logs", e);
+        }
+
+        // 3. دمج البيانات وإزالة التكرار (بناءً على التوقيت والتفاصيل)
+        const combinedLogs = [...localLogs, ...dbLogs];
+        
+        // إزالة التكرار البسيط
+        const uniqueLogsMap = new Map();
+        combinedLogs.forEach(log => {
+            const key = `${log.timestamp}-${log.action}-${log.details}`;
+            if (!uniqueLogsMap.has(key)) {
+                uniqueLogsMap.set(key, log);
+            }
+        });
+        const uniqueLogs = Array.from(uniqueLogsMap.values());
+
+        // ترتيب نهائي
+        uniqueLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        // 4. إثراء البيانات بأسماء المستخدمين
+        const userIds = [...new Set(uniqueLogs.map(l => l.user_id).filter(Boolean))];
+        let userMap: Record<string, string> = {};
+
+        if (userIds.length > 0) {
+             const { data: profiles } = await supabase.from('profiles').select('id, name').in('id', userIds);
+             if (profiles) {
+                 profiles.forEach((p: any) => userMap[p.id] = p.name);
+             }
+        }
+
+        const enrichedLogs = uniqueLogs.map(l => ({
+            ...l,
+            user_name: userMap[l.user_id] || l.user_name || 'مسؤول النظام'
+        }));
+
+        const types = Array.from(new Set(enrichedLogs.map(l => l.action)));
+        return { logs: enrichedLogs, actionTypes: types };
     },
 
     async getFinancialOverview() {
@@ -150,40 +245,5 @@ export const reportingService = {
             });
         }
         return [];
-    },
-
-    async getAuditLogs(filters: any) {
-        let query = supabase.from('audit_logs').select('*');
-        if (filters.startDate) query = query.gte('timestamp', filters.startDate);
-        if (filters.endDate) query = query.lte('timestamp', filters.endDate);
-        if (filters.actionType && filters.actionType !== 'all') query = query.eq('action', filters.actionType);
-        if (filters.userId && filters.userId !== 'all') query = query.eq('user_id', filters.userId);
-
-        const { data, error } = await query.order('timestamp', { ascending: false });
-        
-        if (error) {
-            console.error("Error fetching audit logs:", error);
-            throw new Error(`Failed to load audit logs: ${error.message}`);
-        }
-
-        // Manually map user names to avoid schema errors if user_name col is missing/empty
-        const logs = data as any[];
-        const userIds = [...new Set(logs.map(l => l.user_id).filter(Boolean))];
-        let userMap: Record<string, string> = {};
-
-        if (userIds.length > 0) {
-             const { data: profiles } = await supabase.from('profiles').select('id, name').in('id', userIds);
-             if (profiles) {
-                 profiles.forEach((p: any) => userMap[p.id] = p.name);
-             }
-        }
-
-        const enrichedLogs = logs.map(l => ({
-            ...l,
-            user_name: userMap[l.user_id] || l.user_name || 'System'
-        }));
-
-        const types = Array.from(new Set(enrichedLogs.map(l => l.action)));
-        return { logs: enrichedLogs, actionTypes: types };
     }
 };

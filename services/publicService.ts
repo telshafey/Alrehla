@@ -41,9 +41,9 @@ export const publicService = {
             supabase.from('instructors').select('*').is('deleted_at', null),
             supabase.from('blog_posts').select('*').eq('status', 'published').is('deleted_at', null),
             supabase.from('personalized_products').select('*').is('deleted_at', null).order('sort_order'),
-            supabase.from('creative_writing_packages').select('*'),
-            supabase.from('subscription_plans').select('*').order('price'),
-            supabase.from('standalone_services').select('*'),
+            supabase.from('creative_writing_packages').select('*'), // Hard delete implies checking table structure, assuming active if present or no column
+            supabase.from('subscription_plans').select('*').is('deleted_at', null).order('price'),
+            supabase.from('standalone_services').select('*'), // Assuming hard delete or no soft delete column based on types
             (supabase.from('site_settings') as any).select('*'), // Cast to any to avoid property access issues
             supabase.from('badges').select('*'),
             supabase.from('comparison_items').select('*').order('sort_order')
