@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { Checkbox } from '../../components/ui/Checkbox';
 import { IconMap } from '../../components/creative-writing/services/IconMap';
 import type { StandaloneService } from '../../lib/database.types';
+import { calculateCustomerPrice } from '../../utils/pricingCalculator';
 
 const AdminServiceDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -42,10 +43,8 @@ const AdminServiceDetailPage: React.FC = () => {
     }, [id, isNew, settings]);
 
     const estimatedCustomerPrice = useMemo(() => {
-        if (!pricingConfig || service.price === undefined) return 0;
-        // إذا كانت الخدمة تابعة للشركة مباشرة، السعر المدخل هو السعر النهائي (أو يتبع منطق آخر)
-        // لكن لتوحيد النظام، سنطبق المعادلة دائماً
-        return Math.ceil((service.price * pricingConfig.company_percentage) + pricingConfig.fixed_fee);
+        // استخدام الدالة الموحدة لضمان تطابق السعر مع ما يراه العميل
+        return calculateCustomerPrice(service.price, pricingConfig);
     }, [service.price, pricingConfig]);
 
     const handleSubmit = async (e: React.FormEvent) => {
