@@ -6,17 +6,16 @@ import type {
     Notification,
     Order, 
     Subscription, 
-    CreativeWritingBooking, 
-    ScheduledSession, 
     CreativeWritingPackage, 
     ChildBadge, 
     Badge, 
     SessionAttachment,
-    ChildProfile,
-    Instructor
+    ScheduledSession,
+    EnrichedBooking,
+    EnrichedChildProfile
 } from '../../../lib/database.types';
 
-export type { SessionAttachment };
+export type { SessionAttachment, EnrichedBooking, EnrichedChildProfile };
 
 export const useUserNotifications = () => {
     const { currentUser } = useAuth();
@@ -34,17 +33,6 @@ export const useUserNotifications = () => {
         enabled: !!currentUser,
     });
 };
-
-export type EnrichedBooking = CreativeWritingBooking & {
-    sessions: ScheduledSession[];
-    packageDetails: CreativeWritingPackage | undefined;
-    instructorName: string;
-    child_profiles: { name: string } | null;
-};
-
-export interface EnrichedChildProfile extends ChildProfile {
-    student_email?: string;
-}
 
 export interface UserAccountData {
     userOrders: Order[];

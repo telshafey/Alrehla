@@ -95,8 +95,8 @@ const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpe
                                 <div className="p-4 bg-gray-50 rounded-xl border">
                                     <h4 className="font-bold text-sm mb-2 flex items-center gap-2"><Smartphone size={16}/> iPhone / iPad</h4>
                                     <ol className="text-[10px] list-decimal list-inside text-muted-foreground space-y-1">
-                                        <li>انتقل إلى الإعدادات > التقويم > الحسابات.</li>
-                                        <li>اختر "إضافة حساب" > "أخرى".</li>
+                                        <li>انتقل إلى الإعدادات &gt; التقويم &gt; الحسابات.</li>
+                                        <li>اختر "إضافة حساب" &gt; "أخرى".</li>
                                         <li>اختر "إضافة تقويم مشترك" وألصق الرابط.</li>
                                     </ol>
                                 </div>
@@ -105,7 +105,7 @@ const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpe
                                     <ol className="text-[10px] list-decimal list-inside text-muted-foreground space-y-1">
                                         <li>افتح التقويم.</li>
                                         <li>انقر بزر الماوس الأيمن على "My Calendars".</li>
-                                        <li>اختر Add Calendar > From Internet وألصق الرابط.</li>
+                                        <li>اختر Add Calendar &gt; From Internet وألصق الرابط.</li>
                                     </ol>
                                 </div>
                             </div>

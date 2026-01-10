@@ -177,17 +177,38 @@ export interface UserProfile {
   role: UserRole;
   address?: string | null;
   governorate?: string | null; 
-  city?: string | null; // Added
-  country?: string | null; // Added
-  phone?: string | null; // Added
-  timezone?: string | null; // Added
-  currency?: string | null; // Added
+  city?: string | null;
+  country?: string | null;
+  phone?: string | null;
+  timezone?: string | null;
+  currency?: string | null;
 }
 
 export interface UserProfileWithRelations extends UserProfile {
     children?: ChildProfile[];
     childrenCount?: number;
 }
+
+// --- Enriched Types for Frontend Logic ---
+export interface EnrichedChildProfile extends ChildProfile {
+    student_email?: string;
+}
+
+export interface UserWithParent extends UserProfileWithRelations {
+    parentName?: string;
+    parentEmail?: string;
+    activeStudentsCount: number;
+    totalChildrenCount: number;
+    isActuallyParent: boolean;
+}
+
+export interface EnrichedBooking extends CreativeWritingBooking {
+    sessions: ScheduledSession[];
+    packageDetails: CreativeWritingPackage | undefined;
+    instructorName: string;
+    child_profiles: { name: string } | null;
+}
+// ------------------------------------------
 
 export interface ChildProfile {
   id: number;
