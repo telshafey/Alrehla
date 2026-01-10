@@ -147,7 +147,7 @@ export const userService = {
             created_at: new Date().toISOString()
         }]);
 
-        // Link to child profile - EXPLICITLY CALL userService to avoid context loss
+        // Link to child profile - EXPLICITLY CALL userService to avoid context loss (Fixing the 'this is not a function' error)
         await userService.linkStudentToChildProfile({ studentUserId, childProfileId: payload.childProfileId });
 
         return { success: true, studentId: studentUserId };
