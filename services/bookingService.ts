@@ -1,6 +1,7 @@
 
 import { supabase } from '../lib/supabaseClient';
 import { cloudinaryService } from './cloudinaryService';
+import { storageService } from './storageService';
 import { reportingService } from './reportingService';
 import type { 
     CreativeWritingBooking, 
@@ -10,9 +11,7 @@ import type {
     CreativeWritingPackage,
     StandaloneService,
     SessionAttachment,
-    ComparisonItem,
-    WeeklySchedule,
-    AvailableSlots
+    ComparisonItem
 } from '../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -129,7 +128,7 @@ export const bookingService = {
                 .ilike('booking_date', `${dateStr.split('T')[0]}%`)
                 .neq('status', 'ملغي');
 
-            if (error) return true; // Default to available on error to not block
+            if (error) return true;
             return data.length === 0;
         } catch { return true; }
     },
@@ -229,7 +228,23 @@ export const bookingService = {
     },
 
     async saveBookingDraft(bookingId: string, draft: string) {
-        const { error } = await (supabase.from('bookings') as any).update({ details: { draft } }).eq('id', bookingId);
+        // First get current details
+        const { data: current, error: fetchError } = await supabase
+            .from('bookings')
+            .select('details')
+            .eq('id', bookingId)
+            .single();
+
+        if (fetchError) throw new Error(fetchError.message);
+
+        // Merge to preserve other info (like file URLs or custom notes)
+        const currentDetails = current?.details || {};
+        const updatedDetails = { ...currentDetails, draft };
+
+        const { error } = await (supabase.from('bookings') as any)
+            .update({ details: updatedDetails })
+            .eq('id', bookingId);
+
         if (error) throw error;
         return { success: true };
     },
@@ -246,7 +261,9 @@ export const bookingService = {
     },
 
     async uploadSessionAttachment(payload: { bookingId: string, uploaderId: string, role: 'instructor' | 'student' | 'user', file: File }) {
-        const publicUrl = await cloudinaryService.uploadImage(payload.file, 'session_attachments');
+        // Upload file to Supabase 'receipts' bucket (as specified for files)
+        const publicUrl = await storageService.uploadFile(payload.file, 'receipts', `attachments/${payload.bookingId}`);
+        
         const { error } = await (supabase.from('session_attachments') as any).insert([{
             booking_id: payload.bookingId,
             uploader_id: payload.uploaderId,
@@ -275,7 +292,7 @@ export const bookingService = {
             avatarUrl = await cloudinaryService.uploadImage(payload.avatarFile, 'alrehla_instructors');
         }
         const { id, avatarFile, ...updates } = payload;
-        if (!id) throw new Error("Instructor ID is required for update");
+        if (!id) throw new Error("Instructor ID is required");
         
         const { data, error } = await (supabase.from('instructors') as any).update({ ...updates, avatar_url: avatarUrl }).eq('id', id).select().single();
         if (error) throw error;

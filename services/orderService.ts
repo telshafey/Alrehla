@@ -1,6 +1,7 @@
 
 import { supabase } from '../lib/supabaseClient';
 import { cloudinaryService } from './cloudinaryService';
+import { storageService } from './storageService'; // Keeping for potential future use if needed for non-image docs
 import { reportingService } from './reportingService';
 import type { 
     Order, 
@@ -142,7 +143,9 @@ export const orderService = {
     },
 
     async uploadReceipt(itemId: string, itemType: string, receiptFile: File) {
+        // Use Cloudinary for Receipts (Images)
         const publicUrl = await cloudinaryService.uploadImage(receiptFile, 'alrehla_receipts');
+        
         let table = 'orders';
         if (itemType === 'booking') table = 'bookings';
         else if (itemType === 'subscription') table = 'subscriptions';
@@ -154,10 +157,24 @@ export const orderService = {
     },
 
     async createSubscription(payload: CreateSubscriptionPayload) {
-        // ... (keep implementation)
-         const subId = `SUB-${Date.now().toString().slice(-6)}`;
-        // simplified...
-        const { data, error } = await (supabase.from('subscriptions') as any).insert([{ /*...*/ }]).select().single(); // Error if fails
+        const subId = `SUB-${Date.now().toString().slice(-6)}`;
+        const initialStatus = payload.receiptUrl ? 'active' : 'pending_payment'; // Auto-active if receipt present for now, or reviewer logic
+        
+        const { data, error } = await (supabase.from('subscriptions') as any).insert([{
+            id: subId,
+            user_id: payload.userId,
+            child_id: payload.childId,
+            plan_id: payload.planId,
+            plan_name: payload.planName,
+            start_date: new Date().toISOString(),
+            next_renewal_date: new Date(new Date().setMonth(new Date().getMonth() + payload.durationMonths)).toISOString(),
+            status: initialStatus,
+            total: payload.total,
+            shipping_cost: payload.shippingCost || 0,
+            details: payload.shippingDetails, // Store shipping info
+            created_at: new Date().toISOString()
+        }]).select().single();
+        
         if (error) throw new Error(error.message);
         return data as Subscription;
     },
@@ -170,6 +187,7 @@ export const orderService = {
     },
 
     async uploadOrderFile(file: File, folder: string = 'alrehla_orders') {
+        // Use Cloudinary for order receipts/images in checkout
         return cloudinaryService.uploadImage(file, folder);
     },
 
