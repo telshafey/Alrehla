@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, FileText, Package, Plus, Edit, Trash2, Save, ArrowUp, ArrowDown, ImageIcon } from 'lucide-react';
+import { Star, FileText, Package, Plus, Edit, Trash2, Save, ImageIcon } from 'lucide-react';
 import { useAdminPersonalizedProducts, useAdminSubscriptionPlans } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useSubscriptionMutations } from '../../hooks/mutations/useSubscriptionMutations';
@@ -12,16 +12,15 @@ import { Button } from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
-import type { SubscriptionPlan, SiteContent, PersonalizedProduct } from '../../lib/database.types';
-import ErrorState from '../../components/ui/ErrorState';
+import type { SubscriptionPlan, SiteContent } from '../../lib/database.types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 
 const AdminSubscriptionBoxPage: React.FC = () => {
     // Queries
-    const { data: rawPlans = [], isLoading: plansLoading, error: plansError, refetch: refetchPlans } = useAdminSubscriptionPlans();
-    const { data: siteContentData, isLoading: contentLoading, error: contentError, refetch: refetchContent } = useAdminSiteContent();
+    const { data: rawPlans = [], isLoading: plansLoading } = useAdminSubscriptionPlans();
+    const { data: siteContentData, isLoading: contentLoading } = useAdminSiteContent();
     const { data: products = [] } = useAdminPersonalizedProducts();
     
     // Mutations
@@ -94,14 +93,6 @@ const AdminSubscriptionBoxPage: React.FC = () => {
             newSiteContent.enhaLakPage.subscription = content;
             await updateSiteContent.mutateAsync(newSiteContent);
         }
-    };
-
-    const handleSort = (key: keyof SubscriptionPlan) => {
-        let direction: 'asc' | 'desc' = 'asc';
-        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
-        }
-        setSortConfig({ key, direction });
     };
 
     if (isLoading || !content) return <PageLoader />;

@@ -10,7 +10,7 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
-import { ArrowLeft, Save, User, Lock, Shield, Briefcase, GraduationCap, Link as LinkIcon, Users, AlertTriangle, Trash2, Info } from 'lucide-react';
+import { ArrowLeft, Save, Shield, Briefcase, GraduationCap, Link as LinkIcon, AlertTriangle, Trash2, Info } from 'lucide-react';
 import PageLoader from '../../components/ui/PageLoader';
 import { useAuth } from '../../contexts/AuthContext';
 import Modal from '../../components/ui/Modal';

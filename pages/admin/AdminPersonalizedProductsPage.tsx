@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings, ChevronDown, Box, Sparkles } from 'lucide-react';
+import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings, Box, Sparkles } from 'lucide-react';
 import { useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useProductMutations } from '../../hooks/mutations/useProductMutations';
 import PageLoader from '../../components/ui/PageLoader';
