@@ -109,12 +109,12 @@ const AdminInstructorDetailPage: React.FC = () => {
         if (!instructor || !pendingUpdates) return;
         
         // Construct the final updates object merging non-pricing updates with approved pricing
+        // We include admin_feedback here, but the hook will extract it before DB update
         const finalUpdates = {
             ...pendingUpdates,
             package_rates: approvedRates.package_rates,
             service_rates: approvedRates.service_rates,
-            // Include admin feedback in the history or metadata if supported, currently passing as separate arg logic in mutation
-            admin_feedback: adminFeedback
+            admin_feedback: adminFeedback 
         };
 
         // We use the mutation but inject our modified payload
@@ -126,8 +126,11 @@ const AdminInstructorDetailPage: React.FC = () => {
     };
 
     const handleReject = async () => {
-         // Optionally send feedback even on rejection (requires backend support or a separate notification logic)
-         await rejectInstructorProfileUpdate.mutateAsync({instructorId: instructor!.id});
+         await rejectInstructorProfileUpdate.mutateAsync({
+             instructorId: instructor!.id,
+             feedback: adminFeedback
+         });
+         setAdminFeedback('');
     };
 
     // Helper to render pricing comparison row

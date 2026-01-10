@@ -104,5 +104,6 @@ export const useTrainingJourneyData = (journeyId: string | undefined) => {
             };
         },
         enabled: !!journeyId,
+        refetchInterval: 5000, // تحديث تلقائي كل 5 ثواني لجلب الرسائل والملفات الجديدة
     });
 };

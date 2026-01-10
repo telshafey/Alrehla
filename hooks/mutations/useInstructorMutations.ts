@@ -34,6 +34,21 @@ export const useInstructorMutations = () => {
         }
     };
 
+    // دالة لإشعار المدرب
+    const notifyInstructor = async (instructorUserId: string, message: string, type: string) => {
+        if (!instructorUserId) return;
+        try {
+            await (supabase.from('notifications') as any).insert([{
+                user_id: instructorUserId,
+                message,
+                link: '/admin/profile',
+                type,
+                created_at: new Date().toISOString(),
+                read: false
+            }]);
+        } catch (e) { console.error("Failed to notify instructor", e); }
+    };
+
     const createInstructor = useMutation({
         mutationFn: bookingService.createInstructor,
         onSuccess: () => {
@@ -76,14 +91,12 @@ export const useInstructorMutations = () => {
         mutationFn: async ({ instructorId }: { instructorId: number }) => {
             const { data: instructorData, error: fetchError } = await supabase
                 .from('instructors')
-                .select('pending_profile_data')
+                .select('pending_profile_data, user_id')
                 .eq('id', instructorId)
                 .single();
             
             if (fetchError) throw fetchError;
-            if (!instructorData) throw new Error("Instructor not found");
-
-            // Explicitly cast to any to avoid 'never' type error on property access
+            
             const instructor = instructorData as any;
             const pendingSchedule = instructor.pending_profile_data?.proposed_schedule;
             
@@ -101,6 +114,12 @@ export const useInstructorMutations = () => {
                 .eq('id', instructorId);
 
             if (updateError) throw updateError;
+            
+            // Notify Instructor
+            if (instructor.user_id) {
+                await notifyInstructor(instructor.user_id, "تمت الموافقة على جدولك الأسبوعي الجديد.", "schedule_approved");
+            }
+
             return { success: true };
         },
         onSuccess: () => {
@@ -111,8 +130,15 @@ export const useInstructorMutations = () => {
     
     const rejectInstructorSchedule = useMutation({
         mutationFn: async ({ instructorId }: { instructorId: number }) => {
+            const { data: instructor } = await supabase.from('instructors').select('user_id').eq('id', instructorId).single();
+            
             const { error } = await (supabase.from('instructors') as any).update({ schedule_status: 'rejected' }).eq('id', instructorId);
             if (error) throw error;
+
+            if ((instructor as any)?.user_id) {
+                await notifyInstructor((instructor as any).user_id, "تم رفض طلب تعديل الجدول. يرجى مراجعة الإدارة.", "schedule_rejected");
+            }
+            
             return { success: true };
         },
         onSuccess: () => {
@@ -133,36 +159,73 @@ export const useInstructorMutations = () => {
             if (fetchError) throw fetchError;
             if (!instructorData) throw new Error("Instructor not found");
 
-             // Explicitly cast to any to avoid 'never' type error on property access
             const instructor = instructorData as any;
 
             // نستخدم البيانات المعدلة من المدير إذا وجدت، وإلا نستخدم بيانات الطلب الأصلي
-            const finalUpdates = modifiedUpdates || instructor.pending_profile_data?.updates;
+            const updatesSource = modifiedUpdates || instructor.pending_profile_data?.updates;
             
-            if (!finalUpdates) throw new Error("لا توجد تحديثات بانتظار الموافقة.");
+            if (!updatesSource) throw new Error("لا توجد تحديثات بانتظار الموافقة.");
 
+            // 1. استخراج الملاحظات (Feedback) وفصلها عن البيانات التي ستخزن في الجدول
+            const { admin_feedback, ...dataToSave } = updatesSource;
+
+            // 2. تحديث سجل المدرب بالبيانات النظيفة فقط
             const { error: updateError } = await (supabase.from('instructors') as any)
                 .update({
-                    ...finalUpdates,
+                    ...dataToSave, // ينشر البيانات (الأسعار، النبذة، إلخ)
                     profile_update_status: 'approved',
-                    pending_profile_data: null
+                    pending_profile_data: null // مسح البيانات المعلقة
                 })
                 .eq('id', instructorId);
 
             if (updateError) throw updateError;
+
+            // 3. إرسال إشعار للمدرب
+            if (instructor.user_id) {
+                const msg = admin_feedback 
+                    ? `تم اعتماد تحديثات ملفك/أسعارك. ملاحظة الإدارة: ${admin_feedback}`
+                    : `تم اعتماد تحديثات ملفك الشخصي والأسعار بنجاح.`;
+                await notifyInstructor(instructor.user_id, msg, "profile_approved");
+            }
+
             return { success: true };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
             queryClient.invalidateQueries({ queryKey: ['publicData'] });
-            addToast('تم اعتماد التعديلات (مع أي تعديلات إدارية) بنجاح.', 'success');
+            addToast('تم اعتماد التعديلات ونشرها بنجاح.', 'success');
+        },
+        onError: (err: Error) => {
+            console.error("Approval Error:", err);
+            addToast(`فشل الاعتماد: ${err.message}`, 'error');
         }
     });
 
     const rejectInstructorProfileUpdate = useMutation({
-        mutationFn: async ({ instructorId }: { instructorId: number }) => {
-             const { error } = await (supabase.from('instructors') as any).update({ profile_update_status: 'rejected' }).eq('id', instructorId);
+        mutationFn: async ({ instructorId, feedback }: { instructorId: number, feedback?: string }) => {
+            const { data: instructor } = await supabase.from('instructors').select('user_id, pending_profile_data').eq('id', instructorId).single();
+            
+            // نحتفظ بالبيانات المعلقة ولكن نغير الحالة لمرفوض، ونضيف الـ Feedback
+            const currentPending = (instructor as any)?.pending_profile_data || {};
+            const newPendingData = {
+                ...currentPending,
+                admin_feedback: feedback || 'تم رفض الطلب من قبل الإدارة.'
+            };
+
+            const { error } = await (supabase.from('instructors') as any)
+                .update({ 
+                    profile_update_status: 'rejected',
+                    pending_profile_data: newPendingData
+                })
+                .eq('id', instructorId);
+            
             if (error) throw error;
+
+            if ((instructor as any)?.user_id) {
+                 const msg = feedback ? `تم رفض طلب التحديث. السبب: ${feedback}` : "تم رفض طلب التحديث الخاص بك.";
+                 await notifyInstructor((instructor as any).user_id, msg, "profile_rejected");
+            }
+
             return { success: true };
         },
         onSuccess: () => {
@@ -174,8 +237,6 @@ export const useInstructorMutations = () => {
     const requestProfileUpdate = useMutation({
         mutationFn: async (payload: { instructorId: number, updates: any, justification: string }) => {
             const { data: instructor } = await supabase.from('instructors').select('name').eq('id', payload.instructorId).single();
-            
-            // Cast instructor to any to avoid null check error if needed, though optional chaining handles it
             const instructorName = (instructor as any)?.name || '';
 
             const { error } = await (supabase.from('instructors') as any)

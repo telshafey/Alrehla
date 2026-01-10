@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTrainingJourneyData } from '../hooks/queries/user/useJourneyDataQuery';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,14 +10,13 @@ import ErrorState from '../components/ui/ErrorState';
 import WritingDraftPanel from '../components/student/WritingDraftPanel';
 import { 
     MessageSquare, Paperclip, FileText, Send, Upload, 
-    CheckCircle, PlayCircle, Edit3, XCircle, ArrowLeft, Download, User
+    CheckCircle, PlayCircle, Edit3, ArrowLeft, Download, Loader2
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
 import { formatDate } from '../utils/helpers';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
-import { supabase } from '../lib/supabaseClient';
 
 const TrainingJourneyPage: React.FC = () => {
     const { journeyId } = useParams<{ journeyId: string }>();
@@ -29,37 +28,48 @@ const TrainingJourneyPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'draft' | 'discussion' | 'attachments'>('draft');
     const [newMessage, setNewMessage] = useState('');
     const chatEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const isInstructor = currentUser?.role === 'instructor';
-
-    // التمرير لأسفل المحادثة تلقائياً
+    // التمرير لأسفل المحادثة تلقائياً عند وصول رسائل جديدة
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [journeyData?.messages]);
+        if (activeTab === 'discussion') {
+            chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [journeyData?.messages, activeTab]);
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newMessage.trim() || !journeyId || !currentUser) return;
         
-        await sendSessionMessage.mutateAsync({
-            bookingId: journeyId,
-            senderId: currentUser.id,
-            role: currentUser.role as any,
-            message: newMessage
-        });
-        setNewMessage('');
+        try {
+            await sendSessionMessage.mutateAsync({
+                bookingId: journeyId,
+                senderId: currentUser.id,
+                role: currentUser.role as any,
+                message: newMessage
+            });
+            setNewMessage('');
+        } catch (error) {
+            // Error handled by mutation hook toast
+        }
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !journeyId || !currentUser) return;
 
-        await uploadSessionAttachment.mutateAsync({
-            bookingId: journeyId,
-            uploaderId: currentUser.id,
-            role: currentUser.role as any,
-            file
-        });
+        try {
+            await uploadSessionAttachment.mutateAsync({
+                bookingId: journeyId,
+                uploaderId: currentUser.id,
+                role: currentUser.role as any,
+                file
+            });
+            // Reset input to allow re-uploading same file if needed
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        } catch (error) {
+            // Error handled by mutation hook toast
+        }
     };
 
     if (isLoading) return <PageLoader />;
@@ -70,9 +80,11 @@ const TrainingJourneyPage: React.FC = () => {
     }
 
     const { booking, scheduledSessions, messages, attachments, childProfile } = journeyData;
-    // Safe access using any to bypass strict type checking if needed for dynamic properties
     const instructorName = (journeyData as any).instructor?.name || 'غير محدد';
     const bookingPackageName = (booking as any).package_name || 'باقة تدريبية';
+    
+    // استخراج المسودة المحفوظة من تفاصيل الحجز
+    const savedDraft = (booking as any).details?.draft;
 
     return (
         <div className="bg-muted/40 py-10 animate-fadeIn min-h-screen">
@@ -88,64 +100,116 @@ const TrainingJourneyPage: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                     {/* الجانب الأيمن: منطقة العمل */}
                     <div className="lg:col-span-3">
-                        <Card className="min-h-[600px] flex flex-col">
+                        <Card className="min-h-[650px] flex flex-col shadow-lg border-t-4 border-t-primary">
                             <CardContent className="pt-6 flex-grow flex flex-col">
                                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-grow flex flex-col">
-                                    <TabsList className="mb-6">
-                                        <TabsTrigger value="draft"><Edit3 size={16}/> مسودة القصة</TabsTrigger>
-                                        <TabsTrigger value="discussion"><MessageSquare size={16}/> المحادثة المباشرة</TabsTrigger>
-                                        <TabsTrigger value="attachments"><Paperclip size={16}/> تبادل الملفات</TabsTrigger>
+                                    <TabsList className="mb-6 w-full justify-start border-b rounded-none bg-transparent p-0 gap-6">
+                                        <TabsTrigger value="draft" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3"><Edit3 size={16} className="ml-2"/> مسودة القصة</TabsTrigger>
+                                        <TabsTrigger value="discussion" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3"><MessageSquare size={16} className="ml-2"/> المحادثة المباشرة</TabsTrigger>
+                                        <TabsTrigger value="attachments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3"><Paperclip size={16} className="ml-2"/> ملفات ومرفقات</TabsTrigger>
                                     </TabsList>
 
-                                    <TabsContent value="draft" className="flex-grow">
-                                        <WritingDraftPanel journeyId={booking.id} canInteract={true} />
+                                    <TabsContent value="draft" className="flex-grow h-full">
+                                        <WritingDraftPanel journeyId={booking.id} canInteract={true} initialDraft={savedDraft} />
                                     </TabsContent>
 
                                     <TabsContent value="discussion" className="flex-grow flex flex-col h-[500px]">
-                                        <div className="flex-grow overflow-y-auto space-y-4 mb-4 p-4 bg-muted/20 rounded-xl">
+                                        <div className="flex-grow overflow-y-auto space-y-4 mb-4 p-4 bg-muted/30 rounded-xl border">
                                             {messages.length > 0 ? messages.map((msg: any) => (
                                                 <div key={msg.id} className={`flex ${msg.sender_id === currentUser?.id ? 'justify-end' : 'justify-start'}`}>
                                                     <div className={`max-w-[80%] p-3 rounded-2xl shadow-sm ${msg.sender_id === currentUser?.id ? 'bg-primary text-white rounded-tl-none' : 'bg-white text-gray-800 rounded-tr-none border'}`}>
-                                                        <p className="text-xs opacity-70 mb-1 font-bold">{msg.sender_role === 'instructor' ? 'المدرب' : 'الطالب'}</p>
-                                                        <p className="text-sm leading-relaxed">{msg.message_text}</p>
-                                                        <p className="text-[9px] mt-1 opacity-50 text-left">{new Date(msg.created_at).toLocaleTimeString('ar-EG')}</p>
+                                                        <div className="flex justify-between items-center mb-1 gap-4">
+                                                            <p className="text-[10px] font-bold opacity-80">{msg.sender_role === 'instructor' ? 'المدرب' : (msg.sender_id === currentUser?.id ? 'أنت' : 'الطرف الآخر')}</p>
+                                                            <p className="text-[9px] opacity-60" dir="ltr">{new Date(msg.created_at).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'})}</p>
+                                                        </div>
+                                                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message_text}</p>
                                                     </div>
                                                 </div>
-                                            )) : <p className="text-center text-muted-foreground py-10 italic">ابدأ المحادثة مع مدربك هنا...</p>}
+                                            )) : (
+                                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                                                    <MessageSquare size={48} className="opacity-20 mb-2"/>
+                                                    <p>لا توجد رسائل بعد. ابدأ المحادثة الآن!</p>
+                                                </div>
+                                            )}
                                             <div ref={chatEndRef} />
                                         </div>
-                                        <form onSubmit={handleSendMessage} className="flex gap-2">
-                                            <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="اكتب رسالتك هنا..." className="min-h-[50px]" />
-                                            <Button type="submit" size="icon" className="h-full px-6" disabled={sendSessionMessage.isPending}><Send size={20}/></Button>
+                                        <form onSubmit={handleSendMessage} className="flex gap-2 items-end">
+                                            <Textarea 
+                                                value={newMessage} 
+                                                onChange={e => setNewMessage(e.target.value)} 
+                                                placeholder="اكتب رسالتك هنا... (Shift+Enter لسطر جديد)" 
+                                                className="min-h-[50px] max-h-[100px]" 
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                                        e.preventDefault();
+                                                        handleSendMessage(e);
+                                                    }
+                                                }}
+                                            />
+                                            <Button type="submit" size="icon" className="h-12 w-12 shrink-0" disabled={sendSessionMessage.isPending || !newMessage.trim()}>
+                                                {sendSessionMessage.isPending ? <Loader2 className="animate-spin" /> : <Send size={20}/>}
+                                            </Button>
                                         </form>
                                     </TabsContent>
 
                                     <TabsContent value="attachments">
                                         <div className="space-y-6">
-                                            <div className="flex justify-between items-center">
-                                                <h3 className="font-bold text-gray-700">الملفات المشتركة</h3>
-                                                <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors">
-                                                    <Upload size={16}/> رفع ملف جديد
-                                                    <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploadSessionAttachment.isPending} />
-                                                </label>
+                                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex justify-between items-center">
+                                                <div>
+                                                    <h3 className="font-bold text-blue-900">مشاركة الملفات</h3>
+                                                    <p className="text-xs text-blue-700 mt-1">يمكنك رفع صور أو مستندات (PDF, Word) لمشاركتها مع المدرب.</p>
+                                                </div>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="file" 
+                                                        ref={fileInputRef}
+                                                        className="hidden" 
+                                                        onChange={handleFileUpload} 
+                                                        disabled={uploadSessionAttachment.isPending} 
+                                                        id="file-upload"
+                                                    />
+                                                    <Button 
+                                                        as="label" 
+                                                        htmlFor="file-upload" 
+                                                        loading={uploadSessionAttachment.isPending} 
+                                                        icon={!uploadSessionAttachment.isPending ? <Upload size={16}/> : undefined}
+                                                        className="cursor-pointer"
+                                                    >
+                                                        {uploadSessionAttachment.isPending ? 'جاري الرفع...' : 'رفع ملف'}
+                                                    </Button>
+                                                </div>
                                             </div>
+                                            
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {attachments.length > 0 ? attachments.map((att: any) => (
-                                                    <Card key={att.id} className="bg-gray-50 border-dashed">
-                                                        <CardContent className="p-4 flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
-                                                                <FileText className="text-blue-500"/>
-                                                                <div>
-                                                                    <p className="text-sm font-bold truncate max-w-[150px]">{att.file_name}</p>
-                                                                    <p className="text-[10px] text-muted-foreground">{formatDate(att.created_at)}</p>
-                                                                </div>
+                                                    <div key={att.id} className="bg-white p-4 rounded-xl border shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+                                                        <div className="flex items-center gap-3 overflow-hidden">
+                                                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shrink-0">
+                                                                <FileText size={20}/>
                                                             </div>
-                                                            <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-gray-200 transition-colors">
-                                                                <Download size={18}/>
-                                                            </a>
-                                                        </CardContent>
-                                                    </Card>
-                                                )) : <div className="col-span-full py-10 text-center text-muted-foreground border-2 border-dashed rounded-xl">لا توجد ملفات مرفوعة بعد.</div>}
+                                                            <div className="min-w-0">
+                                                                <p className="text-sm font-bold truncate text-gray-800" title={att.file_name}>{att.file_name}</p>
+                                                                <p className="text-[10px] text-muted-foreground">
+                                                                    بواسطة: {att.uploader_role === 'student' ? 'الطالب' : (att.uploader_role === 'instructor' ? 'المدرب' : 'ولي الأمر')} • {formatDate(att.created_at)}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <a 
+                                                            href={att.file_url} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                                            title="تحميل الملف"
+                                                        >
+                                                            <Download size={18}/>
+                                                        </a>
+                                                    </div>
+                                                )) : (
+                                                    <div className="col-span-full py-12 text-center text-muted-foreground bg-muted/20 rounded-xl border-2 border-dashed">
+                                                        <Paperclip className="mx-auto h-12 w-12 opacity-20 mb-2" />
+                                                        <p>لا توجد ملفات مرفوعة بعد.</p>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </TabsContent>
@@ -156,22 +220,30 @@ const TrainingJourneyPage: React.FC = () => {
 
                     {/* الجانب الأيسر: الجدول الزمني */}
                     <div className="lg:col-span-1">
-                        <Card className="sticky top-24">
-                            <CardHeader className="pb-2 border-b"><CardTitle className="text-sm font-bold">الجدول الزمني</CardTitle></CardHeader>
-                            <CardContent className="p-4 space-y-4">
-                                {scheduledSessions.map((s: any, idx: number) => (
-                                    <div key={s.id} className={`p-3 rounded-xl border ${s.status === 'completed' ? 'bg-green-50 border-green-200 opacity-60' : 'bg-white border-gray-100 shadow-sm'}`}>
-                                        <div className="flex justify-between text-[10px] font-black mb-1">
-                                            <span>الجلسة {idx + 1}</span>
-                                            {s.status === 'completed' ? <CheckCircle size={12} className="text-green-600"/> : <span className="text-blue-600">قادمة</span>}
+                        <Card className="sticky top-24 shadow-lg border-t-4 border-t-secondary">
+                            <CardHeader className="pb-3 border-b bg-gray-50/50"><CardTitle className="text-lg font-bold">الجدول الزمني</CardTitle></CardHeader>
+                            <CardContent className="p-4 space-y-4 max-h-[600px] overflow-y-auto">
+                                {scheduledSessions.map((s: any, idx: number) => {
+                                    const isCompleted = s.status === 'completed';
+                                    const isUpcoming = s.status === 'upcoming';
+                                    return (
+                                        <div key={s.id} className={`p-3 rounded-xl border relative overflow-hidden ${isCompleted ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
+                                            {isCompleted && <div className="absolute top-0 left-0 bg-green-500 text-white text-[9px] px-2 py-0.5 rounded-br-lg">مكتمل</div>}
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className="text-xs font-black text-gray-500 bg-gray-100 px-2 py-1 rounded">#{idx + 1}</span>
+                                                <span className="text-xs font-bold text-gray-700">{formatDate(s.session_date)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center mt-2">
+                                                <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded">
+                                                    {new Date(s.session_date).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}
+                                                </span>
+                                                {isUpcoming && (
+                                                    <Button as={Link} to={`/session/${s.id}`} size="sm" className="h-7 text-[10px] px-3" icon={<PlayCircle size={12}/>}>دخول</Button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <p className="text-xs font-bold">{formatDate(s.session_date)}</p>
-                                        <p className="text-[10px] text-muted-foreground mt-1">{new Date(s.session_date).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}</p>
-                                        {s.status === 'upcoming' && (
-                                            <Button as={Link} to={`/session/${s.id}`} size="sm" className="w-full mt-3 h-8 text-[10px] font-bold" icon={<PlayCircle size={14}/>}>انضم للجلسة</Button>
-                                        )}
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </CardContent>
                         </Card>
                     </div>
