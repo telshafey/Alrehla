@@ -147,8 +147,8 @@ export const userService = {
             created_at: new Date().toISOString()
         }]);
 
-        // Link to child profile
-        await this.linkStudentToChildProfile({ studentUserId, childProfileId: payload.childProfileId });
+        // Link to child profile - EXPLICITLY CALL userService to avoid context loss
+        await userService.linkStudentToChildProfile({ studentUserId, childProfileId: payload.childProfileId });
 
         return { success: true, studentId: studentUserId };
     },

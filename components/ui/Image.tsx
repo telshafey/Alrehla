@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '../../lib/utils';
 import { ImageIcon } from 'lucide-react';
+import { cloudinaryService } from '../../services/cloudinaryService';
 
 interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
     objectFit?: 'cover' | 'contain' | 'fill' | 'none';
@@ -11,6 +12,9 @@ const Image = React.forwardRef<HTMLImageElement, ImageProps>(
   ({ src, alt, className, objectFit = 'cover', onLoad, ...props }, ref) => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [hasError, setHasError] = useState(false);
+
+    // تحسين رابط الصورة تلقائياً إذا كان من Cloudinary
+    const optimizedSrc = src ? cloudinaryService.optimizeUrl(src) : src;
 
     // إعادة ضبط الحالة عند تغيير المصدر
     useEffect(() => {
@@ -30,7 +34,7 @@ const Image = React.forwardRef<HTMLImageElement, ImageProps>(
 
     // صورة بديلة في حال عدم وجود مصدر أو حدوث خطأ
     const placeholder = 'https://i.ibb.co/C0bSJJT/favicon.png';
-    const displaySrc = (hasError || !src) ? placeholder : src;
+    const displaySrc = (hasError || !optimizedSrc) ? placeholder : optimizedSrc;
 
     return (
       <div className={cn("relative bg-muted/10 overflow-hidden flex items-center justify-center", className)}>
