@@ -124,6 +124,7 @@ export const mockSiteContent: SiteContent = {
     },
     aboutPage: {
         heroTitle: 'رحلتنا: من فكرة إلى رؤية',
+        heroSubtitle: 'نتطلع لمستقبل مشرق لأطفالنا',
         missionStatement: 'نؤمن أن كل طفل هو بطل حكايته الخاصة.',
         ourStory: 'في عالم يتسارع نحو الرقمنة...',
         ourVision: 'أن نكون المنصة الرائدة والوجهة الأولى لكل أسرة عربية.',

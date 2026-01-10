@@ -144,6 +144,15 @@ export interface Database {
         Update: any
       }
     }
+    Functions: {
+      admin_reset_password: {
+        Args: {
+          target_user_id: string
+          new_password: string
+        }
+        Returns: void
+      }
+    }
   }
 }
 
@@ -546,6 +555,7 @@ export interface SiteContent {
     };
     aboutPage: {
         heroTitle: string;
+        heroSubtitle: string;
         missionStatement: string;
         ourStory: string;
         ourVision: string;

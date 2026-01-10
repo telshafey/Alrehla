@@ -260,7 +260,8 @@ export const userService = {
 
     async resetStudentPassword(payload: { studentUserId: string; newPassword: string }) {
         // Try RPC first for cleaner permission handling in this context
-        const { error } = await supabase.rpc('admin_reset_password', {
+        // Cast supabase to any to bypass type check for quick fix if types are lagging
+        const { error } = await (supabase as any).rpc('admin_reset_password', {
             target_user_id: payload.studentUserId,
             new_password: payload.newPassword
         });
