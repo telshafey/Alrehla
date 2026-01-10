@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Save, Package, Sparkles, AlertCircle } from 'lucide-react';
+import { DollarSign, Save, Package, Sparkles, AlertCircle, Calculator, ArrowLeft, Info } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import FormField from '../../ui/FormField';
 import { Input } from '../../ui/Input';
@@ -10,6 +10,7 @@ import { useAdminCWSettings, useAdminPricingSettings } from '../../../hooks/quer
 import type { Instructor } from '../../../lib/database.types';
 import PageLoader from '../../ui/PageLoader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../ui/card';
+import { calculateCustomerPrice } from '../../../utils/pricingCalculator';
 
 interface InstructorPricingPanelProps {
     instructor: Instructor;
@@ -38,20 +39,12 @@ const InstructorPricingPanel: React.FC<InstructorPricingPanelProps> = ({ instruc
         }
     }, [instructor]);
 
-    const calculateCustomerPrice = (netPrice: string) => {
-        const net = parseFloat(netPrice) || 0;
-        if (!pricingConfig) return net;
-        return Math.ceil((net * pricingConfig.company_percentage) + pricingConfig.fixed_fee);
-    };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
         const updates = {
             rate_per_session: parseFloat(ratePerSession) || 0,
-            // Added explicit cast to string for v to satisfy parseFloat requirements and resolve 'unknown' type error
             service_rates: Object.fromEntries(Object.entries(serviceRates).map(([k, v]) => [k, parseFloat(v as string)])),
-            // Added explicit cast to string for v to satisfy parseFloat requirements and resolve 'unknown' type error
             package_rates: Object.fromEntries(Object.entries(packageRates).map(([k, v]) => [k, parseFloat(v as string)])),
         };
 
@@ -69,10 +62,10 @@ const InstructorPricingPanel: React.FC<InstructorPricingPanelProps> = ({ instruc
 
     return (
         <div className="space-y-8 animate-fadeIn">
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                 <div>
                     <h1 className="text-3xl font-extrabold text-foreground">إدارة دخلك المادي</h1>
-                    <p className="text-muted-foreground mt-1">حدد المبلغ الذي ترغب في استلامه (صافي الربح) لكل خدمة.</p>
+                    <p className="text-muted-foreground mt-1">حدد "صافي المبلغ" الذي تريده، وسيقوم النظام بحساب السعر النهائي للعميل تلقائياً.</p>
                 </div>
                 {instructor.profile_update_status === 'pending' && (
                     <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-2 rounded-lg flex items-center gap-2 text-sm animate-pulse">
@@ -81,21 +74,46 @@ const InstructorPricingPanel: React.FC<InstructorPricingPanelProps> = ({ instruc
                 )}
             </div>
 
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3">
+                <Info className="text-blue-600 mt-1 shrink-0" />
+                <div className="text-sm text-blue-800">
+                    <p className="font-bold mb-1">كيف تعمل الأسعار؟</p>
+                    <p>أنت تدخل <strong>صافي ربحك</strong> فقط. المنصة تضيف تلقائياً نسبة التشغيل والرسوم الإدارية ليظهر السعر النهائي لولي الأمر.</p>
+                </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* 1. السعر الأساسي */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><DollarSign /> سعرك الأساسي للجلسة (صافي)</CardTitle>
-                        <CardDescription>المبلغ الذي ستحصل عليه مقابل كل جلسة تدريبية (45 دقيقة).</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><DollarSign /> سعرك الأساسي للجلسة</CardTitle>
+                        <CardDescription>هذا هو السعر المرجعي للجلسة الواحدة (45 دقيقة).</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                            <FormField label="سعرك المطلوب (ج.م)" htmlFor="rate">
-                                <Input id="rate" type="number" value={ratePerSession} onChange={e => setRatePerSession(e.target.value)} required />
-                            </FormField>
-                            <div className="bg-muted p-4 rounded-lg text-center">
-                                <p className="text-xs text-muted-foreground mb-1">سيظهر للعميل بـ:</p>
-                                <p className="text-2xl font-black text-primary">{calculateCustomerPrice(ratePerSession)} ج.م</p>
+                        <div className="flex flex-col md:flex-row items-center gap-4 bg-gray-50 p-6 rounded-xl border border-gray-200">
+                            <div className="flex-1 w-full">
+                                <label className="block text-sm font-bold text-gray-700 mb-2">صافي دخلك (ج.م)</label>
+                                <Input 
+                                    type="number" 
+                                    value={ratePerSession} 
+                                    onChange={e => setRatePerSession(e.target.value)} 
+                                    className="text-lg font-bold h-12"
+                                    placeholder="0"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">المبلغ الذي سيصل لحسابك.</p>
+                            </div>
+                            
+                            <ArrowLeft className="hidden md:block text-gray-400" />
+                            <div className="md:hidden w-full h-px bg-gray-300 my-2"></div>
+
+                            <div className="flex-1 w-full bg-white p-4 rounded-lg border border-blue-100 shadow-sm text-center">
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">السعر النهائي للعميل</p>
+                                <p className="text-3xl font-black text-blue-600">
+                                    {calculateCustomerPrice(parseFloat(ratePerSession), pricingConfig)} <span className="text-sm font-medium text-gray-400">ج.م</span>
+                                </p>
+                                <p className="text-[10px] text-green-600 mt-1 font-semibold flex items-center justify-center gap-1">
+                                    <Calculator size={10} /> شامل عمولة المنصة والرسوم
+                                </p>
                             </div>
                         </div>
                     </CardContent>
@@ -104,59 +122,89 @@ const InstructorPricingPanel: React.FC<InstructorPricingPanelProps> = ({ instruc
                 {/* 2. تسعير الباقات */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Package /> تسعير الباقات المخصص (صافي)</CardTitle>
-                        <CardDescription>حدد دخلك من كل باقة اشتراك.</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><Package /> تسعير الباقات (الجملة)</CardTitle>
+                        <CardDescription>حدد صافي دخلك من كل باقة كاملة. عادة ما يكون أقل قليلاً من سعر الجلسة الفردية لتشجيع الاشتراكات.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        {packages.filter((p: any) => p.price > 0).map((pkg: any) => (
-                            <div key={pkg.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 border rounded-xl bg-gray-50/50">
-                                <div className="font-bold text-sm">{pkg.name} ({pkg.sessions})</div>
-                                <Input 
-                                    type="number" 
-                                    placeholder="صافي ربحك"
-                                    value={packageRates[pkg.id] || ''}
-                                    onChange={e => setPackageRates({...packageRates, [pkg.id]: e.target.value})}
-                                />
-                                <div className="text-left text-xs font-bold text-green-600">
-                                    للعميل: {calculateCustomerPrice(packageRates[pkg.id] || '0')} ج.م
+                    <CardContent className="space-y-4">
+                        {packages.filter((p: any) => p.price > 0).map((pkg: any) => {
+                            const netPrice = parseFloat(packageRates[pkg.id] || '0');
+                            const customerPrice = calculateCustomerPrice(netPrice, pricingConfig);
+                            return (
+                                <div key={pkg.id} className="flex flex-col md:flex-row items-center gap-4 p-4 border rounded-xl hover:bg-gray-50 transition-colors">
+                                    <div className="w-full md:w-1/3">
+                                        <p className="font-bold text-gray-800">{pkg.name}</p>
+                                        <p className="text-sm text-muted-foreground">{pkg.sessions}</p>
+                                    </div>
+                                    <div className="flex-1 w-full">
+                                        <div className="relative">
+                                            <Input 
+                                                type="number" 
+                                                placeholder="أدخل صافي ربحك"
+                                                value={packageRates[pkg.id] || ''}
+                                                onChange={e => setPackageRates({...packageRates, [pkg.id]: e.target.value})}
+                                                className="pl-16 font-semibold"
+                                            />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded">صافي</span>
+                                        </div>
+                                    </div>
+                                    <div className="md:w-1/4 text-center md:text-left">
+                                        <p className="text-xs text-muted-foreground">يظهر للعميل بـ</p>
+                                        <p className="font-bold text-lg text-blue-600">{customerPrice} ج.م</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </CardContent>
                 </Card>
 
                 {/* 3. الخدمات الإضافية */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Sparkles /> تسعير الخدمات الإضافية (صافي)</CardTitle>
-                        <CardDescription>حدد دخلك من الخدمات التي تقدمها بشكل منفرد.</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><Sparkles /> الخدمات الإضافية</CardTitle>
+                        <CardDescription>حدد سعرك للخدمات التي تقدمها خارج نطاق الجلسات المعتادة.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {instructorServices.map((service: any) => (
-                            <div key={service.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 border rounded-xl bg-gray-50/50">
-                                <div className="font-bold text-sm">{service.name}</div>
-                                <Input 
-                                    type="number" 
-                                    placeholder="صافي ربحك"
-                                    value={serviceRates[service.id] || ''}
-                                    onChange={e => setServiceRates({...serviceRates, [service.id]: e.target.value})}
-                                />
-                                <div className="text-left text-xs font-bold text-green-600">
-                                    للعميل: {calculateCustomerPrice(serviceRates[service.id] || '0')} ج.م
+                        {instructorServices.map((service: any) => {
+                            const netPrice = parseFloat(serviceRates[service.id] || '0');
+                            const customerPrice = calculateCustomerPrice(netPrice, pricingConfig);
+                            return (
+                                <div key={service.id} className="flex flex-col md:flex-row items-center gap-4 p-4 border rounded-xl hover:bg-gray-50 transition-colors">
+                                    <div className="w-full md:w-1/3">
+                                        <p className="font-bold text-gray-800">{service.name}</p>
+                                    </div>
+                                    <div className="flex-1 w-full">
+                                        <div className="relative">
+                                            <Input 
+                                                type="number" 
+                                                placeholder="أدخل صافي ربحك"
+                                                value={serviceRates[service.id] || ''}
+                                                onChange={e => setServiceRates({...serviceRates, [service.id]: e.target.value})}
+                                                className="pl-16 font-semibold"
+                                            />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded">صافي</span>
+                                        </div>
+                                    </div>
+                                    <div className="md:w-1/4 text-center md:text-left">
+                                        <p className="text-xs text-muted-foreground">يظهر للعميل بـ</p>
+                                        <p className="font-bold text-lg text-green-600">{customerPrice} ج.م</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </CardContent>
                 </Card>
 
                 <Card className="border-primary/20 bg-primary/5">
                     <CardContent className="pt-6">
-                        <FormField label="مبرر طلب تعديل الأسعار" htmlFor="justification">
-                            <Textarea id="justification" value={justification} onChange={e => setJustification(e.target.value)} required placeholder="اكتب سبباً مختصراً لتغيير الأسعار ليراجعه المدير..." />
+                        <FormField label="مبرر طلب تعديل الأسعار (مطلوب للمراجعة)" htmlFor="justification">
+                            <Textarea id="justification" value={justification} onChange={e => setJustification(e.target.value)} required placeholder="لماذا تقوم بتغيير الأسعار؟ (مثال: زيادة الخبرة، تغيير في هيكل الجلسات...)" rows={2} />
                         </FormField>
-                        <Button type="submit" className="w-full mt-6" loading={requestProfileUpdate.isPending} icon={<Save />}>
-                            إرسال الأسعار للمراجعة والاعتماد
-                        </Button>
+                        <div className="mt-6">
+                            <Button type="submit" className="w-full h-12 text-lg shadow-lg" loading={requestProfileUpdate.isPending} icon={<Save />}>
+                                إرسال الأسعار الجديدة للاعتماد
+                            </Button>
+                            <p className="text-center text-xs text-muted-foreground mt-3">سيقوم المشرف بمراجعة الأسعار قبل نشرها على الموقع.</p>
+                        </div>
                     </CardContent>
                 </Card>
             </form>
