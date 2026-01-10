@@ -35,13 +35,14 @@ const ProfileCompletionGuard: React.FC<{ children: React.ReactNode }> = ({ child
         }
 
         if (!loading && currentUser) {
-            // Staff don't need profile completion checks here
-            if (STAFF_ROLES.includes(currentUser.role)) {
+            // Staff AND Students don't need profile completion checks here
+            // Staff have their own admin area, and Students inherit context from parents
+            if (STAFF_ROLES.includes(currentUser.role) || currentUser.role === 'student') {
                 setIsOpen(false);
                 return;
             }
 
-            // Check if profile is complete for regular users
+            // Check if profile is complete for regular users (Parents/Customers)
             const isComplete = currentUser.country && currentUser.city && currentUser.phone;
             setIsOpen(!isComplete);
         }
@@ -103,6 +104,11 @@ const ProfileCompletionGuard: React.FC<{ children: React.ReactNode }> = ({ child
 
     // Staff bypass the guard
     if (currentUser && STAFF_ROLES.includes(currentUser.role)) {
+        return <>{children}</>;
+    }
+    
+    // Students bypass the guard
+    if (currentUser && currentUser.role === 'student') {
         return <>{children}</>;
     }
 
