@@ -238,8 +238,8 @@ export const bookingService = {
         if (fetchError) throw new Error(fetchError.message);
 
         // Merge to preserve other info (like file URLs or custom notes)
-        // Check if current is not null before accessing details
-        const currentDetails = (current && current.details) ? (current.details as Record<string, any>) : {};
+        // Use type assertion to avoid TypeScript error about 'never' type
+        const currentDetails = (current as any)?.details || {};
         const updatedDetails = { ...currentDetails, draft };
 
         const { error } = await (supabase.from('bookings') as any)
