@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Calculator } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Info } from 'lucide-react';
 import { useAdminCWSettings, useAdminPricingSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useCreativeWritingSettingsMutations } from '../../hooks/mutations/useCreativeWritingSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -28,7 +28,7 @@ const AdminPackageDetailPage: React.FC = () => {
     const [pkg, setPkg] = useState<Partial<CreativeWritingPackage>>({
         name: '',
         sessions: '',
-        price: 0, // هذا سيمثل "صافي المدرب الافتراضي"
+        price: 0, // هذا يمثل السعر الأساسي/الصافي
         features: [],
         description: '',
         detailed_description: '',
@@ -51,9 +51,22 @@ const AdminPackageDetailPage: React.FC = () => {
         }
     }, [id, isNew, data]);
 
-    // حساب السعر التقديري للعميل بناءً على الصافي المدخل والمعادلة المركزية
-    const estimatedCustomerPrice = useMemo(() => {
-        return calculateCustomerPrice(pkg.price, pricingConfig);
+    // حساب تفاصيل السعر للعرض
+    const pricingBreakdown = useMemo(() => {
+        const basePrice = pkg.price || 0;
+        if (!pricingConfig) return { customerPrice: basePrice, fees: 0, margin: 0 };
+
+        const customerPrice = calculateCustomerPrice(basePrice, pricingConfig);
+        const variableFee = (basePrice * (pricingConfig.company_percentage - 1)); // الجزء الزائد من النسبة
+        const totalFees = customerPrice - basePrice;
+
+        return {
+            basePrice,
+            customerPrice,
+            totalFees,
+            platformMarkup: ((pricingConfig.company_percentage - 1) * 100).toFixed(0),
+            fixedFee: pricingConfig.fixed_fee
+        };
     }, [pkg.price, pricingConfig]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -88,42 +101,73 @@ const AdminPackageDetailPage: React.FC = () => {
                     <Card>
                         <CardHeader><CardTitle>بيانات الباقة</CardTitle></CardHeader>
                         <CardContent className="space-y-6">
-                            <FormField label="اسم الباقة*" htmlFor="name">
-                                <Input id="name" name="name" value={pkg.name} onChange={e => setPkg({...pkg, name: e.target.value})} required />
-                            </FormField>
-                            <FormField label="عدد الجلسات*" htmlFor="sessions">
-                                <Input id="sessions" name="sessions" value={pkg.sessions} onChange={e => setPkg({...pkg, sessions: e.target.value})} required />
-                            </FormField>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField label="اسم الباقة*" htmlFor="name">
+                                    <Input id="name" name="name" value={pkg.name} onChange={e => setPkg({...pkg, name: e.target.value})} required placeholder="مثال: الباقة الأساسية" />
+                                </FormField>
+                                <FormField label="عدد الجلسات (نصي)*" htmlFor="sessions">
+                                    <Input id="sessions" name="sessions" value={pkg.sessions} onChange={e => setPkg({...pkg, sessions: e.target.value})} required placeholder="مثال: 4 جلسات"/>
+                                </FormField>
+                            </div>
                             <FormField label="الوصف المختصر" htmlFor="description">
                                 <Textarea id="description" name="description" value={pkg.description} onChange={e => setPkg({...pkg, description: e.target.value})} rows={3} />
                             </FormField>
+                             <div className="bg-blue-50 p-3 rounded-lg flex gap-2 text-sm text-blue-800 border border-blue-100">
+                                <Info className="shrink-0 mt-0.5" size={16} />
+                                <p>هذا السعر هو سعر <strong>الباقة بالكامل</strong> وليس سعر الجلسة.</p>
+                            </div>
                         </CardContent>
                     </Card>
 
                     <Card className="border-t-4 border-primary">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Calculator className="text-primary"/> إعدادات التسعير المركزي</CardTitle>
-                            <CardDescription>هنا تحدد حصة المدرب الافتراضية، وسيقوم النظام بحساب سعر البيع تلقائياً.</CardDescription>
+                            <CardTitle className="flex items-center gap-2"><Calculator className="text-primary"/> تفاصيل التسعير (المعادلة)</CardTitle>
+                            <CardDescription>
+                                النظام يقوم بحساب السعر النهائي تلقائياً بناءً على إعدادات المنصة.
+                            </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                                <FormField label="صافي ربح المدرب الافتراضي (ج.م)" htmlFor="price">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                                <FormField label="السعر الأساسي / صافي المدرب (ج.م)" htmlFor="price">
                                     <Input 
                                         type="number" 
                                         id="price" 
                                         value={pkg.price} 
                                         onChange={e => setPkg({...pkg, price: parseFloat(e.target.value) || 0})} 
                                         className="font-bold text-lg"
+                                        min="0"
                                     />
-                                    <p className="text-[10px] text-muted-foreground mt-1">هذا المبلغ هو ما سيستلمه المدرب إذا لم يحدد سعراً خاصاً به.</p>
+                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                        المبلغ الذي يحصل عليه المدرب (أو تكلفة الباقة قبل الهامش). أدخل 0 لجعلها مجانية.
+                                    </p>
                                 </FormField>
                                 
-                                <div className="p-4 bg-green-50 border border-green-100 rounded-xl">
-                                    <p className="text-[10px] font-black text-green-700 uppercase mb-1">سعر البيع المتوقع للعميل</p>
-                                    <p className="text-2xl font-black text-green-600">
-                                        {estimatedCustomerPrice === 0 ? 'مجاني' : `${estimatedCustomerPrice} ج.م`}
-                                    </p>
-                                    <p className="text-[9px] text-green-800/60 mt-1">بناءً على النسبة ({pricingConfig?.company_percentage}) والرسوم ({pricingConfig?.fixed_fee})</p>
+                                <div className="p-5 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
+                                    <h4 className="font-bold text-gray-700 text-sm border-b pb-2">كيف سيظهر السعر للعميل؟</h4>
+                                    
+                                    <div className="flex justify-between text-sm text-gray-600">
+                                        <span>السعر الأساسي:</span>
+                                        <span className="font-mono">{pricingBreakdown.basePrice} ج.م</span>
+                                    </div>
+                                    
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>+ نسبة المنصة ({pricingBreakdown.platformMarkup}%):</span>
+                                        <span className="font-mono">
+                                            {(pricingBreakdown.basePrice * (pricingConfig?.company_percentage ? pricingConfig.company_percentage - 1 : 0)).toFixed(1)} ج.م
+                                        </span>
+                                    </div>
+
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>+ رسوم ثابتة:</span>
+                                        <span className="font-mono">{pricingBreakdown.fixedFee} ج.م</span>
+                                    </div>
+
+                                    <div className="border-t border-dashed pt-2 mt-2 flex justify-between items-center">
+                                        <span className="font-black text-gray-800">السعر النهائي:</span>
+                                        <span className="text-2xl font-black text-green-600">
+                                            {pricingBreakdown.customerPrice === 0 ? 'مجاني' : `${pricingBreakdown.customerPrice} ج.م`}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </CardContent>
@@ -133,7 +177,7 @@ const AdminPackageDetailPage: React.FC = () => {
                         <CardHeader><CardTitle>الميزات والمقارنة</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             <FormField label="الميزات (كل ميزة في سطر)" htmlFor="features">
-                                <Textarea id="features" value={featuresString} onChange={e => setFeaturesString(e.target.value)} rows={6} />
+                                <Textarea id="features" value={featuresString} onChange={e => setFeaturesString(e.target.value)} rows={6} placeholder="جلسات تفاعلية&#10;متابعة دورية&#10;شهادة إتمام" />
                             </FormField>
                         </CardContent>
                     </Card>
@@ -145,7 +189,7 @@ const AdminPackageDetailPage: React.FC = () => {
                         <CardContent className="space-y-4">
                             <label className="flex items-center gap-2 p-3 border rounded-lg bg-muted/20 cursor-pointer">
                                 <Checkbox checked={pkg.popular} onCheckedChange={v => setPkg({...pkg, popular: !!v})} />
-                                <span className="text-sm font-bold">باقة شائعة</span>
+                                <span className="text-sm font-bold">باقة شائعة (تمييز)</span>
                             </label>
                             <FormField label="الأيقونة" htmlFor="icon_name">
                                 <Select id="icon_name" value={pkg.icon_name} onChange={e => setPkg({...pkg, icon_name: e.target.value})}>

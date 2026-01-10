@@ -226,7 +226,11 @@ export const orderService = {
     },
 
     async createSubscriptionPlan(payload: Partial<SubscriptionPlan>) {
-        const { data, error } = await (supabase.from('subscription_plans') as any).insert([payload]).select().single();
+        const payloadWithId = {
+            ...payload,
+            id: payload.id || Math.floor(Math.random() * 2147483647)
+        };
+        const { data, error } = await (supabase.from('subscription_plans') as any).insert([payloadWithId]).select().single();
         if (error) throw new Error(error.message);
         
         await reportingService.logAction('CREATE_PLAN', 'new', 'باقة اشتراك', `باقة جديدة: ${payload.name}`);

@@ -307,7 +307,12 @@ export const bookingService = {
     },
 
     async createPackage(payload: Partial<CreativeWritingPackage>) {
-        const { data, error } = await (supabase.from('creative_writing_packages') as any).insert([payload]).select().single();
+        // Generate a random ID to prevent "null value" DB errors if DB doesn't auto-increment
+        const payloadWithId = {
+            ...payload,
+            id: payload.id || Math.floor(Math.random() * 2147483647) 
+        };
+        const { data, error } = await (supabase.from('creative_writing_packages') as any).insert([payloadWithId]).select().single();
         if (error) throw error;
         return data as CreativeWritingPackage;
     },
@@ -325,7 +330,12 @@ export const bookingService = {
     },
 
     async createStandaloneService(payload: Partial<StandaloneService>) {
-        const { data, error } = await (supabase.from('standalone_services') as any).insert([payload]).select().single();
+         // Generate a random ID to prevent "null value" DB errors
+        const payloadWithId = {
+            ...payload,
+            id: payload.id || Math.floor(Math.random() * 2147483647)
+        };
+        const { data, error } = await (supabase.from('standalone_services') as any).insert([payloadWithId]).select().single();
         if (error) throw error;
         return data as StandaloneService;
     },

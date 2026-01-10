@@ -96,27 +96,38 @@ const CreativeWritingPackagesPage: React.FC = () => {
     const instructors = (data?.instructors || []) as Instructor[];
     // Safe access with fallback using any casting to avoid type errors if interface mismatch
     const comparisonItems = ((data as any)?.comparisonItems || []) as ComparisonItem[];
-    const pricingConfig = data?.communicationSettings as any; 
+    
+    // محاولة الوصول لإعدادات التسعير، مع قيم افتراضية في حال عدم توفرها في الـ Public Data
+    // (عادة تكون 1.2 و 50)
+    const pricingConfig = (data as any)?.communicationSettings?.pricing_config || { company_percentage: 1.2, fixed_fee: 50 }; 
 
     const getPackagePriceRange = (pkg: CreativeWritingPackage) => {
         if (pkg.price === 0) return { min: 0, max: 0 };
         
-        const percentage = pricingConfig?.company_percentage || 1.2;
-        const fixedFee = pricingConfig?.fixed_fee || 50;
+        const percentage = pricingConfig.company_percentage || 1.2;
+        const fixedFee = pricingConfig.fixed_fee || 50;
 
-        const customerPrices = instructors
+        // 1. حساب سعر العميل بناءً على سعر الباقة الأساسي (سعر الموقع)
+        const siteBaseCustomerPrice = Math.ceil((pkg.price * percentage) + fixedFee);
+
+        // 2. حساب أسعار العملاء بناءً على أسعار المدربين المخصصة
+        const instructorCustomerPrices = instructors
             .map(i => {
                 const netPrice = i.package_rates?.[pkg.id];
-                if (netPrice === undefined || netPrice === null) return null;
-                return Math.ceil((netPrice * percentage) + fixedFee);
+                if (netPrice !== undefined && netPrice !== null) {
+                    return Math.ceil((netPrice * percentage) + fixedFee);
+                }
+                return null;
             })
             .filter((price): price is number => price !== null);
 
-        if (customerPrices.length === 0) {
-            return { min: pkg.price, max: pkg.price };
-        }
+        // 3. تجميع كل الأسعار المحتملة (سعر الموقع + أسعار المدربين)
+        const allPossiblePrices = [siteBaseCustomerPrice, ...instructorCustomerPrices];
 
-        return { min: Math.min(...customerPrices), max: Math.max(...customerPrices) };
+        return { 
+            min: Math.min(...allPossiblePrices), 
+            max: Math.max(...allPossiblePrices) 
+        };
     };
     
     if (isLoading) return <PageLoader text="جاري تحميل الباقات..." />;
@@ -127,7 +138,7 @@ const CreativeWritingPackagesPage: React.FC = () => {
                 <div className="text-center mb-12 max-w-3xl mx-auto">
                     <h1 className="text-4xl sm:text-5xl font-extrabold text-blue-600">باقات بداية الرحلة</h1>
                     <p className="mt-4 text-lg text-gray-600">
-                        سعر الباقة يعتمد على المدرب المختار لضمان أفضل تجربة تعليمية مخصصة لطفلك.
+                        اختر الباقة المناسبة لطفلك. السعر النهائي يعتمد على المدرب المختار، لكننا نضمن لك دائماً أفضل قيمة.
                     </p>
                 </div>
 
@@ -140,7 +151,7 @@ const CreativeWritingPackagesPage: React.FC = () => {
                     </div>
 
                     <TabsContent value="cards" className="animate-fadeIn">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {packages.map(pkg => (
                                 <PackageDetailCard 
                                     key={pkg.id} 
