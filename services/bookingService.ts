@@ -238,7 +238,8 @@ export const bookingService = {
         if (fetchError) throw new Error(fetchError.message);
 
         // Merge to preserve other info (like file URLs or custom notes)
-        const currentDetails = current?.details || {};
+        // Check if current is not null before accessing details
+        const currentDetails = (current && current.details) ? (current.details as Record<string, any>) : {};
         const updatedDetails = { ...currentDetails, draft };
 
         const { error } = await (supabase.from('bookings') as any)
