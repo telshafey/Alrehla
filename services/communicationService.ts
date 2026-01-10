@@ -1,9 +1,12 @@
 
 import { supabase } from '../lib/supabaseClient';
+import { reportingService } from './reportingService';
 import type { 
     SupportTicket, 
     JoinRequest, 
-    SupportSessionRequest 
+    SupportSessionRequest,
+    TicketStatus,
+    RequestStatus 
 } from '../lib/database.types';
 
 export const communicationService = {
@@ -46,7 +49,12 @@ export const communicationService = {
 
     async createJoinRequest(payload: { name: string, email: string, phone: string, role: string, message: string, portfolio_url?: string }) {
         const { error } = await (supabase.from('join_requests') as any).insert([{
-            ...payload,
+            name: payload.name,
+            email: payload.email,
+            phone: payload.phone,
+            role: payload.role,
+            message: payload.message,
+            portfolio_url: payload.portfolio_url || null,
             status: 'جديد',
             created_at: new Date().toISOString()
         }]);
@@ -62,5 +70,22 @@ export const communicationService = {
             return [] as SupportSessionRequest[];
         }
         return data as SupportSessionRequest[];
+    },
+
+    // New Update Methods moved from hooks for better logging support
+    async updateSupportTicketStatus(ticketId: string, newStatus: TicketStatus) {
+        const { error } = await (supabase.from('support_tickets') as any).update({ status: newStatus }).eq('id', ticketId);
+        if (error) throw error;
+        
+        await reportingService.logAction('UPDATE_TICKET', ticketId, 'تذكرة دعم', `تحديث الحالة إلى: ${newStatus}`);
+        return { success: true };
+    },
+
+    async updateJoinRequestStatus(requestId: string, newStatus: RequestStatus) {
+        const { error } = await (supabase.from('join_requests') as any).update({ status: newStatus }).eq('id', requestId);
+        if (error) throw error;
+        
+        await reportingService.logAction('UPDATE_JOIN_REQUEST', requestId, 'طلب انضمام', `تحديث الحالة إلى: ${newStatus}`);
+        return { success: true };
     }
 };

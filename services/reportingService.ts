@@ -23,25 +23,20 @@ export const reportingService = {
             const { data: userData } = await supabase.auth.getUser();
             const user = userData.user;
             
-            let userName = 'System';
-            if (user) {
-                const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
-                // Check if profile exists before accessing name property
-                userName = (profile as any)?.name || user.email || 'Admin';
-            }
-
             const logEntry = {
                 user_id: user?.id || null,
-                user_name: userName,
+                // user_name removed to prevent schema errors if column missing
                 action: action,
                 target_description: `${targetDesc} (#${targetId})`,
                 details: details,
                 timestamp: new Date().toISOString()
             };
 
-            await (supabase.from('audit_logs') as any).insert([logEntry]);
+            const { error } = await (supabase.from('audit_logs') as any).insert([logEntry]);
+            if (error) console.error("Failed to insert audit log:", error);
+            
         } catch (e) {
-            console.warn("Audit logging failed silently (non-critical)");
+            console.warn("Audit logging failed silently (non-critical)", e);
         }
     },
 
@@ -165,11 +160,30 @@ export const reportingService = {
         if (filters.userId && filters.userId !== 'all') query = query.eq('user_id', filters.userId);
 
         const { data, error } = await query.order('timestamp', { ascending: false });
-        if (error) return { logs: [], actionTypes: [] };
+        
+        if (error) {
+            console.error("Error fetching audit logs:", error);
+            throw new Error(`Failed to load audit logs: ${error.message}`);
+        }
 
-        // Force cast data to any[] to avoid strict type checking on 'action' property access
-        const safeData = data as any[];
-        const types = Array.from(new Set(safeData.map(l => l.action)));
-        return { logs: safeData || [], actionTypes: types };
+        // Manually map user names to avoid schema errors if user_name col is missing/empty
+        const logs = data as any[];
+        const userIds = [...new Set(logs.map(l => l.user_id).filter(Boolean))];
+        let userMap: Record<string, string> = {};
+
+        if (userIds.length > 0) {
+             const { data: profiles } = await supabase.from('profiles').select('id, name').in('id', userIds);
+             if (profiles) {
+                 profiles.forEach((p: any) => userMap[p.id] = p.name);
+             }
+        }
+
+        const enrichedLogs = logs.map(l => ({
+            ...l,
+            user_name: userMap[l.user_id] || l.user_name || 'System'
+        }));
+
+        const types = Array.from(new Set(enrichedLogs.map(l => l.action)));
+        return { logs: enrichedLogs, actionTypes: types };
     }
 };

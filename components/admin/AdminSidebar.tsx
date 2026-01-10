@@ -105,7 +105,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                 items: [
                      { to: '/admin/financials', icon: <DollarSign size={20} />, label: 'الماليات', permission: permissions.canManageFinancials },
                      { to: '/admin/reports', icon: <BarChart size={20} />, label: 'التقارير', permission: permissions.canManageFinancials },
-                     { to: '/admin/price-review', icon: <ListChecks size={20} />, label: 'مراجعة الأسعار', permission: permissions.canManageInstructors },
                 ]
             },
             {
@@ -123,6 +122,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                     { to: '/admin/creative-writing', icon: <BookOpen size={20} />, label: 'الحجوزات', permission: permissions.canManageCreativeWritingBookings },
                     { to: '/admin/service-orders', icon: <Sparkles size={20} />, label: 'طلبات الخدمات', permission: permissions.canManageCreativeWritingBookings },
                     { to: '/admin/scheduled-sessions', icon: <CalendarCheck size={20} />, label: 'الجلسات المجدولة', permission: permissions.canManageCreativeWritingBookings },
+                    { to: '/admin/price-review', icon: <ListChecks size={20} />, label: 'مصفوفة الأسعار', permission: permissions.canManageInstructors },
                     { to: '/admin/creative-writing-packages', icon: <Package size={20} />, label: 'إدارة الباقات', permission: permissions.canManageCreativeWritingSettings },
                     { to: '/admin/creative-writing-services', icon: <Sparkles size={20} />, label: 'إدارة الخدمات', permission: permissions.canManageCreativeWritingSettings },
                 ]

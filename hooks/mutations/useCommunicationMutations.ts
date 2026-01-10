@@ -12,6 +12,9 @@ export const useCommunicationMutations = () => {
         mutationFn: communicationService.createSupportTicket,
         onSuccess: () => {
             addToast('تم إرسال رسالتك بنجاح! سنتواصل معك قريباً.', 'success');
+            // تحديث بيانات لوحة التحكم وقائمة الرسائل فوراً
+            queryClient.invalidateQueries({ queryKey: ['adminSupportTickets'] });
+            queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
         },
         onError: (err: Error) => {
             addToast(`فشل إرسال الرسالة: ${err.message}`, 'error');
@@ -22,8 +25,9 @@ export const useCommunicationMutations = () => {
         mutationFn: communicationService.createJoinRequest,
         onSuccess: () => {
             addToast('تم إرسال طلبك بنجاح! سنراجعه ونتواصل معك.', 'success');
-            // Optional: Invalidate queries if the user happens to be an admin testing the form
+            // تحديث بيانات لوحة التحكم وقائمة الطلبات فوراً
             queryClient.invalidateQueries({ queryKey: ['adminJoinRequests'] });
+            queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
         },
         onError: (err: Error) => {
             addToast(`فشل إرسال الطلب: ${err.message}`, 'error');
@@ -32,12 +36,11 @@ export const useCommunicationMutations = () => {
 
     const updateSupportTicketStatus = useMutation({
         mutationFn: async ({ ticketId, newStatus }: { ticketId: string, newStatus: TicketStatus }) => {
-            const { error } = await import('../../lib/supabaseClient').then(m => (m.supabase.from('support_tickets') as any).update({ status: newStatus }).eq('id', ticketId));
-            if (error) throw error;
-            return { success: true };
+            return communicationService.updateSupportTicketStatus(ticketId, newStatus);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminSupportTickets'] });
+            queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
             addToast('تم تحديث حالة الرسالة.', 'success');
         },
         onError: (error: Error) => addToast(`فشل: ${error.message}`, 'error'),
@@ -45,12 +48,11 @@ export const useCommunicationMutations = () => {
 
     const updateJoinRequestStatus = useMutation({
         mutationFn: async ({ requestId, newStatus }: { requestId: string, newStatus: RequestStatus }) => {
-             const { error } = await import('../../lib/supabaseClient').then(m => (m.supabase.from('join_requests') as any).update({ status: newStatus }).eq('id', requestId));
-            if (error) throw error;
-            return { success: true };
+             return communicationService.updateJoinRequestStatus(requestId, newStatus);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminJoinRequests'] });
+            queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
             addToast('تم تحديث حالة الطلب.', 'success');
         },
         onError: (error: Error) => addToast(`فشل: ${error.message}`, 'error'),

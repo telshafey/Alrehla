@@ -11,8 +11,7 @@ import ActionCenterWidget from '../../components/admin/dashboards/ActionCenterWi
 import RecentActivityWidget from '../../components/admin/dashboards/RecentActivityWidget';
 import QuickActionsWidget from '../../components/admin/dashboards/QuickActionsWidget';
 import ContentSummaryWidget from '../../components/admin/dashboards/ContentSummaryWidget';
-// Corrected import path to match existing file location
-import AgendaWidget from './dashboards/AgendaWidget';
+import AgendaWidget from '../../components/admin/dashboards/AgendaWidget';
 
 const AdminDashboardPage: React.FC = () => {
     const { currentUser, permissions } = useAuth();
@@ -66,7 +65,7 @@ const AdminDashboardPage: React.FC = () => {
 
     return (
         <div className="animate-fadeIn space-y-8">
-            <h1 className="text-3xl font-extrabold text-foreground">مرحباً, {currentUser?.name}</h1>
+            <h1 className="text-3xl font-extrabold text-foreground">مرحباً، {currentUser?.name}</h1>
             
             {showGlobalStats && <StatsSummaryWidget data={data} />}
 

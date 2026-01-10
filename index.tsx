@@ -9,6 +9,7 @@ import { ToastProvider } from './contexts/ToastContext';
 import { CartProvider } from './contexts/CartContext';
 import GlobalErrorBoundary from './components/shared/GlobalErrorBoundary';
 import App from './App';
+import './styles.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {

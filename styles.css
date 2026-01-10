@@ -1,3 +1,4 @@
+
 /*
 ! tailwindcss v3.4.1 | MIT License | https://tailwindcss.com
 */
@@ -191,8 +192,10 @@ img,video{max-width:100%;height:auto}
 .transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}
 .animate-fadeIn{animation:fadeIn .5s ease-in-out}
 .animate-spin{animation:spin 1s linear infinite}
+.animate-slideUp{animation:slideUp .5s ease-out forwards}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeIn{0%{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
 .aspect-square{aspect-ratio:1/1}
 .aspect-\[4\/3\]{aspect-ratio:4/3}
 .cursor-not-allowed{cursor:not-allowed}

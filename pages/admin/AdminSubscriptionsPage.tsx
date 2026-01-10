@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo } from 'react';
-import { Star, Calendar, Pause, Play, XCircle, DollarSign, Users } from 'lucide-react';
+import { Star, Calendar, Pause, Play, XCircle, DollarSign, Users, Archive, Activity } from 'lucide-react';
 import { useAdminSubscriptions, useAdminSubscriptionPlans } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useSubscriptionMutations } from '../../hooks/mutations/useSubscriptionMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -13,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import StatCard from '../../components/admin/StatCard';
 import SortableTableHead from '../../components/admin/ui/SortableTableHead';
-
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 
 const getStatusInfo = (status: Subscription['status']) => {
     switch (status) {
@@ -34,6 +35,7 @@ const AdminSubscriptionsPage: React.FC = () => {
     const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: keyof Subscription; direction: 'asc' | 'desc' } | null>({ key: 'start_date', direction: 'desc' });
+    const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
     
     const isLoading = subsLoading || plansLoading;
     const error = subsError || plansError;
@@ -64,10 +66,23 @@ const AdminSubscriptionsPage: React.FC = () => {
 
 
     const sortedAndFilteredSubscriptions = useMemo(() => {
-        let filtered = [...subscriptions].filter(sub => 
-            sub.user_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            sub.child_name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        let filtered = [...subscriptions].filter(sub => {
+            // Search Logic
+            const matchesSearch = sub.user_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                sub.child_name.toLowerCase().includes(searchTerm.toLowerCase());
+
+            // Tab Logic
+            let matchesTab = false;
+            if (activeTab === 'active') {
+                // Show active, paused, pending payment
+                matchesTab = sub.status !== 'cancelled';
+            } else {
+                // Show only cancelled
+                matchesTab = sub.status === 'cancelled';
+            }
+
+            return matchesSearch && matchesTab;
+        });
 
         if (sortConfig !== null) {
             filtered.sort((a, b) => {
@@ -77,7 +92,7 @@ const AdminSubscriptionsPage: React.FC = () => {
             });
         }
         return filtered;
-    }, [subscriptions, searchTerm, sortConfig]);
+    }, [subscriptions, searchTerm, sortConfig, activeTab]);
 
     const handleOpenScheduler = (subscription: Subscription) => {
         setSelectedSubscription(subscription);
@@ -111,14 +126,18 @@ const AdminSubscriptionsPage: React.FC = () => {
                     <StatCard title="اشتراكات جديدة (هذا الشهر)" value={subscriptionStats.newThisMonth} icon={<Users className="h-4 w-4 text-muted-foreground" />} />
                 </div>
                 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Star /> قائمة الاشتراكات
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="mb-6 max-w-lg">
+                <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="w-full">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+                        <TabsList>
+                            <TabsTrigger value="active" className="gap-2">
+                                <Activity size={16} /> الاشتراكات الحالية
+                            </TabsTrigger>
+                            <TabsTrigger value="archived" className="gap-2">
+                                <Archive size={16} /> الأرشيف (الملغاة)
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <div className="w-full md:w-72">
                             <Input 
                                 type="search"
                                 placeholder="ابحث باسم ولي الأمر أو الطفل..."
@@ -126,59 +145,74 @@ const AdminSubscriptionsPage: React.FC = () => {
                                 onChange={e => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <div className="overflow-x-auto">
-                            <Table>
-                               <TableHeader>
-                                   <TableRow>
-                                        <SortableTableHead<Subscription> sortKey="user_name" label="ولي الأمر" sortConfig={sortConfig} onSort={handleSort} />
-                                        <SortableTableHead<Subscription> sortKey="child_name" label="الطفل" sortConfig={sortConfig} onSort={handleSort} />
-                                        <SortableTableHead<Subscription> sortKey="plan_name" label="الباقة" sortConfig={sortConfig} onSort={handleSort} />
-                                        <SortableTableHead<Subscription> sortKey="next_renewal_date" label="التجديد القادم" sortConfig={sortConfig} onSort={handleSort} />
-                                        <SortableTableHead<Subscription> sortKey="status" label="الحالة" sortConfig={sortConfig} onSort={handleSort} />
-                                        <TableHead>إجراءات</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {sortedAndFilteredSubscriptions.map(sub => {
-                                        const statusInfo = getStatusInfo(sub.status);
-                                        return (
-                                            <TableRow key={sub.id}>
-                                                <TableCell className="font-semibold">{sub.user_name}</TableCell>
-                                                <TableCell className="font-semibold">{sub.child_name}</TableCell>
-                                                <TableCell className="font-semibold text-primary">{sub.plan_name}</TableCell>
-                                                <TableCell className="text-sm">{formatDate(sub.next_renewal_date)}</TableCell>
-                                                <TableCell>
-                                                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusInfo.color}`}>{statusInfo.text}</span>
-                                                </TableCell>
-                                                <TableCell className="flex items-center gap-1 flex-wrap">
-                                                    <Button variant="outline" size="sm" icon={<Calendar size={14}/>} onClick={() => handleOpenScheduler(sub)}>
-                                                        جدولة
-                                                    </Button>
-                                                    {sub.status === 'active' && 
-                                                        <Button variant="ghost" size="sm" icon={<Pause size={14}/>} onClick={() => pauseSubscription.mutate({ subscriptionId: sub.id })}>
-                                                            إيقاف
-                                                        </Button>
-                                                    }
-                                                    {sub.status === 'paused' && 
-                                                        <Button variant="ghost" size="sm" icon={<Play size={14}/>} onClick={() => reactivateSubscription.mutate({ subscriptionId: sub.id })}>
-                                                            إعادة تفعيل
-                                                        </Button>
-                                                    }
-                                                    {sub.status !== 'cancelled' &&
-                                                        <Button variant="ghost" size="sm" icon={<XCircle size={14}/>} className="text-destructive" onClick={() => cancelSubscription.mutate({ subscriptionId: sub.id })}>
-                                                            إلغاء
-                                                        </Button>
-                                                    }
+                    </div>
+
+                    <Card>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                            <SortableTableHead<Subscription> sortKey="user_name" label="ولي الأمر" sortConfig={sortConfig} onSort={handleSort} />
+                                            <SortableTableHead<Subscription> sortKey="child_name" label="الطفل" sortConfig={sortConfig} onSort={handleSort} />
+                                            <SortableTableHead<Subscription> sortKey="plan_name" label="الباقة" sortConfig={sortConfig} onSort={handleSort} />
+                                            <SortableTableHead<Subscription> sortKey="next_renewal_date" label="التجديد القادم" sortConfig={sortConfig} onSort={handleSort} />
+                                            <SortableTableHead<Subscription> sortKey="status" label="الحالة" sortConfig={sortConfig} onSort={handleSort} />
+                                            <TableHead>إجراءات</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {sortedAndFilteredSubscriptions.length > 0 ? (
+                                            sortedAndFilteredSubscriptions.map(sub => {
+                                                const statusInfo = getStatusInfo(sub.status);
+                                                return (
+                                                    <TableRow key={sub.id}>
+                                                        <TableCell className="font-semibold">{sub.user_name}</TableCell>
+                                                        <TableCell className="font-semibold">{sub.child_name}</TableCell>
+                                                        <TableCell className="font-semibold text-primary">{sub.plan_name}</TableCell>
+                                                        <TableCell className="text-sm">{formatDate(sub.next_renewal_date)}</TableCell>
+                                                        <TableCell>
+                                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusInfo.color}`}>{statusInfo.text}</span>
+                                                        </TableCell>
+                                                        <TableCell className="flex items-center gap-1 flex-wrap">
+                                                            {sub.status !== 'cancelled' && (
+                                                                <Button variant="outline" size="sm" icon={<Calendar size={14}/>} onClick={() => handleOpenScheduler(sub)}>
+                                                                    جدولة
+                                                                </Button>
+                                                            )}
+                                                            {sub.status === 'active' && 
+                                                                <Button variant="ghost" size="sm" icon={<Pause size={14}/>} onClick={() => pauseSubscription.mutate({ subscriptionId: sub.id })}>
+                                                                    إيقاف
+                                                                </Button>
+                                                            }
+                                                            {sub.status === 'paused' && 
+                                                                <Button variant="ghost" size="sm" icon={<Play size={14}/>} onClick={() => reactivateSubscription.mutate({ subscriptionId: sub.id })}>
+                                                                    إعادة تفعيل
+                                                                </Button>
+                                                            }
+                                                            {sub.status !== 'cancelled' &&
+                                                                <Button variant="ghost" size="sm" icon={<XCircle size={14}/>} className="text-destructive" onClick={() => cancelSubscription.mutate({ subscriptionId: sub.id })}>
+                                                                    إلغاء
+                                                                </Button>
+                                                            }
+                                                            {sub.status === 'cancelled' && <span className="text-muted-foreground text-xs italic">لا توجد إجراءات</span>}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                    لا توجد اشتراكات في هذه القائمة.
                                                 </TableCell>
                                             </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                            {sortedAndFilteredSubscriptions.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد اشتراكات.</p>}
-                        </div>
-                    </CardContent>
-                </Card>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Tabs>
             </div>
         </>
     );

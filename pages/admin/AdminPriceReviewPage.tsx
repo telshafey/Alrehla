@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Ta
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Package, Sparkles, Save, Calculator } from 'lucide-react';
+import { Package, Sparkles, Save, Calculator, Search, User } from 'lucide-react';
 import { calculateCustomerPrice, calculatePlatformMargin } from '../../utils/pricingCalculator';
 
 type EditableRates = {
@@ -28,6 +28,7 @@ const AdminPriceReviewPage: React.FC = () => {
     const { addToast } = useToast();
     
     const [editableRates, setEditableRates] = useState<EditableRates>({});
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         if (instructors.length > 0) {
@@ -78,6 +79,13 @@ const AdminPriceReviewPage: React.FC = () => {
         }
     };
 
+    const filteredInstructors = useMemo(() => {
+        return instructors.filter(inst => 
+            inst.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            inst.specialty.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [instructors, searchTerm]);
+
     if (instructorsLoading || settingsLoading || pricingLoading) return <PageLoader />;
 
     const instructorServices = (settings?.standaloneServices || []).filter((s: any) => s.provider_type === 'instructor');
@@ -90,61 +98,104 @@ const AdminPriceReviewPage: React.FC = () => {
                     <h1 className="text-3xl font-extrabold text-foreground flex items-center gap-2">
                         <Calculator className="text-primary" /> مصفوفة الأسعار والعمولات
                     </h1>
-                    <p className="text-muted-foreground mt-1">تحديد صافي المدرب واحتساب عمولة المنصة آلياً.</p>
+                    <p className="text-muted-foreground mt-1">
+                        تحديد صافي ربح المدرب لكل باقة/خدمة. النظام سيحسب عمولة المنصة والسعر النهائي تلقائياً.
+                    </p>
                 </div>
-                <Button onClick={handleSave} loading={updateInstructor.isPending} icon={<Save />} size="lg">حفظ التغييرات</Button>
+                <div className="flex gap-2">
+                    <div className="relative w-64">
+                         <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                         <Input 
+                            placeholder="بحث عن مدرب..." 
+                            value={searchTerm} 
+                            onChange={e => setSearchTerm(e.target.value)} 
+                            className="pr-10"
+                        />
+                    </div>
+                    <Button onClick={handleSave} loading={updateInstructor.isPending} icon={<Save />} size="default">
+                        حفظ التغييرات
+                    </Button>
+                </div>
             </div>
 
             <Tabs defaultValue="packages">
                 <TabsList>
-                    <TabsTrigger value="packages" className="gap-2"><Package size={16}/> الباقات</TabsTrigger>
-                    <TabsTrigger value="services" className="gap-2"><Sparkles size={16}/> الخدمات</TabsTrigger>
+                    <TabsTrigger value="packages" className="gap-2"><Package size={16}/> أسعار الباقات</TabsTrigger>
+                    <TabsTrigger value="services" className="gap-2"><Sparkles size={16}/> أسعار الخدمات</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="packages" className="mt-6">
-                    <Card className="overflow-hidden">
-                        <div className="overflow-x-auto">
+                    <Card className="overflow-hidden border-t-4 border-t-purple-500">
+                        <div className="overflow-x-auto max-h-[70vh]">
                             <Table>
                                 <TableHeader>
                                     <TableRow className="bg-muted/50">
-                                        <TableHead className="sticky right-0 bg-muted/80 z-20 w-[200px] border-l">الباقة / المدرب</TableHead>
-                                        {instructors.map(inst => (
-                                            <TableHead key={inst.id} className="text-center min-w-[200px] p-4">
-                                                <span className="text-xs">{inst.name}</span>
+                                        <TableHead className="sticky right-0 bg-muted/90 z-20 w-[250px] border-l shadow-sm font-bold text-foreground">
+                                            اسم المدرب
+                                        </TableHead>
+                                        {packages.map(pkg => (
+                                            <TableHead key={pkg.id} className="text-center min-w-[180px] p-4 border-l">
+                                                <div className="flex flex-col gap-1 items-center">
+                                                    <span className="font-bold text-gray-800">{pkg.name}</span>
+                                                    <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                                                        الافتراضي: {pkg.price} ج.م
+                                                    </span>
+                                                </div>
                                             </TableHead>
                                         ))}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {packages.map((pkg: any) => (
-                                        <TableRow key={pkg.id}>
-                                            <TableCell className="font-bold sticky right-0 bg-white z-10 border-l shadow-sm">
-                                                {pkg.name}
-                                                <p className="text-[9px] text-muted-foreground font-normal">الافتراضي: {pkg.price} ج.م</p>
+                                    {filteredInstructors.length > 0 ? filteredInstructors.map(inst => (
+                                        <TableRow key={inst.id} className="hover:bg-muted/10">
+                                            <TableCell className="font-semibold sticky right-0 bg-white z-10 border-l shadow-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
+                                                        {inst.avatar_url ? <img src={inst.avatar_url} className="w-full h-full rounded-full object-cover" /> : <User size={16} />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm">{inst.name}</p>
+                                                        <p className="text-[10px] text-muted-foreground">{inst.specialty}</p>
+                                                    </div>
+                                                </div>
                                             </TableCell>
-                                            {instructors.map(inst => {
+                                            {packages.map(pkg => {
                                                 const net = editableRates[inst.id]?.package_rates?.[pkg.id] ?? pkg.price;
                                                 const customerPrice = calculateCustomerPrice(net, pricingConfig);
                                                 const platformMargin = calculatePlatformMargin(customerPrice, net || 0);
+                                                
+                                                // Highlight logic if custom price differs from default
+                                                const isCustom = editableRates[inst.id]?.package_rates?.[pkg.id] !== undefined;
+
                                                 return (
-                                                    <TableCell key={inst.id} className="text-center p-4">
-                                                        <div className="space-y-2">
-                                                            <Input 
-                                                                type="number" 
-                                                                className="text-center h-8 font-bold"
-                                                                value={net ?? ''} 
-                                                                onChange={e => handleRateChange(inst.id, 'package', pkg.id, e.target.value)}
-                                                            />
-                                                            <div className="flex justify-between items-center px-1">
-                                                                <div className="text-[10px] text-green-600 font-bold">للعميل: {customerPrice}</div>
-                                                                <div className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 rounded">ربحك: {platformMargin}</div>
+                                                    <TableCell key={pkg.id} className="text-center p-3 border-l bg-white">
+                                                        <div className={`space-y-2 p-2 rounded-lg transition-colors ${isCustom ? 'bg-yellow-50 border border-yellow-200' : ''}`}>
+                                                            <div className="relative">
+                                                                <Input 
+                                                                    type="number" 
+                                                                    className={`text-center h-9 font-bold ${isCustom ? 'border-yellow-400 focus:ring-yellow-400' : ''}`}
+                                                                    value={net ?? ''} 
+                                                                    onChange={e => handleRateChange(inst.id, 'package', pkg.id, e.target.value)}
+                                                                    placeholder={`${pkg.price}`}
+                                                                />
+                                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">صافي</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center px-1 text-[10px]">
+                                                                <div className="text-green-700 font-bold bg-green-50 px-1.5 py-0.5 rounded">للعميل: {customerPrice}</div>
+                                                                <div className="text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded">هامش: {platformMargin}</div>
                                                             </div>
                                                         </div>
                                                     </TableCell>
                                                 )
                                             })}
                                         </TableRow>
-                                    ))}
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={packages.length + 1} className="text-center py-12 text-muted-foreground">
+                                                لا يوجد مدربين يطابقون بحثك.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
@@ -152,49 +203,74 @@ const AdminPriceReviewPage: React.FC = () => {
                 </TabsContent>
                 
                 <TabsContent value="services" className="mt-6">
-                    <Card className="overflow-hidden">
-                        <div className="overflow-x-auto">
+                     <Card className="overflow-hidden border-t-4 border-t-blue-500">
+                        <div className="overflow-x-auto max-h-[70vh]">
                             <Table>
                                 <TableHeader>
                                     <TableRow className="bg-muted/50">
-                                        <TableHead className="sticky right-0 bg-muted/80 z-20 w-[200px] border-l">الخدمة / المدرب</TableHead>
-                                        {instructors.map(inst => (
-                                            <TableHead key={inst.id} className="text-center min-w-[200px] p-4">
-                                                <span className="text-xs">{inst.name}</span>
+                                        <TableHead className="sticky right-0 bg-muted/90 z-20 w-[250px] border-l shadow-sm font-bold text-foreground">
+                                            اسم المدرب
+                                        </TableHead>
+                                        {instructorServices.map(service => (
+                                            <TableHead key={service.id} className="text-center min-w-[180px] p-4 border-l">
+                                                 <div className="flex flex-col gap-1 items-center">
+                                                    <span className="font-bold text-gray-800">{service.name}</span>
+                                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                                                        الافتراضي: {service.price} ج.م
+                                                    </span>
+                                                </div>
                                             </TableHead>
                                         ))}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {instructorServices.map((service: any) => (
-                                        <TableRow key={service.id}>
-                                            <TableCell className="font-bold sticky right-0 bg-white z-10 border-l shadow-sm">
-                                                {service.name}
-                                                <p className="text-[9px] text-muted-foreground font-normal">الافتراضي: {service.price} ج.م</p>
+                                    {filteredInstructors.length > 0 ? filteredInstructors.map(inst => (
+                                        <TableRow key={inst.id} className="hover:bg-muted/10">
+                                            <TableCell className="font-semibold sticky right-0 bg-white z-10 border-l shadow-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
+                                                        {inst.avatar_url ? <img src={inst.avatar_url} className="w-full h-full rounded-full object-cover" /> : <User size={16} />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm">{inst.name}</p>
+                                                    </div>
+                                                </div>
                                             </TableCell>
-                                            {instructors.map(inst => {
+                                            {instructorServices.map(service => {
                                                 const net = editableRates[inst.id]?.service_rates?.[service.id] ?? service.price;
                                                 const customerPrice = calculateCustomerPrice(net, pricingConfig);
                                                 const platformMargin = calculatePlatformMargin(customerPrice, net || 0);
+                                                const isCustom = editableRates[inst.id]?.service_rates?.[service.id] !== undefined;
+
                                                 return (
-                                                    <TableCell key={inst.id} className="text-center p-4">
-                                                        <div className="space-y-2">
-                                                            <Input 
-                                                                type="number" 
-                                                                className="text-center h-8 font-bold"
-                                                                value={net ?? ''} 
-                                                                onChange={e => handleRateChange(inst.id, 'service', service.id, e.target.value)}
-                                                            />
-                                                            <div className="flex justify-between items-center px-1">
-                                                                <div className="text-[10px] text-green-600 font-bold">للعميل: {customerPrice}</div>
-                                                                <div className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 rounded">ربحك: {platformMargin}</div>
+                                                    <TableCell key={service.id} className="text-center p-3 border-l bg-white">
+                                                         <div className={`space-y-2 p-2 rounded-lg transition-colors ${isCustom ? 'bg-yellow-50 border border-yellow-200' : ''}`}>
+                                                            <div className="relative">
+                                                                <Input 
+                                                                    type="number" 
+                                                                    className={`text-center h-9 font-bold ${isCustom ? 'border-yellow-400 focus:ring-yellow-400' : ''}`}
+                                                                    value={net ?? ''} 
+                                                                    onChange={e => handleRateChange(inst.id, 'service', service.id, e.target.value)}
+                                                                    placeholder={`${service.price}`}
+                                                                />
+                                                                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">صافي</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center px-1 text-[10px]">
+                                                                <div className="text-green-700 font-bold bg-green-50 px-1.5 py-0.5 rounded">للعميل: {customerPrice}</div>
+                                                                <div className="text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded">هامش: {platformMargin}</div>
                                                             </div>
                                                         </div>
                                                     </TableCell>
                                                 )
                                             })}
                                         </TableRow>
-                                    ))}
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={instructorServices.length + 1} className="text-center py-12 text-muted-foreground">
+                                                لا يوجد مدربين يطابقون بحثك.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>

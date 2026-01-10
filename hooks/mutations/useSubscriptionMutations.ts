@@ -46,6 +46,7 @@ export const useSubscriptionMutations = () => {
         mutationFn: orderService.createSubscriptionPlan,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminSubscriptionPlans'] });
+            queryClient.invalidateQueries({ queryKey: ['publicData'] }); // تحديث الواجهة الأمامية
             addToast('تم إنشاء الباقة بنجاح.', 'success');
         },
         onError: (err: Error) => addToast(`فشل إنشاء الباقة: ${err.message}`, 'error'),
@@ -55,6 +56,7 @@ export const useSubscriptionMutations = () => {
         mutationFn: orderService.updateSubscriptionPlan,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminSubscriptionPlans'] });
+            queryClient.invalidateQueries({ queryKey: ['publicData'] }); // تحديث الواجهة الأمامية
             addToast('تم تحديث الباقة بنجاح.', 'success');
         },
         onError: (err: Error) => addToast(`فشل تحديث الباقة: ${err.message}`, 'error'),
@@ -64,6 +66,7 @@ export const useSubscriptionMutations = () => {
         mutationFn: (payload: { planId: number }) => orderService.deleteSubscriptionPlan(payload.planId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminSubscriptionPlans'] });
+            queryClient.invalidateQueries({ queryKey: ['publicData'] }); // تحديث الواجهة الأمامية
             addToast('تم حذف الباقة بنجاح.', 'info');
         },
         onError: (err: Error) => addToast(`فشل حذف الباقة: ${err.message}`, 'error'),
