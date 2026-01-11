@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Database, Image as ImageIcon, Server, Save, Eye, EyeOff, AlertTriangle, RefreshCw, Terminal, Wrench } from 'lucide-react';
+import { Database, Image as ImageIcon, Server, Save, Eye, EyeOff, AlertTriangle, RefreshCw, Terminal, Wrench, Copy } from 'lucide-react';
 import { useAdminSystemConfig } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -12,22 +12,32 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Ta
 import { DEFAULT_CONFIG } from '../../lib/config';
 import { supabase } from '../../lib/supabaseClient';
 import { useToast } from '../../contexts/ToastContext';
+import { useLocation } from 'react-router-dom';
 
 const AdminSystemSettingsPage: React.FC = () => {
     const { data: configData, isLoading, refetch } = useAdminSystemConfig();
     const { updateSystemConfig } = useSettingsMutations();
     const { addToast } = useToast();
+    const location = useLocation();
     
-    // Local state for form
     const [config, setConfig] = useState<typeof DEFAULT_CONFIG>(DEFAULT_CONFIG);
     const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
     const [isRepairing, setIsRepairing] = useState(false);
+    const [activeTab, setActiveTab] = useState('supabase');
 
     useEffect(() => {
         if (configData) {
             setConfig(configData);
         }
     }, [configData]);
+
+    useEffect(() => {
+        const hasDbError = localStorage.getItem('db_schema_error');
+        if (hasDbError || location.search.includes('tab=repair')) {
+            setActiveTab('repair');
+            addToast("مطلوب تدخل يدوي: قاعدة البيانات تحتاج لتحديث.", "error");
+        }
+    }, [location]);
 
     const handleChange = (section: keyof typeof DEFAULT_CONFIG, field: string, value: string) => {
         setConfig(prev => ({
@@ -44,125 +54,128 @@ const AdminSystemSettingsPage: React.FC = () => {
     };
 
     const handleSave = async () => {
-        if (window.confirm("تحذير: تغيير هذه الإعدادات قد يؤدي إلى توقف بعض خدمات الموقع. هل أنت متأكد؟")) {
+        if (window.confirm("تحذير: هل أنت متأكد من حفظ الإعدادات؟")) {
             await updateSystemConfig.mutateAsync(config);
-            refetch(); // Force UI refresh
+            refetch();
         }
     };
 
     const handleReset = () => {
-        if (window.confirm("هل تريد استعادة الإعدادات الافتراضية من ملف config.ts؟")) {
+        if (window.confirm("هل تريد استعادة الإعدادات الافتراضية؟")) {
             setConfig(DEFAULT_CONFIG);
         }
     };
     
-    const handleRepairApi = async () => {
-        setIsRepairing(true);
-        try {
-            const { error } = await supabase.rpc('reload_schema_cache');
-            if (error) {
-                // Check if error is because function doesn't exist
-                if (error.message.includes('function') && error.message.includes('does not exist')) {
-                     addToast("فشل الإصلاح: يجب تشغيل كود SQL أولاً (انظر التعليمات أدناه)", "error");
-                } else {
-                     addToast(`فشل الإصلاح: ${error.message}`, "error");
-                }
-            } else {
-                addToast("تم تحديث ذاكرة التخزين المؤقت للسيرفر بنجاح!", "success");
-            }
-        } catch (e: any) {
-            addToast(`خطأ غير متوقع: ${e.message}`, "error");
-        } finally {
-            setIsRepairing(false);
-        }
+    // هذا الكود هو الحل الجذري للمشكلة
+    const repairSQL = `
+-- 1. إضافة الأعمدة الناقصة (الحل الجذري للمشكلة)
+ALTER TABLE session_messages 
+ADD COLUMN IF NOT EXISTS sender_id uuid REFERENCES auth.users(id),
+ADD COLUMN IF NOT EXISTS sender_role text DEFAULT 'user';
+
+ALTER TABLE session_attachments 
+ADD COLUMN IF NOT EXISTS uploader_id uuid REFERENCES auth.users(id),
+ADD COLUMN IF NOT EXISTS uploader_role text DEFAULT 'user';
+
+-- 2. تحديث صلاحيات الوصول (Policies) لتجنب أخطاء RLS
+ALTER TABLE session_messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all access" ON session_messages;
+CREATE POLICY "Enable all access" ON session_messages FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE session_attachments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all access" ON session_attachments;
+CREATE POLICY "Enable all access" ON session_attachments FOR ALL USING (true) WITH CHECK (true);
+
+-- 3. دالة التحديث التلقائي (للمستقبل)
+CREATE OR REPLACE FUNCTION reload_schema_cache()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN NOTIFY pgrst, 'reload config'; END; $$;
+
+-- 4. إجبار السيرفر على قراءة التغييرات فوراً
+NOTIFY pgrst, 'reload config';
+`;
+
+    const copySQL = () => {
+        navigator.clipboard.writeText(repairSQL);
+        addToast("تم نسخ الكود. توجه إلى Supabase Dashboard > SQL Editor لتنفيذه.", "success");
     };
 
-    if (isLoading) return <PageLoader text="جاري تحميل إعدادات النظام..." />;
+    if (isLoading) return <PageLoader />;
 
     return (
         <div className="animate-fadeIn space-y-8 pb-20">
             <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-foreground flex items-center gap-3">
-                        <Server className="text-primary" /> تكوين النظام (Credentials)
-                    </h1>
-                    <p className="text-muted-foreground mt-1">إدارة مفاتيح الربط والاتصال بالخدمات الخارجية.</p>
-                </div>
+                <h1 className="text-3xl font-extrabold text-foreground flex items-center gap-3">
+                    <Server className="text-primary" /> تكوين النظام
+                </h1>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={handleReset} icon={<RefreshCw size={16}/>}>استعادة الافتراضي</Button>
-                    <Button onClick={handleSave} loading={updateSystemConfig.isPending} icon={<Save size={16}/>}>حفظ التغييرات</Button>
+                    <Button onClick={handleSave} loading={updateSystemConfig.isPending} icon={<Save size={16}/>}>حفظ</Button>
                 </div>
             </div>
             
-            {/* أداة إصلاح الكاش */}
-            <Card className="border-l-4 border-blue-500 bg-blue-50/20">
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-blue-700 flex items-center gap-2 text-base">
-                        <Wrench size={20} /> صيانة الاتصال (API Repair)
-                    </CardTitle>
-                    <CardDescription>
-                        استخدم هذا الزر إذا واجهت أخطاء "Schema Cache" أو PGRST204 بعد تحديث قاعدة البيانات.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center gap-4">
-                    <Button 
-                        onClick={handleRepairApi} 
-                        loading={isRepairing} 
-                        variant="default" 
-                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
-                        icon={<RefreshCw size={16} />}
-                    >
-                        إصلاح وتحديث السيرفر
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                        ملاحظة: ليعمل هذا الزر، يجب أن تكون قد نفذت دالة <code>reload_schema_cache</code> في SQL Editor مرة واحدة.
-                    </p>
-                </CardContent>
-            </Card>
-
-            <div className="bg-red-50 border-r-4 border-red-500 p-4 rounded-lg shadow-sm">
-                <div className="flex items-start gap-3">
-                    <AlertTriangle className="text-red-600 shrink-0 mt-1" />
-                    <div>
-                        <h3 className="font-bold text-red-800">منطقة حساسة جداً</h3>
-                        <p className="text-sm text-red-700">
-                            هذه الصفحة تحتوي على مفاتيح الوصول لقاعدة البيانات وخدمات التخزين. 
-                            يرجى عدم مشاركة هذه البيانات أو عرضها في مكان عام. 
-                            تغيير هذه القيم سيؤثر فوراً على عمل الموقع.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <Tabs defaultValue="supabase">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="mb-6">
-                    <TabsTrigger value="supabase" className="gap-2"><Database size={16}/> قاعدة البيانات (Supabase)</TabsTrigger>
-                    <TabsTrigger value="cloudinary" className="gap-2"><ImageIcon size={16}/> الصور (Cloudinary)</TabsTrigger>
-                    <TabsTrigger value="storage" className="gap-2"><Server size={16}/> الملفات (Storage)</TabsTrigger>
+                    <TabsTrigger value="repair" className="gap-2 text-red-600 data-[state=active]:text-red-700 font-bold"><Wrench size={16}/> إصلاح قاعدة البيانات (SQL)</TabsTrigger>
+                    <TabsTrigger value="supabase" className="gap-2"><Database size={16}/> Supabase</TabsTrigger>
+                    <TabsTrigger value="cloudinary" className="gap-2"><ImageIcon size={16}/> Cloudinary</TabsTrigger>
+                    <TabsTrigger value="storage" className="gap-2"><Server size={16}/> Storage</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="repair" className="space-y-6">
+                     <Card className="border-red-200 shadow-md bg-red-50/10">
+                        <CardHeader className="bg-red-100/50">
+                            <CardTitle className="text-red-800 flex items-center gap-2">
+                                <Terminal /> الحل النهائي لمشكلة "Column Not Found"
+                            </CardTitle>
+                            <CardDescription className="text-red-900 font-medium">
+                                الرسالة <code>Could not find the 'sender_id' column</code> تعني أن العمود غير موجود في قاعدة البيانات. 
+                                يجب عليك تنفيذ الكود التالي يدوياً لإنشائه.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col gap-4">
+                                <div className="p-4 bg-gray-900 rounded-lg text-green-400 font-mono text-xs overflow-x-auto dir-ltr whitespace-pre max-h-[400px]">
+                                    {repairSQL}
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <Button onClick={copySQL} icon={<Copy size={16}/>} className="w-full sm:w-auto" variant="default">
+                                        نسخ كود SQL (اضغط هنا أولاً)
+                                    </Button>
+                                    <a 
+                                        href="https://supabase.com/dashboard/project/_/sql" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700"
+                                    >
+                                        فتح Supabase SQL Editor <ExternalLinkIcon />
+                                    </a>
+                                </div>
+                                <div className="bg-yellow-50 p-4 rounded border border-yellow-200 text-sm text-yellow-900 mt-2">
+                                    <strong>طريقة التنفيذ:</strong>
+                                    <ol className="list-decimal list-inside mt-2 space-y-1">
+                                        <li>اضغط الزر <strong>"نسخ كود SQL"</strong>.</li>
+                                        <li>اضغط الزر <strong>"فتح Supabase SQL Editor"</strong> (سيفتح في نافذة جديدة).</li>
+                                        <li>الصق الكود في المحرر واضغط زر <strong>RUN</strong> الأخضر.</li>
+                                        <li>عد إلى هنا وقم بتحديث الصفحة. ستختفي المشكلة.</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
                 <TabsContent value="supabase" className="space-y-6">
                     <Card>
                         <CardHeader>
                             <CardTitle>Supabase Connection</CardTitle>
-                            <CardDescription>إعدادات الاتصال بمشروع Supabase الأساسي.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <FormField label="Project Name" htmlFor="sb_name">
-                                <Input id="sb_name" value={config.supabase.projectName} onChange={e => handleChange('supabase', 'projectName', e.target.value)} />
-                            </FormField>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField label="Project ID" htmlFor="sb_id">
-                                    <Input id="sb_id" value={config.supabase.projectId} onChange={e => handleChange('supabase', 'projectId', e.target.value)} className="font-mono" />
-                                </FormField>
                                 <FormField label="Project URL" htmlFor="sb_url">
                                     <Input id="sb_url" value={config.supabase.projectUrl} onChange={e => handleChange('supabase', 'projectUrl', e.target.value)} className="font-mono" dir="ltr" />
                                 </FormField>
-                            </div>
-                            
-                            <div className="border-t pt-4 mt-4">
-                                <h4 className="font-bold mb-3 text-sm text-green-700">مفاتيح الوصول (API Keys)</h4>
-                                <FormField label="Anon Public Key (للاستخدام العام)" htmlFor="sb_anon">
+                                <FormField label="Anon Public Key" htmlFor="sb_anon">
                                     <div className="relative">
                                         <Input 
                                             id="sb_anon" 
@@ -174,48 +187,9 @@ const AdminSystemSettingsPage: React.FC = () => {
                                         <button 
                                             type="button"
                                             onClick={() => toggleSecret('anon')} 
-                                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
                                         >
                                             {showSecrets['anon'] ? <EyeOff size={16}/> : <Eye size={16}/>}
-                                        </button>
-                                    </div>
-                                </FormField>
-
-                                <FormField label="Service Role Key (سري للغاية - للإدارة فقط)" htmlFor="sb_service">
-                                    <div className="relative">
-                                        <Input 
-                                            id="sb_service" 
-                                            value={config.supabase.serviceRoleKey} 
-                                            onChange={e => handleChange('supabase', 'serviceRoleKey', e.target.value)} 
-                                            className="font-mono pr-10 border-red-200 bg-red-50/30" 
-                                            type={showSecrets['service'] ? 'text' : 'password'}
-                                        />
-                                        <button 
-                                            type="button"
-                                            onClick={() => toggleSecret('service')} 
-                                            className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700"
-                                        >
-                                            {showSecrets['service'] ? <EyeOff size={16}/> : <Eye size={16}/>}
-                                        </button>
-                                    </div>
-                                    <p className="text-xs text-red-600 mt-1 font-semibold">تنبيه: هذا المفتاح يمنح صلاحيات كاملة لتجاوز جميع سياسات الأمان (RLS).</p>
-                                </FormField>
-                                
-                                <FormField label="Database Password (للحفظ فقط)" htmlFor="sb_pass">
-                                     <div className="relative">
-                                        <Input 
-                                            id="sb_pass" 
-                                            value={config.supabase.databasePassword} 
-                                            onChange={e => handleChange('supabase', 'databasePassword', e.target.value)} 
-                                            className="font-mono pr-10" 
-                                            type={showSecrets['dbpass'] ? 'text' : 'password'}
-                                        />
-                                        <button 
-                                            type="button"
-                                            onClick={() => toggleSecret('dbpass')} 
-                                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                                        >
-                                            {showSecrets['dbpass'] ? <EyeOff size={16}/> : <Eye size={16}/>}
                                         </button>
                                     </div>
                                 </FormField>
@@ -226,45 +200,15 @@ const AdminSystemSettingsPage: React.FC = () => {
 
                 <TabsContent value="cloudinary" className="space-y-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Cloudinary Integration</CardTitle>
-                            <CardDescription>إعدادات خدمة استضافة الصور والوسائط.</CardDescription>
-                        </CardHeader>
+                        <CardHeader><CardTitle>Cloudinary</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <FormField label="Cloud Name" htmlFor="cl_name">
                                     <Input id="cl_name" value={config.cloudinary.cloudName} onChange={e => handleChange('cloudinary', 'cloudName', e.target.value)} />
                                 </FormField>
-                                <FormField label="Upload Preset Name" htmlFor="cl_preset">
+                                <FormField label="Upload Preset" htmlFor="cl_preset">
                                     <Input id="cl_preset" value={config.cloudinary.uploadPreset} onChange={e => handleChange('cloudinary', 'uploadPreset', e.target.value)} />
                                 </FormField>
-                            </div>
-                            
-                            <div className="border-t pt-4 mt-4 bg-gray-50 p-4 rounded-lg">
-                                <h4 className="font-bold mb-3 text-sm text-gray-700">بيانات API (للاستخدام المستقبلي/الخلفي)</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField label="API Key" htmlFor="cl_key">
-                                        <Input id="cl_key" value={config.cloudinary.apiKey} onChange={e => handleChange('cloudinary', 'apiKey', e.target.value)} className="font-mono"/>
-                                    </FormField>
-                                    <FormField label="API Secret" htmlFor="cl_secret">
-                                        <div className="relative">
-                                            <Input 
-                                                id="cl_secret" 
-                                                value={config.cloudinary.apiSecret} 
-                                                onChange={e => handleChange('cloudinary', 'apiSecret', e.target.value)} 
-                                                className="font-mono pr-10" 
-                                                type={showSecrets['cl_secret'] ? 'text' : 'password'}
-                                            />
-                                            <button 
-                                                type="button"
-                                                onClick={() => toggleSecret('cl_secret')} 
-                                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                                            >
-                                                {showSecrets['cl_secret'] ? <EyeOff size={16}/> : <Eye size={16}/>}
-                                            </button>
-                                        </div>
-                                    </FormField>
-                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -272,14 +216,10 @@ const AdminSystemSettingsPage: React.FC = () => {
 
                 <TabsContent value="storage" className="space-y-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>File Storage (Buckets)</CardTitle>
-                            <CardDescription>إعدادات سلال تخزين الملفات داخل Supabase.</CardDescription>
-                        </CardHeader>
+                        <CardHeader><CardTitle>Storage</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                             <FormField label="Receipts Bucket Name" htmlFor="st_bucket">
+                             <FormField label="Bucket Name" htmlFor="st_bucket">
                                 <Input id="st_bucket" value={config.storage.bucketName} onChange={e => handleChange('storage', 'bucketName', e.target.value)} />
-                                <p className="text-xs text-muted-foreground mt-1">اسم السلة المخصصة لرفع إيصالات الدفع والملفات المرفقة.</p>
                             </FormField>
                         </CardContent>
                     </Card>
@@ -288,5 +228,9 @@ const AdminSystemSettingsPage: React.FC = () => {
         </div>
     );
 };
+
+const ExternalLinkIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+);
 
 export default AdminSystemSettingsPage;

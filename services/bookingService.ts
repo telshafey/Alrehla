@@ -41,40 +41,34 @@ const parseSessionCount = (sessionString: string | undefined): number => {
     return match ? parseInt(match[1], 10) : 1;
 };
 
-// --- SELF-HEALING HELPER ---
+// --- FAIL-FAST HELPER ---
 const executeWithRetry = async <T>(operation: () => Promise<{ data: T | null; error: any }>): Promise<T | null> => {
-    const { data, error } = await operation();
+    // Attempt 1
+    let { data, error } = await operation();
     
-    // Check specifically for Stale Schema Cache Error (PGRST204)
-    if (error && (error.code === 'PGRST204' || JSON.stringify(error).includes('PGRST204') || error.message?.includes('schema cache'))) {
-        console.warn("⚠️ Stale DB Cache Detected. Attempting auto-fix via RPC...");
-        
-        // 1. Call the fix function
-        const { error: rpcError } = await supabase.rpc('reload_schema_cache');
-        
-        if (rpcError) {
-             console.error("❌ Auto-fix failed (RPC missing?):", rpcError);
-             // If RPC fails (e.g. user didn't run SQL), we must throw original error
-             throw error; 
-        }
+    if (!error) return data;
 
-        // 2. Wait briefly for propagation
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        console.log("🔄 Retrying operation after cache reload...");
-        
-        // 3. Retry the operation
-        const retryResult = await operation();
-        if (retryResult.error) {
-             throw retryResult.error;
-        }
-        return retryResult.data;
+    const errorMsg = error.message || '';
+    
+    // CRITICAL FIX: STOP RETRYING IF COLUMN IS MISSING
+    if (errorMsg.includes('Could not find the') && errorMsg.includes('column')) {
+         console.error("❌ Schema Mismatch: Column missing in DB.");
+         if (typeof window !== 'undefined') localStorage.setItem('db_schema_error', 'true');
+         // Throw a user-friendly error immediately
+         throw new Error(`خطأ في قاعدة البيانات: العمود المطلوب غير موجود. يرجى الذهاب إلى: لوحة التحكم -> إعدادات النظام -> إصلاح الطوارئ، وتنفيذ كود SQL.`);
     }
 
-    if (error) throw error;
-    return data;
-};
+    // Only retry for generic cache errors (PGRST204 without specific column name usually means cache reload needed)
+    if (error.code === 'PGRST204' && !errorMsg.includes('column')) {
+        console.warn("⚠️ Stale Cache detected. Trying reload...");
+        await supabase.rpc('reload_schema_cache');
+        await new Promise(r => setTimeout(r, 1000));
+        const res2 = await operation();
+        if (!res2.error) return res2.data;
+    }
 
+    throw error;
+};
 
 export const bookingService = {
     // --- Queries (SAFE MODE) ---
@@ -314,7 +308,7 @@ export const bookingService = {
              safeRole = 'user'; 
         }
 
-        // Wrapped in Self-Healing Logic
+        // Wrapped in Fail-Fast Logic
         await executeWithRetry(() => (supabase.from('session_messages') as any).insert([{
             booking_id: payload.bookingId,
             sender_id: payload.senderId,
@@ -341,7 +335,7 @@ export const bookingService = {
              safeRole = 'user';
         }
 
-        // Wrapped in Self-Healing Logic
+        // Wrapped in Fail-Fast Logic
         await executeWithRetry(() => (supabase.from('session_attachments') as any).insert([{
             booking_id: payload.bookingId,
             uploader_id: payload.uploaderId,
