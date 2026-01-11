@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, Eye, Loader2, Search, RefreshCw, Archive, CheckCircle2 } from 'lucide-react';
 import { useAdminRawCwBookings, transformCwBookings } from '../../hooks/queries/admin/useAdminBookingsQuery';
-import { useAdminAllChildProfiles } from '../../hooks/queries/admin/useAdminUsersQuery';
+import { useAdminAllChildProfiles, useAdminUsers } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -23,6 +23,7 @@ const AdminCreativeWritingPage: React.FC = () => {
     const { data: rawBookings = [], isLoading, error, refetch, isRefetching } = useAdminRawCwBookings();
     const { data: allChildren = [] } = useAdminAllChildProfiles();
     const { data: instructors = [] } = useAdminInstructors();
+    const { data: users = [] } = useAdminUsers();
     const { updateBookingStatus } = useBookingMutations();
 
     const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
@@ -30,8 +31,8 @@ const AdminCreativeWritingPage: React.FC = () => {
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
 
     const bookings = useMemo(
-        () => transformCwBookings(rawBookings, allChildren, instructors),
-        [rawBookings, allChildren, instructors]
+        () => transformCwBookings(rawBookings, allChildren, instructors, users),
+        [rawBookings, allChildren, instructors, users]
     );
 
     const filteredBookings = useMemo(() => {

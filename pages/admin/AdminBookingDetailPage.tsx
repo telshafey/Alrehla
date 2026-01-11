@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAdminRawCwBookings, transformCwBookings } from '../../hooks/queries/admin/useAdminBookingsQuery';
-import { useAdminAllChildProfiles } from '../../hooks/queries/admin/useAdminUsersQuery';
+import { useAdminAllChildProfiles, useAdminUsers } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -26,6 +26,7 @@ const AdminBookingDetailPage: React.FC = () => {
     const { data: rawBookings = [], isLoading: bookingsLoading } = useAdminRawCwBookings();
     const { data: allChildren = [], isLoading: childrenLoading } = useAdminAllChildProfiles();
     const { data: instructors = [], isLoading: instructorsLoading } = useAdminInstructors();
+    const { data: users = [], isLoading: usersLoading } = useAdminUsers();
     const { updateBookingStatus, updateBookingProgressNotes } = useBookingMutations();
 
     const [status, setStatus] = useState<BookingStatus>('بانتظار الدفع');
@@ -33,9 +34,9 @@ const AdminBookingDetailPage: React.FC = () => {
 
     const booking = React.useMemo(() => {
         if (!rawBookings.length) return null;
-        const enriched = transformCwBookings(rawBookings, allChildren, instructors);
+        const enriched = transformCwBookings(rawBookings, allChildren, instructors, users);
         return enriched.find(b => b.id === id);
-    }, [rawBookings, allChildren, instructors, id]);
+    }, [rawBookings, allChildren, instructors, users, id]);
 
     useEffect(() => {
         if (booking) {
@@ -44,7 +45,7 @@ const AdminBookingDetailPage: React.FC = () => {
         }
     }, [booking]);
 
-    const isLoading = bookingsLoading || childrenLoading || instructorsLoading;
+    const isLoading = bookingsLoading || childrenLoading || instructorsLoading || usersLoading;
 
     if (isLoading) return <PageLoader text="جاري تحميل تفاصيل الحجز..." />;
 
@@ -94,7 +95,7 @@ const AdminBookingDetailPage: React.FC = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <DetailRow label="الطالب" value={booking.child_profiles?.name || 'N/A'} />
-                        <DetailRow label="ولي الأمر" value={booking.user_name} />
+                        <DetailRow label="ولي الأمر" value={booking.users?.name || booking.user_id} />
                         <DetailRow label="المدرب" value={booking.instructors?.name || 'N/A'} />
                         <DetailRow label="الباقة" value={booking.package_name} />
                         <DetailRow label="موعد الجلسة" value={`${formatDate(booking.booking_date)} الساعة ${booking.booking_time}`} />

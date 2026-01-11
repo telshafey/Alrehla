@@ -658,6 +658,19 @@ export interface SiteContent {
         heroSubtitle: string;
         faqs: FAQItem[];
     };
+    // Added New Fields
+    privacyPage: {
+        title: string;
+        content: string;
+    };
+    termsPage: {
+        title: string;
+        content: string;
+    };
+    footer: {
+        copyrightText: string;
+        description?: string;
+    };
 }
 
 export type SessionStatus = 'upcoming' | 'completed' | 'missed';

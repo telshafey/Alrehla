@@ -130,9 +130,10 @@ export const orderService = {
         if (payload.details.assigned_instructor_id) {
             try {
                  const { data: instructorData } = await supabase.from('instructors').select('user_id').eq('id', payload.details.assigned_instructor_id).single();
-                 if (instructorData && instructorData.user_id) {
+                 const safeInstructor = instructorData as any;
+                 if (safeInstructor && safeInstructor.user_id) {
                      await (supabase.from('notifications') as any).insert([{
-                         user_id: instructorData.user_id,
+                         user_id: safeInstructor.user_id,
                          message: `طلب خدمة جديد تم تعيينك له: ${payload.details.serviceName}`,
                          link: '/admin/financials', // Direct to financial details or relevant page
                          type: 'order',
@@ -170,9 +171,10 @@ export const orderService = {
         if (instructorId) {
             try {
                  const { data: instructorData } = await supabase.from('instructors').select('user_id').eq('id', instructorId).single();
-                 if (instructorData && instructorData.user_id) {
+                 const safeInstructor = instructorData as any;
+                 if (safeInstructor && safeInstructor.user_id) {
                      await (supabase.from('notifications') as any).insert([{
-                         user_id: instructorData.user_id,
+                         user_id: safeInstructor.user_id,
                          message: `تم تعيينك لطلب خدمة جديد (ID: ${orderId})`,
                          link: '/admin/financials', 
                          type: 'order',

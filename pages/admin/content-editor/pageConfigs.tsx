@@ -9,7 +9,8 @@ import {
     Globe as GlobeIcon, 
     Phone as PhoneIcon,
     FileText,
-    HelpCircle
+    HelpCircle,
+    Shield
 } from 'lucide-react';
 
 export type FieldType = 'input' | 'textarea' | 'image' | 'array' | 'object_array';
@@ -53,6 +54,38 @@ export const pageConfigs: PageConfig[] = [
                 fields: [
                     { key: 'siteBranding.logoUrl', label: 'شعار الموقع (Logo)', type: 'image' },
                     { key: 'siteBranding.heroImageUrl', label: 'صورة الهيرو الرئيسية', type: 'image' },
+                ]
+            },
+            {
+                key: 'footer',
+                title: 'تذييل الصفحة (Footer)',
+                fields: [
+                    { key: 'footer.copyrightText', label: 'نص حقوق الملكية', type: 'input', placeholder: 'منصة الرحلة. جميع الحقوق محفوظة.' },
+                    { key: 'footer.description', label: 'وصف مختصر (يظهر تحت الشعار)', type: 'textarea', rows: 2 },
+                ]
+            }
+        ]
+    },
+    {
+        key: 'legal',
+        title: 'الصفحات القانونية',
+        description: 'تحرير محتوى سياسة الخصوصية وشروط الاستخدام.',
+        icon: <Shield />,
+        sections: [
+            {
+                key: 'privacy',
+                title: 'سياسة الخصوصية',
+                fields: [
+                    { key: 'privacyPage.title', label: 'عنوان الصفحة', type: 'input' },
+                    { key: 'privacyPage.content', label: 'محتوى السياسة', type: 'textarea', rows: 15 },
+                ]
+            },
+            {
+                key: 'terms',
+                title: 'شروط الاستخدام',
+                fields: [
+                    { key: 'termsPage.title', label: 'عنوان الصفحة', type: 'input' },
+                    { key: 'termsPage.content', label: 'محتوى الشروط', type: 'textarea', rows: 15 },
                 ]
             }
         ]

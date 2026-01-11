@@ -11,6 +11,7 @@ const Footer: React.FC = () => {
 
     // دالة للتحقق من وجود رابط حقيقي وغير فارغ
     const hasLink = (url: string | null | undefined) => url && url.trim() !== '' && url !== '#';
+    const copyrightYear = new Date().getFullYear();
 
     return (
         <footer className="bg-secondary text-secondary-foreground">
@@ -19,7 +20,7 @@ const Footer: React.FC = () => {
                     <div>
                         <h3 className="text-lg font-bold mb-4">منصة الرحلة</h3>
                         <p className="text-muted-foreground text-sm leading-relaxed">
-                            {siteContent?.aboutPage.missionStatement || "نؤمن أن كل طفل هو بطل حكايته الخاصة."}
+                            {siteContent?.footer?.description || "نؤمن أن كل طفل هو بطل حكايته الخاصة."}
                         </p>
                     </div>
 
@@ -69,7 +70,7 @@ const Footer: React.FC = () => {
                 </div>
 
                 <div className="mt-8 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground gap-4">
-                    <p>&copy; {new Date().getFullYear()} منصة الرحلة. جميع الحقوق محفوظة.</p>
+                    <p>&copy; {copyrightYear} {siteContent?.footer?.copyrightText || "منصة الرحلة. جميع الحقوق محفوظة."}</p>
                     <div className="flex gap-4 items-center">
                         <Link to="/privacy" className="hover:text-primary transition-colors">الخصوصية</Link>
                         <Link to="/terms" className="hover:text-primary transition-colors">الشروط</Link>

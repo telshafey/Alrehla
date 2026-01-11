@@ -170,9 +170,10 @@ export const bookingService = {
                 .eq('id', bookingData.instructor.id)
                 .single();
             
-            if (instructorData && instructorData.user_id) {
+            const safeInstructor = instructorData as any;
+            if (safeInstructor && safeInstructor.user_id) {
                 await (supabase.from('notifications') as any).insert([{
-                    user_id: instructorData.user_id,
+                    user_id: safeInstructor.user_id,
                     message: `حجز جديد: ${bookingData.package.name} للطالب ${bookingData.child.name}`,
                     link: '/admin/journeys', // Instructor dashboard link
                     type: 'booking',

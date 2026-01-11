@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link as LinkIcon } from 'lucide-react';
 import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
@@ -7,7 +8,11 @@ import Modal from '../ui/Modal';
 import { Button } from '../ui/Button';
 import DetailRow from '../shared/DetailRow';
 
-type BookingWithRelations = CreativeWritingBooking & { child_profiles: { name: string } | null; instructors: { name: string } | null };
+type BookingWithRelations = CreativeWritingBooking & { 
+    child_profiles: { name: string } | null; 
+    instructors: { name: string } | null;
+    users: { name: string, email: string } | null;
+};
 
 interface BookingDetailsModalProps {
     isOpen: boolean;
@@ -41,7 +46,7 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen
             <div className="space-y-4">
                 <DetailRow label="رقم الحجز" value={<span className="font-mono text-sm">{booking.id}</span>} />
                 <DetailRow label="الطالب" value={booking.child_profiles?.name || 'N/A'} />
-                <DetailRow label="ولي الأمر" value={booking.user_name} />
+                <DetailRow label="ولي الأمر" value={booking.users?.name || booking.user_id} />
                 <DetailRow label="المدرب" value={booking.instructors?.name || 'N/A'} />
                 <DetailRow label="الباقة" value={booking.package_name} />
                 <DetailRow label="موعد الجلسة" value={`${formatDate(booking.booking_date)} الساعة ${booking.booking_time}`} />
