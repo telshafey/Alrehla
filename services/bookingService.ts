@@ -147,7 +147,6 @@ export const bookingService = {
         const { data, error } = await (supabase.from('bookings') as any).insert([{
             id: bookingId,
             user_id: userId,
-            // Removed user_name to fix schema error
             child_id: bookingData.child.id,
             package_name: bookingData.package.name,
             instructor_id: bookingData.instructor.id,
@@ -163,7 +162,6 @@ export const bookingService = {
 
         // 2. Notify Instructor
         try {
-            // Get instructor's user_id first
             const { data: instructorData } = await supabase
                 .from('instructors')
                 .select('user_id')
@@ -175,7 +173,7 @@ export const bookingService = {
                 await (supabase.from('notifications') as any).insert([{
                     user_id: safeInstructor.user_id,
                     message: `حجز جديد: ${bookingData.package.name} للطالب ${bookingData.child.name}`,
-                    link: '/admin/journeys', // Instructor dashboard link
+                    link: '/admin/journeys', 
                     type: 'booking',
                     created_at: new Date().toISOString(),
                     read: false
@@ -198,8 +196,6 @@ export const bookingService = {
         if (error) throw new Error(error.message);
 
         await reportingService.logAction('UPDATE_BOOKING_STATUS', bookingId, `حجز: ${booking.package_name}`, `تغيير الحالة إلى: ${newStatus}`);
-
-        // Notification logic for status change if needed (e.g. notify parent)
 
         if (newStatus === 'مؤكد') {
             await supabase.from('scheduled_sessions').delete().eq('booking_id', bookingId).eq('status', 'upcoming');
@@ -256,7 +252,6 @@ export const bookingService = {
     },
 
     async saveBookingDraft(bookingId: string, draft: string) {
-        // First get current details
         const { data: current, error: fetchError } = await supabase
             .from('bookings')
             .select('details')
@@ -265,8 +260,6 @@ export const bookingService = {
 
         if (fetchError) throw new Error(fetchError.message);
 
-        // Merge to preserve other info (like file URLs or custom notes)
-        // Use type assertion to avoid TypeScript error about 'never' type
         const currentDetails = (current as any)?.details || {};
         const updatedDetails = { ...currentDetails, draft };
 
@@ -281,13 +274,9 @@ export const bookingService = {
     async sendSessionMessage(payload: { bookingId: string, senderId: string, role: string, message: string }) {
         if (!payload.role) throw new Error("Role is missing");
         
-        // Ensure role string is valid for DB constraint
-        // Map any generic role back to specific DB allowed enum strings if needed, 
-        // though we updated the constraint to accept almost all.
-        // Just ensuring safety.
         let safeRole = payload.role;
         if (!['user', 'parent', 'student', 'instructor', 'super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(safeRole)) {
-             safeRole = 'user'; // Fallback
+             safeRole = 'user'; 
         }
 
         const { error } = await (supabase.from('session_messages') as any).insert([{
@@ -306,15 +295,26 @@ export const bookingService = {
     },
 
     async uploadSessionAttachment(payload: { bookingId: string, uploaderId: string, role: string, file: File }) {
-        // Use Cloudinary for attachments to avoid storage bucket policy issues
-        const publicUrl = await cloudinaryService.uploadImage(payload.file, 'session_attachments');
-        
-        // Ensure role string is valid for DB constraint
-        let safeRole = payload.role;
-        if (!['user', 'parent', 'student', 'instructor', 'super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(safeRole)) {
-             safeRole = 'user'; // Fallback
+        let publicUrl = '';
+
+        // 1. تحديد وجهة الرفع بناءً على نوع الملف
+        if (payload.file.type.startsWith('image/')) {
+            // صور -> Cloudinary
+            publicUrl = await cloudinaryService.uploadImage(payload.file, 'alrehla_attachments');
+        } else {
+            // مستندات -> Supabase 'receipts' bucket (كما طلب العميل)
+            // ملاحظة: نستخدم 'receipts' لأن العميل طلب ذلك، ويمكننا تنظيمها في مجلد فرعي
+            const folderPath = `session_files/${payload.bookingId}`;
+            publicUrl = await storageService.uploadFile(payload.file, 'receipts', folderPath);
         }
 
+        // 2. التأكد من صحة الرتبة
+        let safeRole = payload.role;
+        if (!['user', 'parent', 'student', 'instructor', 'super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(safeRole)) {
+             safeRole = 'user';
+        }
+
+        // 3. حفظ الرابط في قاعدة البيانات
         const { error } = await (supabase.from('session_attachments') as any).insert([{
             booking_id: payload.bookingId,
             uploader_id: payload.uploaderId,
@@ -324,8 +324,12 @@ export const bookingService = {
             created_at: new Date().toISOString()
         }]);
         
-        if (error) throw error;
-        return { success: true };
+        if (error) {
+             console.error("Attachment DB Error:", error);
+             throw new Error(`فشل حفظ بيانات الملف: ${error.message} - تأكد من صلاحيات قاعدة البيانات.`);
+        }
+
+        return { success: true, url: publicUrl };
     },
 
     async createInstructor(payload: CreateInstructorPayload) {
@@ -359,7 +363,6 @@ export const bookingService = {
     },
 
     async createPackage(payload: Partial<CreativeWritingPackage>) {
-        // Generate a random ID to prevent "null value" DB errors if DB doesn't auto-increment
         const payloadWithId = {
             ...payload,
             id: payload.id || Math.floor(Math.random() * 2147483647) 
@@ -382,7 +385,6 @@ export const bookingService = {
     },
 
     async createStandaloneService(payload: Partial<StandaloneService>) {
-         // Generate a random ID to prevent "null value" DB errors
         const payloadWithId = {
             ...payload,
             id: payload.id || Math.floor(Math.random() * 2147483647)

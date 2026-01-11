@@ -19,6 +19,7 @@ const AdminBookingDetailPage = lazy(() => import('../../pages/admin/AdminBooking
 const AdminPersonalizedProductsPage = lazy(() => import('../../pages/admin/AdminPersonalizedProductsPage'));
 const AdminProductDetailPage = lazy(() => import('../../pages/admin/AdminProductDetailPage'));
 const AdminSettingsPage = lazy(() => import('../../pages/admin/AdminSettingsPage'));
+const AdminSystemSettingsPage = lazy(() => import('../../pages/admin/AdminSystemSettingsPage')); // New Page
 const AdminInstructorsPage = lazy(() => import('../../pages/admin/AdminInstructorsPage'));
 const AdminInstructorDetailPage = lazy(() => import('../../pages/admin/AdminInstructorDetailPage'));
 const AdminSupportPage = lazy(() => import('../../pages/admin/AdminSupportPage'));
@@ -44,7 +45,8 @@ const AdminPriceReviewPage = lazy(() => import('../../pages/admin/AdminPriceRevi
 const AdminReportsPage = lazy(() => import('../../pages/admin/AdminReportsPage'));
 const AdminAuditLogPage = lazy(() => import('../../pages/admin/AdminAuditLogPage'));
 const AdminDatabaseInspectorPage = lazy(() => import('../../pages/admin/AdminDatabaseInspectorPage'));
-const AdminMyProfilePage = lazy(() => import('../../pages/admin/AdminMyProfilePage')); // New Page
+const AdminMigrationPage = lazy(() => import('../../pages/admin/AdminMigrationPage'));
+const AdminMyProfilePage = lazy(() => import('../../pages/admin/AdminMyProfilePage'));
 
 // Financials
 const AdminFinancialsLayout = lazy(() => import('../../pages/admin/financials/AdminFinancialsLayout'));
@@ -125,6 +127,7 @@ const AdminLayout: React.FC = () => {
                                     <Route path="personalized-products" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminPersonalizedProductsPage /></PermissionBasedRoute>} />
                                     <Route path="personalized-products/:id" element={<PermissionBasedRoute permission="canManageEnhaLakProducts"><AdminProductDetailPage /></PermissionBasedRoute>} />
                                     <Route path="settings" element={<PermissionBasedRoute permission="canManageSettings"><AdminSettingsPage /></PermissionBasedRoute>} />
+                                    <Route path="system-config" element={<PermissionBasedRoute permission="canManageSettings"><AdminSystemSettingsPage /></PermissionBasedRoute>} />
                                     <Route path="instructors" element={<PermissionBasedRoute permission="canManageInstructors"><AdminInstructorsPage /></PermissionBasedRoute>} />
                                     <Route path="instructors/:id" element={<PermissionBasedRoute permission="canManageInstructors"><AdminInstructorDetailPage /></PermissionBasedRoute>} />
                                     <Route path="support" element={<PermissionBasedRoute permission="canManageSupportTickets"><AdminSupportPage /></PermissionBasedRoute>} />
@@ -150,6 +153,7 @@ const AdminLayout: React.FC = () => {
                                     <Route path="reports" element={<PermissionBasedRoute permission="canManageFinancials"><AdminReportsPage /></PermissionBasedRoute>} />
                                     <Route path="audit-log" element={<PermissionBasedRoute permission="canViewAuditLog"><AdminAuditLogPage /></PermissionBasedRoute>} />
                                     <Route path="database-inspector" element={<PermissionBasedRoute permission="canManageSettings"><AdminDatabaseInspectorPage /></PermissionBasedRoute>} />
+                                    <Route path="migration" element={<PermissionBasedRoute permission="canManageSettings"><AdminMigrationPage /></PermissionBasedRoute>} />
                                     
                                     {/* قسم الماليات المركزي */}
                                     <Route path="financials" element={<PermissionBasedRoute permission="canManageFinancials"><AdminFinancialsLayout /></PermissionBasedRoute>}>

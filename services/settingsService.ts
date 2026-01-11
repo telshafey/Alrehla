@@ -10,6 +10,7 @@ import {
     mockPrices,
     mockShippingCosts
 } from '../data/mockData';
+import { DEFAULT_CONFIG } from '../lib/config';
 import type { 
     SocialLinks, 
     CommunicationSettings, 
@@ -138,6 +139,16 @@ export const settingsService = {
         if (error) throw new Error(error.message);
         return { success: true };
     },
+    
+    // --- System Config ---
+    async updateSystemConfig(config: any) {
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ key: 'system_config', value: config, updated_at: new Date().toISOString() } as any);
+
+        if (error) throw new Error(error.message);
+        return config;
+    },
 
     // --- Database Initialization (Can be called manually too) ---
     async initializeDefaults() {
@@ -149,7 +160,8 @@ export const settingsService = {
             { key: 'jitsi_settings', value: mockJitsiSettings },
             { key: 'global_content', value: mockSiteContent },
             { key: 'prices', value: mockPrices },
-            { key: 'shipping_costs', value: mockShippingCosts }
+            { key: 'shipping_costs', value: mockShippingCosts },
+            { key: 'system_config', value: DEFAULT_CONFIG } // Initialize system config
         ];
 
         const promises = defaults.map(item => 

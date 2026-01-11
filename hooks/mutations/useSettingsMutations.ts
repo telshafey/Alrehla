@@ -64,5 +64,23 @@ export const useSettingsMutations = () => {
         }
     });
 
-    return { updateSocialLinks, updateCommunicationSettings, updatePricingSettings, updateRolePermissions, updateJitsiSettings };
+    const updateSystemConfig = useMutation({
+        mutationFn: settingsService.updateSystemConfig,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminSystemConfig'] });
+            addToast('تم تحديث إعدادات النظام بنجاح. قد يتطلب الأمر تحديث الصفحة لتفعيل التغييرات الجذرية.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث إعدادات النظام: ${error.message}`, 'error');
+        }
+    });
+
+    return { 
+        updateSocialLinks, 
+        updateCommunicationSettings, 
+        updatePricingSettings, 
+        updateRolePermissions, 
+        updateJitsiSettings,
+        updateSystemConfig
+    };
 }

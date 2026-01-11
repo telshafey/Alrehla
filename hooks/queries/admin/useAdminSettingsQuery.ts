@@ -10,13 +10,13 @@ import {
     mockAdditionalServices
 } from '../../../data/mockData';
 import { bookingService } from '../../../services/bookingService';
+import { DEFAULT_CONFIG } from '../../../lib/config';
 
 // Helper to fetch single setting safely with Auto-Seed logic embedded in the query
 const fetchSetting = async (key: string, seedValue: any) => {
     const { data, error } = await supabase.from('site_settings').select('value').eq('key', key).maybeSingle();
     
     if (error || !data || (data as any).value === undefined || (data as any).value === null) {
-        // Trigger auto-seed
         await supabase.from('site_settings').upsert({
              key: key,
              value: seedValue,
@@ -39,7 +39,7 @@ export const useAdminCWSettings = () => useQuery({
         ]);
         return { packages, services, standaloneServices, comparisonItems };
     },
-    staleTime: 1000 * 60 * 5 // 5 minutes
+    staleTime: 1000 * 60 * 5 
 });
 
 export const useAdminSocialLinks = () => useQuery({
@@ -65,4 +65,10 @@ export const useAdminPricingSettings = () => useQuery({
 export const useAdminRolePermissions = () => useQuery({
     queryKey: ['adminRolePermissions'],
     queryFn: () => fetchSetting('role_permissions', mockRolePermissions),
+});
+
+// New Query for System Config
+export const useAdminSystemConfig = () => useQuery({
+    queryKey: ['adminSystemConfig'],
+    queryFn: () => fetchSetting('system_config', DEFAULT_CONFIG),
 });
