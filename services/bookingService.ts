@@ -279,32 +279,46 @@ export const bookingService = {
     },
 
     async sendSessionMessage(payload: { bookingId: string, senderId: string, role: string, message: string }) {
-        // Validation: Ensure role is valid string that matches DB constraint
         if (!payload.role) throw new Error("Role is missing");
         
+        // Ensure role string is valid for DB constraint
+        // Map any generic role back to specific DB allowed enum strings if needed, 
+        // though we updated the constraint to accept almost all.
+        // Just ensuring safety.
+        let safeRole = payload.role;
+        if (!['user', 'parent', 'student', 'instructor', 'super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(safeRole)) {
+             safeRole = 'user'; // Fallback
+        }
+
         const { error } = await (supabase.from('session_messages') as any).insert([{
             booking_id: payload.bookingId,
             sender_id: payload.senderId,
-            sender_role: payload.role, // This MUST match the DB Check Constraint
+            sender_role: safeRole, 
             message_text: payload.message,
             created_at: new Date().toISOString()
         }]);
         
         if (error) {
             console.error("Message Insert Error:", error);
-            throw new Error(error.message);
+            throw new Error(`خطأ في الإرسال: ${error.message}`);
         }
         return { success: true };
     },
 
     async uploadSessionAttachment(payload: { bookingId: string, uploaderId: string, role: string, file: File }) {
-        // Upload file to Supabase 'receipts' bucket (as specified for files)
-        const publicUrl = await storageService.uploadFile(payload.file, 'receipts', `attachments/${payload.bookingId}`);
+        // Use Cloudinary for attachments to avoid storage bucket policy issues
+        const publicUrl = await cloudinaryService.uploadImage(payload.file, 'session_attachments');
         
+        // Ensure role string is valid for DB constraint
+        let safeRole = payload.role;
+        if (!['user', 'parent', 'student', 'instructor', 'super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(safeRole)) {
+             safeRole = 'user'; // Fallback
+        }
+
         const { error } = await (supabase.from('session_attachments') as any).insert([{
             booking_id: payload.bookingId,
             uploader_id: payload.uploaderId,
-            uploader_role: payload.role,
+            uploader_role: safeRole,
             file_name: payload.file.name,
             file_url: publicUrl,
             created_at: new Date().toISOString()

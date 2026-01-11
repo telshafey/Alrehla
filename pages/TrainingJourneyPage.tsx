@@ -10,7 +10,7 @@ import ErrorState from '../components/ui/ErrorState';
 import WritingDraftPanel from '../components/student/WritingDraftPanel';
 import { 
     MessageSquare, Paperclip, FileText, Send, Upload, 
-    Edit3, ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users
+    Edit3, ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users, UserCheck
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
@@ -56,8 +56,7 @@ const TrainingJourneyPage: React.FC = () => {
             refetch();
         } catch (error: any) {
             setNewMessage(messageToSend); // Restore message on fail
-            console.error("Failed to send message:", error);
-            addToast(`فشل إرسال الرسالة: ${error.message}`, 'error');
+            // Error handling done in mutation hook
         }
     };
 
@@ -76,7 +75,7 @@ const TrainingJourneyPage: React.FC = () => {
             if (fileInputRef.current) fileInputRef.current.value = '';
             refetch(); // Refresh to show new attachment
         } catch (error: any) {
-            addToast(`فشل رفع الملف: ${error.message}`, 'error');
+             // Error handling done in mutation hook
         }
     };
     
@@ -89,38 +88,39 @@ const TrainingJourneyPage: React.FC = () => {
         let bubbleColor = 'bg-white border-gray-200 text-gray-800';
         let align = isMe ? 'justify-end' : 'justify-start';
 
+        // Custom Labels & Colors based on Role
+        switch (role) {
+            case 'student':
+                label = 'الطالب';
+                icon = <GraduationCap size={12} />;
+                if (!isMe) bubbleColor = 'bg-blue-50 border-blue-200 text-blue-900';
+                break;
+            case 'parent':
+            case 'user':
+                label = 'ولي الأمر';
+                icon = <Users size={12} />;
+                if (!isMe) bubbleColor = 'bg-green-50 border-green-200 text-green-900';
+                break;
+            case 'instructor':
+                label = 'المدرب';
+                icon = <UserCheck size={12} />;
+                if (!isMe) bubbleColor = 'bg-amber-50 border-amber-200 text-amber-900';
+                break;
+            case 'super_admin':
+            case 'general_supervisor':
+            case 'creative_writing_supervisor':
+                label = 'الإدارة / المشرف';
+                icon = <ShieldAlert size={12} />;
+                if (!isMe) bubbleColor = 'bg-red-50 border-red-200 text-red-900';
+                break;
+            default:
+                label = 'غير معروف';
+                break;
+        }
+        
         if (isMe) {
             bubbleColor = 'bg-primary text-white';
             label = 'أنت';
-        } else {
-             switch (role) {
-                case 'student':
-                    label = 'الطالب';
-                    icon = <GraduationCap size={12} />;
-                    bubbleColor = 'bg-blue-100 border-blue-200 text-blue-900';
-                    break;
-                case 'parent':
-                case 'user':
-                    label = 'ولي الأمر';
-                    icon = <Users size={12} />;
-                    bubbleColor = 'bg-green-100 border-green-200 text-green-900';
-                    break;
-                case 'instructor':
-                    label = 'المدرب';
-                    icon = <User size={12} />;
-                    bubbleColor = 'bg-orange-100 border-orange-200 text-orange-900';
-                    break;
-                case 'super_admin':
-                case 'general_supervisor':
-                case 'creative_writing_supervisor':
-                    label = 'الإدارة / المشرف';
-                    icon = <ShieldAlert size={12} />;
-                    bubbleColor = 'bg-red-50 border-red-200 text-red-900';
-                    break;
-                default:
-                    label = 'غير معروف';
-                    break;
-            }
         }
         
         return { label, icon, bubbleColor, align };
@@ -144,8 +144,8 @@ const TrainingJourneyPage: React.FC = () => {
         <div className="bg-muted/40 py-10 animate-fadeIn min-h-screen">
             <div className="container mx-auto px-4 max-w-7xl">
                 <div className="mb-8">
-                    <Link to="/account" className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 mb-2">
-                         <ArrowLeft size={12} className="rotate-180"/> العودة لحسابي
+                    <Link to={currentUser?.role === 'student' ? "/student/dashboard" : "/account"} className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 mb-2">
+                         <ArrowLeft size={12} className="rotate-180"/> العودة
                     </Link>
                     <h1 className="text-3xl font-black text-gray-800">{bookingPackageName}</h1>
                     <p className="text-muted-foreground font-medium">الطالب: {childProfile?.name} | المدرب: {instructorName}</p>
@@ -175,7 +175,7 @@ const TrainingJourneyPage: React.FC = () => {
                                                 
                                                 return (
                                                     <div key={msg.id} className={`flex ${align}`}>
-                                                        <div className={`max-w-[80%] p-3 rounded-2xl shadow-sm border ${bubbleColor} ${isMe ? 'rounded-tl-none' : 'rounded-tr-none'}`}>
+                                                        <div className={`max-w-[85%] p-3 rounded-2xl shadow-sm border ${bubbleColor} ${isMe ? 'rounded-tl-none' : 'rounded-tr-none'}`}>
                                                             <div className="flex justify-between items-center mb-1 gap-4 border-b border-black/5 pb-1">
                                                                 <div className="flex items-center gap-1 text-[10px] font-bold opacity-90">
                                                                     {icon} {label}
@@ -242,30 +242,37 @@ const TrainingJourneyPage: React.FC = () => {
                                             </div>
                                             
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {attachments.length > 0 ? attachments.map((att: any) => (
-                                                    <div key={att.id} className="bg-white p-4 rounded-xl border shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
-                                                        <div className="flex items-center gap-3 overflow-hidden">
-                                                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shrink-0">
-                                                                <FileText size={20}/>
+                                                {attachments.length > 0 ? attachments.map((att: any) => {
+                                                    const roleMap: Record<string, string> = {
+                                                        student: 'الطالب', instructor: 'المدرب', user: 'ولي الأمر', parent: 'ولي الأمر', super_admin: 'الإدارة'
+                                                    };
+                                                    const uploaderLabel = roleMap[att.uploader_role] || 'مستخدم';
+                                                    
+                                                    return (
+                                                        <div key={att.id} className="bg-white p-4 rounded-xl border shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+                                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shrink-0">
+                                                                    <FileText size={20}/>
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-sm font-bold truncate text-gray-800" title={att.file_name}>{att.file_name}</p>
+                                                                    <p className="text-[10px] text-muted-foreground">
+                                                                        بواسطة: {uploaderLabel} • {formatDate(att.created_at)}
+                                                                    </p>
+                                                                </div>
                                                             </div>
-                                                            <div className="min-w-0">
-                                                                <p className="text-sm font-bold truncate text-gray-800" title={att.file_name}>{att.file_name}</p>
-                                                                <p className="text-[10px] text-muted-foreground">
-                                                                    بواسطة: {att.uploader_role === 'student' ? 'الطالب' : (att.uploader_role === 'instructor' ? 'المدرب' : 'ولي الأمر')} • {formatDate(att.created_at)}
-                                                                </p>
-                                                            </div>
+                                                            <a 
+                                                                href={att.file_url} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer" 
+                                                                className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                                                title="تحميل الملف"
+                                                            >
+                                                                <Download size={18}/>
+                                                            </a>
                                                         </div>
-                                                        <a 
-                                                            href={att.file_url} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer" 
-                                                            className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
-                                                            title="تحميل الملف"
-                                                        >
-                                                            <Download size={18}/>
-                                                        </a>
-                                                    </div>
-                                                )) : (
+                                                    )
+                                                }) : (
                                                     <div className="col-span-full py-12 text-center text-muted-foreground bg-muted/20 rounded-xl border-2 border-dashed">
                                                         <Paperclip className="mx-auto h-12 w-12 opacity-20 mb-2" />
                                                         <p>لا توجد ملفات مرفوعة بعد.</p>
