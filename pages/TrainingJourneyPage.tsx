@@ -10,13 +10,14 @@ import ErrorState from '../components/ui/ErrorState';
 import WritingDraftPanel from '../components/student/WritingDraftPanel';
 import { 
     MessageSquare, Paperclip, FileText, Send, Upload, 
-    CheckCircle, PlayCircle, Edit3, ArrowLeft, Download, Loader2
+    Edit3, ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
 import { formatDate } from '../utils/helpers';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
+import type { UserRole } from '../lib/database.types';
 
 const TrainingJourneyPage: React.FC = () => {
     const { journeyId } = useParams<{ journeyId: string }>();
@@ -41,16 +42,22 @@ const TrainingJourneyPage: React.FC = () => {
         e.preventDefault();
         if (!newMessage.trim() || !journeyId || !currentUser) return;
         
+        const messageToSend = newMessage;
+        setNewMessage(''); // Optimistic clear
+        
         try {
             await sendSessionMessage.mutateAsync({
                 bookingId: journeyId,
                 senderId: currentUser.id,
-                role: currentUser.role as any,
-                message: newMessage
+                role: currentUser.role, // This must match allowed values in DB Constraint
+                message: messageToSend
             });
-            setNewMessage('');
-        } catch (error) {
-            // Error handled by mutation hook toast
+            // Refetch to confirm and show the message
+            refetch();
+        } catch (error: any) {
+            setNewMessage(messageToSend); // Restore message on fail
+            console.error("Failed to send message:", error);
+            addToast(`فشل إرسال الرسالة: ${error.message}`, 'error');
         }
     };
 
@@ -62,14 +69,61 @@ const TrainingJourneyPage: React.FC = () => {
             await uploadSessionAttachment.mutateAsync({
                 bookingId: journeyId,
                 uploaderId: currentUser.id,
-                role: currentUser.role as any,
+                role: currentUser.role,
                 file
             });
             // Reset input to allow re-uploading same file if needed
             if (fileInputRef.current) fileInputRef.current.value = '';
-        } catch (error) {
-            // Error handled by mutation hook toast
+            refetch(); // Refresh to show new attachment
+        } catch (error: any) {
+            addToast(`فشل رفع الملف: ${error.message}`, 'error');
         }
+    };
+    
+    // دالة مساعدة لتحديد هوية المرسل وتنسيق الرسالة
+    const getSenderInfo = (role: UserRole, senderId: string) => {
+        const isMe = currentUser?.id === senderId;
+        
+        let label = 'مستخدم';
+        let icon = <User size={12} />;
+        let bubbleColor = 'bg-white border-gray-200 text-gray-800';
+        let align = isMe ? 'justify-end' : 'justify-start';
+
+        if (isMe) {
+            bubbleColor = 'bg-primary text-white';
+            label = 'أنت';
+        } else {
+             switch (role) {
+                case 'student':
+                    label = 'الطالب';
+                    icon = <GraduationCap size={12} />;
+                    bubbleColor = 'bg-blue-100 border-blue-200 text-blue-900';
+                    break;
+                case 'parent':
+                case 'user':
+                    label = 'ولي الأمر';
+                    icon = <Users size={12} />;
+                    bubbleColor = 'bg-green-100 border-green-200 text-green-900';
+                    break;
+                case 'instructor':
+                    label = 'المدرب';
+                    icon = <User size={12} />;
+                    bubbleColor = 'bg-orange-100 border-orange-200 text-orange-900';
+                    break;
+                case 'super_admin':
+                case 'general_supervisor':
+                case 'creative_writing_supervisor':
+                    label = 'الإدارة / المشرف';
+                    icon = <ShieldAlert size={12} />;
+                    bubbleColor = 'bg-red-50 border-red-200 text-red-900';
+                    break;
+                default:
+                    label = 'غير معروف';
+                    break;
+            }
+        }
+        
+        return { label, icon, bubbleColor, align };
     };
 
     if (isLoading) return <PageLoader />;
@@ -115,17 +169,24 @@ const TrainingJourneyPage: React.FC = () => {
 
                                     <TabsContent value="discussion" className="flex-grow flex flex-col h-[500px]">
                                         <div className="flex-grow overflow-y-auto space-y-4 mb-4 p-4 bg-muted/30 rounded-xl border">
-                                            {messages.length > 0 ? messages.map((msg: any) => (
-                                                <div key={msg.id} className={`flex ${msg.sender_id === currentUser?.id ? 'justify-end' : 'justify-start'}`}>
-                                                    <div className={`max-w-[80%] p-3 rounded-2xl shadow-sm ${msg.sender_id === currentUser?.id ? 'bg-primary text-white rounded-tl-none' : 'bg-white text-gray-800 rounded-tr-none border'}`}>
-                                                        <div className="flex justify-between items-center mb-1 gap-4">
-                                                            <p className="text-[10px] font-bold opacity-80">{msg.sender_role === 'instructor' ? 'المدرب' : (msg.sender_id === currentUser?.id ? 'أنت' : 'الطرف الآخر')}</p>
-                                                            <p className="text-[9px] opacity-60" dir="ltr">{new Date(msg.created_at).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'})}</p>
+                                            {messages.length > 0 ? messages.map((msg: any) => {
+                                                const { label, icon, bubbleColor, align } = getSenderInfo(msg.sender_role, msg.sender_id);
+                                                const isMe = msg.sender_id === currentUser?.id;
+                                                
+                                                return (
+                                                    <div key={msg.id} className={`flex ${align}`}>
+                                                        <div className={`max-w-[80%] p-3 rounded-2xl shadow-sm border ${bubbleColor} ${isMe ? 'rounded-tl-none' : 'rounded-tr-none'}`}>
+                                                            <div className="flex justify-between items-center mb-1 gap-4 border-b border-black/5 pb-1">
+                                                                <div className="flex items-center gap-1 text-[10px] font-bold opacity-90">
+                                                                    {icon} {label}
+                                                                </div>
+                                                                <p className="text-[9px] opacity-60" dir="ltr">{new Date(msg.created_at).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'})}</p>
+                                                            </div>
+                                                            <p className="text-sm leading-relaxed whitespace-pre-wrap pt-1">{msg.message_text}</p>
                                                         </div>
-                                                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message_text}</p>
                                                     </div>
-                                                </div>
-                                            )) : (
+                                                );
+                                            }) : (
                                                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                                                     <MessageSquare size={48} className="opacity-20 mb-2"/>
                                                     <p>لا توجد رسائل بعد. ابدأ المحادثة الآن!</p>
@@ -237,8 +298,9 @@ const TrainingJourneyPage: React.FC = () => {
                                                 <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded">
                                                     {new Date(s.session_date).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}
                                                 </span>
-                                                {isUpcoming && (
-                                                    <Button as={Link} to={`/session/${s.id}`} size="sm" className="h-7 text-[10px] px-3" icon={<PlayCircle size={12}/>}>دخول</Button>
+                                                {/* عرض زر الدخول للطالب أو ولي الأمر أو المدرب أو المشرف */}
+                                                {isUpcoming && currentUser && (['student', 'parent', 'instructor', 'super_admin', 'creative_writing_supervisor'].includes(currentUser.role)) && (
+                                                    <Button as={Link} to={`/session/${s.id}`} size="sm" className="h-7 text-[10px] px-3" icon={<ArrowLeft size={12}/>}>دخول</Button>
                                                 )}
                                             </div>
                                         </div>

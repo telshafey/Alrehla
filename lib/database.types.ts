@@ -690,7 +690,7 @@ export interface SessionMessage {
     id: string;
     booking_id: string;
     sender_id: string;
-    sender_role: 'instructor' | 'student' | 'user';
+    sender_role: UserRole; // Updated to match UserRole
     message_text: string;
     created_at: string;
 }
@@ -699,7 +699,7 @@ export interface SessionAttachment {
     id: string;
     booking_id: string;
     uploader_id: string;
-    uploader_role: 'instructor' | 'student' | 'user';
+    uploader_role: UserRole; // Updated to match UserRole
     file_name: string;
     file_url: string;
     created_at: string;

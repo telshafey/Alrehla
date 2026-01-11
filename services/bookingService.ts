@@ -278,18 +278,26 @@ export const bookingService = {
         return { success: true };
     },
 
-    async sendSessionMessage(payload: { bookingId: string, senderId: string, role: 'instructor' | 'student' | 'user', message: string }) {
+    async sendSessionMessage(payload: { bookingId: string, senderId: string, role: string, message: string }) {
+        // Validation: Ensure role is valid string that matches DB constraint
+        if (!payload.role) throw new Error("Role is missing");
+        
         const { error } = await (supabase.from('session_messages') as any).insert([{
             booking_id: payload.bookingId,
             sender_id: payload.senderId,
-            sender_role: payload.role,
-            message_text: payload.message
+            sender_role: payload.role, // This MUST match the DB Check Constraint
+            message_text: payload.message,
+            created_at: new Date().toISOString()
         }]);
-        if (error) throw error;
+        
+        if (error) {
+            console.error("Message Insert Error:", error);
+            throw new Error(error.message);
+        }
         return { success: true };
     },
 
-    async uploadSessionAttachment(payload: { bookingId: string, uploaderId: string, role: 'instructor' | 'student' | 'user', file: File }) {
+    async uploadSessionAttachment(payload: { bookingId: string, uploaderId: string, role: string, file: File }) {
         // Upload file to Supabase 'receipts' bucket (as specified for files)
         const publicUrl = await storageService.uploadFile(payload.file, 'receipts', `attachments/${payload.bookingId}`);
         
@@ -298,8 +306,10 @@ export const bookingService = {
             uploader_id: payload.uploaderId,
             uploader_role: payload.role,
             file_name: payload.file.name,
-            file_url: publicUrl
+            file_url: publicUrl,
+            created_at: new Date().toISOString()
         }]);
+        
         if (error) throw error;
         return { success: true };
     },
