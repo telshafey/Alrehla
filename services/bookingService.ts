@@ -146,7 +146,7 @@ export const bookingService = {
         const { data, error } = await (supabase.from('bookings') as any).insert([{
             id: bookingId,
             user_id: userId,
-            user_name: bookingData.child.name, 
+            // user_name removed to fix schema error
             child_id: bookingData.child.id,
             package_name: bookingData.package.name,
             instructor_id: bookingData.instructor.id,

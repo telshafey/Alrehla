@@ -166,6 +166,7 @@ export const userService = {
 
         // 3. ربط الطالب بملف الطفل باستخدام العميل الرئيسي (ولي الأمر - حل المشكلة 1)
         // نستخدم العميل الرئيسي `supabase` لأنه يملك صلاحية تعديل `child_profiles` التي يملكها الأب
+        // إذا تبدلت الجلسة (المشكلة 3)، ستفشل هذه الخطوة لأن الطالب لا يملك هذا الملف. استخدام العميل المؤقت في الخطوة 1 يمنع ذلك.
         const { error: linkError } = await (supabase.from('child_profiles') as any)
             .update({ student_user_id: studentUserId })
             .eq('id', payload.childProfileId);
@@ -173,8 +174,14 @@ export const userService = {
         if (linkError) throw new Error(`فشل ربط الحساب بملف الطفل: ${linkError.message}`);
 
         // 4. ترقية ولي الأمر إلى رتبة "parent" إذا كان "user" (حل المشكلة 2)
-        // نتحقق من الرتبة الحالية من الميتاداتا أو قاعدة البيانات
-        const { data: parentProfile } = await supabase.from('profiles').select('role').eq('id', currentUser.id).single();
+        // نستخدم Casting صريح لتجنب خطأ TypeScript 'property role does not exist on type never'
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', currentUser.id)
+            .single();
+        
+        const parentProfile = profileData as { role: string } | null;
         
         if (parentProfile && parentProfile.role === 'user') {
             const { error: roleError } = await (supabase.from('profiles') as any)
@@ -215,7 +222,15 @@ export const userService = {
         if (error) throw new Error(error.message);
         
         // التحقق وترقية ولي الأمر تلقائياً عند إضافة أول طفل
-        const { data: parentProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+            
+        // Explicit casting fix
+        const parentProfile = profileData as { role: string } | null;
+
         if (parentProfile && parentProfile.role === 'user') {
              await (supabase.from('profiles') as any).update({ role: 'parent' }).eq('id', user.id);
         }
