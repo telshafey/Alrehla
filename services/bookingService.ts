@@ -289,6 +289,10 @@ export const bookingService = {
         
         if (error) {
             console.error("Message Insert Error:", error);
+            // Catch Schema Cache errors explicitly
+            if (error.message.includes('schema cache') || (error.message.includes('find the') && error.message.includes('column'))) {
+                 throw new Error("خطأ في قاعدة البيانات: لم يتم التعرف على الأعمدة الجديدة. يرجى تنفيذ 'NOTIFY pgrst, \"reload config\"' في SQL Editor.");
+            }
             throw new Error(`خطأ في الإرسال: ${error.message}`);
         }
         return { success: true };
@@ -326,6 +330,10 @@ export const bookingService = {
         
         if (error) {
              console.error("Attachment DB Error:", error);
+             // Catch Schema Cache errors explicitly
+             if (error.message.includes('schema cache') || (error.message.includes('find the') && error.message.includes('column'))) {
+                 throw new Error("خطأ في قاعدة البيانات: لم يتم التعرف على الأعمدة الجديدة. يرجى تنفيذ 'NOTIFY pgrst, \"reload config\"' في SQL Editor.");
+             }
              throw new Error(`فشل حفظ بيانات الملف: ${error.message} - تأكد من صلاحيات قاعدة البيانات.`);
         }
 
