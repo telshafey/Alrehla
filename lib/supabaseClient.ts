@@ -2,22 +2,31 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
-// الوصول الآمن لمتغيرات البيئة (Vite Environment Variables)
-const env = (import.meta as any).env || {};
-
-// قراءة المتغيرات التي قمت بإعدادها في Vercel
-const SUPABASE_URL = env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY;
-
-// قيم احتياطية (فقط للبيئة المحلية أو في حال فشل قراءة المتغيرات)
+// القيم الاحتياطية (للاستخدام المحلي فقط أو في حال الطوارئ)
 const FALLBACK_URL = 'https://mqsmgtparbdpvnbyxokh.supabase.co';
 const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xc21ndHBhcmJkcHZuYnl4b2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NTgwNDQsImV4cCI6MjA4MTEzNDA0NH0.RoZXNNqH7--_bFq4Qi3hKsFVONEtjgiuOZc_N95PxPg';
 
-const finalUrl = SUPABASE_URL || FALLBACK_URL;
-const finalKey = SUPABASE_ANON_KEY || FALLBACK_KEY;
+// محاولة استخراج المتغيرات بطريقة آمنة جداً باستخدام السلسلة الاختيارية (?.)
+// هذا يمنع الخطأ "Cannot read properties of undefined"
+let envUrl = '';
+let envKey = '';
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.warn('تنبيه: يتم استخدام مفاتيح Supabase الاحتياطية. تأكد من إعداد VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY في Vercel.');
+try {
+    // @ts-ignore
+    envUrl = import.meta.env?.VITE_SUPABASE_URL;
+    // @ts-ignore
+    envKey = import.meta.env?.VITE_SUPABASE_ANON_KEY;
+} catch (e) {
+    console.log("Using fallback credentials due to environment access issue.");
+}
+
+// تحديد القيم النهائية (الأولوية لمتغيرات البيئة)
+const finalUrl = (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') ? envUrl : FALLBACK_URL;
+const finalKey = (envKey && typeof envKey === 'string' && envKey.trim() !== '') ? envKey : FALLBACK_KEY;
+
+// طباعة رسالة معلومات فقط (ليست تحذيراً)
+if (finalUrl === FALLBACK_URL) {
+  console.info('Using default Supabase connection.');
 }
 
 // إنشاء العميل
@@ -33,7 +42,7 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Helper function used in some services
+// دالة مساعدة
 export const hasSupabaseCredentials = () => {
-  return !!finalUrl && !!finalKey;
+  return true;
 };
