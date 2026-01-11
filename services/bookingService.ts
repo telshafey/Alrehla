@@ -15,6 +15,9 @@ import type {
 } from '../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
 
+// [SYSTEM UPDATE] Service refreshed to handle Schema Cache issues
+// Timestamp: force_update_v3
+
 // Types for Mutations
 interface CreateBookingPayload {
     child: { id: number; name: string };
@@ -275,10 +278,12 @@ export const bookingService = {
         if (!payload.role) throw new Error("Role is missing");
         
         let safeRole = payload.role;
+        // Fix: Explicit check against allowed roles in DB constraint
         if (!['user', 'parent', 'student', 'instructor', 'super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(safeRole)) {
              safeRole = 'user'; 
         }
 
+        // [FORCE UPDATE] Added enhanced error logging for schema cache issues
         const { error } = await (supabase.from('session_messages') as any).insert([{
             booking_id: payload.bookingId,
             sender_id: payload.senderId,
@@ -288,10 +293,12 @@ export const bookingService = {
         }]);
         
         if (error) {
-            console.error("Message Insert Error:", error);
-            // Catch Schema Cache errors explicitly
-            if (error.message.includes('schema cache') || (error.message.includes('find the') && error.message.includes('column'))) {
-                 throw new Error("خطأ في قاعدة البيانات: لم يتم التعرف على الأعمدة الجديدة. يرجى تنفيذ 'NOTIFY pgrst, \"reload config\"' في SQL Editor.");
+            console.error("Session Message Insert Error:", error);
+            // Specific check for PGRST204 (Schema Cache Stale)
+            // Aggressive check: convert everything to string to be sure
+            const errorStr = JSON.stringify(error);
+            if (error.code === 'PGRST204' || errorStr.includes('PGRST204') || error.message?.includes('schema cache') || (error.message?.includes('find the') && error.message?.includes('column'))) {
+                 throw new Error("تنبيه للنظام: كاش قاعدة البيانات قديم (PGRST204). يرجى من المسؤول تنفيذ 'NOTIFY pgrst, \"reload config\"' في SQL Editor.");
             }
             throw new Error(`خطأ في الإرسال: ${error.message}`);
         }
@@ -301,24 +308,21 @@ export const bookingService = {
     async uploadSessionAttachment(payload: { bookingId: string, uploaderId: string, role: string, file: File }) {
         let publicUrl = '';
 
-        // 1. تحديد وجهة الرفع بناءً على نوع الملف
+        // 1. Determine destination
         if (payload.file.type.startsWith('image/')) {
-            // صور -> Cloudinary
             publicUrl = await cloudinaryService.uploadImage(payload.file, 'alrehla_attachments');
         } else {
-            // مستندات -> Supabase 'receipts' bucket (كما طلب العميل)
-            // ملاحظة: نستخدم 'receipts' لأن العميل طلب ذلك، ويمكننا تنظيمها في مجلد فرعي
             const folderPath = `session_files/${payload.bookingId}`;
             publicUrl = await storageService.uploadFile(payload.file, 'receipts', folderPath);
         }
 
-        // 2. التأكد من صحة الرتبة
+        // 2. Validate Role
         let safeRole = payload.role;
         if (!['user', 'parent', 'student', 'instructor', 'super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(safeRole)) {
              safeRole = 'user';
         }
 
-        // 3. حفظ الرابط في قاعدة البيانات
+        // 3. Insert Record with Enhanced Error Handling
         const { error } = await (supabase.from('session_attachments') as any).insert([{
             booking_id: payload.bookingId,
             uploader_id: payload.uploaderId,
@@ -330,11 +334,11 @@ export const bookingService = {
         
         if (error) {
              console.error("Attachment DB Error:", error);
-             // Catch Schema Cache errors explicitly
-             if (error.message.includes('schema cache') || (error.message.includes('find the') && error.message.includes('column'))) {
-                 throw new Error("خطأ في قاعدة البيانات: لم يتم التعرف على الأعمدة الجديدة. يرجى تنفيذ 'NOTIFY pgrst, \"reload config\"' في SQL Editor.");
+             const errorStr = JSON.stringify(error);
+             if (error.code === 'PGRST204' || errorStr.includes('PGRST204') || error.message?.includes('schema cache') || (error.message?.includes('find the') && error.message?.includes('column'))) {
+                 throw new Error("تنبيه للنظام: كاش قاعدة البيانات قديم. يرجى من المسؤول تنفيذ 'NOTIFY pgrst, \"reload config\"' في SQL Editor.");
              }
-             throw new Error(`فشل حفظ بيانات الملف: ${error.message} - تأكد من صلاحيات قاعدة البيانات.`);
+             throw new Error(`فشل حفظ بيانات الملف: ${error.message}`);
         }
 
         return { success: true, url: publicUrl };

@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Ta
 import { DEFAULT_CONFIG } from '../../lib/config';
 
 const AdminSystemSettingsPage: React.FC = () => {
-    const { data: configData, isLoading } = useAdminSystemConfig();
+    const { data: configData, isLoading, refetch } = useAdminSystemConfig();
     const { updateSystemConfig } = useSettingsMutations();
     
     // Local state for form
@@ -42,6 +42,7 @@ const AdminSystemSettingsPage: React.FC = () => {
     const handleSave = async () => {
         if (window.confirm("تحذير: تغيير هذه الإعدادات قد يؤدي إلى توقف بعض خدمات الموقع. هل أنت متأكد؟")) {
             await updateSystemConfig.mutateAsync(config);
+            refetch(); // Force UI refresh
         }
     };
 

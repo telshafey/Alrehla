@@ -19,7 +19,7 @@ const AdminBookingDetailPage = lazy(() => import('../../pages/admin/AdminBooking
 const AdminPersonalizedProductsPage = lazy(() => import('../../pages/admin/AdminPersonalizedProductsPage'));
 const AdminProductDetailPage = lazy(() => import('../../pages/admin/AdminProductDetailPage'));
 const AdminSettingsPage = lazy(() => import('../../pages/admin/AdminSettingsPage'));
-const AdminSystemSettingsPage = lazy(() => import('../../pages/admin/AdminSystemSettingsPage')); // New Page
+const AdminSystemSettingsPage = lazy(() => import('../../pages/admin/AdminSystemSettingsPage')); // Ensure this is imported
 const AdminInstructorsPage = lazy(() => import('../../pages/admin/AdminInstructorsPage'));
 const AdminInstructorDetailPage = lazy(() => import('../../pages/admin/AdminInstructorDetailPage'));
 const AdminSupportPage = lazy(() => import('../../pages/admin/AdminSupportPage'));
