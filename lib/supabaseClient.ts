@@ -29,7 +29,7 @@ if (finalUrl === FALLBACK_URL) {
   console.info('Using default Supabase connection.');
 }
 
-// إنشاء العميل
+// إنشاء العميل الرئيسي
 export const supabase = createClient<Database>(
   finalUrl,
   finalKey,
@@ -41,6 +41,20 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+/**
+ * إنشاء عميل مؤقت لا يحفظ الجلسة في المتصفح.
+ * يستخدم لإنشاء حسابات فرعية (مثل الطلاب) دون تسجيل خروج ولي الأمر.
+ */
+export const getTemporaryClient = () => {
+    return createClient<Database>(finalUrl, finalKey, {
+        auth: {
+            persistSession: false, // مهم جداً: منع حفظ الجلسة
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+        }
+    });
+};
 
 // دالة مساعدة
 export const hasSupabaseCredentials = () => {

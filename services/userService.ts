@@ -1,5 +1,5 @@
 
-import { supabase } from '../lib/supabaseClient';
+import { supabase, getTemporaryClient } from '../lib/supabaseClient';
 import { reportingService } from './reportingService';
 import type { UserProfile, ChildProfile, UserRole } from '../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
@@ -125,21 +125,33 @@ export const userService = {
         return (profile || { id: userId, name, email, role }) as UserProfile;
     },
 
+    /**
+     * إنشاء حساب طالب وربطه بولي الأمر (الحل الجذري للمشاكل الثلاثة)
+     */
     async createAndLinkStudentAccount(payload: { name: string, email: string, password?: string, childProfileId: number }) {
-         const normalizedEmail = payload.email.toLowerCase().trim();
-         const { data: authData, error: authError } = await supabase.auth.signUp({
+        const normalizedEmail = payload.email.toLowerCase().trim();
+        
+        // 0. التحقق من وجود المستخدم الحالي (ولي الأمر) لضمان الصلاحية
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) throw new Error("يجب تسجيل الدخول كولي أمر أولاً.");
+
+        // 1. استخدام عميل مؤقت لمنع تبديل الجلسة (حل المشكلة 3)
+        const tempSupabase = getTemporaryClient();
+
+        const { data: authData, error: authError } = await tempSupabase.auth.signUp({
             email: normalizedEmail,
             password: payload.password || '123456',
             options: { data: { name: payload.name, role: 'student' } }
         });
 
         if (authError) throw new Error(authError.message);
-        if (!authData.user) throw new Error("فشل إنشاء حساب الطالب.");
+        if (!authData.user) throw new Error("فشل إنشاء حساب الطالب في النظام.");
 
         const studentUserId = authData.user.id;
 
-        // Create profile for student
-        await (supabase.from('profiles') as any).insert([{
+        // 2. إنشاء بروفايل الطالب باستخدام العميل المؤقت (لأنه هو المالك للحساب الجديد)
+        // هذا يضمن عدم وجود مشاكل RLS عند إنشاء البروفايل
+        const { error: profileError } = await (tempSupabase.from('profiles') as any).insert([{
             id: studentUserId,
             name: payload.name,
             email: normalizedEmail,
@@ -147,8 +159,30 @@ export const userService = {
             created_at: new Date().toISOString()
         }]);
 
-        // Link to child profile - EXPLICITLY CALL userService to avoid context loss (Fixing the 'this is not a function' error)
-        await userService.linkStudentToChildProfile({ studentUserId, childProfileId: payload.childProfileId });
+        if (profileError) {
+             console.error("Student Profile Creation Error:", profileError);
+             // نكمل العملية لأن الحساب أُنشئ، لكن نسجل الخطأ
+        }
+
+        // 3. ربط الطالب بملف الطفل باستخدام العميل الرئيسي (ولي الأمر - حل المشكلة 1)
+        // نستخدم العميل الرئيسي `supabase` لأنه يملك صلاحية تعديل `child_profiles` التي يملكها الأب
+        const { error: linkError } = await (supabase.from('child_profiles') as any)
+            .update({ student_user_id: studentUserId })
+            .eq('id', payload.childProfileId);
+        
+        if (linkError) throw new Error(`فشل ربط الحساب بملف الطفل: ${linkError.message}`);
+
+        // 4. ترقية ولي الأمر إلى رتبة "parent" إذا كان "user" (حل المشكلة 2)
+        // نتحقق من الرتبة الحالية من الميتاداتا أو قاعدة البيانات
+        const { data: parentProfile } = await supabase.from('profiles').select('role').eq('id', currentUser.id).single();
+        
+        if (parentProfile && parentProfile.role === 'user') {
+            const { error: roleError } = await (supabase.from('profiles') as any)
+                .update({ role: 'parent' })
+                .eq('id', currentUser.id);
+            
+            if (roleError) console.error("Failed to upgrade parent role:", roleError);
+        }
 
         return { success: true, studentId: studentUserId };
     },
@@ -172,12 +206,20 @@ export const userService = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("جلسة غير صالحة");
 
+        // إضافة الطفل
         const { data, error } = await (supabase.from('child_profiles') as any)
             .insert([{ ...payload, user_id: user.id }])
             .select()
             .single();
 
         if (error) throw new Error(error.message);
+        
+        // التحقق وترقية ولي الأمر تلقائياً عند إضافة أول طفل
+        const { data: parentProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        if (parentProfile && parentProfile.role === 'user') {
+             await (supabase.from('profiles') as any).update({ role: 'parent' }).eq('id', user.id);
+        }
+
         return data as ChildProfile;
     },
 
