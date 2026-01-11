@@ -56,13 +56,18 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
         const dayOfWeek = selectedDate.toLocaleString('en-US', { weekday: 'long' }).toLowerCase() as keyof WeeklySchedule;
         const templateSlots = weeklySchedule[dayOfWeek] || [];
         
-        const dateString = selectedDate.toISOString().split('T')[0];
+        // استخدام تنسيق YYYY-MM-DD المحلي لضمان دقة المقارنة وتجنب مشاكل التوقيت العالمي (UTC)
+        const selectedDateKey = selectedDate.toLocaleDateString('en-CA'); // en-CA returns YYYY-MM-DD
+
         const busySlotsForDay = activeBookings
-            .filter(b => 
-                b.instructor_id === instructor.id && 
-                b.booking_date.startsWith(dateString) &&
-                b.status !== 'ملغي'
-            )
+            .filter(b => {
+                if (b.instructor_id !== instructor.id || b.status === 'ملغي') return false;
+                
+                // تحويل تاريخ الحجز من قاعدة البيانات إلى التاريخ المحلي للمقارنة
+                const bookingDateKey = new Date(b.booking_date).toLocaleDateString('en-CA');
+                
+                return bookingDateKey === selectedDateKey;
+            })
             .map(b => b.booking_time);
 
         return templateSlots.filter(time => 
@@ -106,16 +111,18 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
                     
                     const dayOfWeek = date.toLocaleString('en-US', { weekday: 'long' }).toLowerCase() as keyof WeeklySchedule;
                     const slots = weeklySchedule[dayOfWeek] || [];
-                    const dateStr = date.toISOString().split('T')[0];
                     
-                    const busyCount = activeBookings.filter(b => 
-                        b.instructor_id === instructor?.id && 
-                        b.booking_date.startsWith(dateStr) &&
-                        b.status !== 'ملغي'
-                    ).length;
+                    // مفتاح التاريخ المحلي للمقارنة
+                    const dateKey = date.toLocaleDateString('en-CA');
+                    
+                    const busyCount = activeBookings.filter(b => {
+                        if (b.instructor_id !== instructor?.id || b.status === 'ملغي') return false;
+                        const bDateKey = new Date(b.booking_date).toLocaleDateString('en-CA');
+                        return bDateKey === dateKey;
+                    }).length;
                     
                     const isAvailableDay = slots.some(time => time.endsWith(':00')) && (slots.filter(t => t.endsWith(':00')).length > busyCount);
-                    const isHoliday = holidays.includes(dateStr);
+                    const isHoliday = holidays.includes(date.toISOString().split('T')[0]); // Holidays usually stored as YYYY-MM-DD
                     const isDisabled = isTooSoon || !isAvailableDay || isHoliday;
 
                     return (

@@ -125,6 +125,24 @@ export const orderService = {
         }]).select().single();
 
         if (error) throw new Error(error.message);
+
+        // Notify instructor if assigned immediately
+        if (payload.details.assigned_instructor_id) {
+            try {
+                 const { data: instructorData } = await supabase.from('instructors').select('user_id').eq('id', payload.details.assigned_instructor_id).single();
+                 if (instructorData && instructorData.user_id) {
+                     await (supabase.from('notifications') as any).insert([{
+                         user_id: instructorData.user_id,
+                         message: `طلب خدمة جديد تم تعيينك له: ${payload.details.serviceName}`,
+                         link: '/admin/financials', // Direct to financial details or relevant page
+                         type: 'order',
+                         created_at: new Date().toISOString(),
+                         read: false
+                     }]);
+                 }
+            } catch (e) { console.error("Notification failed", e); }
+        }
+
         return data as ServiceOrder;
     },
 
@@ -148,6 +166,23 @@ export const orderService = {
         const { error } = await (supabase.from('service_orders') as any).update({ assigned_instructor_id: instructorId }).eq('id', orderId);
         if (error) throw new Error(error.message);
         
+        // Notify Instructor
+        if (instructorId) {
+            try {
+                 const { data: instructorData } = await supabase.from('instructors').select('user_id').eq('id', instructorId).single();
+                 if (instructorData && instructorData.user_id) {
+                     await (supabase.from('notifications') as any).insert([{
+                         user_id: instructorData.user_id,
+                         message: `تم تعيينك لطلب خدمة جديد (ID: ${orderId})`,
+                         link: '/admin/financials', 
+                         type: 'order',
+                         created_at: new Date().toISOString(),
+                         read: false
+                     }]);
+                 }
+            } catch (e) { console.error("Notification failed", e); }
+        }
+
         await reportingService.logAction('ASSIGN_INSTRUCTOR', orderId, 'طلب خدمة', `تعيين مدرب ID: ${instructorId || 'إلغاء'}`);
         return { success: true };
     },

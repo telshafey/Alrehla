@@ -26,14 +26,17 @@ const parseTotalSessions = (sessionString: string | undefined, packageName: stri
 
 const StudentJourneyCard = React.forwardRef<HTMLElement, StudentJourneyCardProps & React.HTMLAttributes<HTMLElement>>(
     ({ journey, ...props }, ref) => {
-        const upcomingSessions = journey.sessions
+        // حماية إضافية: التأكد من وجود مصفوفة الجلسات قبل استخدام filter
+        const safeSessions = journey.sessions || [];
+
+        const upcomingSessions = safeSessions
             .filter(s => s.status === 'upcoming')
             .sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
         
         const nextSession = upcomingSessions[0];
         
         const totalSessions = parseTotalSessions(journey.packageDetails?.sessions, journey.package_name);
-        const completedSessionsCount = journey.sessions.filter(s => s.status === 'completed').length;
+        const completedSessionsCount = safeSessions.filter(s => s.status === 'completed').length;
         const progress = totalSessions > 0 ? (completedSessionsCount / totalSessions) * 100 : 0;
 
         return (

@@ -331,7 +331,7 @@ export interface CreativeWritingBooking {
   id: string;
   created_at: string;
   user_id: string;
-  user_name: string; // This field might be missing in DB, consider removing if issues persist
+  // user_name removed from schema
   child_id: number;
   package_name: string;
   instructor_id: number;

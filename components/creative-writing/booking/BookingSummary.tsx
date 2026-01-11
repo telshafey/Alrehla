@@ -101,9 +101,10 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
                                 {fullSchedule.map((dateStr, idx) => (
                                     <div key={idx} className="flex items-center gap-3 text-xs bg-muted/30 p-2 rounded-lg border border-muted/50">
                                         <div className="w-5 h-5 flex items-center justify-center bg-blue-100 text-blue-600 rounded-full font-bold">{idx + 1}</div>
-                                        <div className="flex-grow">
+                                        <div className="flex-grow flex items-center gap-2">
                                             <p className="font-semibold text-gray-700">{formatDate(dateStr)}</p>
-                                            <p className="text-muted-foreground text-[10px]">{dateTime.time}</p>
+                                            <span className="text-gray-400">|</span>
+                                            <p className="font-bold text-primary">{dateTime.time}</p>
                                         </div>
                                         {idx === 0 && <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">بداية</span>}
                                     </div>

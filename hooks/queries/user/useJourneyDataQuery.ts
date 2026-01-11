@@ -33,18 +33,27 @@ export const useStudentDashboardData = () => {
             const parentName = parentProfile?.name || 'ولي أمر';
 
             // 3. جلب البيانات المرتبطة من الجداول الحقيقية فقط
-            const [bookingsRes, ordersRes, subsRes, badgesRes, attachmentsRes] = await Promise.all([
+            // نضيف scheduled_sessions هنا
+            const [bookingsRes, ordersRes, subsRes, badgesRes, attachmentsRes, sessionsRes] = await Promise.all([
                 supabase.from('bookings').select('*, instructors(name, id, avatar_url, specialty)').eq('child_id', childId),
                 supabase.from('orders').select('*').eq('child_id', childId),
                 supabase.from('subscriptions').select('*').eq('child_id', childId),
                 supabase.from('child_badges').select('*, badges(*)').eq('child_id', childId),
-                supabase.from('session_attachments').select('*').eq('uploader_id', currentUser.id)
+                supabase.from('session_attachments').select('*').eq('uploader_id', currentUser.id),
+                supabase.from('scheduled_sessions').select('*').eq('child_id', childId)
             ]);
+
+            const allSessions = sessionsRes.data || [];
 
             return {
                 parentName,
                 isUnlinked: false,
-                journeys: (bookingsRes.data || []).map((b: any) => ({ ...b, instructor_name: b.instructors?.name })),
+                journeys: (bookingsRes.data || []).map((b: any) => ({ 
+                    ...b, 
+                    instructor_name: b.instructors?.name,
+                    // نربط الجلسات بالحجز الخاص بها لتجنب الخطأ في الواجهة
+                    sessions: allSessions.filter((s: any) => s.booking_id === b.id)
+                })),
                 orders: ordersRes.data || [],
                 subscriptions: subsRes.data || [],
                 badges: (badgesRes.data || []).map((cb: any) => cb.badges).filter(Boolean),

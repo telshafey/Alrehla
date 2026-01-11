@@ -143,10 +143,11 @@ export const bookingService = {
         const bookingDate = new Date(bookingData.dateTime.date);
         bookingDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
+        // 1. Create Booking Record
         const { data, error } = await (supabase.from('bookings') as any).insert([{
             id: bookingId,
             user_id: userId,
-            // user_name removed to fix schema error
+            // Removed user_name to fix schema error
             child_id: bookingData.child.id,
             package_name: bookingData.package.name,
             instructor_id: bookingData.instructor.id,
@@ -159,6 +160,30 @@ export const bookingService = {
         }]).select().single();
 
         if (error) throw error;
+
+        // 2. Notify Instructor
+        try {
+            // Get instructor's user_id first
+            const { data: instructorData } = await supabase
+                .from('instructors')
+                .select('user_id')
+                .eq('id', bookingData.instructor.id)
+                .single();
+            
+            if (instructorData && instructorData.user_id) {
+                await (supabase.from('notifications') as any).insert([{
+                    user_id: instructorData.user_id,
+                    message: `حجز جديد: ${bookingData.package.name} للطالب ${bookingData.child.name}`,
+                    link: '/admin/journeys', // Instructor dashboard link
+                    type: 'booking',
+                    created_at: new Date().toISOString(),
+                    read: false
+                }]);
+            }
+        } catch (e) {
+            console.error("Failed to notify instructor:", e);
+        }
+
         return data as CreativeWritingBooking;
     },
 
@@ -172,6 +197,8 @@ export const bookingService = {
         if (error) throw new Error(error.message);
 
         await reportingService.logAction('UPDATE_BOOKING_STATUS', bookingId, `حجز: ${booking.package_name}`, `تغيير الحالة إلى: ${newStatus}`);
+
+        // Notification logic for status change if needed (e.g. notify parent)
 
         if (newStatus === 'مؤكد') {
             await supabase.from('scheduled_sessions').delete().eq('booking_id', bookingId).eq('status', 'upcoming');
