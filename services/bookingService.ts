@@ -15,9 +15,6 @@ import type {
 } from '../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
 
-// [SYSTEM UPDATE] Service refreshed to handle Schema Cache issues
-// Timestamp: force_update_v3
-
 // Types for Mutations
 interface CreateBookingPayload {
     child: { id: number; name: string };
@@ -43,6 +40,41 @@ const parseSessionCount = (sessionString: string | undefined): number => {
     const match = sessionString.match(/^(\d+)/);
     return match ? parseInt(match[1], 10) : 1;
 };
+
+// --- SELF-HEALING HELPER ---
+const executeWithRetry = async <T>(operation: () => Promise<{ data: T | null; error: any }>): Promise<T | null> => {
+    const { data, error } = await operation();
+    
+    // Check specifically for Stale Schema Cache Error (PGRST204)
+    if (error && (error.code === 'PGRST204' || JSON.stringify(error).includes('PGRST204') || error.message?.includes('schema cache'))) {
+        console.warn("⚠️ Stale DB Cache Detected. Attempting auto-fix via RPC...");
+        
+        // 1. Call the fix function
+        const { error: rpcError } = await supabase.rpc('reload_schema_cache');
+        
+        if (rpcError) {
+             console.error("❌ Auto-fix failed (RPC missing?):", rpcError);
+             // If RPC fails (e.g. user didn't run SQL), we must throw original error
+             throw error; 
+        }
+
+        // 2. Wait briefly for propagation
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        console.log("🔄 Retrying operation after cache reload...");
+        
+        // 3. Retry the operation
+        const retryResult = await operation();
+        if (retryResult.error) {
+             throw retryResult.error;
+        }
+        return retryResult.data;
+    }
+
+    if (error) throw error;
+    return data;
+};
+
 
 export const bookingService = {
     // --- Queries (SAFE MODE) ---
@@ -278,37 +310,25 @@ export const bookingService = {
         if (!payload.role) throw new Error("Role is missing");
         
         let safeRole = payload.role;
-        // Fix: Explicit check against allowed roles in DB constraint
         if (!['user', 'parent', 'student', 'instructor', 'super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(safeRole)) {
              safeRole = 'user'; 
         }
 
-        // [FORCE UPDATE] Added enhanced error logging for schema cache issues
-        const { error } = await (supabase.from('session_messages') as any).insert([{
+        // Wrapped in Self-Healing Logic
+        await executeWithRetry(() => (supabase.from('session_messages') as any).insert([{
             booking_id: payload.bookingId,
             sender_id: payload.senderId,
             sender_role: safeRole, 
             message_text: payload.message,
             created_at: new Date().toISOString()
-        }]);
-        
-        if (error) {
-            console.error("Session Message Insert Error:", error);
-            // Specific check for PGRST204 (Schema Cache Stale)
-            // Aggressive check: convert everything to string to be sure
-            const errorStr = JSON.stringify(error);
-            if (error.code === 'PGRST204' || errorStr.includes('PGRST204') || error.message?.includes('schema cache') || (error.message?.includes('find the') && error.message?.includes('column'))) {
-                 throw new Error("تنبيه للنظام: كاش قاعدة البيانات قديم (PGRST204). يرجى من المسؤول تنفيذ 'NOTIFY pgrst, \"reload config\"' في SQL Editor.");
-            }
-            throw new Error(`خطأ في الإرسال: ${error.message}`);
-        }
+        }]));
+
         return { success: true };
     },
 
     async uploadSessionAttachment(payload: { bookingId: string, uploaderId: string, role: string, file: File }) {
         let publicUrl = '';
 
-        // 1. Determine destination
         if (payload.file.type.startsWith('image/')) {
             publicUrl = await cloudinaryService.uploadImage(payload.file, 'alrehla_attachments');
         } else {
@@ -316,30 +336,20 @@ export const bookingService = {
             publicUrl = await storageService.uploadFile(payload.file, 'receipts', folderPath);
         }
 
-        // 2. Validate Role
         let safeRole = payload.role;
         if (!['user', 'parent', 'student', 'instructor', 'super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(safeRole)) {
              safeRole = 'user';
         }
 
-        // 3. Insert Record with Enhanced Error Handling
-        const { error } = await (supabase.from('session_attachments') as any).insert([{
+        // Wrapped in Self-Healing Logic
+        await executeWithRetry(() => (supabase.from('session_attachments') as any).insert([{
             booking_id: payload.bookingId,
             uploader_id: payload.uploaderId,
             uploader_role: safeRole,
             file_name: payload.file.name,
             file_url: publicUrl,
             created_at: new Date().toISOString()
-        }]);
-        
-        if (error) {
-             console.error("Attachment DB Error:", error);
-             const errorStr = JSON.stringify(error);
-             if (error.code === 'PGRST204' || errorStr.includes('PGRST204') || error.message?.includes('schema cache') || (error.message?.includes('find the') && error.message?.includes('column'))) {
-                 throw new Error("تنبيه للنظام: كاش قاعدة البيانات قديم. يرجى من المسؤول تنفيذ 'NOTIFY pgrst, \"reload config\"' في SQL Editor.");
-             }
-             throw new Error(`فشل حفظ بيانات الملف: ${error.message}`);
-        }
+        }]));
 
         return { success: true, url: publicUrl };
     },

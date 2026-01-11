@@ -5,7 +5,7 @@ import PageLoader from '../../components/ui/PageLoader';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import { Button } from '../../components/ui/Button';
-import { Database, RefreshCw, CheckCircle, AlertTriangle, ShieldCheck, ShieldAlert, Bug } from 'lucide-react';
+import { Database, RefreshCw, CheckCircle, AlertTriangle, ShieldCheck, ShieldAlert, Bug, Terminal, Copy } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 
 interface TableStatus {
@@ -18,44 +18,13 @@ interface TableStatus {
 
 // القائمة الكاملة لجميع جداول النظام (25 جدول)
 const tableNames = [
-    // المستخدمين والملفات
-    'profiles', 
-    'child_profiles', 
-    'instructors', 
-    
-    // المنتجات والباقات
-    'personalized_products',
-    'creative_writing_packages',
-    'standalone_services',
-    'subscription_plans',
-    'comparison_items', // لعناصر المقارنة
-    
-    // العمليات الأساسية
-    'orders', 
-    'bookings', 
-    'subscriptions', 
-    'service_orders', 
-    
-    // الجلسات والتواصل
-    'scheduled_sessions', 
-    'session_messages',
-    'session_attachments',
-    'support_session_requests',
-    
-    // المحتوى والدعم
-    'blog_posts', 
-    'support_tickets', 
-    'join_requests', 
-    'notifications',
-    
-    // النظام والإعدادات
-    'site_settings',
-    'audit_logs', 
-    'instructor_payouts',
-    
-    // التحفيز (Gamification)
-    'badges',
-    'child_badges'
+    'profiles', 'child_profiles', 'instructors', 'personalized_products',
+    'creative_writing_packages', 'standalone_services', 'subscription_plans',
+    'comparison_items', 'orders', 'bookings', 'subscriptions', 'service_orders', 
+    'scheduled_sessions', 'session_messages', 'session_attachments',
+    'support_session_requests', 'blog_posts', 'support_tickets', 'join_requests', 
+    'notifications', 'site_settings', 'audit_logs', 'instructor_payouts',
+    'badges', 'child_badges'
 ];
 
 const AdminDatabaseInspectorPage: React.FC = () => {
@@ -119,9 +88,13 @@ const AdminDatabaseInspectorPage: React.FC = () => {
         }
     };
 
+    const copySql = () => {
+        navigator.clipboard.writeText("NOTIFY pgrst, 'reload config';");
+        addToast("تم نسخ الأمر SQL", "success");
+    };
+
     useEffect(() => { runDiagnosis(); }, []);
 
-    // تلوين الحالة العامة
     const overallStatus = results.every(r => r.status === 'online') ? 'healthy' : 'issues';
     const issuesCount = results.filter(r => r.status === 'error').length;
 
@@ -136,11 +109,34 @@ const AdminDatabaseInspectorPage: React.FC = () => {
                     <p className="text-sm text-muted-foreground italic">
                         {issuesCount === 0 
                             ? 'جميع الجداول (25) تعمل بشكل سليم.' 
-                            : `تنبيه: هناك ${issuesCount} جداول تواجه مشاكل في الاتصال أو الصلاحيات.`}
+                            : `تنبيه: هناك ${issuesCount} جداول تواجه مشاكل.`}
                     </p>
                 </div>
                 <Button onClick={runDiagnosis} loading={isRefreshing} icon={<RefreshCw size={16}/>}>تحديث الفحص</Button>
             </div>
+
+            {/* قسم حل مشكلة الكاش (جديد) */}
+            <Card className="border-l-4 border-blue-500 bg-blue-50/20">
+                <CardHeader>
+                    <CardTitle className="text-blue-700 flex items-center gap-2">
+                        <Terminal size={20} /> حل مشكلة "Schema Cache Error" (PGRST204)
+                    </CardTitle>
+                    <CardDescription className="text-blue-900/80">
+                        إذا كنت تواجه أخطاء عند إرسال الرسائل أو رفع الملفات بسبب عدم التعرف على الأعمدة الجديدة، قم بتنفيذ هذا الأمر في محرر SQL في Supabase لتحديث الذاكرة المؤقتة.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center gap-4 bg-black/90 p-4 rounded-lg text-green-400 font-mono text-sm shadow-inner dir-ltr">
+                        <span className="flex-grow">NOTIFY pgrst, 'reload config';</span>
+                        <Button size="sm" variant="ghost" className="text-white hover:bg-white/20 h-8 px-2" onClick={copySql}>
+                            <Copy size={14} /> نسخ
+                        </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                        خطوات: اذهب إلى Supabase Dashboard &gt; SQL Editor &gt; New Query &gt; الصق الأمر &gt; Run.
+                    </p>
+                </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
                 <Card className={`xl:col-span-1 max-h-[75vh] overflow-y-auto border-t-4 ${overallStatus === 'healthy' ? 'border-green-500' : 'border-orange-500'}`}>

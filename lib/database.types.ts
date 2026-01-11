@@ -152,6 +152,10 @@ export interface Database {
         }
         Returns: void
       }
+      reload_schema_cache: {
+        Args: Record<string, never>
+        Returns: void
+      }
     }
   }
 }

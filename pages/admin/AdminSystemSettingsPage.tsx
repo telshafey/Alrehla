@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Database, Image as ImageIcon, Server, Save, Eye, EyeOff, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Database, Image as ImageIcon, Server, Save, Eye, EyeOff, AlertTriangle, RefreshCw, Terminal, Wrench } from 'lucide-react';
 import { useAdminSystemConfig } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -10,14 +10,18 @@ import { Input } from '../../components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 import { DEFAULT_CONFIG } from '../../lib/config';
+import { supabase } from '../../lib/supabaseClient';
+import { useToast } from '../../contexts/ToastContext';
 
 const AdminSystemSettingsPage: React.FC = () => {
     const { data: configData, isLoading, refetch } = useAdminSystemConfig();
     const { updateSystemConfig } = useSettingsMutations();
+    const { addToast } = useToast();
     
     // Local state for form
     const [config, setConfig] = useState<typeof DEFAULT_CONFIG>(DEFAULT_CONFIG);
     const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
+    const [isRepairing, setIsRepairing] = useState(false);
 
     useEffect(() => {
         if (configData) {
@@ -51,6 +55,27 @@ const AdminSystemSettingsPage: React.FC = () => {
             setConfig(DEFAULT_CONFIG);
         }
     };
+    
+    const handleRepairApi = async () => {
+        setIsRepairing(true);
+        try {
+            const { error } = await supabase.rpc('reload_schema_cache');
+            if (error) {
+                // Check if error is because function doesn't exist
+                if (error.message.includes('function') && error.message.includes('does not exist')) {
+                     addToast("فشل الإصلاح: يجب تشغيل كود SQL أولاً (انظر التعليمات أدناه)", "error");
+                } else {
+                     addToast(`فشل الإصلاح: ${error.message}`, "error");
+                }
+            } else {
+                addToast("تم تحديث ذاكرة التخزين المؤقت للسيرفر بنجاح!", "success");
+            }
+        } catch (e: any) {
+            addToast(`خطأ غير متوقع: ${e.message}`, "error");
+        } finally {
+            setIsRepairing(false);
+        }
+    };
 
     if (isLoading) return <PageLoader text="جاري تحميل إعدادات النظام..." />;
 
@@ -68,6 +93,32 @@ const AdminSystemSettingsPage: React.FC = () => {
                     <Button onClick={handleSave} loading={updateSystemConfig.isPending} icon={<Save size={16}/>}>حفظ التغييرات</Button>
                 </div>
             </div>
+            
+            {/* أداة إصلاح الكاش */}
+            <Card className="border-l-4 border-blue-500 bg-blue-50/20">
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-blue-700 flex items-center gap-2 text-base">
+                        <Wrench size={20} /> صيانة الاتصال (API Repair)
+                    </CardTitle>
+                    <CardDescription>
+                        استخدم هذا الزر إذا واجهت أخطاء "Schema Cache" أو PGRST204 بعد تحديث قاعدة البيانات.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center gap-4">
+                    <Button 
+                        onClick={handleRepairApi} 
+                        loading={isRepairing} 
+                        variant="default" 
+                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                        icon={<RefreshCw size={16} />}
+                    >
+                        إصلاح وتحديث السيرفر
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                        ملاحظة: ليعمل هذا الزر، يجب أن تكون قد نفذت دالة <code>reload_schema_cache</code> في SQL Editor مرة واحدة.
+                    </p>
+                </CardContent>
+            </Card>
 
             <div className="bg-red-50 border-r-4 border-red-500 p-4 rounded-lg shadow-sm">
                 <div className="flex items-start gap-3">
