@@ -159,14 +159,17 @@ export const bookingService = {
     async checkSlotAvailability(instructorId: number, dateStr: string, time: string): Promise<boolean> {
         try {
             // 1. Get all active bookings for this instructor at this specific TIME (e.g. 10:00)
-            const { data: bookings, error } = await supabase
+            const { data: bookingsData, error } = await supabase
                 .from('bookings')
                 .select('booking_date, package_name')
                 .eq('instructor_id', instructorId)
                 .eq('booking_time', time)
                 .neq('status', 'ملغي');
 
-            if (error || !bookings) return true; // If error, assume open (fail open) or handle better
+            if (error || !bookingsData) return true; // If error, assume open (fail open) or handle better
+
+            // Explicitly cast to any[] to fix TypeScript 'never' error
+            const bookings = bookingsData as any[];
 
             const requestedDate = new Date(dateStr);
             requestedDate.setHours(0, 0, 0, 0);

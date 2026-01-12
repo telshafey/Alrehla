@@ -317,7 +317,8 @@ export const userService = {
 
     async resetStudentPassword(payload: { studentUserId: string; newPassword: string }) {
         // نستخدم RPC المخصص "reset_student_password" الذي يسمح لولي الأمر بتغيير كلمة المرور
-        const { error } = await supabase.rpc('reset_student_password', {
+        // Cast supabase.rpc to any to bypass strict typing if definition is missing in local types
+        const { error } = await (supabase.rpc as any)('reset_student_password', {
             target_student_id: payload.studentUserId,
             new_password: payload.newPassword
         });

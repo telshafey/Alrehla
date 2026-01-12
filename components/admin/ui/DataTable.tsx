@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Checkbox } from '../../ui/Checkbox';
 import Dropdown from '../../ui/Dropdown';
 import { Button } from '../../ui/Button';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, Hand } from 'lucide-react';
 
 // Type definitions for props
 interface ColumnDef<T> {
@@ -116,98 +116,105 @@ function DataTable<T extends { id: any }>({
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-2">
                 {bulkActions && selectedRowIds.size > 0 ? (
                     <div className="flex items-center gap-4 animate-fadeIn">
-                        <p className="text-sm text-muted-foreground">
-                            {selectedRowIds.size} عنصر محدد
+                        <p className="text-sm text-muted-foreground font-semibold">
+                            {selectedRowIds.size} محدد
                         </p>
-                        {dropdownItems && <Dropdown trigger="إجراءات مجمعة" items={dropdownItems} />}
+                        {dropdownItems && <Dropdown trigger="خيارات مجمعة" items={dropdownItems} />}
                     </div>
-                ) : <div></div>}
+                ) : <div className="hidden sm:block"></div>}
                 
-                <div className="text-xs text-muted-foreground">
-                    إجمالي النتائج: {data.length}
+                <div className="text-xs text-muted-foreground mr-auto sm:mr-0">
+                    العدد الكلي: {data.length}
                 </div>
             </div>
 
-            <div className="rounded-md border bg-white shadow-sm overflow-hidden">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="bg-muted/40">
-                            {bulkActions && (
-                                <TableHead className="w-12">
-                                    <Checkbox
-                                        checked={currentData.length > 0 && currentData.every(row => selectedRowIds.has(row.id))}
-                                        onCheckedChange={handleSelectAll}
-                                        aria-label="Select all"
-                                    />
-                                </TableHead>
-                            )}
-                            {columns.map(column => (
-                                <TableHead key={column.accessorKey}>
-                                    <Button 
-                                        variant="ghost" 
-                                        onClick={() => handleSort(column.accessorKey)} 
-                                        className="px-0 h-auto py-0 hover:bg-transparent font-bold text-muted-foreground hover:text-foreground"
-                                    >
-                                        <div className="flex items-center gap-1">
-                                            {column.header}
-                                            {sortConfig?.key === column.accessorKey && (
-                                                sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
-                                            )}
-                                        </div>
-                                    </Button>
-                                </TableHead>
-                            ))}
-                             {renderRowActions && <TableHead className="font-bold">إجراءات</TableHead>}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {currentData.length > 0 ? (
-                            currentData.map((row, rowIndex) => (
-                                <TableRow key={(row as any).id ?? rowIndex} className="hover:bg-muted/5 transition-colors">
-                                    {bulkActions && (
-                                        <TableCell>
-                                            <Checkbox
-                                                checked={selectedRowIds.has((row as any).id)}
-                                                onCheckedChange={(checked) => handleSelectRow((row as any).id, !!checked)}
-                                                aria-label={`Select row ${rowIndex + 1}`}
-                                            />
-                                        </TableCell>
-                                    )}
-                                    {columns.map(column => {
-                                        const value = getNestedValue(row, column.accessorKey);
-                                        return (
-                                            <TableCell key={column.accessorKey}>
-                                                {column.cell ? column.cell({ value, row }) : (value ?? '-')}
-                                            </TableCell>
-                                        );
-                                    })}
-                                     {renderRowActions && (
-                                        <TableCell>
+            <div className="rounded-xl border bg-white shadow-sm overflow-hidden relative">
+                {/* Scroll Indicator for Mobile */}
+                <div className="sm:hidden absolute top-2 left-2 z-10 pointer-events-none opacity-50 bg-white/80 px-2 py-1 rounded text-[10px] flex items-center gap-1 text-gray-500">
+                    <Hand size={12} /> اسحب للعرض
+                </div>
+
+                <div className="overflow-x-auto">
+                    <Table className="min-w-[800px] sm:min-w-full">
+                        <TableHeader>
+                            <TableRow className="bg-muted/40">
+                                {bulkActions && (
+                                    <TableHead className="w-12 text-center">
+                                        <Checkbox
+                                            checked={currentData.length > 0 && currentData.every(row => selectedRowIds.has(row.id))}
+                                            onCheckedChange={handleSelectAll}
+                                            aria-label="Select all"
+                                        />
+                                    </TableHead>
+                                )}
+                                {columns.map(column => (
+                                    <TableHead key={column.accessorKey} className="whitespace-nowrap">
+                                        <Button 
+                                            variant="ghost" 
+                                            onClick={() => handleSort(column.accessorKey)} 
+                                            className="px-0 h-auto py-2 hover:bg-transparent font-bold text-muted-foreground hover:text-foreground text-xs sm:text-sm"
+                                        >
                                             <div className="flex items-center gap-1">
-                                                {renderRowActions(row)}
+                                                {column.header}
+                                                {sortConfig?.key === column.accessorKey && (
+                                                    sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                                                )}
                                             </div>
-                                        </TableCell>
-                                    )}
-                                </TableRow>
-                            ))
-                        ) : (
-                             <TableRow>
-                                <TableCell colSpan={columns.length + (bulkActions ? 1 : 0) + (renderRowActions ? 1 : 0)} className="h-24 text-center text-muted-foreground">
-                                    لا توجد بيانات لعرضها.
-                                </TableCell>
+                                        </Button>
+                                    </TableHead>
+                                ))}
+                                {renderRowActions && <TableHead className="font-bold text-center w-24">إجراءات</TableHead>}
                             </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {currentData.length > 0 ? (
+                                currentData.map((row, rowIndex) => (
+                                    <TableRow key={(row as any).id ?? rowIndex} className="hover:bg-muted/5 transition-colors">
+                                        {bulkActions && (
+                                            <TableCell className="text-center">
+                                                <Checkbox
+                                                    checked={selectedRowIds.has((row as any).id)}
+                                                    onCheckedChange={(checked) => handleSelectRow((row as any).id, !!checked)}
+                                                    aria-label={`Select row ${rowIndex + 1}`}
+                                                />
+                                            </TableCell>
+                                        )}
+                                        {columns.map(column => {
+                                            const value = getNestedValue(row, column.accessorKey);
+                                            return (
+                                                <TableCell key={column.accessorKey} className="py-3 text-sm">
+                                                    {column.cell ? column.cell({ value, row }) : (value ?? '-')}
+                                                </TableCell>
+                                            );
+                                        })}
+                                        {renderRowActions && (
+                                            <TableCell>
+                                                <div className="flex items-center justify-center gap-1">
+                                                    {renderRowActions(row)}
+                                                </div>
+                                            </TableCell>
+                                        )}
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length + (bulkActions ? 1 : 0) + (renderRowActions ? 1 : 0)} className="h-32 text-center text-muted-foreground">
+                                        لا توجد بيانات لعرضها.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground w-full sm:w-auto justify-center">
                         <span>عرض</span>
                         <select 
                             value={rowsPerPage} 
@@ -225,10 +232,7 @@ function DataTable<T extends { id: any }>({
                         <span>في الصفحة</span>
                     </div>
 
-                    <div className="flex items-center gap-1">
-                        <span className="text-sm text-muted-foreground ml-4">
-                            صفحة {currentPage} من {totalPages}
-                        </span>
+                    <div className="flex items-center gap-1 justify-center w-full sm:w-auto">
                         <Button 
                             variant="outline" 
                             size="icon" 
@@ -247,6 +251,11 @@ function DataTable<T extends { id: any }>({
                         >
                             <ChevronRight size={14} className="rtl:rotate-180" />
                         </Button>
+                        
+                        <span className="text-sm font-medium mx-2 min-w-[3rem] text-center">
+                            {currentPage} / {totalPages}
+                        </span>
+
                         <Button 
                             variant="outline" 
                             size="icon" 
