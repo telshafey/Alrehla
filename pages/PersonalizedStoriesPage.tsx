@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
@@ -11,7 +12,13 @@ import { cn } from '../lib/utils';
 import Accordion from '../components/ui/Accordion';
 import Image from '../components/ui/Image';
 
-const ProductCard = React.memo(React.forwardRef<HTMLElement, { product: PersonalizedProduct, featured?: boolean }>(({ product, featured = false }, ref) => {
+interface ProductCardProps {
+    product: PersonalizedProduct;
+    featured?: boolean;
+    minSubscriptionPrice?: number;
+}
+
+const ProductCard = React.memo(React.forwardRef<HTMLElement, ProductCardProps>(({ product, featured = false, minSubscriptionPrice = 0 }, ref) => {
     const isSubscription = product.key === 'subscription_box';
     const orderLink = isSubscription ? '/enha-lak/subscription' : `/enha-lak/order/${product.key}`;
     const buttonText = isSubscription ? 'اشترك الآن' : 'اطلب الآن';
@@ -35,7 +42,9 @@ const ProductCard = React.memo(React.forwardRef<HTMLElement, { product: Personal
                     {isSubscription ? (
                         <>
                             <span className="text-xl font-bold text-foreground">باقات متنوعة</span>
-                            <span className="text-sm text-muted-foreground block">تبدأ من 283 ج.م/شهرياً</span>
+                            <span className="text-sm text-muted-foreground block">
+                                {minSubscriptionPrice > 0 ? `تبدأ من ${minSubscriptionPrice} ج.م/شهرياً` : 'باقات متعددة'}
+                            </span>
                         </>
                     ) : product.has_printed_version && product.price_printed ? (
                          <>
@@ -94,6 +103,14 @@ const PersonalizedStoriesPage: React.FC = () => {
   const { data, isLoading, error, refetch } = usePublicData();
   const content = data?.siteContent?.enhaLakPage.store;
   const personalizedProducts = data?.personalizedProducts || [];
+  const subscriptionPlans = data?.subscriptionPlans || [];
+
+  // Calculate the minimum subscription price dynamically
+  const lowestSubscriptionPrice = useMemo(() => {
+      if (!subscriptionPlans.length) return 0;
+      // Get minimum price_per_month
+      return Math.min(...subscriptionPlans.map(plan => plan.price_per_month));
+  }, [subscriptionPlans]);
 
   const { featuredProducts, coreProducts, addonProducts } = useMemo(() => {
     const sortedProducts = [...personalizedProducts].sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
@@ -141,7 +158,12 @@ const PersonalizedStoriesPage: React.FC = () => {
                             Array.from({ length: 2 }).map((_, index) => <div className="w-80 flex-shrink-0" key={index}><ProductCardSkeleton /></div>)
                         ) : (
                             featuredProducts.map(product => (
-                                <ProductCard key={`featured-${product.id}`} product={product} featured />
+                                <ProductCard 
+                                    key={`featured-${product.id}`} 
+                                    product={product} 
+                                    featured 
+                                    minSubscriptionPrice={lowestSubscriptionPrice}
+                                />
                             ))
                         )}
                     </div>
@@ -155,7 +177,11 @@ const PersonalizedStoriesPage: React.FC = () => {
                             Array.from({ length: 3 }).map((_, index) => <ProductCardSkeleton key={`core-skel-${index}`} />)
                         ) : (
                             coreProducts.map(product => (
-                                <ProductCard key={`core-${product.id}`} product={product} />
+                                <ProductCard 
+                                    key={`core-${product.id}`} 
+                                    product={product}
+                                    minSubscriptionPrice={lowestSubscriptionPrice}
+                                />
                             ))
                         )}
                     </div>
@@ -169,7 +195,10 @@ const PersonalizedStoriesPage: React.FC = () => {
                              Array.from({ length: 2 }).map((_, index) => <ProductCardSkeleton key={`addon-skel-${index}`} />)
                         ) : (
                             addonProducts.map(product => (
-                                <ProductCard key={`addon-${product.id}`} product={product} />
+                                <ProductCard 
+                                    key={`addon-${product.id}`} 
+                                    product={product} 
+                                />
                             ))
                         )}
                     </div>

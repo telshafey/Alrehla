@@ -37,18 +37,23 @@ const AdminUsersPage: React.FC = () => {
         return enrichedUsers.filter(user => {
             let matchesRole = false;
 
-            // منطق الفلترة الصارم
+            // 1. الموظفين والمدربين
             if (activeTab === 'staff') {
                 matchesRole = STAFF_ROLES.includes(user.role);
             } 
+            // 2. أولياء الأمور (مفعلين فقط)
+            // الشرط: يجب أن يكون لديه طالب واحد مفعل على الأقل
             else if (activeTab === 'parents') {
-                // ولي الأمر: لديه حسابات طلاب مفعلة
-                matchesRole = user.isActuallyParent || user.role === 'parent';
+                matchesRole = user.activeStudentsCount > 0;
             } 
+            // 3. العملاء (يشمل من لديهم ملفات أطفال لكن لم يفعلوا حسابات طلاب بعد)
+            // الشرط: ليس موظفاً، ليس طالباً، وليس لديه طلاب مفعلين
             else if (activeTab === 'customers') {
-                // العميل: ليس ولي أمر، ليس طالباً، ليس موظفاً
-                matchesRole = !user.isActuallyParent && user.role === 'user';
+                const isStaff = STAFF_ROLES.includes(user.role);
+                const isStudent = user.role === 'student';
+                matchesRole = !isStaff && !isStudent && user.activeStudentsCount === 0;
             } 
+            // 4. حسابات الطلاب المستقلة
             else if (activeTab === 'students') {
                 matchesRole = user.role === 'student';
             }
@@ -190,14 +195,13 @@ const AdminUsersPage: React.FC = () => {
                                                     return (
                                                         <div className="flex flex-col gap-1">
                                                             <span className="text-[10px] font-bold text-gray-700">{row.totalChildrenCount} ملف طفل</span>
-                                                            {row.activeStudentsCount > 0 && (
+                                                            {row.activeStudentsCount > 0 ? (
                                                                 <span className="text-[9px] text-green-600 font-bold bg-green-50 px-1 rounded w-fit">
                                                                     {row.activeStudentsCount} طالب مفعل
                                                                 </span>
-                                                            )}
-                                                            {row.activeStudentsCount === 0 && (
-                                                                <span className="text-[9px] text-muted-foreground italic">
-                                                                    بدون حسابات طلاب
+                                                            ) : (
+                                                                 <span className="text-[9px] text-orange-600 font-bold bg-orange-50 px-1 rounded w-fit">
+                                                                    بانتظار التفعيل
                                                                 </span>
                                                             )}
                                                         </div>
