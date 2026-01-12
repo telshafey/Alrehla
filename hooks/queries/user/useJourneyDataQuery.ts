@@ -3,6 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { supabase } from '../../../lib/supabaseClient';
 import { authService } from '../../../services/authService';
+import type { 
+    ScheduledSession, 
+    SessionMessage, 
+    SessionAttachment, 
+    CreativeWritingPackage,
+    Instructor
+} from '../../../lib/database.types';
 
 export const useStudentDashboardData = () => {
     const { currentUser } = useAuth();
@@ -104,12 +111,12 @@ export const useTrainingJourneyData = (journeyId: string | undefined) => {
 
             return {
                 booking: safeBooking,
-                package: packagesRes.data,
-                instructor: safeBooking.instructors,
+                package: packagesRes.data as CreativeWritingPackage | null,
+                instructor: safeBooking.instructors as Instructor,
                 childProfile: safeBooking.child_profiles,
-                scheduledSessions: sessionsRes.data || [],
-                messages: messagesRes.data || [],
-                attachments: attachmentsRes.data || []
+                scheduledSessions: (sessionsRes.data || []) as ScheduledSession[],
+                messages: (messagesRes.data || []) as SessionMessage[],
+                attachments: (attachmentsRes.data || []) as SessionAttachment[]
             };
         },
         enabled: !!journeyId,

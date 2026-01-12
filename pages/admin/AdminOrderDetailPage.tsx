@@ -25,14 +25,16 @@ const emotionMap: { [key: string]: string } = {
 const AdminOrderDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { data: orders = [], isLoading } = useAdminOrders();
+    // Fix: Extract data correctly. data is { orders: [], count: number }
+    const { data, isLoading } = useAdminOrders();
+    const orders = data?.orders || [];
+    
     const { updateOrderStatus, updateOrderComment } = useOrderMutations();
     
     const [comment, setComment] = useState('');
     const [status, setStatus] = useState<OrderStatus>('بانتظار المراجعة');
 
     // Find the specific order from the cached list
-    // In a real large-scale app, we would fetch by ID individually.
     const order = orders.find(o => o.id === id);
 
     useEffect(() => {
