@@ -47,6 +47,20 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
         setSelectedDate(newSelectedDate);
     };
     
+    // دالة مساعدة لاستخراج عدد الجلسات من اسم الباقة
+    const getSessionCount = (packageName: string | undefined): number => {
+        if (!packageName) return 1;
+        // استخراج الرقم من النص (مثال: "باقة 4 جلسات" -> 4)
+        const match = packageName.match(/(\d+)/);
+        if (match && match[1]) return parseInt(match[1], 10);
+        // التعامل مع النصوص العربية
+        if (packageName.includes('واحدة') || packageName.includes('تعريفية')) return 1;
+        if (packageName.includes('أربع') || packageName.includes('4')) return 4;
+        if (packageName.includes('ثمان') || packageName.includes('8')) return 8;
+        if (packageName.includes('اثني') || packageName.includes('12')) return 12;
+        return 1; // الافتراضي
+    };
+
     const dayNames = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
     const daysArray = Array.from({ length: totalDays }, (_, i) => i + 1);
     
@@ -56,17 +70,30 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
         const dayOfWeek = selectedDate.toLocaleString('en-US', { weekday: 'long' }).toLowerCase() as keyof WeeklySchedule;
         const templateSlots = weeklySchedule[dayOfWeek] || [];
         
-        // استخدام تنسيق YYYY-MM-DD المحلي لضمان دقة المقارنة وتجنب مشاكل التوقيت العالمي (UTC)
-        const selectedDateKey = selectedDate.toLocaleDateString('en-CA'); // en-CA returns YYYY-MM-DD
+        // استخدام مقارنة صارمة للتواريخ بتصفير الوقت
+        const selectedTime = selectedDate.getTime(); 
+        const selectedDateOnly = new Date(selectedTime).setHours(0,0,0,0);
 
         const busySlotsForDay = activeBookings
             .filter(b => {
                 if (b.instructor_id !== instructor.id || b.status === 'ملغي') return false;
                 
-                // تحويل تاريخ الحجز من قاعدة البيانات إلى التاريخ المحلي للمقارنة
-                const bookingDateKey = new Date(b.booking_date).toLocaleDateString('en-CA');
+                const bookingStart = new Date(b.booking_date);
+                const bookingStartOnly = new Date(bookingStart).setHours(0,0,0,0);
                 
-                return bookingDateKey === selectedDateKey;
+                // حساب الفرق بالأيام
+                const diffTime = selectedDateOnly - bookingStartOnly;
+                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                
+                // 1. يجب أن يكون في نفس يوم الأسبوع (الفرق يقبل القسمة على 7)
+                // 2. يجب أن يكون التاريخ المختار مساوياً لتاريخ الحجز أو بعده
+                if (diffDays < 0 || diffDays % 7 !== 0) return false;
+
+                // 3. يجب أن يكون ضمن عدد جلسات الباقة المحجوزة
+                const totalSessions = getSessionCount(b.package_name);
+                const sessionIndex = diffDays / 7; // 0 للجلسة الأولى، 1 للثانية، إلخ
+
+                return sessionIndex < totalSessions;
             })
             .map(b => b.booking_time);
 
@@ -112,17 +139,26 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
                     const dayOfWeek = date.toLocaleString('en-US', { weekday: 'long' }).toLowerCase() as keyof WeeklySchedule;
                     const slots = weeklySchedule[dayOfWeek] || [];
                     
-                    // مفتاح التاريخ المحلي للمقارنة
-                    const dateKey = date.toLocaleDateString('en-CA');
+                    // منطق مشابه لحساب انشغال اليوم بالكامل
+                    const currentDateTime = date.setHours(0,0,0,0);
                     
+                    // حساب عدد المواعيد المحجوزة في هذا اليوم تحديداً
                     const busyCount = activeBookings.filter(b => {
                         if (b.instructor_id !== instructor?.id || b.status === 'ملغي') return false;
-                        const bDateKey = new Date(b.booking_date).toLocaleDateString('en-CA');
-                        return bDateKey === dateKey;
+                        
+                        const bookingStart = new Date(b.booking_date).setHours(0,0,0,0);
+                        const diffTime = currentDateTime - bookingStart;
+                        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays < 0 || diffDays % 7 !== 0) return false;
+                        
+                        const totalSessions = getSessionCount(b.package_name);
+                        return (diffDays / 7) < totalSessions;
                     }).length;
                     
+                    // اليوم متاح إذا كان به قوالب (Slots) وعدد القوالب أكبر من عدد الحجوزات المتعارضة
                     const isAvailableDay = slots.some(time => time.endsWith(':00')) && (slots.filter(t => t.endsWith(':00')).length > busyCount);
-                    const isHoliday = holidays.includes(date.toISOString().split('T')[0]); // Holidays usually stored as YYYY-MM-DD
+                    const isHoliday = holidays.includes(date.toISOString().split('T')[0]);
                     const isDisabled = isTooSoon || !isAvailableDay || isHoliday;
 
                     return (

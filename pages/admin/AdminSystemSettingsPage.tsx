@@ -71,25 +71,65 @@ const AdminSystemSettingsPage: React.FC = () => {
 -- 1. إضافة الأعمدة الناقصة (الحل الجذري للمشكلة)
 ALTER TABLE session_messages 
 ADD COLUMN IF NOT EXISTS sender_id uuid REFERENCES auth.users(id),
-ADD COLUMN IF NOT EXISTS sender_role text DEFAULT 'user';
+ADD COLUMN IF NOT EXISTS sender_role text DEFAULT 'user',
+ADD COLUMN IF NOT EXISTS sender_name text;
 
 ALTER TABLE session_attachments 
 ADD COLUMN IF NOT EXISTS uploader_id uuid REFERENCES auth.users(id),
-ADD COLUMN IF NOT EXISTS uploader_role text DEFAULT 'user';
+ADD COLUMN IF NOT EXISTS uploader_role text DEFAULT 'user',
+ADD COLUMN IF NOT EXISTS uploader_name text;
 
 -- 2. تحديث صلاحيات الوصول (Policies) لتجنب أخطاء RLS
 ALTER TABLE session_messages ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Enable all access" ON session_messages;
-CREATE POLICY "Enable all access" ON session_messages FOR ALL USING (true) WITH CHECK (true);
-
 ALTER TABLE session_attachments ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Enable all access" ON session_attachments;
-CREATE POLICY "Enable all access" ON session_attachments FOR ALL USING (true) WITH CHECK (true);
 
--- 3. دالة التحديث التلقائي (للمستقبل)
-CREATE OR REPLACE FUNCTION reload_schema_cache()
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN NOTIFY pgrst, 'reload config'; END; $$;
+-- حذف السياسات القديمة أولاً لمنع خطأ "already exists"
+DROP POLICY IF EXISTS "Allow access to session participants" ON session_messages;
+DROP POLICY IF EXISTS "Enable read access for all users" ON session_messages;
+DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON session_messages;
+DROP POLICY IF EXISTS "Enable all access" ON session_messages;
+
+CREATE POLICY "Allow access to session participants" ON session_messages 
+FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Allow access to session attachments" ON session_attachments;
+DROP POLICY IF EXISTS "Enable all access" ON session_attachments;
+
+CREATE POLICY "Allow access to session attachments" ON session_attachments 
+FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+-- 3. دالة تغيير كلمة مرور الطالب (للآباء)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE OR REPLACE FUNCTION reset_student_password(target_student_id uuid, new_password text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  current_user_id uuid;
+  is_parent boolean;
+BEGIN
+  current_user_id := auth.uid();
+  
+  -- التحقق من أن المستخدم الحالي هو ولي أمر الطالب
+  SELECT EXISTS (
+    SELECT 1 FROM child_profiles
+    WHERE student_user_id = target_student_id
+    AND user_id = current_user_id
+  ) INTO is_parent;
+
+  -- السماح أيضاً للمشرفين
+  IF NOT is_parent AND (SELECT role FROM profiles WHERE id = current_user_id) NOT IN ('super_admin', 'general_supervisor') THEN
+    RAISE EXCEPTION 'Not authorized: You are not the parent of this student.';
+  END IF;
+
+  -- تحديث كلمة المرور
+  UPDATE auth.users
+  SET encrypted_password = crypt(new_password, gen_salt('bf'))
+  WHERE id = target_student_id;
+END;
+$$;
 
 -- 4. إجبار السيرفر على قراءة التغييرات فوراً
 NOTIFY pgrst, 'reload config';
@@ -126,11 +166,10 @@ NOTIFY pgrst, 'reload config';
                      <Card className="border-red-200 shadow-md bg-red-50/10">
                         <CardHeader className="bg-red-100/50">
                             <CardTitle className="text-red-800 flex items-center gap-2">
-                                <Terminal /> الحل النهائي لمشكلة "Column Not Found"
+                                <Terminal /> كود التحديث الشامل والإصلاح
                             </CardTitle>
                             <CardDescription className="text-red-900 font-medium">
-                                الرسالة <code>Could not find the 'sender_id' column</code> تعني أن العمود غير موجود في قاعدة البيانات. 
-                                يجب عليك تنفيذ الكود التالي يدوياً لإنشائه.
+                                هذا الكود يقوم بإنشاء الأعمدة الناقصة، تحديث سياسات الأمان، وإنشاء دالة تغيير كلمة المرور.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-6">
@@ -157,7 +196,7 @@ NOTIFY pgrst, 'reload config';
                                         <li>اضغط الزر <strong>"نسخ كود SQL"</strong>.</li>
                                         <li>اضغط الزر <strong>"فتح Supabase SQL Editor"</strong> (سيفتح في نافذة جديدة).</li>
                                         <li>الصق الكود في المحرر واضغط زر <strong>RUN</strong> الأخضر.</li>
-                                        <li>عد إلى هنا وقم بتحديث الصفحة. ستختفي المشكلة.</li>
+                                        <li>بعد التنفيذ، ستعمل جميع الميزات الجديدة (المحادثات، تغيير كلمات المرور) بشكل صحيح.</li>
                                     </ol>
                                 </div>
                             </div>

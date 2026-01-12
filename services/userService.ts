@@ -316,21 +316,24 @@ export const userService = {
     },
 
     async resetStudentPassword(payload: { studentUserId: string; newPassword: string }) {
-        // Try RPC first for cleaner permission handling in this context
-        // Cast supabase to any to bypass type check for quick fix if types are lagging
-        const { error } = await (supabase as any).rpc('admin_reset_password', {
-            target_user_id: payload.studentUserId,
+        // نستخدم RPC المخصص "reset_student_password" الذي يسمح لولي الأمر بتغيير كلمة المرور
+        const { error } = await supabase.rpc('reset_student_password', {
+            target_student_id: payload.studentUserId,
             new_password: payload.newPassword
         });
 
         if (error) {
-            // If RPC doesn't exist, try the admin api (which might fail on client)
-            if (error.message.includes('function admin_reset_password') || error.message.includes('does not exist')) {
-                const { error: adminError } = await supabase.auth.admin.updateUserById(payload.studentUserId, { password: payload.newPassword });
-                if (adminError) throw new Error("فشل التغيير: " + adminError.message + " (يرجى تنفيذ أوامر SQL الخاصة بالصلاحيات)");
-            } else {
-                throw new Error(error.message);
-            }
+             console.error("Password reset RPC error:", error);
+             if (error.message.includes('Not authorized')) {
+                 throw new Error("غير مصرح لك بتغيير كلمة مرور هذا الطالب. تأكد من أنك ولي الأمر المرتبط به.");
+             }
+             // محاولة أخيرة كمدير نظام (إذا كان المستخدم الحالي أدمن)
+             try {
+                 const { error: adminError } = await supabase.auth.admin.updateUserById(payload.studentUserId, { password: payload.newPassword });
+                 if (adminError) throw adminError;
+             } catch (e) {
+                  throw new Error("فشل تغيير كلمة المرور: " + error.message);
+             }
         }
         
         return { success: true };

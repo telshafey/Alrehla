@@ -46,10 +46,11 @@ const TrainingJourneyPage: React.FC = () => {
         setNewMessage(''); // Optimistic clear
         
         try {
+            // نمرر تفاصيل المستخدم كاملة لتخزينها (في حال دعم الباك إند لذلك مستقبلاً)
             await sendSessionMessage.mutateAsync({
                 bookingId: journeyId,
                 senderId: currentUser.id,
-                role: currentUser.role, // This must match allowed values in DB Constraint
+                role: currentUser.role, 
                 message: messageToSend
             });
             // Refetch to confirm and show the message
@@ -88,7 +89,7 @@ const TrainingJourneyPage: React.FC = () => {
         let bubbleColor = 'bg-white border-gray-200 text-gray-800';
         let align = isMe ? 'justify-end' : 'justify-start';
 
-        // Custom Labels & Colors based on Role
+        // تحديد الاسم بناءً على الدور (يمكن تحسينه بجلب الاسم الحقيقي إذا توفر في البيانات)
         switch (role) {
             case 'student':
                 label = 'الطالب';
@@ -114,7 +115,7 @@ const TrainingJourneyPage: React.FC = () => {
                 if (!isMe) bubbleColor = 'bg-red-50 border-red-200 text-red-900';
                 break;
             default:
-                label = 'غير معروف';
+                label = 'مشارك';
                 break;
         }
         
@@ -137,8 +138,15 @@ const TrainingJourneyPage: React.FC = () => {
     const instructorName = (journeyData as any).instructor?.name || 'غير محدد';
     const bookingPackageName = (booking as any).package_name || 'باقة تدريبية';
     
-    // استخراج المسودة المحفوظة من تفاصيل الحجز
+    // استخراج المسودة المحفوظة
     const savedDraft = (booking as any).details?.draft;
+
+    // تحديد صلاحية تعديل المسودة:
+    // مسموح فقط لـ: الطالب صاحب الحجز، أو ولي الأمر صاحب الحجز
+    const canEditDraft = currentUser && (
+        (currentUser.role === 'student' && childProfile?.student_user_id === currentUser.id) || // الطالب نفسه
+        (currentUser.id === booking.user_id) // ولي الأمر
+    );
 
     return (
         <div className="bg-muted/40 py-10 animate-fadeIn min-h-screen">
@@ -163,15 +171,22 @@ const TrainingJourneyPage: React.FC = () => {
                                         <TabsTrigger value="attachments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3"><Paperclip size={16} className="ml-2"/> ملفات ومرفقات</TabsTrigger>
                                     </TabsList>
 
+                                    {/* تبويب المسودة: يتم تمرير صلاحية التعديل */}
                                     <TabsContent value="draft" className="flex-grow h-full">
-                                        <WritingDraftPanel journeyId={booking.id} canInteract={true} initialDraft={savedDraft} />
+                                        <WritingDraftPanel 
+                                            journeyId={booking.id} 
+                                            canEdit={!!canEditDraft} 
+                                            initialDraft={savedDraft} 
+                                        />
                                     </TabsContent>
 
+                                    {/* تبويب المحادثة: متاح للجميع */}
                                     <TabsContent value="discussion" className="flex-grow flex flex-col h-[500px]">
                                         <div className="flex-grow overflow-y-auto space-y-4 mb-4 p-4 bg-muted/30 rounded-xl border">
                                             {messages.length > 0 ? messages.map((msg: any) => {
                                                 const { label, icon, bubbleColor, align } = getSenderInfo(msg.sender_role, msg.sender_id);
                                                 const isMe = msg.sender_id === currentUser?.id;
+                                                const timeString = new Date(msg.created_at).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'});
                                                 
                                                 return (
                                                     <div key={msg.id} className={`flex ${align}`}>
@@ -180,7 +195,7 @@ const TrainingJourneyPage: React.FC = () => {
                                                                 <div className="flex items-center gap-1 text-[10px] font-bold opacity-90">
                                                                     {icon} {label}
                                                                 </div>
-                                                                <p className="text-[9px] opacity-60" dir="ltr">{new Date(msg.created_at).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'})}</p>
+                                                                <p className="text-[9px] opacity-60" dir="ltr">{timeString}</p>
                                                             </div>
                                                             <p className="text-sm leading-relaxed whitespace-pre-wrap pt-1">{msg.message_text}</p>
                                                         </div>
@@ -190,6 +205,7 @@ const TrainingJourneyPage: React.FC = () => {
                                                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                                                     <MessageSquare size={48} className="opacity-20 mb-2"/>
                                                     <p>لا توجد رسائل بعد. ابدأ المحادثة الآن!</p>
+                                                    <p className="text-xs text-gray-400 mt-1">المحادثة متاحة للمدرب والطالب وولي الأمر.</p>
                                                 </div>
                                             )}
                                             <div ref={chatEndRef} />
@@ -213,12 +229,13 @@ const TrainingJourneyPage: React.FC = () => {
                                         </form>
                                     </TabsContent>
 
+                                    {/* تبويب المرفقات: متاح للجميع */}
                                     <TabsContent value="attachments">
                                         <div className="space-y-6">
                                             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex justify-between items-center">
                                                 <div>
                                                     <h3 className="font-bold text-blue-900">مشاركة الملفات</h3>
-                                                    <p className="text-xs text-blue-700 mt-1">يمكنك رفع صور أو مستندات (PDF, Word) لمشاركتها مع المدرب.</p>
+                                                    <p className="text-xs text-blue-700 mt-1">يمكنك رفع صور أو مستندات (PDF, Word) لمشاركتها مع المدرب والفريق.</p>
                                                 </div>
                                                 <div className="relative">
                                                     <input 

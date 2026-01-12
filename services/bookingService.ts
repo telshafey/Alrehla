@@ -41,6 +41,15 @@ const parseSessionCount = (sessionString: string | undefined): number => {
     return match ? parseInt(match[1], 10) : 1;
 };
 
+// helper to safely extract session count from package name if needed as fallback
+const getSessionCountFromPackage = (packageName: string): number => {
+    const match = packageName.match(/(\d+)/);
+    if (match && match[1]) return parseInt(match[1], 10);
+    if (packageName.includes('أربع') || packageName.includes('4')) return 4;
+    if (packageName.includes('ثمان') || packageName.includes('8')) return 8;
+    return 1;
+};
+
 // --- FAIL-FAST HELPER ---
 const executeWithRetry = async <T>(operation: () => Promise<{ data: T | null; error: any }>): Promise<T | null> => {
     // Attempt 1
@@ -145,20 +154,48 @@ export const bookingService = {
         } catch { return []; }
     },
 
-    // --- Validation ---
+    // --- Validation (Deep Check) ---
     
     async checkSlotAvailability(instructorId: number, dateStr: string, time: string): Promise<boolean> {
         try {
-            const { data, error } = await supabase
+            // 1. Get all active bookings for this instructor at this specific TIME (e.g. 10:00)
+            const { data: bookings, error } = await supabase
                 .from('bookings')
-                .select('id')
+                .select('booking_date, package_name')
                 .eq('instructor_id', instructorId)
                 .eq('booking_time', time)
-                .ilike('booking_date', `${dateStr.split('T')[0]}%`)
                 .neq('status', 'ملغي');
 
-            if (error) return true;
-            return data.length === 0;
+            if (error || !bookings) return true; // If error, assume open (fail open) or handle better
+
+            const requestedDate = new Date(dateStr);
+            requestedDate.setHours(0, 0, 0, 0);
+
+            // 2. Check overlap logic in memory
+            for (const booking of bookings) {
+                const bookingStart = new Date(booking.booking_date);
+                bookingStart.setHours(0, 0, 0, 0);
+
+                const diffTime = requestedDate.getTime() - bookingStart.getTime();
+                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+                // If diffDays is negative, it means requested date is BEFORE this booking, so no conflict 
+                // UNLESS the requested booking is long enough to overlap THIS booking. 
+                // For simplicity, we assume strictly FCFS (First Come First Served) for now.
+                // However, checking forward overlap:
+                
+                if (diffDays >= 0 && diffDays % 7 === 0) {
+                    const sessionCount = getSessionCountFromPackage(booking.package_name);
+                    const sessionIndex = diffDays / 7;
+                    
+                    if (sessionIndex < sessionCount) {
+                         // Conflict found!
+                         return false; 
+                    }
+                }
+            }
+
+            return true;
         } catch { return true; }
     },
 
