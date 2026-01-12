@@ -6,6 +6,7 @@ import { Menu, LogOut, PanelRightOpen, PanelRightClose, User, Settings } from 'l
 import { Card, CardContent, CardFooter } from '../ui/card';
 import { Button } from '../ui/Button';
 import Image from '../ui/Image';
+import AdminBreadcrumbs from './AdminBreadcrumbs';
 
 interface AdminNavbarProps {
     onMobileMenuToggle: () => void;
@@ -29,7 +30,7 @@ const AdminNavbar: React.FC<AdminNavbarProps> = ({ onMobileMenuToggle, isSidebar
     }, []);
 
     return (
-        <header className="flex-shrink-0 bg-background border-b z-30">
+        <header className="flex-shrink-0 bg-background border-b z-30 sticky top-0">
             <div className="flex items-center justify-between h-16 px-6">
                 <div className="flex items-center gap-4">
                     {/* Mobile Menu Button */}
@@ -48,18 +49,25 @@ const AdminNavbar: React.FC<AdminNavbarProps> = ({ onMobileMenuToggle, isSidebar
                     </div>
 
                     {/* Desktop Sidebar Toggle */}
-                     <Button onClick={onSidebarToggle} variant="ghost" size="icon" className="hidden md:block">
-                        {isSidebarCollapsed ? <PanelRightOpen size={24} /> : <PanelRightClose size={24} />}
+                     <Button onClick={onSidebarToggle} variant="ghost" size="icon" className="hidden md:block text-muted-foreground hover:text-foreground">
+                        {isSidebarCollapsed ? <PanelRightOpen size={20} /> : <PanelRightClose size={20} />}
                     </Button>
+                    
+                    {/* Breadcrumbs - Desktop Only */}
+                    <div className="hidden md:block mr-2 border-r pr-4 h-6 flex items-center">
+                        <AdminBreadcrumbs />
+                    </div>
                 </div>
                 
                 <div className="relative" ref={menuRef}>
-                    <Button onClick={() => setIsMenuOpen(prev => !prev)} variant="ghost" className="flex items-center gap-2 p-2 rounded-full">
+                    <Button onClick={() => setIsMenuOpen(prev => !prev)} variant="ghost" className="flex items-center gap-2 p-2 rounded-full hover:bg-muted">
                         <span className="font-semibold text-sm text-foreground hidden sm:block">{currentUser?.name}</span>
-                        <User size={20} className="text-muted-foreground"/>
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                             <User size={18} />
+                        </div>
                     </Button>
                     {isMenuOpen && (
-                        <Card className="absolute left-0 mt-2 w-56 origin-top-left animate-fadeIn z-50">
+                        <Card className="absolute left-0 mt-2 w-56 origin-top-left animate-fadeIn z-50 shadow-xl border-t-2 border-t-primary">
                             <CardContent className="p-1">
                                 <Link to="/admin/my-profile" onClick={() => setIsMenuOpen(false)} className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent flex items-center gap-2">
                                     <Settings size={16} />
@@ -71,7 +79,7 @@ const AdminNavbar: React.FC<AdminNavbarProps> = ({ onMobileMenuToggle, isSidebar
                                 </Link>
                             </CardContent>
                              <CardFooter className="p-1 border-t">
-                                 <button onClick={signOut} className="w-full text-right flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md">
+                                 <button onClick={signOut} className="w-full text-right flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md transition-colors">
                                     <LogOut size={16} />
                                     تسجيل الخروج
                                 </button>
@@ -79,6 +87,11 @@ const AdminNavbar: React.FC<AdminNavbarProps> = ({ onMobileMenuToggle, isSidebar
                         </Card>
                     )}
                 </div>
+            </div>
+            
+            {/* Breadcrumbs - Mobile Only (Below Header) */}
+            <div className="md:hidden px-6 py-2 border-b bg-muted/20 overflow-x-auto whitespace-nowrap">
+                 <AdminBreadcrumbs />
             </div>
         </header>
     );

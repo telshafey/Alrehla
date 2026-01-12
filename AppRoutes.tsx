@@ -4,7 +4,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 import PageLoader from './components/ui/PageLoader';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import ProfileCompletionGuard from './components/auth/ProfileCompletionGuard'; // Import Guard
+import ProfileCompletionGuard from './components/auth/ProfileCompletionGuard';
+import NotFoundPage from './components/shared/NotFoundPage';
 
 // --- Core Pages ---
 import PortalPage from './pages/PortalPage';
@@ -21,7 +22,7 @@ import TermsOfUsePage from './pages/TermsOfUsePage';
 
 // --- Auth Pages ---
 import AdminLoginPage from './pages/admin/AdminLoginPage';
-import ResetPasswordPage from './pages/ResetPasswordPage'; // New Page
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 import StudentLayout from './components/student/StudentLayout';
 import StudentDashboardPage from './pages/student/StudentDashboardPage';
@@ -101,11 +102,12 @@ const AppRoutes: React.FC = () => {
                     <Route path="/journey/:journeyId" element={<ProtectedRoute><TrainingJourneyPage /></ProtectedRoute>} />
                     <Route path="/session/:sessionId" element={<ProtectedRoute><SessionPage /></ProtectedRoute>} />
                     
-                    {/* Dedicated Report Page for Instructors */}
                     <Route path="/admin/session-report/:sessionId" element={<ProtectedRoute adminOnly><SessionReportPage /></ProtectedRoute>} />
 
                     <Route path="/admin/*" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    
+                    {/* Fallback to 404 Page */}
+                    <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </ProfileCompletionGuard>
         </Suspense>

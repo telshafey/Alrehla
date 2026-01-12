@@ -1,85 +1,80 @@
 
 import React, { useState, useEffect } from 'react';
 import { cn } from '../../lib/utils';
-import { ImageIcon, AlertCircle } from 'lucide-react';
+import { ImageIcon } from 'lucide-react';
 import { cloudinaryService } from '../../services/cloudinaryService';
 
 interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
     objectFit?: 'cover' | 'contain' | 'fill' | 'none';
     fallbackText?: string;
+    showSkeleton?: boolean;
 }
 
 const Image = React.forwardRef<HTMLImageElement, ImageProps>(
-  ({ src, alt, className, objectFit = 'cover', fallbackText, onLoad, ...props }, ref) => {
-    const [isLoaded, setIsLoaded] = useState(false);
-    const [hasError, setHasError] = useState(false);
+  ({ src, alt, className, objectFit = 'cover', fallbackText, showSkeleton = true, onLoad, onError, ...props }, ref) => {
+    const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
     const [displaySrc, setDisplaySrc] = useState<string>('');
 
-    // صورة بديلة موثوقة (يمكن استبدالها بصورة محلية في مجلد public)
-    const DEFAULT_PLACEHOLDER = 'https://placehold.co/600x400?text=No+Image';
+    // صورة بديلة موثوقة وخفيفة
+    const DEFAULT_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmM2Y0ZjYiLz48L3N2Zz4=';
 
     useEffect(() => {
-        // إعادة ضبط الحالة عند تغيير المصدر
-        setIsLoaded(false);
-        setHasError(false);
-
+        setStatus('loading');
+        
         if (!src) {
-            setHasError(true);
-            setDisplaySrc(DEFAULT_PLACEHOLDER);
+            setStatus('error');
             return;
         }
 
         try {
+            // محاولة تحسين الرابط إذا كان خارجياً
             const optimized = cloudinaryService.optimizeUrl(src);
             setDisplaySrc(optimized);
         } catch (e) {
-            // في حال فشل دالة التحسين، نستخدم الرابط الأصلي
             setDisplaySrc(src);
         }
     }, [src]);
 
     const handleLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-      setIsLoaded(true);
-      setHasError(false);
-      if (onLoad) onLoad(e);
+        setStatus('loaded');
+        if (onLoad) onLoad(e);
     };
 
-    const handleError = () => {
-        // منع الدخول في حلقة لا نهائية إذا فشلت الصورة البديلة أيضاً
-        if (!hasError) {
-            setHasError(true);
-            setIsLoaded(true); // نعتبرها محملة لإزالة الهيكل العظمي
+    const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+        // منع التكرار إذا كانت الصورة المعروضة هي الـ placeholder أصلاً
+        if (displaySrc !== DEFAULT_PLACEHOLDER) {
+            setStatus('error');
             setDisplaySrc(DEFAULT_PLACEHOLDER);
         }
+        if (onError) onError(e);
     };
 
     return (
-      <div className={cn("relative bg-gray-100 overflow-hidden flex items-center justify-center isolate", className)}>
+      <div className={cn("relative overflow-hidden bg-gray-100 flex items-center justify-center isolate", className)}>
         {/* Skeleton Loader */}
-        {!isLoaded && !hasError && (
+        {status === 'loading' && showSkeleton && (
           <div className="absolute inset-0 bg-gray-200 animate-pulse z-10" />
         )}
         
-        {/* Error State with Icon (Only shows if placeholder also fails or before placeholder loads) */}
-        {hasError && !displaySrc && (
-            <div className="flex flex-col items-center gap-2 text-muted-foreground/40 p-4 text-center z-0">
-                <ImageIcon size={32} />
-                {fallbackText && <span className="text-[10px] font-bold uppercase tracking-widest">{fallbackText}</span>}
+        {/* Error State Icon */}
+        {status === 'error' && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/30 z-0 p-2">
+                <ImageIcon size={24} />
+                {fallbackText && <span className="text-[9px] font-bold uppercase tracking-widest mt-1 text-center">{fallbackText}</span>}
             </div>
         )}
 
         <img
           ref={ref}
           src={displaySrc}
-          alt={alt || 'صورة'}
+          alt={alt || 'image'}
           loading="lazy"
           onLoad={handleLoad}
           onError={handleError}
           className={cn(
-            "w-full h-full transition-opacity duration-500 ease-in-out",
+            "w-full h-full transition-opacity duration-700 ease-in-out relative z-10",
             objectFit === 'cover' ? 'object-cover' : objectFit === 'contain' ? 'object-contain' : 'object-fill',
-            // إذا كان هناك خطأ، نعرض الصورة (التي أصبحت الآن الصورة البديلة)
-            isLoaded ? "opacity-100" : "opacity-0"
+            status === 'loaded' ? "opacity-100" : "opacity-0"
           )}
           {...props}
         />

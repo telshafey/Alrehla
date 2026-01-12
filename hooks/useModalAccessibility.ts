@@ -1,3 +1,4 @@
+
 import { useEffect, RefObject } from 'react';
 
 interface UseModalAccessibilityProps {

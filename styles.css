@@ -278,3 +278,61 @@ img,video{max-width:100%;height:auto}
 .xl\:col-span-2{grid-column:span 2/span 2}
 .xl\:col-span-3{grid-column:span 3/span 3}
 }
+
+/* Print Styles */
+@media print {
+    /* Hide Sidebars, Navbars, Buttons, and Layout Elements */
+    aside, header, footer, button, nav, .no-print, [role="tablist"], .tabs-list {
+        display: none !important;
+    }
+    
+    /* Ensure Body takes full width */
+    body, #root, main, .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+    }
+
+    /* Expand containers */
+    .flex-1 {
+        flex: none !important;
+        display: block !important;
+    }
+
+    /* Force tables to show borders */
+    table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+    }
+    th, td {
+        border: 1px solid #ddd !important;
+        padding: 8px !important;
+        color: black !important;
+    }
+
+    /* Remove shadows and backgrounds */
+    .shadow-lg, .shadow-md, .shadow-sm {
+        box-shadow: none !important;
+    }
+    .bg-muted\/30, .bg-gray-50, .bg-background {
+        background-color: white !important;
+    }
+    
+    /* Cards */
+    .card, .rounded-xl, .rounded-2xl {
+        border: 1px solid #eee !important;
+        border-radius: 0 !important;
+    }
+
+    /* Show specific print-only elements */
+    .print-only {
+        display: block !important;
+    }
+
+    /* Force page breaks if needed */
+    .page-break {
+        page-break-before: always;
+    }
+}

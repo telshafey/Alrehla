@@ -4,8 +4,7 @@ import { communicationService } from '../../../services/communicationService';
 import { orderService } from '../../../services/orderService';
 import { userService } from '../../../services/userService';
 import { bookingService } from '../../../services/bookingService';
-import { mockFetch } from '../../../services/mockAdapter';
-import { mockStandaloneServices } from '../../../data/mockData';
+import { supabase } from '../../../lib/supabaseClient';
 import type { ServiceOrderWithRelations } from '../../../lib/database.types';
 
 export const useAdminSupportTickets = () => useQuery({
@@ -25,7 +24,7 @@ export const useAdminSupportSessionRequests = () => useQuery({
          const instructors = await bookingService.getAllInstructors();
          const children = await userService.getAllChildProfiles();
          
-         // Manually join data (Backend usually does this)
+         // Manually join data
          return requests.map(r => ({
              ...r,
              instructor_name: instructors.find(i => i.id === r.instructor_id)?.name || 'N/A',
@@ -37,16 +36,16 @@ export const useAdminSupportSessionRequests = () => useQuery({
 export const useAdminServiceOrders = () => useQuery({
     queryKey: ['adminServiceOrders'],
     queryFn: async () => {
-        const [orders, usersResult, children, instructors, services] = await Promise.all([
+        const [orders, usersResult, children, instructors, servicesResult] = await Promise.all([
             orderService.getAllServiceOrders(),
-            userService.getAllUsers({ page: 1, pageSize: 1000 }), // Pass arguments to get larger list
+            userService.getAllUsers({ page: 1, pageSize: 1000 }),
             userService.getAllChildProfiles(),
             bookingService.getAllInstructors(),
-            mockFetch(mockStandaloneServices) // Should be in a service too
+            supabase.from('standalone_services').select('*') // Fetch REAL services
         ]);
 
-        // Fix: usersResult is { users: UserProfile[], count: number }
         const users = usersResult.users;
+        const services = servicesResult.data || [];
 
         return orders.map(order => ({
             ...order,

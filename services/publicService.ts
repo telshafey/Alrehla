@@ -15,14 +15,8 @@ import type {
 import { 
     mockPricingSettings, 
     mockSiteContent, 
-    mockInstructors, 
-    mockCreativeWritingPackages, 
-    mockPersonalizedProducts,
-    mockStandaloneServices,
-    mockSubscriptionPlans,
     mockCommunicationSettings,
     mockSocialLinks,
-    mockComparisonItems
 } from '../data/mockData';
 
 interface PublicData {
@@ -63,30 +57,27 @@ export const publicService = {
             supabase.from('comparison_items').select('*').order('sort_order')
         ]);
 
+        // Helper to get settings. 
+        // Note: For settings (single row configs like branding/texts), we still keep the seed logic 
+        // inside 'contentService' or 'settingsService' to populate the DB once if empty, 
+        // but here we just read what's there.
         const getSetting = (key: string, defaultValue?: any) => {
             const item = (settingsData as any[])?.find(s => s.key === key);
             return item ? item.value : defaultValue || null;
         };
 
-        // Fallback Logic: Use Mock Data if DB returns empty arrays (meaning table exists but empty)
-        // This ensures the site doesn't look broken initially
-        const finalInstructors = instructors && instructors.length > 0 ? instructors : mockInstructors;
-        const finalProducts = personalizedProducts && personalizedProducts.length > 0 ? personalizedProducts : mockPersonalizedProducts;
-        const finalPackages = creativeWritingPackages && creativeWritingPackages.length > 0 ? creativeWritingPackages : mockCreativeWritingPackages;
-        const finalServices = standaloneServices && standaloneServices.length > 0 ? standaloneServices : mockStandaloneServices;
-        const finalPlans = subscriptionPlans && subscriptionPlans.length > 0 ? subscriptionPlans : mockSubscriptionPlans;
-        const finalComparisonItems = comparisonItems && comparisonItems.length > 0 ? comparisonItems : mockComparisonItems;
-
         return {
-            instructors: finalInstructors || [],
-            blogPosts: blogPosts || [], // Blog posts can be empty initially
-            personalizedProducts: finalProducts || [],
-            creativeWritingPackages: finalPackages || [],
-            subscriptionPlans: finalPlans || [],
-            standaloneServices: finalServices || [],
-            badges: badges || [],
-            comparisonItems: finalComparisonItems || [],
+            // REAL DATA ONLY: If DB is empty, return empty array.
+            instructors: (instructors as Instructor[]) || [],
+            blogPosts: (blogPosts as BlogPost[]) || [],
+            personalizedProducts: (personalizedProducts as PersonalizedProduct[]) || [],
+            creativeWritingPackages: (creativeWritingPackages as CreativeWritingPackage[]) || [],
+            subscriptionPlans: (subscriptionPlans as SubscriptionPlan[]) || [],
+            standaloneServices: (standaloneServices as StandaloneService[]) || [],
+            badges: (badges as any[]) || [],
+            comparisonItems: (comparisonItems as any[]) || [],
             
+            // Configs: Fallback to defaults only if DB row is missing entirely (Seeding logic)
             siteContent: getSetting('global_content', mockSiteContent),
             siteBranding: getSetting('branding'),
             socialLinks: getSetting('social_links', mockSocialLinks),

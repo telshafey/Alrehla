@@ -10,7 +10,7 @@ import ErrorState from '../components/ui/ErrorState';
 import WritingDraftPanel from '../components/student/WritingDraftPanel';
 import { 
     MessageSquare, Paperclip, FileText, Send, Upload, 
-    Edit3, ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users, UserCheck, Clock, CheckCircle2
+    Edit3, ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users, UserCheck, Clock, CheckCircle2, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
@@ -24,7 +24,7 @@ const TrainingJourneyPage: React.FC = () => {
     const { journeyId } = useParams<{ journeyId: string }>();
     const { currentUser } = useAuth();
     const { addToast } = useToast();
-    const { data: journeyData, isLoading, refetch } = useTrainingJourneyData(journeyId);
+    const { data: journeyData, isLoading, refetch, isRefetching } = useTrainingJourneyData(journeyId);
     const { sendSessionMessage, uploadSessionAttachment } = useBookingMutations();
 
     const [activeTab, setActiveTab] = useState<'draft' | 'discussion' | 'attachments'>('draft');
@@ -79,33 +79,26 @@ const TrainingJourneyPage: React.FC = () => {
         }
     };
     
-    // دالة مساعدة لتحديد هوية المرسل وتنسيق الرسالة
     const getSenderInfo = (role: UserRole, senderId: string) => {
         const isMe = currentUser?.id === senderId;
         
         let label = 'مستخدم';
-        let icon = <User size={12} />;
         let bubbleColor = 'bg-white text-gray-800 border border-gray-100';
         let align = isMe ? 'justify-end' : 'justify-start';
         let avatarUrl = null;
 
-        // محاولة جلب الصورة بناءً على الدور (من البيانات المتوفرة في الحجز)
         if (role === 'instructor') {
             label = 'المدرب';
-            icon = <UserCheck size={12} />;
             bubbleColor = 'bg-amber-50 border-amber-100 text-gray-800';
             avatarUrl = (journeyData as any)?.instructor?.avatar_url;
         } else if (role === 'student') {
             label = 'الطالب';
-            icon = <GraduationCap size={12} />;
             bubbleColor = 'bg-blue-50 border-blue-100 text-gray-800';
             avatarUrl = (journeyData as any)?.childProfile?.avatar_url;
         } else if (['parent', 'user'].includes(role)) {
             label = 'ولي الأمر';
-            icon = <Users size={12} />;
         } else {
             label = 'الإدارة';
-            icon = <ShieldAlert size={12} />;
             bubbleColor = 'bg-red-50 border-red-100 text-gray-800';
         }
         
@@ -114,7 +107,7 @@ const TrainingJourneyPage: React.FC = () => {
             label = 'أنت';
         }
         
-        return { label, icon, bubbleColor, align, avatarUrl };
+        return { label, bubbleColor, align, avatarUrl };
     };
 
     if (isLoading) return <PageLoader />;
@@ -125,7 +118,6 @@ const TrainingJourneyPage: React.FC = () => {
 
     const { booking, scheduledSessions, messages, attachments, childProfile } = journeyData;
     const instructorName = (journeyData as any).instructor?.name || 'غير محدد';
-    const instructorAvatar = (journeyData as any).instructor?.avatar_url;
     const bookingPackageName = (booking as any).package_name || 'باقة تدريبية';
     const savedDraft = (booking as any).details?.draft;
 
@@ -134,25 +126,35 @@ const TrainingJourneyPage: React.FC = () => {
         (currentUser.id === booking.user_id)
     );
     
-    // تحديد الجلسة القادمة
     const upcomingSession = scheduledSessions.find((s: any) => s.status === 'upcoming');
+    const isPendingApproval = booking.status === 'بانتظار المراجعة' || booking.status === 'بانتظار الدفع';
 
-    // تحديد رابط العودة المناسب
     const backLink = currentUser?.role === 'student' 
         ? "/student/dashboard" 
         : ['instructor', 'super_admin', 'creative_writing_supervisor'].includes(currentUser?.role || '')
-        ? "/admin" // المدربين والإداريين يعودون للوحة التحكم
-        : "/account"; // أولياء الأمور يعودون للحساب
+        ? "/admin"
+        : "/account";
 
     return (
         <div className="bg-gray-50/50 py-8 animate-fadeIn min-h-screen">
             <div className="container mx-auto px-4 max-w-7xl">
                 {/* Header */}
                 <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border">
-                    <div>
-                        <Link to={backLink} className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 mb-2">
-                             <ArrowLeft size={12} className="rotate-180"/> العودة
-                        </Link>
+                    <div className="flex-grow">
+                        <div className="flex items-center justify-between mb-2">
+                            <Link to={backLink} className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1">
+                                 <ArrowLeft size={12} className="rotate-180"/> العودة
+                            </Link>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => refetch()} 
+                                className="h-6 text-[10px] text-muted-foreground hover:text-primary"
+                                title="تحديث البيانات"
+                            >
+                                <RefreshCw size={12} className={`mr-1 ${isRefetching ? 'animate-spin' : ''}`} /> تحديث
+                            </Button>
+                        </div>
                         <h1 className="text-2xl font-black text-gray-800">{bookingPackageName}</h1>
                         <p className="text-muted-foreground font-medium text-sm flex items-center gap-2 mt-1">
                             <GraduationCap size={14}/> الطالب: {childProfile?.name} 
@@ -160,7 +162,7 @@ const TrainingJourneyPage: React.FC = () => {
                             <UserCheck size={14}/> المدرب: {instructorName}
                         </p>
                     </div>
-                    {upcomingSession && (
+                    {upcomingSession ? (
                         <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-center gap-3 animate-pulse">
                             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
                                 <Clock size={20} />
@@ -175,7 +177,11 @@ const TrainingJourneyPage: React.FC = () => {
                                 دخول
                             </Button>
                         </div>
-                    )}
+                    ) : isPendingApproval ? (
+                        <div className="bg-orange-50 border border-orange-200 text-orange-700 p-3 rounded-xl flex items-center gap-2 text-xs font-bold">
+                            <AlertCircle size={16} /> بانتظار اعتماد الإدارة لجدولة الجلسات
+                        </div>
+                    ) : null}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)] min-h-[600px]">
@@ -204,7 +210,7 @@ const TrainingJourneyPage: React.FC = () => {
                                             {/* Chat Area */}
                                             <div className="flex-grow overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#e5ddd5] bg-opacity-30" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/subtle-white-feathers.png')"}}>
                                                 {messages.length > 0 ? messages.map((msg: any, idx: number) => {
-                                                    const { label, icon, bubbleColor, align, avatarUrl } = getSenderInfo(msg.sender_role, msg.sender_id);
+                                                    const { label, bubbleColor, align, avatarUrl } = getSenderInfo(msg.sender_role, msg.sender_id);
                                                     const isMe = currentUser?.id === msg.sender_id;
                                                     const timeString = new Date(msg.created_at).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'});
                                                     const showAvatar = !isMe && (idx === 0 || messages[idx-1].sender_id !== msg.sender_id);
@@ -233,7 +239,6 @@ const TrainingJourneyPage: React.FC = () => {
                                                             <MessageSquare size={32} className="text-primary"/>
                                                         </div>
                                                         <p>مساحة النقاش مفتوحة!</p>
-                                                        <p className="text-xs">تواصل مع فريقك هنا.</p>
                                                     </div>
                                                 )}
                                                 <div ref={chatEndRef} />
@@ -268,7 +273,6 @@ const TrainingJourneyPage: React.FC = () => {
                                                         <Upload size={24} />
                                                     </div>
                                                     <h3 className="font-bold text-gray-800 text-sm">رفع ملف جديد</h3>
-                                                    <p className="text-xs text-gray-500 mt-1 mb-4">صور، PDF، مستندات</p>
                                                     <input 
                                                         type="file" 
                                                         ref={fileInputRef}
@@ -281,7 +285,7 @@ const TrainingJourneyPage: React.FC = () => {
                                                         as="label" 
                                                         htmlFor="file-upload" 
                                                         loading={uploadSessionAttachment.isPending} 
-                                                        className="cursor-pointer h-9 px-6 text-xs"
+                                                        className="cursor-pointer h-9 px-6 text-xs mt-2"
                                                     >
                                                         {uploadSessionAttachment.isPending ? 'جاري الرفع...' : 'اختر ملفاً'}
                                                     </Button>
@@ -301,18 +305,11 @@ const TrainingJourneyPage: React.FC = () => {
                                                                 <p className="text-[10px] text-muted-foreground">{formatDate(att.created_at)}</p>
                                                             </div>
                                                         </div>
-                                                        <a 
-                                                            href={att.file_url} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer" 
-                                                            className="p-2 text-gray-400 hover:text-primary transition-colors bg-gray-50 hover:bg-blue-50 rounded-full"
-                                                        >
+                                                        <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="p-2 text-gray-400 hover:text-primary transition-colors bg-gray-50 hover:bg-blue-50 rounded-full">
                                                             <Download size={16}/>
                                                         </a>
                                                     </div>
-                                                )) : (
-                                                    <p className="text-xs text-gray-400 text-center py-4">لا توجد ملفات.</p>
-                                                )}
+                                                )) : <p className="text-xs text-gray-400 text-center py-4">لا توجد ملفات.</p>}
                                             </div>
                                         </TabsContent>
                                     </div>
@@ -329,35 +326,42 @@ const TrainingJourneyPage: React.FC = () => {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-0 flex-grow overflow-y-auto custom-scrollbar">
-                                <div className="p-3 space-y-3">
-                                    {scheduledSessions.map((s: any, idx: number) => {
-                                        const isCompleted = s.status === 'completed';
-                                        const isUpcoming = s.status === 'upcoming';
-                                        const isNext = upcomingSession?.id === s.id;
+                                {scheduledSessions.length > 0 ? (
+                                    <div className="p-3 space-y-3">
+                                        {scheduledSessions.map((s: any, idx: number) => {
+                                            const isCompleted = s.status === 'completed';
+                                            const isUpcoming = s.status === 'upcoming';
+                                            const isNext = upcomingSession?.id === s.id;
 
-                                        return (
-                                            <div key={s.id} className={`p-3 rounded-lg border relative transition-all ${
-                                                isNext ? 'bg-blue-50 border-blue-200 shadow-sm ring-1 ring-blue-200' :
-                                                isCompleted ? 'bg-green-50/50 border-green-100 opacity-80' : 'bg-white hover:bg-gray-50'
-                                            }`}>
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <span className={`text-xs font-bold ${isNext ? 'text-blue-700' : 'text-gray-700'}`}>جلسة {idx + 1}</span>
-                                                    {isCompleted && <CheckCircle2 size={14} className="text-green-600"/>}
-                                                    {isNext && <span className="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded animate-pulse">القادمة</span>}
+                                            return (
+                                                <div key={s.id} className={`p-3 rounded-lg border relative transition-all ${
+                                                    isNext ? 'bg-blue-50 border-blue-200 shadow-sm ring-1 ring-blue-200' :
+                                                    isCompleted ? 'bg-green-50/50 border-green-100 opacity-80' : 'bg-white hover:bg-gray-50'
+                                                }`}>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className={`text-xs font-bold ${isNext ? 'text-blue-700' : 'text-gray-700'}`}>جلسة {idx + 1}</span>
+                                                        {isCompleted && <CheckCircle2 size={14} className="text-green-600"/>}
+                                                        {isNext && <span className="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded animate-pulse">القادمة</span>}
+                                                    </div>
+                                                    <div className="text-[11px] text-muted-foreground mb-2 flex items-center gap-1">
+                                                        <Clock size={10} />
+                                                        {formatDate(s.session_date)}
+                                                    </div>
+                                                    {isUpcoming && currentUser && (['student', 'parent', 'instructor', 'super_admin'].some(r => r === currentUser.role)) && (
+                                                        <Button as={Link} to={`/session/${s.id}`} size="sm" className={`w-full h-7 text-[10px] ${isNext ? 'bg-blue-600 hover:bg-blue-700' : ''}`} variant={isNext ? 'default' : 'outline'}>
+                                                            {isNext ? 'بدء الجلسة' : 'دخول'}
+                                                        </Button>
+                                                    )}
                                                 </div>
-                                                <div className="text-[11px] text-muted-foreground mb-2 flex items-center gap-1">
-                                                    <Clock size={10} />
-                                                    {formatDate(s.session_date)}
-                                                </div>
-                                                {isUpcoming && currentUser && (['student', 'parent', 'instructor', 'super_admin'].some(r => r === currentUser.role)) && (
-                                                    <Button as={Link} to={`/session/${s.id}`} size="sm" className={`w-full h-7 text-[10px] ${isNext ? 'bg-blue-600 hover:bg-blue-700' : ''}`} variant={isNext ? 'default' : 'outline'}>
-                                                        {isNext ? 'بدء الجلسة' : 'دخول'}
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="p-6 text-center text-muted-foreground text-xs">
+                                        <p>لم تتم جدولة الجلسات بعد.</p>
+                                        <p className="mt-1 opacity-70">ستظهر هنا فور تأكيد الحجز من الإدارة.</p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </div>

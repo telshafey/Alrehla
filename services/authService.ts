@@ -43,24 +43,9 @@ export const authService = {
         }
 
         if (!profile) {
-            // Auto-fix for missing rows (Fallback logic)
-            const newProfile = {
-                id: authUser.id,
-                email: normalizedEmail,
-                name: authUser.user_metadata?.name || normalizedEmail.split('@')[0],
-                role: (normalizedEmail.includes('admin') ? 'super_admin' : 'user') as UserRole,
-                created_at: new Date().toISOString()
-            };
-            
-            const { data: createdProfile } = await (supabase.from('profiles') as any)
-                .insert([newProfile])
-                .select()
-                .single();
-            
-            return {
-                user: createdProfile as UserProfile,
-                accessToken: authData.session?.access_token || '',
-            };
+            // إذا نجحت المصادقة ولكن لم يتم العثور على الملف الشخصي (حالة نادرة لتكامل البيانات)
+            // نمنع الدخول لتجنب الأخطاء في النظام
+            throw new Error("عذراً، لم يتم العثور على ملف المستخدم المرتبط بهذا الحساب. يرجى التواصل مع الدعم الفني.");
         }
 
         return {
@@ -135,6 +120,16 @@ export const authService = {
                 created_at: new Date().toISOString()
             });
             if (error) console.error("Registration DB Error:", error);
+            
+            // Auto-create child profile if parent registers, to smooth onboarding
+            if (role === 'parent' || role === 'user') {
+                 await (supabase.from('child_profiles') as any).insert({
+                    user_id: authData.user.id,
+                    name: 'طفلي الأول',
+                    birth_date: new Date().toISOString().split('T')[0],
+                    gender: 'ذكر'
+                });
+            }
         }
         
         return {
@@ -152,11 +147,8 @@ export const authService = {
         }
     },
 
-    // New Function for Password Reset
     async resetPasswordForEmail(email: string) {
-        // Redirect to the reset-password page on your site
         const redirectTo = `${window.location.origin}/reset-password`;
-        
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
             redirectTo: redirectTo,
         });

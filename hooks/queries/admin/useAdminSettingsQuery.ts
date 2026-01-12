@@ -7,7 +7,6 @@ import {
     mockRolePermissions,
     mockCommunicationSettings,
     mockJitsiSettings,
-    mockAdditionalServices
 } from '../../../data/mockData';
 import { bookingService } from '../../../services/bookingService';
 import { DEFAULT_CONFIG } from '../../../lib/config';
@@ -16,6 +15,8 @@ import { DEFAULT_CONFIG } from '../../../lib/config';
 const fetchSetting = async (key: string, seedValue: any) => {
     const { data, error } = await supabase.from('site_settings').select('value').eq('key', key).maybeSingle();
     
+    // Auto-Seed logic: Only runs if the KEY is missing entirely from the DB.
+    // This ensures we have a structure to work with, but the content is persisted in DB.
     if (error || !data || (data as any).value === undefined || (data as any).value === null) {
         await supabase.from('site_settings').upsert({
              key: key,
@@ -31,13 +32,14 @@ const fetchSetting = async (key: string, seedValue: any) => {
 export const useAdminCWSettings = () => useQuery({
     queryKey: ['adminCWSettings'],
     queryFn: async () => {
-        const [packages, standaloneServices, services, comparisonItems] = await Promise.all([
+        const [packages, standaloneServices, comparisonItems] = await Promise.all([
             bookingService.getAllPackages(),
             bookingService.getAllStandaloneServices(),
-            fetchSetting('additional_services', mockAdditionalServices),
             bookingService.getAllComparisonItems(),
         ]);
-        return { packages, services, standaloneServices, comparisonItems };
+        
+        // Return REAL DB data. If empty, the UI will show empty states/tables.
+        return { packages, services: [], standaloneServices, comparisonItems };
     },
     staleTime: 1000 * 60 * 5 
 });
@@ -67,7 +69,6 @@ export const useAdminRolePermissions = () => useQuery({
     queryFn: () => fetchSetting('role_permissions', mockRolePermissions),
 });
 
-// New Query for System Config
 export const useAdminSystemConfig = () => useQuery({
     queryKey: ['adminSystemConfig'],
     queryFn: () => fetchSetting('system_config', DEFAULT_CONFIG),

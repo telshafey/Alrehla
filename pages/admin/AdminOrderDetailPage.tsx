@@ -25,7 +25,8 @@ const emotionMap: { [key: string]: string } = {
 const AdminOrderDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    // Fix: Extract data correctly. data is { orders: [], count: number }
+    
+    // Correctly extract data. data structure is { orders: [], count: number }
     const { data, isLoading } = useAdminOrders();
     const orders = data?.orders || [];
     

@@ -40,7 +40,6 @@ export const useStudentDashboardData = () => {
             const parentName = parentProfile?.name || 'ولي أمر';
 
             // 3. جلب البيانات المرتبطة من الجداول الحقيقية فقط
-            // نضيف scheduled_sessions هنا
             const [bookingsRes, ordersRes, subsRes, badgesRes, attachmentsRes, sessionsRes] = await Promise.all([
                 supabase.from('bookings').select('*, instructors(name, id, avatar_url, specialty)').eq('child_id', childId),
                 supabase.from('orders').select('*').eq('child_id', childId),
@@ -99,7 +98,7 @@ export const useTrainingJourneyData = (journeyId: string | undefined) => {
             if (bookingError) throw bookingError;
             if (!booking) throw new Error("Journey not found");
 
-            // Cast booking to any to safely access potentially joined properties that might be inferred as never
+            // Cast booking to any to safely access potentially joined properties
             const safeBooking = booking as any;
 
             const [sessionsRes, messagesRes, attachmentsRes, packagesRes] = await Promise.all([
@@ -114,12 +113,13 @@ export const useTrainingJourneyData = (journeyId: string | undefined) => {
                 package: packagesRes.data as CreativeWritingPackage | null,
                 instructor: safeBooking.instructors as Instructor,
                 childProfile: safeBooking.child_profiles,
+                // Explicitly cast empty arrays to prevent 'never[]' inference
                 scheduledSessions: (sessionsRes.data || []) as ScheduledSession[],
                 messages: (messagesRes.data || []) as SessionMessage[],
                 attachments: (attachmentsRes.data || []) as SessionAttachment[]
             };
         },
         enabled: !!journeyId,
-        refetchInterval: 5000, // تحديث تلقائي كل 5 ثواني لجلب الرسائل والملفات الجديدة
+        refetchInterval: 5000, 
     });
 };

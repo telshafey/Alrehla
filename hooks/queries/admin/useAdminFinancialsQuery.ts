@@ -2,39 +2,34 @@
 import { useQuery } from '@tanstack/react-query';
 import { orderService } from '../../../services/orderService';
 import { bookingService } from '../../../services/bookingService';
-import { reportingService } from '../../../services/reportingService'; // Assuming this uses DB now
+import { supabase } from '../../../lib/supabaseClient';
 
 export const useAdminFinancialsQuery = () => {
     return useQuery({
         queryKey: ['adminFinancials'],
         queryFn: async () => {
-            // Fetch real data
-            const [orders, bookings, subscriptions, serviceOrders, instructors, packages, services] = await Promise.all([
+            // Fetch real data directly
+            const [orders, bookings, subscriptions, serviceOrders, instructors, packagesResult, servicesResult] = await Promise.all([
                 orderService.getAllOrders(),
                 bookingService.getAllBookings(),
                 orderService.getAllSubscriptions(),
                 orderService.getAllServiceOrders(),
                 bookingService.getAllInstructors(),
-                // For settings/packages we usually fetch via public or dedicated settings service
-                // Assuming services/packages available in bookingService or publicService logic
-                // Using publicService indirectly or dedicated calls if available.
-                // For simplicity here, we might need dedicated admin getters if not public.
-                // Let's rely on reportingService aggregates if available, otherwise fetch manually.
-                // Re-using the manual fetch pattern:
-                import('../../../services/publicService').then(m => m.publicService.getAllPublicData().then(d => d.creativeWritingPackages)),
-                import('../../../services/publicService').then(m => m.publicService.getAllPublicData().then(d => d.standaloneServices)),
+                supabase.from('creative_writing_packages').select('*'),
+                supabase.from('standalone_services').select('*'),
             ]);
 
-            // Note: Payouts usually have their own table. 
-            // If `instructor_payouts` table exists, add a service method for it.
-            // For now returning empty array for payouts if service not ready.
-            const payouts: any[] = []; 
+            const packages = packagesResult.data || [];
+            const services = servicesResult.data || [];
+
+            // Payouts fetch (Real DB table)
+            const { data: payouts } = await supabase.from('instructor_payouts').select('*');
 
             return { 
                 orders, 
                 bookings, 
                 subscriptions, 
-                payouts, 
+                payouts: payouts || [], 
                 instructors, 
                 serviceOrders, 
                 packages, 
