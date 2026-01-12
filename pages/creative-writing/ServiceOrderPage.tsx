@@ -4,6 +4,7 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { usePublicData } from '../../hooks/queries/public/usePublicDataQuery';
 import { useCart } from '../../contexts/CartContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import PageLoader from '../../components/ui/PageLoader';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../../components/ui/card';
 import { Button } from '../../components/ui/Button';
@@ -23,6 +24,7 @@ const ServiceOrderPage: React.FC = () => {
     const { addItemToCart } = useCart();
     const { addToast } = useToast();
     const { data, isLoading } = usePublicData();
+    const { isProfileComplete, triggerProfileUpdate } = useAuth();
 
     const [file, setFile] = useState<File | null>(null);
     const [notes, setNotes] = useState('');
@@ -58,6 +60,12 @@ const ServiceOrderPage: React.FC = () => {
     const finalPrice = calculateCustomerPrice(netPrice, pricingConfig);
 
     const handleConfirm = () => {
+         // Enforce Profile Completion
+        if (!isProfileComplete) {
+            triggerProfileUpdate(true); // Mandatory
+            return;
+        }
+
         if (service.requires_file_upload && !file) {
             addToast('يرجى رفع الملف المطلوب للمتابعة.', 'warning');
             return;

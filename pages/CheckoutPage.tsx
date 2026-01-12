@@ -19,7 +19,7 @@ import { userService } from '../services/userService';
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
     const { addToast } = useToast();
-    const { currentUser } = useAuth();
+    const { currentUser, isProfileComplete, triggerProfileUpdate } = useAuth();
     const { createOrder } = useOrderMutations();
     const { createBooking } = useBookingMutations();
     const { createSubscription } = useSubscriptionMutations();
@@ -111,6 +111,13 @@ const CheckoutPage: React.FC = () => {
     };
 
     const handleConfirmPayment = async () => {
+        // Enforce Profile Completion
+        if (!isProfileComplete) {
+            triggerProfileUpdate(true); // Mandatory
+            addToast('يرجى استكمال بيانات التواصل قبل تأكيد الدفع.', 'info');
+            return;
+        }
+
         if (!receiptFile) {
             addToast('يرجى رفع إيصال الدفع أولاً.', 'warning');
             return;
@@ -165,7 +172,11 @@ const CheckoutPage: React.FC = () => {
                             )}
                             <a href={instapayUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 w-full bg-primary text-white font-bold py-3 rounded-full hover:bg-primary/90 transition-colors">فتح التطبيق</a>
                         </div>
-                        <div><h3 className="text-lg font-bold mb-2">2. ارفع صورة الإيصال</h3><ReceiptUpload file={receiptFile} setFile={setReceiptFile} disabled={isSubmitting} /></div>
+                        <div>
+                            <h3 className="text-lg font-bold mb-2">2. ارفع صورة الإيصال <span className="text-red-500">*</span></h3>
+                            <ReceiptUpload file={receiptFile} setFile={setReceiptFile} disabled={isSubmitting} />
+                            {!receiptFile && <p className="text-xs text-red-500 mt-1 text-center">رفع الإيصال إلزامي لإتمام الطلب</p>}
+                        </div>
                     </CardContent>
                     <CardFooter className="flex-col items-stretch space-y-4">
                          <Button onClick={handleConfirmPayment} loading={isSubmitting} disabled={!receiptFile || isSubmitting} variant="success" size="lg">تأكيد ورفع الإيصال</Button>

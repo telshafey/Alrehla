@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, FileText, Package, Plus, Edit, Trash2, Save, ImageIcon } from 'lucide-react';
+import { Star, FileText, Package, Plus, Edit, Trash2, Save, ImageIcon, ExternalLink, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAdminPersonalizedProducts, useAdminSubscriptionPlans } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useSubscriptionMutations } from '../../hooks/mutations/useSubscriptionMutations';
@@ -18,6 +19,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 
 const AdminSubscriptionBoxPage: React.FC = () => {
+    const navigate = useNavigate();
+    
     // Queries
     const { data: rawPlans = [], isLoading: plansLoading } = useAdminSubscriptionPlans();
     const { data: siteContentData, isLoading: contentLoading } = useAdminSiteContent();
@@ -110,6 +113,28 @@ const AdminSubscriptionBoxPage: React.FC = () => {
                 <div className="flex justify-between items-center">
                     <h1 className="text-3xl font-extrabold text-foreground">إدارة صندوق الرحلة الشهري</h1>
                 </div>
+                
+                {boxProduct && (
+                     <Card className="bg-blue-50 border-blue-200">
+                        <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <Settings className="text-blue-600" />
+                                <div>
+                                    <h3 className="font-bold text-blue-900">إدارة حقول التخصيص</h3>
+                                    <p className="text-sm text-blue-700">تحكم في الأسئلة والحقول التي تظهر للعميل عند الاشتراك (مثل: اهتمامات الطفل، اسم العائلة، الصور المطلوبة).</p>
+                                </div>
+                            </div>
+                            <Button 
+                                onClick={() => navigate(`/admin/personalized-products/${boxProduct.id}`)} 
+                                variant="outline" 
+                                className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50"
+                                icon={<ExternalLink size={16} />}
+                            >
+                                تعديل حقول المنتج
+                            </Button>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-8">

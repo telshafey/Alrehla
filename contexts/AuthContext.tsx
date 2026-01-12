@@ -23,6 +23,12 @@ interface AuthContextType {
     permissions: Permissions;
     childProfiles: ChildProfile[];
     isParent: boolean;
+    // New Profile Completion Helpers
+    isProfileComplete: boolean;
+    profileModalOpen: boolean;
+    isProfileMandatory: boolean;
+    triggerProfileUpdate: (mandatory?: boolean) => void;
+    closeProfileModal: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +39,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [childProfiles, setChildProfiles] = useState<ChildProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    
+    // Profile Completion State
+    const [profileModalOpen, setProfileModalOpen] = useState(false);
+    const [isProfileMandatory, setIsProfileMandatory] = useState(false);
+
     const { addToast } = useToast();
     const queryClient = useQueryClient();
 
@@ -120,6 +131,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const updateCurrentUser = (updatedData: Partial<UserProfile>) => {
         setCurrentUser(prev => prev ? { ...prev, ...updatedData } : null);
     };
+
+    // Helper to check profile completion status
+    const isProfileComplete = useMemo(() => {
+        if (!currentUser) return false;
+        // Check core fields: Country, City, Phone
+        return !!(currentUser.country && currentUser.city && currentUser.phone);
+    }, [currentUser]);
+
+    const triggerProfileUpdate = (mandatory: boolean = false) => {
+        setIsProfileMandatory(mandatory);
+        setProfileModalOpen(true);
+    };
+
+    const closeProfileModal = () => {
+        setProfileModalOpen(false);
+        setIsProfileMandatory(false);
+    };
     
     const value = useMemo(() => {
         const userRole = currentUser?.role || 'user';
@@ -140,8 +168,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             permissions: currentPermissions,
             childProfiles,
             isParent: childProfiles.length > 0,
+            isProfileComplete,
+            profileModalOpen,
+            isProfileMandatory,
+            triggerProfileUpdate,
+            closeProfileModal
         };
-    }, [currentUser, currentChildProfile, loading, error, childProfiles]);
+    }, [currentUser, currentChildProfile, loading, error, childProfiles, isProfileComplete, profileModalOpen, isProfileMandatory]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -10,48 +10,68 @@ import FormField from '../ui/FormField';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { supportedCountries } from '../../data/mockData';
-import { AlertCircle, Globe, LogOut } from 'lucide-react';
+import { Globe, LogOut, SkipForward, CheckCircle2 } from 'lucide-react';
 import { STAFF_ROLES } from '../../lib/roles';
 
 const ProfileCompletionGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    // 1. All Hooks must be called unconditionally at the top level
-    const { currentUser, loading, updateCurrentUser, signOut } = useAuth();
+    const { 
+        currentUser, 
+        loading, 
+        updateCurrentUser, 
+        signOut, 
+        isProfileComplete,
+        profileModalOpen,
+        isProfileMandatory,
+        triggerProfileUpdate,
+        closeProfileModal
+    } = useAuth();
+    
     const { updateUser } = useUserMutations();
     const { addToast } = useToast();
     const location = useLocation();
     
-    const [isOpen, setIsOpen] = useState(false);
     const [country, setCountry] = useState('EG');
     const [city, setCity] = useState('');
     const [phone, setPhone] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
-    // 2. useEffect logic (moved before any returns)
+    // Initial Check on Load
     useEffect(() => {
-        // If on admin route, ensure modal is closed
-        if (location.pathname.startsWith('/admin')) {
-            setIsOpen(false);
+        // Skip for admin routes, staff, students, or if already loading/complete
+        if (loading || !currentUser || location.pathname.startsWith('/admin') || 
+            STAFF_ROLES.includes(currentUser.role) || currentUser.role === 'student' || 
+            isProfileComplete) {
             return;
         }
 
-        if (!loading && currentUser) {
-            // Staff AND Students don't need profile completion checks here
-            // Staff have their own admin area, and Students inherit context from parents
-            if (STAFF_ROLES.includes(currentUser.role) || currentUser.role === 'student') {
-                setIsOpen(false);
-                return;
-            }
+        // Check if user has already skipped this session
+        const hasSkipped = sessionStorage.getItem('profile_skipped');
 
-            // Check if profile is complete for regular users (Parents/Customers)
-            const isComplete = currentUser.country && currentUser.city && currentUser.phone;
-            setIsOpen(!isComplete);
+        // Only trigger if not skipped, or if forced externally
+        if (!hasSkipped && !profileModalOpen) {
+            triggerProfileUpdate(false); // Default to Soft check (skippable)
         }
-    }, [loading, currentUser, location.pathname]);
+    }, [loading, currentUser, location.pathname, isProfileComplete]);
+
+    // Update local state when modal opens
+    useEffect(() => {
+        if (profileModalOpen && currentUser) {
+            setCountry(currentUser.country ? supportedCountries.find(c => c.name === currentUser.country)?.code || 'EG' : 'EG');
+            setCity(currentUser.city || '');
+            setPhone(currentUser.phone || '');
+        }
+    }, [profileModalOpen, currentUser]);
 
     const handleSignOut = async () => {
         await signOut();
-        setIsOpen(false);
+        closeProfileModal();
         window.location.href = '/';
+    };
+
+    const handleSkip = () => {
+        if (isProfileMandatory) return; // Cannot skip mandatory checks
+        sessionStorage.setItem('profile_skipped', 'true');
+        closeProfileModal();
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -83,8 +103,8 @@ const ProfileCompletionGuard: React.FC<{ children: React.ReactNode }> = ({ child
                 currency: selectedCountryData?.currency
             });
             
-            setIsOpen(false);
-            addToast('تم تحديث البيانات بنجاح', 'success');
+            closeProfileModal();
+            addToast('شكراً لك! تم تحديث بياناتك بنجاح.', 'success');
         } catch (error: any) {
             console.error("Failed to update profile", error);
         } finally {
@@ -92,62 +112,65 @@ const ProfileCompletionGuard: React.FC<{ children: React.ReactNode }> = ({ child
         }
     };
 
-    // 3. Conditional Rendering
+    // If modal is not open, just render children
+    if (!profileModalOpen) return <>{children}</>;
 
-    // If loading, we can return null (though often better to show a spinner, null is fine here)
-    if (loading) return null;
-
-    // Admin routes bypass the guard entirely visually
-    if (location.pathname.startsWith('/admin')) {
-        return <>{children}</>;
-    }
-
-    // Staff bypass the guard
-    if (currentUser && STAFF_ROLES.includes(currentUser.role)) {
-        return <>{children}</>;
-    }
-    
-    // Students bypass the guard
-    if (currentUser && currentUser.role === 'student') {
-        return <>{children}</>;
-    }
-
-    // If open, show modal
-    if (isOpen) {
-        return (
+    return (
+        <>
+            {children}
             <Modal
                 isOpen={true}
-                onClose={() => {}} // Prevent closing by clicking outside
-                title="استكمال البيانات الأساسية"
+                onClose={isProfileMandatory ? () => {} : handleSkip} // Only closeable if not mandatory
+                title={isProfileMandatory ? "بيانات مطلوبة للمتابعة" : "أكمل ملفك الشخصي"}
                 size="md"
                 footer={
                      <div className="w-full flex justify-between items-center gap-4">
-                        <Button 
-                            type="button"
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={handleSignOut} 
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 gap-2"
-                        >
-                            <LogOut size={16} /> تسجيل الخروج
-                        </Button>
-                         <Button type="submit" form="completion-form" loading={isSaving} size="default">
+                         {!isProfileMandatory ? (
+                            <Button 
+                                type="button"
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={handleSkip} 
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                <SkipForward size={16} className="mr-1" /> تخطي الآن
+                            </Button>
+                         ) : (
+                            <Button 
+                                type="button"
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={handleSignOut} 
+                                className="text-red-500 hover:text-red-700"
+                            >
+                                <LogOut size={16} className="mr-1" /> خروج
+                            </Button>
+                         )}
+                         
+                         <Button type="submit" form="completion-form" loading={isSaving} size="default" icon={<CheckCircle2 />}>
                             حفظ ومتابعة
                         </Button>
                     </div>
                 }
             >
                 <div className="space-y-6">
-                    <div className="bg-blue-50 p-4 rounded-lg flex gap-3 text-blue-800 text-sm">
+                    <div className={`${isProfileMandatory ? 'bg-orange-50 text-orange-800' : 'bg-blue-50 text-blue-800'} p-4 rounded-lg flex gap-3 text-sm`}>
                         <Globe className="shrink-0 mt-0.5" size={18} />
-                        <p>
-                            لضمان أفضل تجربة وضبط توقيت الجلسات وعرض الأسعار بما يناسبك، يرجى تحديد موقعك الجغرافي.
-                        </p>
+                        <div>
+                            {isProfileMandatory ? (
+                                <p className="font-bold">نحتاج هذه البيانات لإتمام طلبك.</p>
+                            ) : (
+                                <p className="font-bold">مرحباً بك في الرحلة!</p>
+                            )}
+                            <p className="mt-1 opacity-90">
+                                يساعدنا تحديد موقعك ورقم هاتفك في تقديم خدمة أفضل، وتسهيل التواصل عند توصيل الطلبات.
+                            </p>
+                        </div>
                     </div>
 
                     <form id="completion-form" onSubmit={handleSubmit} className="space-y-4">
-                        <FormField label="الدولة" htmlFor="country">
-                            <Select id="country" value={country} onChange={(e) => setCountry(e.target.value)} required>
+                        <FormField label="أين تقيم حالياً؟" htmlFor="country">
+                            <Select id="country" value={country} onChange={(e) => setCountry(e.target.value)} required autoFocus>
                                 {supportedCountries.map(c => (
                                     <option key={c.code} value={c.code}>{c.name} ({c.label})</option>
                                 ))}
@@ -159,28 +182,28 @@ const ProfileCompletionGuard: React.FC<{ children: React.ReactNode }> = ({ child
                                 id="city" 
                                 value={city} 
                                 onChange={(e) => setCity(e.target.value)} 
-                                placeholder="مثال: الرياض، القاهرة، دبي" 
+                                placeholder="اكتب اسم مدينتك..." 
                                 required 
                             />
                         </FormField>
 
-                        <FormField label="رقم الهاتف" htmlFor="phone">
+                        <FormField label="رقم الهاتف (للتواصل الهام فقط)" htmlFor="phone">
                             <Input 
                                 id="phone" 
                                 type="tel" 
                                 value={phone} 
                                 onChange={(e) => setPhone(e.target.value)} 
-                                placeholder="لتأكيد الحجوزات" 
+                                placeholder="01xxxxxxxxx" 
                                 required 
+                                dir="ltr"
+                                className="text-left font-mono"
                             />
                         </FormField>
                     </form>
                 </div>
             </Modal>
-        );
-    }
-
-    return <>{children}</>;
+        </>
+    );
 };
 
 export default ProfileCompletionGuard;

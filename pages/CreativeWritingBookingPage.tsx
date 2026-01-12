@@ -31,7 +31,7 @@ const stepsConfig = [
 const CreativeWritingBookingPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { isLoggedIn, currentUser, childProfiles, loading: authLoading } = useAuth();
+    const { isLoggedIn, currentUser, childProfiles, loading: authLoading, isProfileComplete, triggerProfileUpdate } = useAuth();
     const { addItemToCart } = useCart();
     const { addToast } = useToast();
     const { data: bookingData, isLoading: bookingDataLoading } = useBookingData();
@@ -160,6 +160,12 @@ const CreativeWritingBookingPage: React.FC = () => {
     };
 
     const handleSubmit = async () => {
+        // Enforce Profile Completion
+        if (!isProfileComplete) {
+            triggerProfileUpdate(true); // Mandatory
+            return;
+        }
+
         if (!childData.childName || !selectedPackage || !selectedInstructor || !selectedDateTime || finalPrice === null) {
             addToast('بيانات الحجز غير مكتملة.', 'error');
             return;

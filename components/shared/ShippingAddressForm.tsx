@@ -86,6 +86,43 @@ const ShippingAddressForm: React.FC<ShippingAddressFormProps> = (props) => {
         };
     };
 
+    // معالج خاص لمدخلات الهاتف لمنع الحروف
+    const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        // السماح فقط بالأرقام
+        if (!/^\d*$/.test(value)) {
+            return; // تجاهل الإدخال إذا لم يكن رقماً
+        }
+        
+        if (isContextMode && register) {
+            // في حالة React Hook Form، يتم التعامل مع التغيير عبر register
+            // لكن هنا نحتاج لتحديث القيمة يدوياً إذا أردنا منع الحروف فورياً
+            // الخيار الأبسط هو ترك التحقق للـ Schema أو استخدام Controller
+            // لكن للتبسيط هنا نمرر الحدث كما هو إذا كان رقماً
+            register(e.target.name).onChange(e);
+        } else if (props.handleChange) {
+            props.handleChange(e);
+        }
+    };
+
+    // Wrapper لـ getInputProps لدمج معالج الهاتف
+    const getPhoneProps = (fieldName: string) => {
+        const propsData = getInputProps(fieldName);
+        return {
+            ...propsData,
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                // فلترة المدخلات لتكون أرقاماً فقط
+                const val = e.target.value;
+                if (/^\d*$/.test(val)) {
+                    propsData.onChange(e);
+                }
+            },
+            type: 'tel',
+            inputMode: 'numeric' as const, // يظهر لوحة مفاتيح الأرقام في الموبايل
+            pattern: "[0-9]*"
+        };
+    };
+
     const isGift = shippingOption === 'gift';
 
     return (
@@ -108,7 +145,7 @@ const ShippingAddressForm: React.FC<ShippingAddressFormProps> = (props) => {
                         <Input type="text" {...getInputProps('recipientName')} placeholder="الاسم ثلاثي" />
                     </FormField>
                     <FormField label={isGift ? "هاتف المستلم*" : "رقم الهاتف*"} htmlFor="recipientPhone" error={errors.recipientPhone?.message || errors.recipientPhone}>
-                        <Input type="tel" {...getInputProps('recipientPhone')} placeholder="01xxxxxxxxx" dir="ltr" />
+                        <Input {...getPhoneProps('recipientPhone')} placeholder="01xxxxxxxxx" dir="ltr" />
                     </FormField>
                 </div>
                 

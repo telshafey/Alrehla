@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '../contexts/ToastContext';
@@ -10,12 +10,11 @@ import { Send, Gift, Check, Star, ArrowLeft } from 'lucide-react';
 import ShareButtons from '../components/shared/ShareButtons';
 import { Button } from '../components/ui/Button';
 import PageLoader from '../components/ui/PageLoader';
-import type { SubscriptionPlan, ChildProfile } from '../lib/database.types';
+import type { SubscriptionPlan, ChildProfile, PersonalizedProduct } from '../lib/database.types';
 import OrderStepper from '../components/order/OrderStepper';
 import SubscriptionSummary from '../components/subscription/SubscriptionSummary';
 import FormField from '../components/ui/FormField';
 import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import ImageUpload from '../components/shared/ImageUpload';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
@@ -62,18 +61,24 @@ const SubscriptionPage: React.FC = () => {
     const { addToast } = useToast();
     const { data, isLoading: contentLoading } = usePublicData();
     const { shippingCosts } = useProduct(); 
-    const { childProfiles, currentUser } = useAuth();
+    const { childProfiles, currentUser, isProfileComplete, triggerProfileUpdate } = useAuth();
 
     const content = data?.siteContent?.enhaLakPage.subscription;
     const subscriptionPlans = data?.subscriptionPlans || [];
+    const products = data?.personalizedProducts || [];
     const pageUrl = window.location.href;
+
+    // البحث عن منتج "صندوق الرحلة" لجلب الحقول الديناميكية
+    const subscriptionBoxProduct = useMemo(() => 
+        products.find((p: PersonalizedProduct) => p.key === 'subscription_box'), 
+    [products]);
 
     const [step, setStep] = useState<SubscriptionStep>('plan');
     const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
     const [isChildModalOpen, setIsChildModalOpen] = useState(false);
     
     // Initialize form data with user defaults
-    const [formData, setFormData] = useState(() => {
+    const [formData, setFormData] = useState<Record<string, any>>(() => {
         const defaultGov = currentUser?.governorate || 
             (currentUser?.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : 'القاهرة');
             
@@ -81,9 +86,6 @@ const SubscriptionPage: React.FC = () => {
             childName: '',
             childBirthDate: '',
             childGender: '' as 'ذكر' | 'أنثى' | '',
-            childTraits: '',
-            familyNames: '',
-            friendNames: '',
             shippingOption: 'my_address' as 'my_address' | 'gift',
             governorate: defaultGov,
             recipientName: currentUser?.name || '',
@@ -92,6 +94,7 @@ const SubscriptionPage: React.FC = () => {
             recipientEmail: currentUser?.email || '',
             giftMessage: '',
             sendDigitalCard: true,
+            // Dynamic fields will be added here
         };
     });
 
@@ -136,6 +139,12 @@ const SubscriptionPage: React.FC = () => {
     // Helper for non-event based updates (like shipping option buttons)
     const handleManualSetValue = (name: string, value: any) => {
         setFormData(prev => ({ ...prev, [name]: value }));
+        // Clear error for this field
+        if(errors[name]) setErrors(prev => {
+            const newErrors = {...prev};
+            delete newErrors[name];
+            return newErrors;
+        });
     };
 
     const handleFileChange = (id: string, file: File | null) => {
@@ -187,13 +196,36 @@ const SubscriptionPage: React.FC = () => {
                 if (!formData.childBirthDate) newErrors.childBirthDate = 'تاريخ ميلاد الطفل مطلوب.';
                 if (!formData.childGender) newErrors.childGender = 'الجنس مطلوب.';
                 break;
+            case 'customization':
+                // Dynamic Validation based on Admin Settings
+                if (subscriptionBoxProduct?.text_fields) {
+                    subscriptionBoxProduct.text_fields.forEach(field => {
+                        if (field.required && (!formData[field.id] || formData[field.id].trim() === '')) {
+                            newErrors[field.id] = `حقل "${field.label}" مطلوب.`;
+                        }
+                    });
+                }
+                break;
             case 'images':
-                 if (!imageFiles['child_photo_1']) newErrors['child_photo_1'] = 'صورة وجه الطفل إلزامية.';
+                 // Dynamic Image Validation
+                 if (subscriptionBoxProduct?.image_slots) {
+                     subscriptionBoxProduct.image_slots.forEach(slot => {
+                         if (slot.required && !imageFiles[slot.id]) {
+                             newErrors[slot.id] = `صورة "${slot.label}" مطلوبة.`;
+                         }
+                     });
+                 }
                 break;
             case 'delivery':
                 if (!formData.recipientName) newErrors.recipientName = 'اسم المستلم مطلوب.';
                 if (!formData.recipientAddress) newErrors.recipientAddress = 'عنوان المستلم مطلوب.';
-                if (!formData.recipientPhone) newErrors.recipientPhone = 'هاتف المستلم مطلوب.';
+                
+                if (!formData.recipientPhone) {
+                    newErrors.recipientPhone = 'هاتف المستلم مطلوب.';
+                } else if (!/^01[0125][0-9]{8}$/.test(formData.recipientPhone)) {
+                     newErrors.recipientPhone = 'يرجى إدخال رقم هاتف مصري صحيح (مثال: 01012345678)';
+                }
+
                 if (!formData.governorate) newErrors.governorate = 'المحافظة مطلوبة.';
                 break;
         }
@@ -210,6 +242,7 @@ const SubscriptionPage: React.FC = () => {
         const currentIndex = stepsConfig.findIndex(s => s.key === step);
         if (currentIndex < stepsConfig.length - 1) {
             setStep(stepsConfig[currentIndex + 1].key as SubscriptionStep);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
     
@@ -221,6 +254,12 @@ const SubscriptionPage: React.FC = () => {
     };
 
     const handleSubmit = async () => {
+         // Enforce Profile Completion
+        if (!isProfileComplete) {
+            triggerProfileUpdate(true); // Mandatory
+            return;
+        }
+
          if (!validateStep()) {
             addToast('يرجى مراجعة بيانات التوصيل.', 'warning');
             return;
@@ -279,28 +318,78 @@ const SubscriptionPage: React.FC = () => {
                 );
             case 'customization':
                 return (
-                        <div className="p-6 space-y-6 bg-gray-50 rounded-lg border">
-                            <FormField label="أخبرنا عن طفلك" htmlFor="childTraits">
-                                <Textarea id="childTraits" name="childTraits" value={formData.childTraits} onChange={handleChange} rows={4} placeholder="مثال: شجاع، يحب الديناصورات..."/>
-                            </FormField>
-                            <FormField label="أسماء أفراد العائلة" htmlFor="familyNames">
-                                <Textarea id="familyNames" name="familyNames" value={formData.familyNames} onChange={handleChange} rows={2} placeholder="مثال: الأم: فاطمة، الأب: علي"/>
-                            </FormField>
-                            <FormField label="أسماء الأصدقاء" htmlFor="friendNames">
-                                <Textarea id="friendNames" name="friendNames" value={formData.friendNames} onChange={handleChange} rows={2} placeholder="مثال: صديقه المقرب: خالد"/>
-                            </FormField>
-                       </div>
+                    <div className="p-6 space-y-6 bg-gray-50 rounded-lg border">
+                        <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg text-sm mb-4">
+                            <p>يتم استخدام هذه المعلومات لتخصيص القصة والأنشطة الشهرية لتناسب اهتمامات طفلك.</p>
+                        </div>
+                        
+                        {/* Dynamic Text Fields from DB */}
+                        {subscriptionBoxProduct?.text_fields && subscriptionBoxProduct.text_fields.length > 0 ? (
+                            subscriptionBoxProduct.text_fields.map(field => (
+                                <FormField 
+                                    key={field.id} 
+                                    label={field.label} // Use label exactly as Admin defined it (Admin adds * if required)
+                                    htmlFor={field.id}
+                                    error={errors[field.id]}
+                                >
+                                    {field.type === 'textarea' ? (
+                                        <Textarea 
+                                            id={field.id} 
+                                            name={field.id}
+                                            value={formData[field.id] || ''} 
+                                            onChange={handleChange} 
+                                            rows={3} 
+                                            placeholder={field.placeholder}
+                                        />
+                                    ) : (
+                                        <Input 
+                                            id={field.id} 
+                                            name={field.id}
+                                            value={formData[field.id] || ''} 
+                                            onChange={handleChange} 
+                                            placeholder={field.placeholder}
+                                        />
+                                    )}
+                                </FormField>
+                            ))
+                        ) : (
+                            // Fallback if no dynamic fields configured yet
+                            <>
+                                <FormField label="أخبرنا عن طفلك" htmlFor="childTraits">
+                                    <Textarea id="childTraits" name="childTraits" value={formData.childTraits} onChange={handleChange} rows={4} placeholder="مثال: شجاع، يحب الديناصورات..."/>
+                                </FormField>
+                                <FormField label="أسماء أفراد العائلة" htmlFor="familyNames">
+                                    <Textarea id="familyNames" name="familyNames" value={formData.familyNames} onChange={handleChange} rows={2} placeholder="مثال: الأم: فاطمة، الأب: علي"/>
+                                </FormField>
+                            </>
+                        )}
+                   </div>
                 );
             case 'images':
                  return (
-                     <>
-                         {errors['child_photo_1'] && <p className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg">{errors['child_photo_1']}</p>}
-                       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 rounded-lg border">
-                           <ImageUpload id="child_photo_1" label="صورة وجه الطفل (إلزامي)" onFileChange={handleFileChange} file={imageFiles['child_photo_1']} />
-                           <ImageUpload id="child_photo_2" label="صورة ثانية للطفل (اختياري)" onFileChange={handleFileChange} file={imageFiles['child_photo_2']} />
-                           <ImageUpload id="child_photo_3" label="صورة ثالثة للطفل (اختياري)" onFileChange={handleFileChange} file={imageFiles['child_photo_3']} />
-                       </div>
-                    </>
+                     <div className="space-y-6">
+                        {/* Dynamic Image Slots from DB */}
+                        {subscriptionBoxProduct?.image_slots && subscriptionBoxProduct.image_slots.length > 0 ? (
+                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 rounded-lg border">
+                                {subscriptionBoxProduct.image_slots.map(slot => (
+                                    <div key={slot.id}>
+                                         {errors[slot.id] && <p className="mb-2 text-sm text-red-600 bg-red-50 p-2 rounded">{errors[slot.id]}</p>}
+                                         <ImageUpload 
+                                            id={slot.id} 
+                                            label={slot.label} 
+                                            onFileChange={handleFileChange} 
+                                            file={imageFiles[slot.id]} 
+                                        />
+                                    </div>
+                                ))}
+                             </div>
+                        ) : (
+                             // Fallback
+                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 rounded-lg border">
+                                 <ImageUpload id="child_photo_1" label="صورة وجه الطفل (إلزامي)" onFileChange={handleFileChange} file={imageFiles['child_photo_1']} />
+                             </div>
+                        )}
+                    </div>
                  );
             case 'delivery':
                 return (
