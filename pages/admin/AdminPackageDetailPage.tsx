@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Calculator, Info } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Info, ListChecks, Type, CheckSquare } from 'lucide-react';
 import { useAdminCWSettings, useAdminPricingSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useCreativeWritingSettingsMutations } from '../../hooks/mutations/useCreativeWritingSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -25,6 +25,9 @@ const AdminPackageDetailPage: React.FC = () => {
     const { data: pricingConfig, isLoading: pricingLoading } = useAdminPricingSettings();
     const { createPackage, updatePackage } = useCreativeWritingSettingsMutations();
     
+    // استخراج معايير المقارنة من البيانات العامة
+    const comparisonItems = data?.comparisonItems || [];
+
     const [pkg, setPkg] = useState<Partial<CreativeWritingPackage>>({
         name: '',
         sessions: '',
@@ -48,6 +51,7 @@ const AdminPackageDetailPage: React.FC = () => {
             const foundPkg = data.packages.find(p => p.id === packageId);
             
             if (foundPkg) {
+                // تأكد من وجود كائن للقيم حتى لو كان فارغاً في قاعدة البيانات
                 setPkg({ ...foundPkg, comparison_values: foundPkg.comparison_values || {} });
                 setFeaturesString(foundPkg.features.join('\n'));
             } else {
@@ -74,6 +78,17 @@ const AdminPackageDetailPage: React.FC = () => {
             fixedFee: pricingConfig.fixed_fee
         };
     }, [pkg.price, pricingConfig]);
+
+    // معالج تغيير قيم المقارنة
+    const handleComparisonChange = (itemId: string, value: string | boolean) => {
+        setPkg(prev => ({
+            ...prev,
+            comparison_values: {
+                ...prev.comparison_values,
+                [itemId]: value
+            }
+        }));
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -114,7 +129,7 @@ const AdminPackageDetailPage: React.FC = () => {
             <form id="package-form" onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2 space-y-8">
                     <Card>
-                        <CardHeader><CardTitle>بيانات الباقة</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>بيانات الباقة الأساسية</CardTitle></CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField label="اسم الباقة*" htmlFor="name">
@@ -187,9 +202,61 @@ const AdminPackageDetailPage: React.FC = () => {
                             </div>
                         </CardContent>
                     </Card>
+                    
+                    {/* قسم قيم جدول المقارنة الجديد */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><ListChecks className="text-primary"/> قيم جدول المقارنة</CardTitle>
+                            <CardDescription>حدد القيم التي ستظهر في جدول المقارنة بين الباقات في الصفحة العامة.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {comparisonItems.length > 0 ? (
+                                <div className="space-y-5">
+                                    {comparisonItems.map((item) => (
+                                        <div key={item.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center border-b pb-4 last:border-0 last:pb-0">
+                                            <div className="font-semibold text-gray-700 md:col-span-1">
+                                                {item.label}
+                                                <span className="block text-[10px] text-muted-foreground font-mono">{item.id}</span>
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                {item.type === 'boolean' ? (
+                                                    <div className="flex items-center gap-3">
+                                                        <Checkbox 
+                                                            id={`comp-${item.id}`}
+                                                            checked={!!pkg.comparison_values?.[item.id]} 
+                                                            onCheckedChange={(checked) => handleComparisonChange(item.id, !!checked)} 
+                                                        />
+                                                        <label htmlFor={`comp-${item.id}`} className="text-sm cursor-pointer select-none">
+                                                            {pkg.comparison_values?.[item.id] ? 'متوفر (نعم)' : 'غير متوفر (لا)'}
+                                                        </label>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-2">
+                                                        <Type size={16} className="text-muted-foreground" />
+                                                        <Input 
+                                                            placeholder={`قيمة ${item.label}...`}
+                                                            value={(pkg.comparison_values?.[item.id] as string) || ''} 
+                                                            onChange={(e) => handleComparisonChange(item.id, e.target.value)} 
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-6 text-muted-foreground bg-muted/20 rounded-lg">
+                                    <p>لم يتم تعريف معايير مقارنة بعد.</p>
+                                    <Button variant="link" onClick={() => navigate('/admin/creative-writing-packages?tab=criteria')}>
+                                        إدارة المعايير من هنا
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
                     <Card>
-                        <CardHeader><CardTitle>الميزات والمقارنة</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>قائمة الميزات (للعرض في البطاقة)</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             <FormField label="الميزات (كل ميزة في سطر)" htmlFor="features">
                                 <Textarea id="features" value={featuresString} onChange={e => setFeaturesString(e.target.value)} rows={6} placeholder="جلسات تفاعلية&#10;متابعة دورية&#10;شهادة إتمام" />
@@ -211,6 +278,11 @@ const AdminPackageDetailPage: React.FC = () => {
                                     {Object.keys(IconMap).map(k => <option key={k} value={k}>{k}</option>)}
                                 </Select>
                             </FormField>
+                            <div className="flex justify-center p-4 bg-gray-50 rounded-lg border">
+                                <div className="w-16 h-16 flex items-center justify-center text-primary">
+                                    {IconMap[pkg.icon_name || 'Rocket']}
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

@@ -78,22 +78,29 @@ export const createOrderSchema = (product: PersonalizedProduct | undefined) => {
     }
 
     // Shipping & Gift Validation (Strict Checks)
-    if (data.deliveryType === 'printed' && data.shippingOption === 'gift') {
-      if (!data.recipientName || data.recipientName.trim() === '') {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "اسم المستلم مطلوب", path: ["recipientName"] });
-      }
-      if (!data.recipientAddress || data.recipientAddress.trim() === '') {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "عنوان المستلم مطلوب", path: ["recipientAddress"] });
-      }
-      
-      // الهاتف: يجب أن يكون أرقاماً فقط ويتبع التنسيق
-      if (!data.recipientPhone || !phoneRegex.test(data.recipientPhone)) {
-        ctx.addIssue({ 
-          code: z.ZodIssueCode.custom, 
-          message: "يرجى إدخال رقم هاتف مصري صحيح (مثال: 01012345678)", 
-          path: ["recipientPhone"] 
-        });
-      }
+    if (data.deliveryType === 'printed') {
+       // Validate Governorate specifically
+       if (!data.governorate || data.governorate.trim() === '') {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "المحافظة مطلوبة لحساب الشحن", path: ["governorate"] });
+       }
+
+       if (data.shippingOption === 'gift' || data.shippingOption === 'my_address') {
+          if (!data.recipientName || data.recipientName.trim() === '') {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "اسم المستلم مطلوب", path: ["recipientName"] });
+          }
+          if (!data.recipientAddress || data.recipientAddress.trim() === '') {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "العنوان التفصيلي مطلوب", path: ["recipientAddress"] });
+          }
+          
+          // الهاتف: يجب أن يكون أرقاماً فقط ويتبع التنسيق
+          if (!data.recipientPhone || !phoneRegex.test(data.recipientPhone)) {
+            ctx.addIssue({ 
+              code: z.ZodIssueCode.custom, 
+              message: "يرجى إدخال رقم هاتف مصري صحيح (مثال: 01012345678)", 
+              path: ["recipientPhone"] 
+            });
+          }
+       }
 
       // البريد الإلكتروني: يجب أن يكون صحيحاً إذا تم تفعيل البطاقة الرقمية أو إذا تم إدخاله
       if (data.sendDigitalCard) {

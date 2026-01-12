@@ -120,8 +120,9 @@ const OrderPage: React.FC = () => {
     const schema = useMemo(() => createOrderSchema(product), [product]);
     
     // Initialize defaults with user data if available
+    // Default governorate is EMPTY string to force selection if not present in profile
     const defaultGovernorate = currentUser?.governorate || 
-        (currentUser?.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : 'القاهرة');
+        (currentUser?.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : '');
 
     const methods = useForm({
         resolver: zodResolver(schema),
@@ -150,7 +151,7 @@ const OrderPage: React.FC = () => {
     // Effect to update form defaults if currentUser loads late or changes
     useEffect(() => {
         if (currentUser) {
-            const gov = currentUser.governorate || (currentUser.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : 'القاهرة');
+            const gov = currentUser.governorate || (currentUser.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : '');
             
             // Only update if the field is still at its "initial" empty state or default to avoid overwriting user input
             if (formData.shippingOption === 'my_address') {
@@ -158,7 +159,7 @@ const OrderPage: React.FC = () => {
                 if (!formData.recipientAddress) setValue('recipientAddress', currentUser.address || '');
                 if (!formData.recipientPhone) setValue('recipientPhone', currentUser.phone || '');
                 if (!formData.recipientEmail) setValue('recipientEmail', currentUser.email);
-                if (formData.governorate === 'القاهرة' && gov !== 'القاهرة') setValue('governorate', gov);
+                if (!formData.governorate && gov) setValue('governorate', gov);
             }
         }
     }, [currentUser, setValue]); // Remove formData from deps to avoid loop
@@ -204,7 +205,9 @@ const OrderPage: React.FC = () => {
     }, [selectedAddons, allProducts]);
 
     const shippingPrice = useMemo(() => {
-        if (formData.deliveryType === 'electronic' || !shippingCosts) return 0;
+        // If electronic, no shipping. If no governorate selected, shipping is 0.
+        if (formData.deliveryType === 'electronic' || !shippingCosts || !formData.governorate) return 0;
+        
         // Access nested "مصر" key since our shippingCosts structure is Country -> Region
         const countryCosts = shippingCosts['مصر'] || {};
         // Find cost for selected governorate in Egypt

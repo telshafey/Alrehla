@@ -53,7 +53,9 @@ const ShippingAddressForm: React.FC<ShippingAddressFormProps> = (props) => {
             setFieldValue('recipientAddress', currentUser.address || '');
             setFieldValue('recipientPhone', currentUser.phone || '');
             setFieldValue('recipientEmail', currentUser.email || '');
-            setFieldValue('governorate', currentUser.governorate || (currentUser.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : 'القاهرة'));
+            // نأخذ المحافظة فقط إذا كانت موجودة وصالحة في القائمة، وإلا نتركها فارغة ليختارها المستخدم
+            const userGov = currentUser.governorate || (currentUser.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : '');
+            setFieldValue('governorate', userGov);
         } else if (value === 'gift') {
             // تفريغ الحقول عند اختيار هدية
             setFieldValue('recipientName', '');
@@ -61,7 +63,7 @@ const ShippingAddressForm: React.FC<ShippingAddressFormProps> = (props) => {
             setFieldValue('recipientPhone', '');
             setFieldValue('recipientEmail', '');
             setFieldValue('giftMessage', '');
-            setFieldValue('governorate', 'القاهرة');
+            setFieldValue('governorate', ''); // تفريغ المحافظة لإجبار الاختيار
         }
     };
 
@@ -154,8 +156,9 @@ const ShippingAddressForm: React.FC<ShippingAddressFormProps> = (props) => {
                 </FormField>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField label={isGift ? "محافظة المستلم*" : "المحافظة*"} htmlFor="governorate">
+                    <FormField label={isGift ? "محافظة المستلم*" : "المحافظة (لحساب الشحن)*"} htmlFor="governorate" error={errors.governorate?.message || errors.governorate}>
                         <Select {...getInputProps('governorate')}>
+                            <option value="" disabled>-- اختر المحافظة --</option>
                             {EGYPTIAN_GOVERNORATES.map(gov => <option key={gov} value={gov}>{gov}</option>)}
                         </Select>
                     </FormField>

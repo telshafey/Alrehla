@@ -79,8 +79,9 @@ const SubscriptionPage: React.FC = () => {
     
     // Initialize form data with user defaults
     const [formData, setFormData] = useState<Record<string, any>>(() => {
+        // Default governorate is EMPTY to force selection if not already in profile
         const defaultGov = currentUser?.governorate || 
-            (currentUser?.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : 'القاهرة');
+            (currentUser?.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : '');
             
         return {
             childName: '',
@@ -107,8 +108,9 @@ const SubscriptionPage: React.FC = () => {
 
     // Calculate Real-time Shipping Cost (Base Cost * Duration Months)
     const countryCosts = shippingCosts?.['مصر'] || {};
+    // If no governorate selected, shipping is 0
     const baseShippingCost = (formData.shippingOption === 'my_address' || formData.shippingOption === 'gift') 
-        ? (countryCosts[formData.governorate] || 0) 
+        ? (formData.governorate ? (countryCosts[formData.governorate] || 0) : 0)
         : 0;
     
     const planDuration = selectedPlan?.duration_months || 1;
@@ -226,7 +228,7 @@ const SubscriptionPage: React.FC = () => {
                      newErrors.recipientPhone = 'يرجى إدخال رقم هاتف مصري صحيح (مثال: 01012345678)';
                 }
 
-                if (!formData.governorate) newErrors.governorate = 'المحافظة مطلوبة.';
+                if (!formData.governorate) newErrors.governorate = 'المحافظة مطلوبة لحساب الشحن.';
                 break;
         }
         setErrors(newErrors);

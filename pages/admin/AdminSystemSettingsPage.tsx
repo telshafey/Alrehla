@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Database, Image as ImageIcon, Server, Save, Eye, EyeOff, AlertTriangle, RefreshCw, Terminal, Wrench, Copy } from 'lucide-react';
+import { Database, Image as ImageIcon, Server, Save, Eye, EyeOff, AlertTriangle, RefreshCw, Terminal, Wrench, Copy, Trash2, Power } from 'lucide-react';
 import { useAdminSystemConfig } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -13,17 +13,18 @@ import { DEFAULT_CONFIG } from '../../lib/config';
 import { supabase } from '../../lib/supabaseClient';
 import { useToast } from '../../contexts/ToastContext';
 import { useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 
 const AdminSystemSettingsPage: React.FC = () => {
     const { data: configData, isLoading, refetch } = useAdminSystemConfig();
     const { updateSystemConfig } = useSettingsMutations();
     const { addToast } = useToast();
     const location = useLocation();
+    const queryClient = useQueryClient();
     
     const [config, setConfig] = useState<typeof DEFAULT_CONFIG>(DEFAULT_CONFIG);
     const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
-    const [isRepairing, setIsRepairing] = useState(false);
-    const [activeTab, setActiveTab] = useState('supabase');
+    const [activeTab, setActiveTab] = useState('repair');
 
     useEffect(() => {
         if (configData) {
@@ -35,7 +36,7 @@ const AdminSystemSettingsPage: React.FC = () => {
         const hasDbError = localStorage.getItem('db_schema_error');
         if (hasDbError || location.search.includes('tab=repair')) {
             setActiveTab('repair');
-            addToast("مطلوب تدخل يدوي: قاعدة البيانات تحتاج لتحديث.", "error");
+            if (hasDbError) addToast("مطلوب تدخل يدوي: قاعدة البيانات تحتاج لتحديث.", "error");
         }
     }, [location]);
 
@@ -65,8 +66,23 @@ const AdminSystemSettingsPage: React.FC = () => {
             setConfig(DEFAULT_CONFIG);
         }
     };
+
+    const handleHardReset = () => {
+        if (window.confirm("هذا الإجراء سيقوم بمسح الذاكرة المؤقتة للمتصفح (Cache) وإعادة تحميل التطبيق بالكامل. هل أنت متأكد؟")) {
+            // Clear React Query Cache
+            queryClient.clear();
+            // Clear Local Storage (Auth tokens, etc) - Be careful not to logout if not intended, but for hard reset it's okay
+            localStorage.removeItem('sb-mqsmgtparbdpvnbyxokh-auth-token'); // Supabase token
+            localStorage.removeItem('db_schema_error');
+            sessionStorage.clear();
+            
+            addToast("تم تنظيف الذاكرة. جاري إعادة التحميل...", "success");
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+    };
     
-    // هذا الكود هو الحل الجذري للمشكلة
     const repairSQL = `
 -- 1. إضافة الأعمدة الناقصة (الحل الجذري للمشكلة)
 ALTER TABLE session_messages 
@@ -144,32 +160,55 @@ NOTIFY pgrst, 'reload config';
 
     return (
         <div className="animate-fadeIn space-y-8 pb-20">
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold text-foreground flex items-center gap-3">
-                    <Server className="text-primary" /> تكوين النظام
-                </h1>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-extrabold text-foreground flex items-center gap-3">
+                        <Server className="text-primary" /> تكوين وصيانة النظام
+                    </h1>
+                    <p className="text-muted-foreground mt-1">إدارة الاتصالات، المفاتيح، وإصلاح مشاكل قاعدة البيانات.</p>
+                </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={handleReset} icon={<RefreshCw size={16}/>}>استعادة الافتراضي</Button>
-                    <Button onClick={handleSave} loading={updateSystemConfig.isPending} icon={<Save size={16}/>}>حفظ</Button>
+                    <Button onClick={handleSave} loading={updateSystemConfig.isPending} icon={<Save size={16}/>}>حفظ الإعدادات</Button>
                 </div>
             </div>
             
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-6">
-                    <TabsTrigger value="repair" className="gap-2 text-red-600 data-[state=active]:text-red-700 font-bold"><Wrench size={16}/> إصلاح قاعدة البيانات (SQL)</TabsTrigger>
+                <TabsList className="mb-6 flex-wrap h-auto">
+                    <TabsTrigger value="repair" className="gap-2 text-red-600 data-[state=active]:text-red-700 font-bold"><Wrench size={16}/> أدوات الإصلاح (هام)</TabsTrigger>
                     <TabsTrigger value="supabase" className="gap-2"><Database size={16}/> Supabase</TabsTrigger>
                     <TabsTrigger value="cloudinary" className="gap-2"><ImageIcon size={16}/> Cloudinary</TabsTrigger>
                     <TabsTrigger value="storage" className="gap-2"><Server size={16}/> Storage</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="repair" className="space-y-6">
+                    {/* Cache Clearing Section */}
+                    <Card className="border-orange-200 shadow-md bg-orange-50/20">
+                        <CardHeader className="bg-orange-100/30">
+                            <CardTitle className="text-orange-800 flex items-center gap-2">
+                                <Power size={20} /> إصلاح مشاكل العرض (Cache Reset)
+                            </CardTitle>
+                            <CardDescription className="text-orange-700/80">
+                                استخدم هذا الزر إذا كانت الصور لا تظهر، أو البيانات قديمة، أو الموقع لا يعمل بشكل صحيح بعد التحديث.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                             <div className="flex items-center justify-between">
+                                <p className="text-sm text-gray-600">سيقوم هذا بحذف البيانات المؤقتة وإعادة تحميل الموقع بالكامل.</p>
+                                <Button onClick={handleHardReset} variant="destructive" icon={<RefreshCw size={16}/>} className="bg-orange-600 hover:bg-orange-700 text-white">
+                                    تنظيف الذاكرة وإعادة التحميل
+                                </Button>
+                             </div>
+                        </CardContent>
+                    </Card>
+
                      <Card className="border-red-200 shadow-md bg-red-50/10">
                         <CardHeader className="bg-red-100/50">
                             <CardTitle className="text-red-800 flex items-center gap-2">
-                                <Terminal /> كود التحديث الشامل والإصلاح
+                                <Terminal /> تحديث هيكل قاعدة البيانات (SQL)
                             </CardTitle>
                             <CardDescription className="text-red-900 font-medium">
-                                هذا الكود يقوم بإنشاء الأعمدة الناقصة، تحديث سياسات الأمان، وإنشاء دالة تغيير كلمة المرور.
+                                هذا الكود يقوم بإنشاء الأعمدة الناقصة، تحديث سياسات الأمان، وإنشاء دالة تغيير كلمة المرور. ضروري جداً لتشغيل الميزات الجديدة.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-6">
@@ -196,7 +235,7 @@ NOTIFY pgrst, 'reload config';
                                         <li>اضغط الزر <strong>"نسخ كود SQL"</strong>.</li>
                                         <li>اضغط الزر <strong>"فتح Supabase SQL Editor"</strong> (سيفتح في نافذة جديدة).</li>
                                         <li>الصق الكود في المحرر واضغط زر <strong>RUN</strong> الأخضر.</li>
-                                        <li>بعد التنفيذ، ستعمل جميع الميزات الجديدة (المحادثات، تغيير كلمات المرور) بشكل صحيح.</li>
+                                        <li>بعد التنفيذ، ستعمل جميع الميزات (الصور، المحادثات، كلمات المرور) بشكل صحيح.</li>
                                     </ol>
                                 </div>
                             </div>

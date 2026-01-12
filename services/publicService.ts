@@ -12,7 +12,18 @@ import type {
     CommunicationSettings,
     PricingSettings
 } from '../lib/database.types';
-import { mockPricingSettings } from '../data/mockData';
+import { 
+    mockPricingSettings, 
+    mockSiteContent, 
+    mockInstructors, 
+    mockCreativeWritingPackages, 
+    mockPersonalizedProducts,
+    mockStandaloneServices,
+    mockSubscriptionPlans,
+    mockCommunicationSettings,
+    mockSocialLinks,
+    mockComparisonItems
+} from '../data/mockData';
 
 interface PublicData {
     instructors: Instructor[];
@@ -44,38 +55,45 @@ export const publicService = {
             supabase.from('instructors').select('*').is('deleted_at', null),
             supabase.from('blog_posts').select('*').eq('status', 'published').is('deleted_at', null),
             supabase.from('personalized_products').select('*').is('deleted_at', null).order('sort_order'),
-            supabase.from('creative_writing_packages').select('*'), // Hard delete implies checking table structure, assuming active if present or no column
+            supabase.from('creative_writing_packages').select('*'), 
             supabase.from('subscription_plans').select('*').is('deleted_at', null).order('price'),
-            supabase.from('standalone_services').select('*'), // Assuming hard delete or no soft delete column based on types
-            (supabase.from('site_settings') as any).select('*'), // Cast to any to avoid property access issues
+            supabase.from('standalone_services').select('*'), 
+            (supabase.from('site_settings') as any).select('*'), 
             supabase.from('badges').select('*'),
             supabase.from('comparison_items').select('*').order('sort_order')
         ]);
 
         const getSetting = (key: string, defaultValue?: any) => {
-            // Using as any for item to access properties safely
             const item = (settingsData as any[])?.find(s => s.key === key);
             return item ? item.value : defaultValue || null;
         };
 
+        // Fallback Logic: Use Mock Data if DB returns empty arrays (meaning table exists but empty)
+        // This ensures the site doesn't look broken initially
+        const finalInstructors = instructors && instructors.length > 0 ? instructors : mockInstructors;
+        const finalProducts = personalizedProducts && personalizedProducts.length > 0 ? personalizedProducts : mockPersonalizedProducts;
+        const finalPackages = creativeWritingPackages && creativeWritingPackages.length > 0 ? creativeWritingPackages : mockCreativeWritingPackages;
+        const finalServices = standaloneServices && standaloneServices.length > 0 ? standaloneServices : mockStandaloneServices;
+        const finalPlans = subscriptionPlans && subscriptionPlans.length > 0 ? subscriptionPlans : mockSubscriptionPlans;
+        const finalComparisonItems = comparisonItems && comparisonItems.length > 0 ? comparisonItems : mockComparisonItems;
+
         return {
-            instructors: instructors || [],
-            blogPosts: blogPosts || [],
-            personalizedProducts: personalizedProducts || [],
-            creativeWritingPackages: creativeWritingPackages || [],
-            subscriptionPlans: subscriptionPlans || [],
-            standaloneServices: standaloneServices || [],
+            instructors: finalInstructors || [],
+            blogPosts: blogPosts || [], // Blog posts can be empty initially
+            personalizedProducts: finalProducts || [],
+            creativeWritingPackages: finalPackages || [],
+            subscriptionPlans: finalPlans || [],
+            standaloneServices: finalServices || [],
             badges: badges || [],
-            comparisonItems: comparisonItems || [],
+            comparisonItems: finalComparisonItems || [],
             
-            // سيعيد null إذا لم تكن الإعدادات موجودة في DB، مما ينبه المسؤول لتهيئتها
-            siteContent: getSetting('global_content'),
+            siteContent: getSetting('global_content', mockSiteContent),
             siteBranding: getSetting('branding'),
-            socialLinks: getSetting('social_links'),
-            communicationSettings: getSetting('communication_settings'),
-            pricingSettings: getSetting('pricing_config', mockPricingSettings), // Ensure fallback to mock if missing
+            socialLinks: getSetting('social_links', mockSocialLinks),
+            communicationSettings: getSetting('communication_settings', mockCommunicationSettings),
+            pricingSettings: getSetting('pricing_config', mockPricingSettings),
             
-            publicHolidays: [], // يمكن جلبها من جدول خاص مستقبلاً
+            publicHolidays: [], 
         };
     }
 };
