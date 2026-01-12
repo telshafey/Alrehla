@@ -1,9 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAdminRawCwBookings, transformCwBookings } from '../../hooks/queries/admin/useAdminBookingsQuery';
-import { useAdminAllChildProfiles, useAdminUsers } from '../../hooks/queries/admin/useAdminUsersQuery';
-import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
+import { useAdminRawCwBookings } from '../../hooks/queries/admin/useAdminBookingsQuery';
 import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import ErrorState from '../../components/ui/ErrorState';
@@ -22,21 +20,17 @@ const AdminBookingDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     
-    // Using raw hooks then transforming to get enriched data
-    const { data: rawBookings = [], isLoading: bookingsLoading } = useAdminRawCwBookings();
-    const { data: allChildren = [], isLoading: childrenLoading } = useAdminAllChildProfiles();
-    const { data: instructors = [], isLoading: instructorsLoading } = useAdminInstructors();
-    const { data: users = [], isLoading: usersLoading } = useAdminUsers();
+    // We fetch just this specific booking or rely on cache if we had a "getById" hook.
+    // Since we don't, we can try to find it in the current list OR fetch it.
+    // For simplicity with the new hook, we can search by ID.
+    const { data, isLoading: bookingsLoading } = useAdminRawCwBookings({ search: id, page: 1, pageSize: 1 });
+    
     const { updateBookingStatus, updateBookingProgressNotes } = useBookingMutations();
 
     const [status, setStatus] = useState<BookingStatus>('بانتظار الدفع');
     const [progressNotes, setProgressNotes] = useState('');
 
-    const booking = React.useMemo(() => {
-        if (!rawBookings.length) return null;
-        const enriched = transformCwBookings(rawBookings, allChildren, instructors, users);
-        return enriched.find(b => b.id === id);
-    }, [rawBookings, allChildren, instructors, users, id]);
+    const booking: any = data?.bookings?.[0]; // Access the first (and likely only) booking
 
     useEffect(() => {
         if (booking) {
@@ -45,9 +39,7 @@ const AdminBookingDetailPage: React.FC = () => {
         }
     }, [booking]);
 
-    const isLoading = bookingsLoading || childrenLoading || instructorsLoading || usersLoading;
-
-    if (isLoading) return <PageLoader text="جاري تحميل تفاصيل الحجز..." />;
+    if (bookingsLoading) return <PageLoader text="جاري تحميل تفاصيل الحجز..." />;
 
     if (!booking) {
         return <ErrorState message="لم يتم العثور على الحجز." onRetry={() => navigate('/admin/creative-writing')} />;
@@ -96,6 +88,7 @@ const AdminBookingDetailPage: React.FC = () => {
                     <CardContent className="space-y-4">
                         <DetailRow label="الطالب" value={booking.child_profiles?.name || 'N/A'} />
                         <DetailRow label="ولي الأمر" value={booking.users?.name || booking.user_id} />
+                        <DetailRow label="البريد الإلكتروني" value={booking.users?.email} />
                         <DetailRow label="المدرب" value={booking.instructors?.name || 'N/A'} />
                         <DetailRow label="الباقة" value={booking.package_name} />
                         <DetailRow label="موعد الجلسة" value={`${formatDate(booking.booking_date)} الساعة ${booking.booking_time}`} />

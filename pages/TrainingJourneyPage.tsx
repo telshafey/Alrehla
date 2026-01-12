@@ -10,7 +10,7 @@ import ErrorState from '../components/ui/ErrorState';
 import WritingDraftPanel from '../components/student/WritingDraftPanel';
 import { 
     MessageSquare, Paperclip, FileText, Send, Upload, 
-    Edit3, ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users, UserCheck
+    Edit3, ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users, UserCheck, Clock, CheckCircle2
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
@@ -18,6 +18,7 @@ import { formatDate } from '../utils/helpers';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 import type { UserRole } from '../lib/database.types';
+import Image from '../components/ui/Image';
 
 const TrainingJourneyPage: React.FC = () => {
     const { journeyId } = useParams<{ journeyId: string }>();
@@ -34,7 +35,9 @@ const TrainingJourneyPage: React.FC = () => {
     // التمرير لأسفل المحادثة تلقائياً عند وصول رسائل جديدة
     useEffect(() => {
         if (activeTab === 'discussion') {
-            chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
         }
     }, [journeyData?.messages, activeTab]);
 
@@ -46,18 +49,15 @@ const TrainingJourneyPage: React.FC = () => {
         setNewMessage(''); // Optimistic clear
         
         try {
-            // نمرر تفاصيل المستخدم كاملة لتخزينها (في حال دعم الباك إند لذلك مستقبلاً)
             await sendSessionMessage.mutateAsync({
                 bookingId: journeyId,
                 senderId: currentUser.id,
                 role: currentUser.role, 
                 message: messageToSend
             });
-            // Refetch to confirm and show the message
             refetch();
         } catch (error: any) {
             setNewMessage(messageToSend); // Restore message on fail
-            // Error handling done in mutation hook
         }
     };
 
@@ -72,11 +72,10 @@ const TrainingJourneyPage: React.FC = () => {
                 role: currentUser.role,
                 file
             });
-            // Reset input to allow re-uploading same file if needed
             if (fileInputRef.current) fileInputRef.current.value = '';
-            refetch(); // Refresh to show new attachment
+            refetch();
         } catch (error: any) {
-             // Error handling done in mutation hook
+             // Error handled by hook
         }
     };
     
@@ -86,158 +85,190 @@ const TrainingJourneyPage: React.FC = () => {
         
         let label = 'مستخدم';
         let icon = <User size={12} />;
-        let bubbleColor = 'bg-white border-gray-200 text-gray-800';
+        let bubbleColor = 'bg-white text-gray-800 border border-gray-100';
         let align = isMe ? 'justify-end' : 'justify-start';
+        let avatarUrl = null;
 
-        // تحديد الاسم بناءً على الدور (يمكن تحسينه بجلب الاسم الحقيقي إذا توفر في البيانات)
-        switch (role) {
-            case 'student':
-                label = 'الطالب';
-                icon = <GraduationCap size={12} />;
-                if (!isMe) bubbleColor = 'bg-blue-50 border-blue-200 text-blue-900';
-                break;
-            case 'parent':
-            case 'user':
-                label = 'ولي الأمر';
-                icon = <Users size={12} />;
-                if (!isMe) bubbleColor = 'bg-green-50 border-green-200 text-green-900';
-                break;
-            case 'instructor':
-                label = 'المدرب';
-                icon = <UserCheck size={12} />;
-                if (!isMe) bubbleColor = 'bg-amber-50 border-amber-200 text-amber-900';
-                break;
-            case 'super_admin':
-            case 'general_supervisor':
-            case 'creative_writing_supervisor':
-                label = 'الإدارة / المشرف';
-                icon = <ShieldAlert size={12} />;
-                if (!isMe) bubbleColor = 'bg-red-50 border-red-200 text-red-900';
-                break;
-            default:
-                label = 'مشارك';
-                break;
+        // محاولة جلب الصورة بناءً على الدور (من البيانات المتوفرة في الحجز)
+        if (role === 'instructor') {
+            label = 'المدرب';
+            icon = <UserCheck size={12} />;
+            bubbleColor = 'bg-amber-50 border-amber-100 text-gray-800';
+            avatarUrl = (journeyData as any)?.instructor?.avatar_url;
+        } else if (role === 'student') {
+            label = 'الطالب';
+            icon = <GraduationCap size={12} />;
+            bubbleColor = 'bg-blue-50 border-blue-100 text-gray-800';
+            avatarUrl = (journeyData as any)?.childProfile?.avatar_url;
+        } else if (['parent', 'user'].includes(role)) {
+            label = 'ولي الأمر';
+            icon = <Users size={12} />;
+        } else {
+            label = 'الإدارة';
+            icon = <ShieldAlert size={12} />;
+            bubbleColor = 'bg-red-50 border-red-100 text-gray-800';
         }
         
         if (isMe) {
-            bubbleColor = 'bg-primary text-white';
+            bubbleColor = 'bg-primary text-primary-foreground shadow-md border-transparent';
             label = 'أنت';
         }
         
-        return { label, icon, bubbleColor, align };
+        return { label, icon, bubbleColor, align, avatarUrl };
     };
 
     if (isLoading) return <PageLoader />;
     
-    // Safety check for journey data presence
     if (!journeyData || !journeyData.booking) {
         return <ErrorState message="الرحلة غير موجودة أو لم يتم تحميل البيانات." />;
     }
 
     const { booking, scheduledSessions, messages, attachments, childProfile } = journeyData;
     const instructorName = (journeyData as any).instructor?.name || 'غير محدد';
+    const instructorAvatar = (journeyData as any).instructor?.avatar_url;
     const bookingPackageName = (booking as any).package_name || 'باقة تدريبية';
-    
-    // استخراج المسودة المحفوظة
     const savedDraft = (booking as any).details?.draft;
 
-    // تحديد صلاحية تعديل المسودة:
-    // مسموح فقط لـ: الطالب صاحب الحجز، أو ولي الأمر صاحب الحجز
     const canEditDraft = currentUser && (
-        (currentUser.role === 'student' && childProfile?.student_user_id === currentUser.id) || // الطالب نفسه
-        (currentUser.id === booking.user_id) // ولي الأمر
+        (currentUser.role === 'student' && childProfile?.student_user_id === currentUser.id) ||
+        (currentUser.id === booking.user_id)
     );
+    
+    // تحديد الجلسة القادمة
+    const upcomingSession = scheduledSessions.find((s: any) => s.status === 'upcoming');
+
+    // تحديد رابط العودة المناسب
+    const backLink = currentUser?.role === 'student' 
+        ? "/student/dashboard" 
+        : ['instructor', 'super_admin', 'creative_writing_supervisor'].includes(currentUser?.role || '')
+        ? "/admin" // المدربين والإداريين يعودون للوحة التحكم
+        : "/account"; // أولياء الأمور يعودون للحساب
 
     return (
-        <div className="bg-muted/40 py-10 animate-fadeIn min-h-screen">
+        <div className="bg-gray-50/50 py-8 animate-fadeIn min-h-screen">
             <div className="container mx-auto px-4 max-w-7xl">
-                <div className="mb-8">
-                    <Link to={currentUser?.role === 'student' ? "/student/dashboard" : "/account"} className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 mb-2">
-                         <ArrowLeft size={12} className="rotate-180"/> العودة
-                    </Link>
-                    <h1 className="text-3xl font-black text-gray-800">{bookingPackageName}</h1>
-                    <p className="text-muted-foreground font-medium">الطالب: {childProfile?.name} | المدرب: {instructorName}</p>
+                {/* Header */}
+                <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border">
+                    <div>
+                        <Link to={backLink} className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 mb-2">
+                             <ArrowLeft size={12} className="rotate-180"/> العودة
+                        </Link>
+                        <h1 className="text-2xl font-black text-gray-800">{bookingPackageName}</h1>
+                        <p className="text-muted-foreground font-medium text-sm flex items-center gap-2 mt-1">
+                            <GraduationCap size={14}/> الطالب: {childProfile?.name} 
+                            <span className="text-gray-300">|</span>
+                            <UserCheck size={14}/> المدرب: {instructorName}
+                        </p>
+                    </div>
+                    {upcomingSession && (
+                        <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-center gap-3 animate-pulse">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                                <Clock size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xs text-blue-800 font-bold">جلستك القادمة</p>
+                                <p className="text-xs text-blue-600 font-mono mt-0.5" dir="ltr">
+                                    {new Date(upcomingSession.session_date).toLocaleDateString('ar-EG')} - {new Date(upcomingSession.session_date).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}
+                                </p>
+                            </div>
+                            <Button as={Link} to={`/session/${upcomingSession.id}`} size="sm" className="mr-2 h-8 text-xs shadow-md">
+                                دخول
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    {/* الجانب الأيمن: منطقة العمل */}
-                    <div className="lg:col-span-3">
-                        <Card className="min-h-[650px] flex flex-col shadow-lg border-t-4 border-t-primary">
-                            <CardContent className="pt-6 flex-grow flex flex-col">
-                                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-grow flex flex-col">
-                                    <TabsList className="mb-6 w-full justify-start border-b rounded-none bg-transparent p-0 gap-6">
-                                        <TabsTrigger value="draft" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3"><Edit3 size={16} className="ml-2"/> مسودة القصة</TabsTrigger>
-                                        <TabsTrigger value="discussion" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3"><MessageSquare size={16} className="ml-2"/> المحادثة المباشرة</TabsTrigger>
-                                        <TabsTrigger value="attachments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3"><Paperclip size={16} className="ml-2"/> ملفات ومرفقات</TabsTrigger>
-                                    </TabsList>
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)] min-h-[600px]">
+                    <div className="lg:col-span-3 flex flex-col h-full">
+                        <Card className="flex-grow flex flex-col shadow-sm border overflow-hidden h-full">
+                            <CardContent className="p-0 flex-grow flex flex-col h-full">
+                                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-grow flex flex-col h-full">
+                                    <div className="border-b bg-white px-4">
+                                        <TabsList className="w-full justify-start h-14 bg-transparent p-0">
+                                            <TabsTrigger value="draft" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary text-gray-500 h-full"><Edit3 size={16} className="ml-2"/> مسودة القصة</TabsTrigger>
+                                            <TabsTrigger value="discussion" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary text-gray-500 h-full"><MessageSquare size={16} className="ml-2"/> المحادثة</TabsTrigger>
+                                            <TabsTrigger value="attachments" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary text-gray-500 h-full"><Paperclip size={16} className="ml-2"/> المرفقات</TabsTrigger>
+                                        </TabsList>
+                                    </div>
 
-                                    {/* تبويب المسودة: يتم تمرير صلاحية التعديل */}
-                                    <TabsContent value="draft" className="flex-grow h-full">
-                                        <WritingDraftPanel 
-                                            journeyId={booking.id} 
-                                            canEdit={!!canEditDraft} 
-                                            initialDraft={savedDraft} 
-                                        />
-                                    </TabsContent>
-
-                                    {/* تبويب المحادثة: متاح للجميع */}
-                                    <TabsContent value="discussion" className="flex-grow flex flex-col h-[500px]">
-                                        <div className="flex-grow overflow-y-auto space-y-4 mb-4 p-4 bg-muted/30 rounded-xl border">
-                                            {messages.length > 0 ? messages.map((msg: any) => {
-                                                const { label, icon, bubbleColor, align } = getSenderInfo(msg.sender_role, msg.sender_id);
-                                                const isMe = msg.sender_id === currentUser?.id;
-                                                const timeString = new Date(msg.created_at).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'});
-                                                
-                                                return (
-                                                    <div key={msg.id} className={`flex ${align}`}>
-                                                        <div className={`max-w-[85%] p-3 rounded-2xl shadow-sm border ${bubbleColor} ${isMe ? 'rounded-tl-none' : 'rounded-tr-none'}`}>
-                                                            <div className="flex justify-between items-center mb-1 gap-4 border-b border-black/5 pb-1">
-                                                                <div className="flex items-center gap-1 text-[10px] font-bold opacity-90">
-                                                                    {icon} {label}
-                                                                </div>
-                                                                <p className="text-[9px] opacity-60" dir="ltr">{timeString}</p>
-                                                            </div>
-                                                            <p className="text-sm leading-relaxed whitespace-pre-wrap pt-1">{msg.message_text}</p>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }) : (
-                                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                                                    <MessageSquare size={48} className="opacity-20 mb-2"/>
-                                                    <p>لا توجد رسائل بعد. ابدأ المحادثة الآن!</p>
-                                                    <p className="text-xs text-gray-400 mt-1">المحادثة متاحة للمدرب والطالب وولي الأمر.</p>
-                                                </div>
-                                            )}
-                                            <div ref={chatEndRef} />
-                                        </div>
-                                        <form onSubmit={handleSendMessage} className="flex gap-2 items-end">
-                                            <Textarea 
-                                                value={newMessage} 
-                                                onChange={e => setNewMessage(e.target.value)} 
-                                                placeholder="اكتب رسالتك هنا... (Shift+Enter لسطر جديد)" 
-                                                className="min-h-[50px] max-h-[100px]" 
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                                        e.preventDefault();
-                                                        handleSendMessage(e);
-                                                    }
-                                                }}
+                                    <div className="flex-grow bg-slate-50/50 relative overflow-hidden flex flex-col">
+                                        <TabsContent value="draft" className="h-full mt-0 p-4 sm:p-6 overflow-hidden">
+                                            <WritingDraftPanel 
+                                                journeyId={booking.id} 
+                                                canEdit={!!canEditDraft} 
+                                                initialDraft={savedDraft} 
                                             />
-                                            <Button type="submit" size="icon" className="h-12 w-12 shrink-0" disabled={sendSessionMessage.isPending || !newMessage.trim()}>
-                                                {sendSessionMessage.isPending ? <Loader2 className="animate-spin" /> : <Send size={20}/>}
-                                            </Button>
-                                        </form>
-                                    </TabsContent>
+                                        </TabsContent>
 
-                                    {/* تبويب المرفقات: متاح للجميع */}
-                                    <TabsContent value="attachments">
-                                        <div className="space-y-6">
-                                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex justify-between items-center">
-                                                <div>
-                                                    <h3 className="font-bold text-blue-900">مشاركة الملفات</h3>
-                                                    <p className="text-xs text-blue-700 mt-1">يمكنك رفع صور أو مستندات (PDF, Word) لمشاركتها مع المدرب والفريق.</p>
-                                                </div>
-                                                <div className="relative">
+                                        <TabsContent value="discussion" className="h-full flex flex-col mt-0">
+                                            {/* Chat Area */}
+                                            <div className="flex-grow overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#e5ddd5] bg-opacity-30" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/subtle-white-feathers.png')"}}>
+                                                {messages.length > 0 ? messages.map((msg: any, idx: number) => {
+                                                    const { label, icon, bubbleColor, align, avatarUrl } = getSenderInfo(msg.sender_role, msg.sender_id);
+                                                    const isMe = currentUser?.id === msg.sender_id;
+                                                    const timeString = new Date(msg.created_at).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'});
+                                                    const showAvatar = !isMe && (idx === 0 || messages[idx-1].sender_id !== msg.sender_id);
+                                                    
+                                                    return (
+                                                        <div key={msg.id} className={`flex items-end gap-2 ${align} ${!showAvatar && !isMe ? 'mr-9' : ''}`}>
+                                                            {!isMe && showAvatar && (
+                                                                <div className="w-7 h-7 rounded-full overflow-hidden border border-gray-300 bg-white flex-shrink-0">
+                                                                    <Image src={avatarUrl || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={label} className="w-full h-full object-cover" />
+                                                                </div>
+                                                            )}
+                                                            <div className={`max-w-[85%] sm:max-w-[70%] p-3 rounded-2xl shadow-sm relative text-sm ${bubbleColor} ${isMe ? 'rounded-br-none' : 'rounded-bl-none'}`}>
+                                                                {!isMe && (
+                                                                    <p className="text-[10px] font-bold text-primary mb-1 opacity-80">{label}</p>
+                                                                )}
+                                                                <p className="leading-relaxed whitespace-pre-wrap">{msg.message_text}</p>
+                                                                <div className={`text-[9px] mt-1 text-right ${isMe ? 'text-blue-100' : 'text-gray-400'}`}>
+                                                                    {timeString}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }) : (
+                                                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-60">
+                                                        <div className="bg-white p-4 rounded-full mb-3 shadow-sm">
+                                                            <MessageSquare size={32} className="text-primary"/>
+                                                        </div>
+                                                        <p>مساحة النقاش مفتوحة!</p>
+                                                        <p className="text-xs">تواصل مع فريقك هنا.</p>
+                                                    </div>
+                                                )}
+                                                <div ref={chatEndRef} />
+                                            </div>
+                                            
+                                            {/* Input Area */}
+                                            <div className="p-3 bg-white border-t">
+                                                <form onSubmit={handleSendMessage} className="flex gap-2 items-end bg-gray-100 p-1.5 rounded-3xl border border-gray-200">
+                                                    <Textarea 
+                                                        value={newMessage} 
+                                                        onChange={e => setNewMessage(e.target.value)} 
+                                                        placeholder="اكتب رسالة..." 
+                                                        className="min-h-[44px] max-h-[120px] bg-transparent border-none focus-visible:ring-0 shadow-none resize-none py-3 px-4 text-sm" 
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                                e.preventDefault();
+                                                                handleSendMessage(e);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Button type="submit" size="icon" className="h-10 w-10 shrink-0 mb-0.5 rounded-full shadow-sm" disabled={sendSessionMessage.isPending || !newMessage.trim()}>
+                                                        {sendSessionMessage.isPending ? <Loader2 className="animate-spin w-4 h-4" /> : <Send size={18} className="rtl:rotate-180"/>}
+                                                    </Button>
+                                                </form>
+                                            </div>
+                                        </TabsContent>
+
+                                        <TabsContent value="attachments" className="h-full mt-0 p-6 overflow-y-auto custom-scrollbar">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                                <div className="bg-white p-6 rounded-xl border-2 border-dashed border-primary/20 flex flex-col items-center justify-center text-center hover:bg-blue-50/50 transition-colors">
+                                                    <div className="w-12 h-12 bg-blue-100 text-primary rounded-full flex items-center justify-center mb-3">
+                                                        <Upload size={24} />
+                                                    </div>
+                                                    <h3 className="font-bold text-gray-800 text-sm">رفع ملف جديد</h3>
+                                                    <p className="text-xs text-gray-500 mt-1 mb-4">صور، PDF، مستندات</p>
                                                     <input 
                                                         type="file" 
                                                         ref={fileInputRef}
@@ -250,86 +281,83 @@ const TrainingJourneyPage: React.FC = () => {
                                                         as="label" 
                                                         htmlFor="file-upload" 
                                                         loading={uploadSessionAttachment.isPending} 
-                                                        icon={!uploadSessionAttachment.isPending ? <Upload size={16}/> : undefined}
-                                                        className="cursor-pointer"
+                                                        className="cursor-pointer h-9 px-6 text-xs"
                                                     >
-                                                        {uploadSessionAttachment.isPending ? 'جاري الرفع...' : 'رفع ملف'}
+                                                        {uploadSessionAttachment.isPending ? 'جاري الرفع...' : 'اختر ملفاً'}
                                                     </Button>
                                                 </div>
                                             </div>
                                             
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {attachments.length > 0 ? attachments.map((att: any) => {
-                                                    const roleMap: Record<string, string> = {
-                                                        student: 'الطالب', instructor: 'المدرب', user: 'ولي الأمر', parent: 'ولي الأمر', super_admin: 'الإدارة'
-                                                    };
-                                                    const uploaderLabel = roleMap[att.uploader_role] || 'مستخدم';
-                                                    
-                                                    return (
-                                                        <div key={att.id} className="bg-white p-4 rounded-xl border shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
-                                                            <div className="flex items-center gap-3 overflow-hidden">
-                                                                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shrink-0">
-                                                                    <FileText size={20}/>
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <p className="text-sm font-bold truncate text-gray-800" title={att.file_name}>{att.file_name}</p>
-                                                                    <p className="text-[10px] text-muted-foreground">
-                                                                        بواسطة: {uploaderLabel} • {formatDate(att.created_at)}
-                                                                    </p>
-                                                                </div>
+                                            <h4 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">الملفات المرفوعة ({attachments.length})</h4>
+                                            <div className="space-y-3">
+                                                {attachments.length > 0 ? attachments.map((att: any) => (
+                                                    <div key={att.id} className="bg-white p-3 rounded-lg border flex items-center justify-between group hover:border-primary/50 transition-colors">
+                                                        <div className="flex items-center gap-3 overflow-hidden">
+                                                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500 shrink-0">
+                                                                <FileText size={20}/>
                                                             </div>
-                                                            <a 
-                                                                href={att.file_url} 
-                                                                target="_blank" 
-                                                                rel="noopener noreferrer" 
-                                                                className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
-                                                                title="تحميل الملف"
-                                                            >
-                                                                <Download size={18}/>
-                                                            </a>
+                                                            <div className="min-w-0">
+                                                                <p className="text-xs font-bold truncate text-gray-800" title={att.file_name}>{att.file_name}</p>
+                                                                <p className="text-[10px] text-muted-foreground">{formatDate(att.created_at)}</p>
+                                                            </div>
                                                         </div>
-                                                    )
-                                                }) : (
-                                                    <div className="col-span-full py-12 text-center text-muted-foreground bg-muted/20 rounded-xl border-2 border-dashed">
-                                                        <Paperclip className="mx-auto h-12 w-12 opacity-20 mb-2" />
-                                                        <p>لا توجد ملفات مرفوعة بعد.</p>
+                                                        <a 
+                                                            href={att.file_url} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="p-2 text-gray-400 hover:text-primary transition-colors bg-gray-50 hover:bg-blue-50 rounded-full"
+                                                        >
+                                                            <Download size={16}/>
+                                                        </a>
                                                     </div>
+                                                )) : (
+                                                    <p className="text-xs text-gray-400 text-center py-4">لا توجد ملفات.</p>
                                                 )}
                                             </div>
-                                        </div>
-                                    </TabsContent>
+                                        </TabsContent>
+                                    </div>
                                 </Tabs>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* الجانب الأيسر: الجدول الزمني */}
-                    <div className="lg:col-span-1">
-                        <Card className="sticky top-24 shadow-lg border-t-4 border-t-secondary">
-                            <CardHeader className="pb-3 border-b bg-gray-50/50"><CardTitle className="text-lg font-bold">الجدول الزمني</CardTitle></CardHeader>
-                            <CardContent className="p-4 space-y-4 max-h-[600px] overflow-y-auto">
-                                {scheduledSessions.map((s: any, idx: number) => {
-                                    const isCompleted = s.status === 'completed';
-                                    const isUpcoming = s.status === 'upcoming';
-                                    return (
-                                        <div key={s.id} className={`p-3 rounded-xl border relative overflow-hidden ${isCompleted ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
-                                            {isCompleted && <div className="absolute top-0 left-0 bg-green-500 text-white text-[9px] px-2 py-0.5 rounded-br-lg">مكتمل</div>}
-                                            <div className="flex justify-between items-start mb-2">
-                                                <span className="text-xs font-black text-gray-500 bg-gray-100 px-2 py-1 rounded">#{idx + 1}</span>
-                                                <span className="text-xs font-bold text-gray-700">{formatDate(s.session_date)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center mt-2">
-                                                <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded">
-                                                    {new Date(s.session_date).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}
-                                                </span>
-                                                {/* عرض زر الدخول للطالب أو ولي الأمر أو المدرب أو المشرف */}
-                                                {isUpcoming && currentUser && (['student', 'parent', 'instructor', 'super_admin', 'creative_writing_supervisor'].includes(currentUser.role)) && (
-                                                    <Button as={Link} to={`/session/${s.id}`} size="sm" className="h-7 text-[10px] px-3" icon={<ArrowLeft size={12}/>}>دخول</Button>
+                    <div className="lg:col-span-1 h-full overflow-hidden">
+                        <Card className="h-full flex flex-col border-t-4 border-t-secondary shadow-sm bg-white">
+                            <CardHeader className="pb-3 border-b bg-gray-50">
+                                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                    <Clock size={16} className="text-secondary"/> خطة الرحلة
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0 flex-grow overflow-y-auto custom-scrollbar">
+                                <div className="p-3 space-y-3">
+                                    {scheduledSessions.map((s: any, idx: number) => {
+                                        const isCompleted = s.status === 'completed';
+                                        const isUpcoming = s.status === 'upcoming';
+                                        const isNext = upcomingSession?.id === s.id;
+
+                                        return (
+                                            <div key={s.id} className={`p-3 rounded-lg border relative transition-all ${
+                                                isNext ? 'bg-blue-50 border-blue-200 shadow-sm ring-1 ring-blue-200' :
+                                                isCompleted ? 'bg-green-50/50 border-green-100 opacity-80' : 'bg-white hover:bg-gray-50'
+                                            }`}>
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className={`text-xs font-bold ${isNext ? 'text-blue-700' : 'text-gray-700'}`}>جلسة {idx + 1}</span>
+                                                    {isCompleted && <CheckCircle2 size={14} className="text-green-600"/>}
+                                                    {isNext && <span className="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded animate-pulse">القادمة</span>}
+                                                </div>
+                                                <div className="text-[11px] text-muted-foreground mb-2 flex items-center gap-1">
+                                                    <Clock size={10} />
+                                                    {formatDate(s.session_date)}
+                                                </div>
+                                                {isUpcoming && currentUser && (['student', 'parent', 'instructor', 'super_admin'].some(r => r === currentUser.role)) && (
+                                                    <Button as={Link} to={`/session/${s.id}`} size="sm" className={`w-full h-7 text-[10px] ${isNext ? 'bg-blue-600 hover:bg-blue-700' : ''}`} variant={isNext ? 'default' : 'outline'}>
+                                                        {isNext ? 'بدء الجلسة' : 'دخول'}
+                                                    </Button>
                                                 )}
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
                             </CardContent>
                         </Card>
                     </div>

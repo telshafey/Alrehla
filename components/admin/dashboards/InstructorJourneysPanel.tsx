@@ -37,9 +37,10 @@ const InstructorJourneysPanel: React.FC<InstructorJourneysPanelProps> = ({ instr
     }, [instructorBookings]);
 
     return (
-        <AdminSection title="طلابك ورحلاتهم النشطة" icon={<BookOpen />}>
+        <AdminSection title="الطلاب ورحلاتهم التدريبية" icon={<BookOpen />}>
             {students.length > 0 ? (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                // استخدام Grid أوسع (3 أعمدة للشاشات الكبيرة) لراحة العين
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {students.map(({ studentProfile, journeys }) => (
                         <InstructorStudentCard 
                             key={studentProfile.id} 
@@ -49,8 +50,9 @@ const InstructorJourneysPanel: React.FC<InstructorJourneysPanelProps> = ({ instr
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed">
-                    <p className="text-gray-500">لم يتم تعيين أي طلاب لك في رحلات تدريبية نشطة بعد.</p>
+                <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed">
+                    <BookOpen className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+                    <p className="text-gray-500 font-medium">لم يتم تعيين أي طلاب لك في رحلات تدريبية نشطة بعد.</p>
                 </div>
             )}
         </AdminSection>

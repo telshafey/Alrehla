@@ -1,10 +1,10 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, ArrowLeft, Clock, CheckCircle, ExternalLink, AlertCircle, ShieldCheck } from 'lucide-react';
-import { formatDate } from '../../../utils/helpers';
+import { ArrowLeft, Clock, ShieldCheck } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import type { ScheduledSession, CreativeWritingPackage } from '../../../lib/database.types';
+import Image from '../../ui/Image';
 
 interface StudentProfile {
     name: string;
@@ -27,27 +27,28 @@ const parseTotalSessions = (sessionString: string | undefined): number => {
 
 const InstructorStudentCard: React.FC<{ student: StudentProfile; journeys: Journey[] }> = ({ student, journeys }) => {
     return (
-        <div className="bg-white p-5 rounded-2xl shadow-sm border hover:shadow-md transition-all">
+        <div className="bg-white p-5 rounded-2xl shadow-sm border hover:shadow-md transition-all duration-300 flex flex-col h-full group">
             {/* Header */}
             <div className="flex items-center gap-4 border-b pb-4 mb-4">
                 <div className="relative">
-                    <img 
+                    <Image 
                         src={student.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
                         alt={student.name} 
-                        className="w-16 h-16 rounded-full object-cover border-2 border-primary/10 shadow-sm"
+                        className="w-14 h-14 rounded-full object-cover ring-2 ring-offset-2 ring-primary/20 group-hover:ring-primary/40 transition-all"
                     />
                 </div>
-                <div className="flex-grow">
-                    <h3 className="text-xl font-bold text-gray-800">{student.name}</h3>
-                    <p className="text-[10px] text-muted-foreground">{journeys.length} رحلات مرتبطة</p>
+                <div className="flex-grow min-w-0">
+                    <h3 className="text-lg font-bold text-gray-800 truncate" title={student.name}>{student.name}</h3>
+                    <p className="text-xs text-muted-foreground bg-gray-100 px-2 py-0.5 rounded-full w-fit mt-1">
+                        {journeys.length} رحلات نشطة
+                    </p>
                 </div>
             </div>
 
             {/* Journeys List */}
-            <div className="space-y-4">
+            <div className="space-y-4 flex-grow">
                  {journeys.map(journey => {
                     const isConfirmed = journey.status === 'مؤكد' || journey.status === 'مكتمل';
-                    const isPending = journey.status === 'بانتظار المراجعة' || journey.status === 'بانتظار الدفع';
                     
                     const totalSessions = parseTotalSessions(journey.packageDetails?.sessions);
                     const completedCount = journey.sessions.filter(s => s.status === 'completed').length;
@@ -55,44 +56,43 @@ const InstructorStudentCard: React.FC<{ student: StudentProfile; journeys: Journ
 
                     return (
                         <div key={journey.id} className={`p-4 rounded-xl border transition-colors ${
-                            isConfirmed ? 'bg-green-50/30 border-green-100' : 'bg-orange-50/30 border-orange-100'
+                            isConfirmed ? 'bg-green-50/20 border-green-100' : 'bg-orange-50/20 border-orange-100'
                         }`}>
                             <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <h4 className="font-bold text-gray-800 text-sm">{journey.package_name}</h4>
-                                    <div className="mt-2">
+                                    <h4 className="font-bold text-gray-800 text-sm line-clamp-1" title={journey.package_name}>{journey.package_name}</h4>
+                                    <div className="mt-1">
                                         {isConfirmed ? (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-black text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                                                <ShieldCheck size={10} /> رحلة نشطة ومؤكدة
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700">
+                                                <ShieldCheck size={10} /> نشط
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-black text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full animate-pulse">
-                                                <Clock size={10} /> قيد مراجعة الإدارة (محجوز)
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-700">
+                                                <Clock size={10} /> قيد المراجعة
                                             </span>
                                         )}
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <span className="text-xs font-bold">{completedCount} / {totalSessions || '?'}</span>
-                                    <p className="text-[9px] text-muted-foreground uppercase">جلسات</p>
+                                <div className="text-right bg-white px-2 py-1 rounded border shadow-sm">
+                                    <span className="text-xs font-black font-mono">{completedCount}/{totalSessions || '?'}</span>
                                 </div>
                             </div>
 
                             {/* Progress Bar - Only meaningful for confirmed journeys */}
                             {isConfirmed && (
-                                <div className="w-full bg-gray-200 rounded-full h-1 mb-4">
+                                <div className="w-full bg-white/50 rounded-full h-1.5 mb-4 overflow-hidden border border-white/20">
                                     <div 
-                                        className="bg-green-500 h-1 rounded-full transition-all duration-500" 
+                                        className="bg-green-500 h-full rounded-full transition-all duration-500 ease-out" 
                                         style={{ width: `${progress}%` }}
                                     ></div>
                                 </div>
                             )}
 
-                            <div className="flex justify-between items-center mt-4">
-                                <div className="flex -space-x-1.5 rtl:space-x-reverse">
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-gray-300/50">
+                                <div className="flex -space-x-1.5 rtl:space-x-reverse overflow-hidden px-1">
                                     {journey.sessions.slice(0, 5).map((s, idx) => (
-                                        <div key={s.id} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold ${
-                                            s.status === 'completed' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'
+                                        <div key={s.id} className={`w-5 h-5 rounded-full border border-white flex items-center justify-center text-[8px] font-bold shadow-sm ${
+                                            s.status === 'completed' ? 'bg-green-500 text-white' : 'bg-white text-gray-400'
                                         }`}>
                                             {idx + 1}
                                         </div>
@@ -100,14 +100,10 @@ const InstructorStudentCard: React.FC<{ student: StudentProfile; journeys: Journ
                                 </div>
                                 
                                 {isConfirmed ? (
-                                    <Button as={Link} to={`/journey/${journey.id}`} size="sm" variant="success" className="h-8 text-[10px] font-bold">
-                                        دخول مساحة العمل <ExternalLink size={12} className="mr-1" />
+                                    <Button as={Link} to={`/journey/${journey.id}`} size="sm" variant="ghost" className="h-7 text-[10px] font-bold text-primary hover:text-primary hover:bg-white px-3 shadow-sm border border-transparent hover:border-primary/20">
+                                        مساحة العمل <ArrowLeft size={10} className="mr-1" />
                                     </Button>
-                                ) : (
-                                    <div className="text-[9px] text-orange-600 font-bold bg-white px-2 py-1 rounded border border-orange-100">
-                                        انتظر تفعيل الإدارة للبدء
-                                    </div>
-                                )}
+                                ) : null}
                             </div>
                         </div>
                     );

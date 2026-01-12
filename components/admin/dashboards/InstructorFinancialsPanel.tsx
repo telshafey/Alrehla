@@ -1,12 +1,8 @@
 
-import React, { useState, useMemo } from 'react';
-import { DollarSign, Save, AlertCircle, PieChart, Landmark, TrendingUp } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { DollarSign, Landmark, TrendingUp, ArrowUpRight, Wallet, History, AlertCircle } from 'lucide-react';
 import AdminSection from '../AdminSection';
 import { Button } from '../../ui/Button';
-import FormField from '../../ui/FormField';
-import { Input } from '../../ui/Input';
-import { Textarea } from '../../ui/Textarea';
-import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
 import type { Instructor } from '../../../lib/database.types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/Table';
 import { formatDate } from '../../../utils/helpers';
@@ -20,7 +16,6 @@ interface InstructorFinancialsPanelProps {
 }
 
 const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ bookings, serviceOrders, payouts, instructor }) => {
-    const { requestProfileUpdate } = useInstructorMutations();
     
     // حساب الأرباح بناءً على صافي ربح المدرب المخزن وقت الطلب
     const financialSummary = useMemo(() => {
@@ -28,9 +23,8 @@ const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ b
         const bookingEarnings = bookings
             .filter(b => b.status === 'مكتمل')
             .map(b => {
-                // نستخدم سعر المدرب المخصص للباقة، أو سعره للجلسة مضروباً في عدد الجلسات
-                const netAmount = instructor.package_rates?.[b.package_id] || (instructor.rate_per_session * 1); // تبسيط
-                return { ...b, netAmount };
+                const netAmount = instructor.package_rates?.[b.package_id] || (instructor.rate_per_session * 1);
+                return { ...b, netAmount, type: 'جلسة/باقة' };
             });
 
         // 2. أرباح الخدمات الإضافية
@@ -38,87 +32,161 @@ const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ b
             .filter(o => o.status === 'مكتمل')
             .map(o => {
                 const netAmount = instructor.service_rates?.[o.service_id] || (o.total * 0.7);
-                return { ...o, netAmount };
+                return { ...o, netAmount, type: 'خدمة' };
             });
 
         const totalEarned = [...bookingEarnings, ...serviceEarnings].reduce((sum, item) => sum + item.netAmount, 0);
         const totalPaid = payouts.reduce((sum, p) => sum + p.amount, 0);
+        const outstanding = totalEarned - totalPaid;
 
         return {
             totalEarned,
             totalPaid,
-            outstanding: totalEarned - totalPaid,
+            outstanding,
             recentItems: [...bookingEarnings, ...serviceEarnings]
                 .sort((a, b) => new Date(b.created_at || b.booking_date).getTime() - new Date(a.created_at || a.booking_date).getTime())
-                .slice(0, 5)
+                .slice(0, 10)
         };
     }, [bookings, serviceOrders, payouts, instructor]);
 
     return (
         <div className="space-y-8 animate-fadeIn">
+            {/* Financial Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="border-t-4 border-t-green-500">
-                    <CardHeader className="pb-2 text-xs font-bold text-muted-foreground uppercase">إجمالي مستحقاتك المكتسبة</CardHeader>
+                <Card className="border shadow-sm relative overflow-hidden bg-gradient-to-br from-green-50 to-white">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-green-100 rounded-bl-full -mr-4 -mt-4 opacity-50"></div>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                            <Wallet className="w-4 h-4 text-green-600" />
+                            الرصيد المستحق (للسحب)
+                        </CardTitle>
+                    </CardHeader>
                     <CardContent>
-                        <p className="text-3xl font-black text-foreground">{financialSummary.totalEarned.toLocaleString()} ج.م</p>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-black text-gray-900">{financialSummary.outstanding.toLocaleString()}</span>
+                            <span className="text-sm font-semibold text-muted-foreground">ج.م</span>
+                        </div>
+                        {financialSummary.outstanding > 0 ? (
+                            <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-green-700 bg-green-100/50 w-fit px-2 py-1 rounded">
+                                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                جاهز للتحويل في الدورة القادمة
+                            </div>
+                        ) : (
+                            <p className="mt-3 text-xs text-muted-foreground">لا توجد مستحقات معلقة.</p>
+                        )}
                     </CardContent>
                 </Card>
-                <Card className="border-t-4 border-t-blue-500">
-                    <CardHeader className="pb-2 text-xs font-bold text-muted-foreground uppercase">إجمالي ما تم تحويله لك</CardHeader>
+
+                <Card className="border shadow-sm">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-blue-600" />
+                            إجمالي الأرباح (تاريخياً)
+                        </CardTitle>
+                    </CardHeader>
                     <CardContent>
-                        <p className="text-3xl font-black text-foreground">{financialSummary.totalPaid.toLocaleString()} ج.م</p>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-black text-gray-900">{financialSummary.totalEarned.toLocaleString()}</span>
+                            <span className="text-sm font-semibold text-muted-foreground">ج.م</span>
+                        </div>
+                        <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-blue-500 h-full rounded-full" style={{width: '100%'}}></div>
+                        </div>
                     </CardContent>
                 </Card>
-                <Card className="border-t-4 border-t-primary bg-primary/5">
-                    <CardHeader className="pb-2 text-xs font-bold text-primary uppercase">الرصيد المتاح للتحويل (الآن)</CardHeader>
+
+                <Card className="border shadow-sm">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                            <ArrowUpRight className="w-4 h-4 text-gray-600" />
+                            تم تحويله
+                        </CardTitle>
+                    </CardHeader>
                     <CardContent>
-                        <p className="text-3xl font-black text-primary">{financialSummary.outstanding.toLocaleString()} ج.م</p>
+                         <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-black text-gray-900">{financialSummary.totalPaid.toLocaleString()}</span>
+                            <span className="text-sm font-semibold text-muted-foreground">ج.م</span>
+                        </div>
+                        <p className="mt-3 text-xs text-muted-foreground flex items-center gap-1">
+                            <History size={12}/>
+                            آخر تحديث: {new Date().toLocaleDateString('ar-EG')}
+                        </p>
                     </CardContent>
                 </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <AdminSection title="آخر المعاملات المالية (صافي أرباحك)" icon={<TrendingUp />}>
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>الخدمة / الطالب</TableHead>
-                                    <TableHead>التاريخ</TableHead>
-                                    <TableHead className="text-left">ربحك الصافي</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {financialSummary.recentItems.map((item, idx) => (
-                                    <TableRow key={idx}>
-                                        <TableCell>
-                                            <p className="font-bold text-xs">{item.package_name || item.details?.serviceName}</p>
-                                            <p className="text-[10px] text-muted-foreground">{item.child_profiles?.name}</p>
-                                        </TableCell>
-                                        <TableCell className="text-[10px]">{formatDate(item.booking_date || item.created_at)}</TableCell>
-                                        <TableCell className="text-left font-bold text-green-600">{item.netAmount} ج.م</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </AdminSection>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2">
+                    <AdminSection title="آخر المعاملات (الأرباح المضافة)" icon={<DollarSign />}>
+                         {financialSummary.recentItems.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-muted/30">
+                                            <TableHead>النشاط</TableHead>
+                                            <TableHead>النوع</TableHead>
+                                            <TableHead>التاريخ</TableHead>
+                                            <TableHead className="text-left">صافي الربح</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {financialSummary.recentItems.map((item, idx) => (
+                                            <TableRow key={idx} className="hover:bg-muted/5">
+                                                <TableCell>
+                                                    <p className="font-bold text-sm text-gray-800">{item.package_name || item.details?.serviceName}</p>
+                                                    <p className="text-[10px] text-muted-foreground">{item.child_profiles?.name}</p>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full border ${item.type === 'خدمة' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-purple-50 text-purple-700 border-purple-100'}`}>
+                                                        {item.type}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-xs text-gray-500 font-mono">{formatDate(item.booking_date || item.created_at)}</TableCell>
+                                                <TableCell className="text-left">
+                                                    <span className="font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md border border-green-100">
+                                                        +{item.netAmount} ج.م
+                                                    </span>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                         ) : (
+                             <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
+                                 <p>لا توجد معاملات مالية حديثة.</p>
+                             </div>
+                         )}
+                    </AdminSection>
+                </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Landmark /> تعليمات صرف المستحقات</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="p-4 bg-blue-50 rounded-xl text-blue-800 text-sm">
-                            <ul className="list-disc list-inside space-y-2">
-                                <li>تتم مراجعة الجلسات المكتملة في نهاية كل شهر ميلادي.</li>
-                                <li>يتم تحويل المستحقات عبر <strong>Instapay</strong> أو <strong>فودافون كاش</strong> في أول 5 أيام من الشهر التالي.</li>
-                                <li>تأكد من أن بياناتك المالية محدثة في قسم الإعدادات.</li>
-                            </ul>
-                        </div>
-                        <Button variant="outline" className="w-full" icon={<PieChart />}>طلب كشف حساب تفصيلي (PDF)</Button>
-                    </CardContent>
-                </Card>
+                <div className="lg:col-span-1">
+                    <Card className="bg-blue-50 border-blue-200 shadow-sm h-full">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-blue-900"><Landmark size={20} /> سياسة الدفع</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 text-sm text-blue-800">
+                            <div className="bg-white/60 p-3 rounded-lg flex gap-3 items-start">
+                                <span className="font-bold bg-blue-200 text-blue-800 w-6 h-6 flex items-center justify-center rounded-full text-xs shrink-0">1</span>
+                                <p>يتم احتساب الأرباح فقط للجلسات والخدمات التي تم إكمالها وإغلاقها بنجاح.</p>
+                            </div>
+                            <div className="bg-white/60 p-3 rounded-lg flex gap-3 items-start">
+                                <span className="font-bold bg-blue-200 text-blue-800 w-6 h-6 flex items-center justify-center rounded-full text-xs shrink-0">2</span>
+                                <p>دورة التحويل شهرية. تتم مراجعة الحسابات في نهاية الشهر، والتحويل في الأسبوع الأول من الشهر التالي.</p>
+                            </div>
+                            <div className="bg-white/60 p-3 rounded-lg flex gap-3 items-start">
+                                <span className="font-bold bg-blue-200 text-blue-800 w-6 h-6 flex items-center justify-center rounded-full text-xs shrink-0">3</span>
+                                <p>تأكد من إضافة بيانات الدفع (Instapay / فودافون كاش) في قسم الإعدادات لضمان وصول الدفعات.</p>
+                            </div>
+                            
+                            <div className="mt-6 pt-6 border-t border-blue-200">
+                                <Button variant="outline" className="w-full bg-white hover:bg-blue-100 text-blue-700 border-blue-300">
+                                    تحديث بيانات الدفع
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

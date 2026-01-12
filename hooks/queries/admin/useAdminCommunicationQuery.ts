@@ -37,13 +37,16 @@ export const useAdminSupportSessionRequests = () => useQuery({
 export const useAdminServiceOrders = () => useQuery({
     queryKey: ['adminServiceOrders'],
     queryFn: async () => {
-        const [orders, users, children, instructors, services] = await Promise.all([
+        const [orders, usersResult, children, instructors, services] = await Promise.all([
             orderService.getAllServiceOrders(),
-            userService.getAllUsers(),
+            userService.getAllUsers({ page: 1, pageSize: 1000 }), // Pass arguments to get larger list
             userService.getAllChildProfiles(),
             bookingService.getAllInstructors(),
             mockFetch(mockStandaloneServices) // Should be in a service too
         ]);
+
+        // Fix: usersResult is { users: UserProfile[], count: number }
+        const users = usersResult.users;
 
         return orders.map(order => ({
             ...order,

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Star, BookOpen, CreditCard, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingBag, Star, BookOpen, CreditCard, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Package } from 'lucide-react';
 import { useUserAccountData } from '../../hooks/queries/user/useUserDataQuery';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDate, daysInMonth, firstDayOfMonth } from '../../utils/helpers';
@@ -9,6 +9,7 @@ import EmptyState from './EmptyState';
 import { Button } from '../ui/Button';
 import type { Order, Subscription, CreativeWritingBooking, ScheduledSession, CreativeWritingPackage } from '../../lib/database.types';
 import StatusBadge from '../ui/StatusBadge';
+import { Card, CardContent } from '../ui/card';
 
 type EnrichedBooking = CreativeWritingBooking & {
     sessions: ScheduledSession[];
@@ -21,7 +22,6 @@ const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }
 
     const { packageDetails, sessions, instructorName } = journey;
 
-    // استخراج العدد بشكل آمن
     const getTotalSessionsCount = (pkg: CreativeWritingPackage | undefined) => {
         if (!pkg) return 0;
         if (pkg.name.includes('التعريفية') || pkg.sessions.includes('واحدة')) return 1;
@@ -52,63 +52,67 @@ const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }
     const startingDay = firstDayOfMonth(currentDate);
 
     return (
-        <div className="p-4 sm:p-6 border rounded-2xl bg-purple-50/30">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 flex items-center justify-center bg-purple-100 text-purple-600 rounded-full flex-shrink-0"><BookOpen /></div>
+        <Card className="border shadow-sm overflow-hidden h-full flex flex-col hover:shadow-md transition-all duration-300">
+            <div className="bg-purple-50/50 p-4 border-b flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 flex items-center justify-center bg-white border border-purple-100 text-purple-600 rounded-xl shadow-sm">
+                        <BookOpen size={20} />
+                    </div>
                     <div>
-                        <p className="font-bold text-lg text-gray-800">{packageDetails?.name}</p>
-                        <div className="text-sm text-gray-500">مع {instructorName}</div>
+                        <h4 className="font-bold text-gray-800 line-clamp-1" title={packageDetails?.name}>{packageDetails?.name}</h4>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+                            مع {instructorName}
+                        </p>
                     </div>
                 </div>
-                 <Link to={`/journey/${journey.id}`} className="flex items-center justify-center gap-2 bg-purple-600 text-white text-sm font-bold py-2 px-4 rounded-full hover:bg-purple-700 transition-colors self-end sm:self-center">
-                    <span>افتح مساحة العمل</span>
-                    <ArrowLeft size={16} />
-                </Link>
+                <div className="bg-white px-2 py-1 rounded text-xs font-bold border shadow-sm">
+                    {completedSessions.length}/{totalSessions || '?'}
+                </div>
             </div>
             
-            <div className="mt-6 bg-white p-4 rounded-lg">
-                <div className="flex justify-between items-center mb-4">
-                    <div>
-                         <h4 className="font-bold text-gray-700">تقدم الجلسات</h4>
-                         <p className="text-sm text-gray-500">مكتمل: {completedSessions.length} من {totalSessions || 'عدة'} جلسات</p>
-                    </div>
-                     <div className="flex items-center gap-2">
-                        <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-2 rounded-full hover:bg-gray-100"><ChevronRight size={20} /></button>
-                        <span className="font-bold w-24 text-center">{monthName} {year}</span>
-                        <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="p-2 rounded-full hover:bg-gray-100"><ChevronLeft size={20} /></button>
-                    </div>
+            <CardContent className="p-4 flex-grow flex flex-col">
+                <div className="flex justify-between items-center mb-4 bg-gray-50 p-2 rounded-lg">
+                    <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-1 rounded-full hover:bg-white hover:shadow-sm transition-all"><ChevronRight size={16} /></button>
+                    <span className="font-bold text-sm">{monthName} {year}</span>
+                    <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="p-1 rounded-full hover:bg-white hover:shadow-sm transition-all"><ChevronLeft size={16} /></button>
                 </div>
 
-                <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500 mb-2">
+                <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-gray-400 mb-2">
                     {dayNames.map(day => <div key={day}>{day}</div>)}
                 </div>
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-1 mb-4">
                     {Array.from({ length: startingDay }).map((_, i) => <div key={`empty-${i}`}></div>)}
                     {daysArray.map(day => {
                         const session = getSessionForDay(day);
                         const isNext = nextSession && new Date(nextSession.session_date).toDateString() === new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
-                        let dayClass = 'text-gray-700 hover:bg-gray-100';
+                        let dayClass = 'text-gray-500 hover:bg-gray-50';
+                        
                         if (session) {
-                            dayClass = session.status === 'completed' ? 'bg-green-200 text-green-800' : 'bg-blue-200 text-blue-800';
+                            dayClass = session.status === 'completed' 
+                                ? 'bg-green-500 text-white shadow-sm' 
+                                : 'bg-blue-100 text-blue-700 border border-blue-200';
                         }
-                        if(isNext) {
-                            dayClass += ' ring-2 ring-offset-2 ring-blue-500';
+                        if (isNext) {
+                            dayClass = 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200 ring-offset-1 font-bold animate-pulse';
                         }
+                        
                         return (
-                            <div key={day} className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors text-sm ${dayClass}`}>
+                            <div key={day} className={`aspect-square flex items-center justify-center rounded-lg transition-all text-xs cursor-default ${dayClass}`}>
                                 {day}
                             </div>
                         )
                     })}
                 </div>
-                 <div className="flex items-center justify-center gap-4 mt-4 text-xs border-t pt-2">
-                    <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-200"></span> مكتملة</div>
-                    <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-200"></span> قادمة</div>
-                    <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full ring-2 ring-blue-500"></span> التالية</div>
+                
+                <div className="mt-auto pt-4 border-t">
+                    <Button as={Link} to={`/journey/${journey.id}`} variant="outline" className="w-full justify-between group hover:border-purple-300 hover:bg-purple-50">
+                        <span className="text-xs">دخول مساحة العمل</span>
+                        <ArrowLeft size={14} className="text-purple-500 group-hover:-translate-x-1 transition-transform rtl:group-hover:translate-x-1" />
+                    </Button>
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 };
 
@@ -142,47 +146,58 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
     const creativeWritingItemsExist = bookings.length > 0;
 
     return (
-        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2"><BookOpen /> مكتبتي</h2>
-            
-            <div className="border-b border-gray-200">
-                <nav className="-mb-px flex space-x-6 rtl:space-x-reverse">
+        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg min-h-[600px]">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                <h2 className="text-2xl font-black text-gray-800 flex items-center gap-2">
+                    <BookOpen className="text-primary" /> مكتبتي التعليمية
+                </h2>
+                <div className="flex p-1 bg-gray-100 rounded-xl">
                     <button
                         onClick={() => setActiveTab('enha-lak')}
-                        className={`whitespace-nowrap flex items-center gap-2 py-4 px-1 border-b-2 font-semibold text-sm ${activeTab === 'enha-lak' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'enha-lak' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        <ShoppingBag size={16} /> إنها لك
+                        <span className="flex items-center gap-2"><ShoppingBag size={16} /> إنها لك</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('creative-writing')}
-                        className={`whitespace-nowrap flex items-center gap-2 py-4 px-1 border-b-2 font-semibold text-sm ${activeTab === 'creative-writing' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'creative-writing' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        <BookOpen size={16} /> بداية الرحلة
+                        <span className="flex items-center gap-2"><BookOpen size={16} /> بداية الرحلة</span>
                     </button>
-                </nav>
+                </div>
             </div>
 
-            <div className="mt-8">
+            <div className="animate-fadeIn">
                 {activeTab === 'enha-lak' && (
-                    <div className="space-y-8 animate-fadeIn">
+                    <div className="space-y-8">
                         {enhaLakItemsExist ? (
                             <>
                                 {subscriptions.length > 0 && (
                                     <section>
-                                        <h3 className="text-xl font-bold text-gray-700 mb-4">الاشتراكات</h3>
-                                        <div className="space-y-4">
+                                        <h3 className="text-lg font-bold text-gray-700 mb-4 border-r-4 border-orange-400 pr-3">الاشتراكات النشطة</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {subscriptions.map((sub: Subscription) => (
-                                                <div key={sub.id} className="p-4 border rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-orange-50/30">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-12 h-12 flex items-center justify-center bg-orange-100 text-orange-600 rounded-full"><Star /></div>
-                                                        <div>
-                                                            <p className="font-bold text-gray-800">صندوق الرحلة ({sub.plan_name}) - {sub.child_name}</p>
-                                                            <p className="text-sm text-gray-500">التجديد القادم: {formatDate(sub.next_renewal_date)}</p>
+                                                <div key={sub.id} className="p-5 border rounded-2xl flex flex-col justify-between gap-4 bg-gradient-to-br from-orange-50 to-white hover:shadow-md transition-shadow">
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 flex items-center justify-center bg-white text-orange-500 rounded-full shadow-sm border border-orange-100">
+                                                                <Star size={20} fill="currentColor" className="opacity-80"/>
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-bold text-gray-800 text-sm">صندوق الرحلة ({sub.plan_name})</p>
+                                                                <p className="text-xs text-muted-foreground mt-0.5">للطفل: {sub.child_name}</p>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                     <div className="flex items-center gap-2 flex-wrap justify-end">
                                                         <StatusBadge status={sub.status} />
-                                                        {sub.status === 'pending_payment' && <Button onClick={() => onPay({ id: sub.id, type: 'subscription' })} variant="success" size="sm" icon={<CreditCard size={14} />}>ادفع الآن</Button>}
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center justify-between pt-4 border-t border-orange-100">
+                                                        <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">
+                                                            التجديد: {formatDate(sub.next_renewal_date)}
+                                                        </div>
+                                                        {sub.status === 'pending_payment' && (
+                                                            <Button onClick={() => onPay({ id: sub.id, type: 'subscription' })} variant="success" size="sm" icon={<CreditCard size={14} />}>ادفع الآن</Button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
@@ -191,22 +206,21 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                 )}
                                 {orders.length > 0 && (
                                     <section>
-                                        <h3 className="text-xl font-bold text-gray-700 mb-4">الطلبات الفردية</h3>
-                                        <div className="space-y-4">
+                                        <h3 className="text-lg font-bold text-gray-700 mb-4 border-r-4 border-pink-400 pr-3">القصص والمنتجات</h3>
+                                        <div className="space-y-3">
                                             {orders.map((item: Order) => (
-                                                <div key={item.id} className="p-4 border rounded-lg">
-                                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="flex-shrink-0"><ShoppingBag className="text-blue-500" /></div>
-                                                            <div>
-                                                                <p className="font-bold text-gray-800">{item.item_summary}</p>
-                                                                <p className="text-sm text-gray-500">{formatDate(item.order_date)}</p>
-                                                            </div>
+                                                <div key={item.id} className="p-4 border rounded-xl hover:bg-gray-50 transition-colors flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="flex-shrink-0 bg-pink-50 p-2 rounded-lg text-pink-600"><ShoppingBag size={20} /></div>
+                                                        <div>
+                                                            <p className="font-bold text-gray-800 text-sm">{item.item_summary}</p>
+                                                            <p className="text-xs text-gray-500 mt-1">تاريخ الطلب: {formatDate(item.order_date)}</p>
                                                         </div>
-                                                        <div className="flex items-center gap-2 flex-wrap justify-end mt-3 sm:mt-0">
-                                                            <StatusBadge status={item.status} />
-                                                            {item.status === 'بانتظار الدفع' && <Button onClick={() => onPay({ id: item.id, type: 'order' })} variant="success" size="sm" icon={<CreditCard size={14} />}>ادفع الآن</Button>}
-                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 self-end sm:self-center">
+                                                        <span className="font-mono font-bold text-sm bg-gray-100 px-2 py-1 rounded">{item.total} ج.م</span>
+                                                        <StatusBadge status={item.status} />
+                                                        {item.status === 'بانتظار الدفع' && <Button onClick={() => onPay({ id: item.id, type: 'order' })} variant="success" size="sm" className="h-8 text-xs">سداد</Button>}
                                                     </div>
                                                 </div>
                                             ))}
@@ -215,18 +229,29 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                 )}
                             </>
                         ) : (
-                            <EmptyState icon={<ShoppingBag className="w-12 h-12 text-gray-400" />} title="لا توجد منتجات من 'إنها لك' بعد" message="عندما تطلب قصة مخصصة أو تشترك في صندوق الرحلة، ستظهر منتجاتك هنا." actionText="اكتشف منتجات 'إنها لك'" onAction={() => window.location.hash = '/enha-lak/store'} />
+                            <EmptyState 
+                                icon={<ShoppingBag className="w-16 h-16 text-gray-300" />} 
+                                title="لا توجد منتجات بعد" 
+                                message="ابدأ بتخصيص قصة لطفلك أو اشترك في الصندوق الشهري لتظهر طلباتك هنا." 
+                                actionText="اكتشف المتجر" 
+                                onAction={() => window.location.hash = '/enha-lak/store'} 
+                            />
                         )}
                     </div>
                 )}
+
                 {activeTab === 'creative-writing' && (
-                    <div className="animate-fadeIn">
+                    <div>
                         {creativeWritingItemsExist ? (
-                             <div className="space-y-8">
+                             <div className="space-y-10">
                                 {bookingsByChild.map(({ childName, journeys }) => (
                                     <div key={childName}>
-                                        <h3 className="text-xl font-bold text-gray-800 mb-4">رحلات {childName}</h3>
-                                        <div className="space-y-6">
+                                        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                            رحلات {childName}
+                                        </h3>
+                                        {/* استخدام Grid بدل القائمة العمودية */}
+                                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                                             {journeys.map(journey => (
                                                 <JourneyCalendarView key={journey.id} journey={journey} />
                                             ))}
@@ -235,7 +260,13 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                 ))}
                             </div>
                         ) : (
-                             <EmptyState icon={<BookOpen className="w-12 h-12 text-gray-400" />} title="لم تبدأ أي رحلة تدريبية بعد" message="عندما تقوم بحجز باقة من برنامج 'بداية الرحلة'، ستظهر رحلتك هنا." actionText="اكتشف برنامج بداية الرحلة" onAction={() => window.location.hash = '/creative-writing'} />
+                             <EmptyState 
+                                icon={<BookOpen className="w-16 h-16 text-gray-300" />} 
+                                title="لم تبدأ أي رحلة بعد" 
+                                message="سجل طفلك في برنامج 'بداية الرحلة' لتنمية مهاراته الكتابية." 
+                                actionText="استعرض الباقات" 
+                                onAction={() => window.location.hash = '/creative-writing/packages'} 
+                            />
                         )}
                     </div>
                 )}

@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, Clock, CheckCircle2, AlertCircle, Calendar, Globe, ExternalLink, Plus } from 'lucide-react';
+import { CalendarDays, Clock, CheckCircle2, AlertCircle, Calendar, Globe, ExternalLink, Plus, MapPin } from 'lucide-react';
 import { Card, CardContent } from '../../ui/card';
 import { Button } from '../../ui/Button';
 import { formatDate, formatTime, generateGoogleCalendarUrl } from '../../../utils/helpers';
@@ -22,7 +22,7 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
         const now = new Date();
         const startOfWeek = new Date(now);
         const day = now.getDay(); 
-        const diff = (day === 6 ? 0 : day + 1); 
+        const diff = (day === 6 ? 0 : day + 1); // يبدأ الأسبوع يوم السبت
         startOfWeek.setDate(now.getDate() - diff);
         startOfWeek.setHours(0, 0, 0, 0);
 
@@ -35,21 +35,34 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
             return sDate >= startOfWeek && sDate <= endOfWeek;
         });
 
+        // 1. Past Pending (Needs Action)
         const pastNeedsAction = currentWeekSessions.filter(s => 
             new Date(s.session_date) < now && s.status === 'upcoming'
         );
 
-        const upcomingThisWeek = currentWeekSessions.filter(s => 
-            new Date(s.session_date) >= now
+        // 2. Today's Sessions
+        const todayStr = now.toDateString();
+        const todaySessions = currentWeekSessions.filter(s => 
+             new Date(s.session_date) >= now && new Date(s.session_date).toDateString() === todayStr
         ).sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
 
-        return { pastNeedsAction, upcomingThisWeek, startOfWeek, endOfWeek };
+        // 3. Tomorrow & Later
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toDateString();
+
+        const upcomingSessions = currentWeekSessions.filter(s => {
+            const sDate = new Date(s.session_date);
+            return sDate >= now && sDate.toDateString() !== todayStr;
+        }).sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
+
+        return { pastNeedsAction, todaySessions, upcomingSessions, startOfWeek, endOfWeek };
     }, [sessions]);
 
     const handleAddToGoogleCalendar = (session: any) => {
         const url = generateGoogleCalendarUrl(
             `جلسة: ${session.child_name || 'طالب'} - ${session.package_name}`,
-            `جلسة تدريبية مع الطالب ${session.child_name}. يرجى الدخول للمنصة قبل الموعد بـ 10 دقائق.\nرابط الجلسة: ${window.location.origin}/session/${session.id}`,
+            `جلسة تدريبية مع الطالب ${session.child_name}.\nرابط الجلسة: ${window.location.origin}/session/${session.id}`,
             session.session_date
         );
         window.open(url, '_blank');
@@ -59,107 +72,145 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
         <div className="space-y-6">
             <GoogleCalendarSyncModal isOpen={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} />
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border shadow-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border shadow-sm">
                 <div>
                     <h2 className="text-xl font-black text-gray-800 flex items-center gap-2">
-                        <CalendarDays className="text-primary" /> أجندة الأسبوع الحالي
+                        <CalendarDays className="text-primary" /> جدول الأسبوع الحالي
                     </h2>
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-1">
-                        <p>من {formatDate(weekData.startOfWeek.toISOString())} إلى {formatDate(weekData.endOfWeek.toISOString())}</p>
-                        <span>•</span>
-                        <p className="flex items-center gap-1 font-bold text-indigo-600"><Globe size={10}/> توقيت القاهرة</p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                        <span className="bg-gray-100 px-2 py-1 rounded-md border">{formatDate(weekData.startOfWeek.toISOString())}</span>
+                        <span className="text-gray-300">➜</span>
+                        <span className="bg-gray-100 px-2 py-1 rounded-md border">{formatDate(weekData.endOfWeek.toISOString())}</span>
+                        <span className="text-gray-300">|</span>
+                        <span className="flex items-center gap-1 font-bold text-indigo-600"><Globe size={12}/> توقيت القاهرة</span>
                     </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => setIsSyncModalOpen(true)} className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50">
-                    <Calendar size={16} /> ربط مع Google Calendar
+                    <Calendar size={16} /> ربط Google Calendar
                 </Button>
             </div>
 
+            {/* 1. المهام المعلقة (فائتة) */}
             {weekData.pastNeedsAction.length > 0 && (
                 <div className="animate-fadeIn">
                     <h3 className="text-xs font-black text-red-600 mb-3 flex items-center gap-2 uppercase tracking-widest">
-                        <AlertCircle size={14} /> مهام معلقة ({weekData.pastNeedsAction.length})
+                        <AlertCircle size={14} /> إجراء مطلوب (جلسات فائتة)
                     </h3>
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="space-y-3">
                         {weekData.pastNeedsAction.map(session => (
-                            <Card key={session.id} className="border-red-100 bg-red-50/30">
-                                <CardContent className="p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-                                    <div className="flex items-center gap-4 w-full">
-                                        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0 font-black">
-                                            {new Date(session.session_date).getDate()}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-sm text-gray-800">{session.child_name || 'طالب'}</p>
-                                            <p className="text-[10px] text-red-700 font-bold">
-                                                فات موعدها: {formatDate(session.session_date)} - {formatTime(session.session_date)}
-                                            </p>
-                                        </div>
+                            <div key={session.id} className="border-l-4 border-l-red-500 bg-white p-4 rounded-r-xl shadow-sm border-t border-b border-r flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div className="flex items-center gap-4 w-full">
+                                    <div className="bg-red-50 p-2 rounded-lg text-center min-w-[60px]">
+                                        <span className="block text-xl font-black text-red-600">{new Date(session.session_date).getDate()}</span>
+                                        <span className="block text-[10px] text-red-400 font-bold uppercase">{new Date(session.session_date).toLocaleDateString('en-US', {weekday:'short'})}</span>
                                     </div>
-                                    <div className="flex gap-2 w-full sm:w-auto">
-                                        <Button 
-                                            size="sm" 
-                                            variant="success" 
-                                            className="flex-1 sm:flex-none h-9 text-[10px] font-black" 
-                                            onClick={() => navigate(`/admin/session-report/${session.id}`)}
-                                        >
-                                            كتابة التقرير
-                                        </Button>
-                                        <Button 
-                                            size="sm" 
-                                            variant="outline" 
-                                            className="flex-1 sm:flex-none h-9 text-[10px] border-red-200 text-red-700 font-black" 
-                                            onClick={() => setRescheduleModalSession(session)}
-                                        >
-                                            إعادة جدولة
-                                        </Button>
+                                    <div>
+                                        <p className="font-bold text-gray-800">{session.child_name || 'طالب'}</p>
+                                        <p className="text-xs text-muted-foreground">{session.package_name}</p>
+                                        <p className="text-xs text-red-600 font-bold mt-1">
+                                            {formatTime(session.session_date)} (فات الموعد)
+                                        </p>
                                     </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+                                <div className="flex gap-2 w-full md:w-auto">
+                                    <Button size="sm" variant="success" className="h-8 text-xs font-bold w-full md:w-auto" onClick={() => navigate(`/admin/session-report/${session.id}`)}>
+                                        إرسال التقرير
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-8 text-xs text-red-600 hover:bg-red-50 w-full md:w-auto" onClick={() => setRescheduleModalSession(session)}>
+                                        إلغاء/تأجيل
+                                    </Button>
+                                </div>
+                            </div>
                         ))}
                     </div>
                 </div>
             )}
 
-            <div>
-                <h3 className="text-xs font-black text-gray-500 mb-3 flex items-center gap-2 uppercase tracking-widest">
-                    <Clock size={14} className="text-blue-500" /> ما تبقى من الأسبوع
-                </h3>
-                {weekData.upcomingThisWeek.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {weekData.upcomingThisWeek.map(session => (
-                            <Card key={session.id} className="bg-white group hover:shadow-md transition-shadow">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <span className="text-[10px] font-black text-gray-400 bg-gray-50 px-2 py-1 rounded">
-                                            {formatDate(session.session_date)} - {formatTime(session.session_date)}
-                                        </span>
-                                        <div className="flex gap-1">
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-blue-600" onClick={() => handleAddToGoogleCalendar(session)} title="إضافة للتقويم">
-                                                <Plus size={14}/>
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-blue-600" onClick={() => navigate(`/admin/session-report/${session.id}`)} title="تفاصيل الجلسة">
-                                                <ExternalLink size={14}/>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* 2. جلسات اليوم */}
+                <div>
+                     <h3 className="text-sm font-bold text-green-700 mb-4 flex items-center gap-2 bg-green-50 w-fit px-3 py-1 rounded-full border border-green-200">
+                        <Clock size={16} /> جلسات اليوم
+                    </h3>
+                    {weekData.todaySessions.length > 0 ? (
+                        <div className="space-y-4">
+                            {weekData.todaySessions.map(session => (
+                                <Card key={session.id} className="border-green-200 shadow-md overflow-hidden group">
+                                    <div className="bg-green-600 h-1 w-full"></div>
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex gap-3">
+                                                 <div className="text-center min-w-[50px]">
+                                                    <span className="block text-2xl font-black text-gray-800">{formatTime(session.session_date)}</span>
+                                                    <span className="text-[10px] text-gray-400 font-bold uppercase">Today</span>
+                                                </div>
+                                                <div className="border-r pr-3 mr-1">
+                                                    <p className="font-bold text-gray-900">{session.child_name}</p>
+                                                    <p className="text-xs text-gray-500">{session.package_name}</p>
+                                                </div>
+                                            </div>
+                                            <Button size="icon" variant="ghost" onClick={() => handleAddToGoogleCalendar(session)} title="Google Calendar">
+                                                <Plus size={16} className="text-gray-400 hover:text-green-600"/>
                                             </Button>
                                         </div>
-                                    </div>
+                                        <div className="mt-4 pt-4 border-t flex justify-end">
+                                             <Button 
+                                                size="sm" 
+                                                className="bg-green-600 hover:bg-green-700 text-white shadow-lg w-full" 
+                                                onClick={() => navigate(`/session/${session.id}`)}
+                                                icon={<ExternalLink size={14}/>}
+                                            >
+                                                بدء الجلسة
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-10 border-2 border-dashed rounded-2xl bg-gray-50">
+                            <CheckCircle2 className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                            <p className="text-sm text-gray-500 font-medium">لا توجد جلسات أخرى اليوم.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* 3. باقي الأسبوع */}
+                <div>
+                     <h3 className="text-sm font-bold text-blue-700 mb-4 flex items-center gap-2 bg-blue-50 w-fit px-3 py-1 rounded-full border border-blue-200">
+                        <Calendar size={16} /> القادم هذا الأسبوع
+                    </h3>
+                    {weekData.upcomingSessions.length > 0 ? (
+                        <div className="space-y-3">
+                            {weekData.upcomingSessions.map(session => (
+                                <div key={session.id} className="flex items-center justify-between p-3 bg-white rounded-xl border hover:border-blue-300 hover:shadow-sm transition-all group">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-                                            <CheckCircle2 size={18}/>
+                                        <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex flex-col items-center justify-center border border-blue-100">
+                                            <span className="text-sm font-black leading-none">{new Date(session.session_date).getDate()}</span>
+                                            <span className="text-[8px] font-bold uppercase">{new Date(session.session_date).toLocaleDateString('en-US', {weekday:'short'})}</span>
                                         </div>
-                                        <div className="min-w-0">
-                                            <p className="font-bold text-sm text-gray-800 truncate">{session.child_name}</p>
-                                            <p className="text-[10px] text-muted-foreground truncate">{session.package_name}</p>
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-400 mb-0.5">{formatTime(session.session_date)}</p>
+                                            <p className="text-sm font-bold text-gray-800">{session.child_name}</p>
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-center py-12 text-muted-foreground font-bold italic bg-gray-50 rounded-2xl border-2 border-dashed">
-                        لا توجد جلسات أخرى متبقية في جدولك لهذا الأسبوع.
-                    </p>
-                )}
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAddToGoogleCalendar(session)}>
+                                            <Plus size={14}/>
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRescheduleModalSession(session)}>
+                                            <Clock size={14}/>
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                         <div className="text-center py-10 border-2 border-dashed rounded-2xl bg-gray-50">
+                            <p className="text-sm text-gray-500 font-medium">جدولك لباقي الأسبوع فارغ.</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {rescheduleModalSession && (

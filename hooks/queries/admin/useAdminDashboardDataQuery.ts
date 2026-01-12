@@ -7,9 +7,11 @@ import { publicService } from '../../../services/publicService';
 import { communicationService } from '../../../services/communicationService';
 
 const queries = [
-    { key: 'users', fn: () => userService.getAllUsers() },
-    { key: 'orders', fn: () => orderService.getAllOrders() },
-    { key: 'bookings', fn: () => bookingService.getAllBookings() },
+    // Fix: Extract arrays because getAllUsers/Orders/Bookings now return { data, count } objects
+    { key: 'users', fn: () => userService.getAllUsers().then(res => res.users) },
+    { key: 'orders', fn: () => orderService.getAllOrders().then(res => res.orders) },
+    { key: 'bookings', fn: () => bookingService.getAllBookings().then(res => res.bookings) },
+    
     { key: 'subscriptions', fn: () => orderService.getAllSubscriptions() },
     { key: 'supportTickets', fn: () => communicationService.getAllSupportTickets() },
     { key: 'joinRequests', fn: () => communicationService.getAllJoinRequests() },

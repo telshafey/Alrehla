@@ -25,7 +25,11 @@ const AdminUserFormPage: React.FC = () => {
     const type = searchParams.get('type') || 'customer';
     const isStaffFlow = type === 'staff';
 
-    const { data: users = [], isLoading: usersLoading } = useAdminUsers();
+    // Fix: Provide arguments to useAdminUsers and extract users correctly
+    const { data: usersData, isLoading: usersLoading } = useAdminUsers({ page: 1, pageSize: 1000, search: '', roleFilter: 'all' });
+    const users = usersData?.users || [];
+    const parentsMap = usersData?.parentsMap || new Map();
+    
     const { data: children = [] } = useAdminAllChildProfiles();
     const { updateUser, createUser, bulkDeleteUsers } = useUserMutations(); 
 
@@ -42,9 +46,9 @@ const AdminUserFormPage: React.FC = () => {
 
     const enrichedUser = useMemo(() => {
         if (isNew) return null;
-        const allEnriched = transformUsersWithRelations(users, children);
+        const allEnriched = transformUsersWithRelations(users, children, parentsMap);
         return allEnriched.find(u => u.id === id);
-    }, [users, children, id, isNew]);
+    }, [users, children, id, isNew, parentsMap]);
 
     useEffect(() => {
         if (!isNew && users.length > 0) {

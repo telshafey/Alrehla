@@ -34,6 +34,13 @@ interface CreateInstructorPayload {
     [key: string]: any;
 }
 
+interface GetBookingsOptions {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    statusFilter?: string; // active, archived, etc.
+}
+
 const parseSessionCount = (sessionString: string | undefined): number => {
     if (!sessionString) return 1;
     if (sessionString.includes('واحدة')) return 1;
@@ -41,7 +48,6 @@ const parseSessionCount = (sessionString: string | undefined): number => {
     return match ? parseInt(match[1], 10) : 1;
 };
 
-// helper to safely extract session count from package name if needed as fallback
 const getSessionCountFromPackage = (packageName: string): number => {
     const match = packageName.match(/(\d+)/);
     if (match && match[1]) return parseInt(match[1], 10);
@@ -52,22 +58,18 @@ const getSessionCountFromPackage = (packageName: string): number => {
 
 // --- FAIL-FAST HELPER ---
 const executeWithRetry = async <T>(operation: () => Promise<{ data: T | null; error: any }>): Promise<T | null> => {
-    // Attempt 1
     let { data, error } = await operation();
     
     if (!error) return data;
 
     const errorMsg = error.message || '';
     
-    // CRITICAL FIX: STOP RETRYING IF COLUMN IS MISSING
     if (errorMsg.includes('Could not find the') && errorMsg.includes('column')) {
          console.error("❌ Schema Mismatch: Column missing in DB.");
          if (typeof window !== 'undefined') localStorage.setItem('db_schema_error', 'true');
-         // Throw a user-friendly error immediately
          throw new Error(`خطأ في قاعدة البيانات: العمود المطلوب غير موجود. يرجى الذهاب إلى: لوحة التحكم -> إعدادات النظام -> إصلاح الطوارئ، وتنفيذ كود SQL.`);
     }
 
-    // Only retry for generic cache errors (PGRST204 without specific column name usually means cache reload needed)
     if (error.code === 'PGRST204' && !errorMsg.includes('column')) {
         console.warn("⚠️ Stale Cache detected. Trying reload...");
         await supabase.rpc('reload_schema_cache');
@@ -80,14 +82,54 @@ const executeWithRetry = async <T>(operation: () => Promise<{ data: T | null; er
 };
 
 export const bookingService = {
-    // --- Queries (SAFE MODE) ---
+    // --- Optimized Queries ---
     
-    async getAllBookings() {
+    // Updated to support pagination and direct joins
+    async getAllBookings(options: GetBookingsOptions = {}) {
         try {
-            const { data, error } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
-            if (error) return [];
-            return data as CreativeWritingBooking[];
-        } catch { return []; }
+            const { page, pageSize, search, statusFilter } = options;
+            
+            // Join relations directly to avoid separate fetches
+            let query = supabase
+                .from('bookings')
+                .select('*, child_profiles(name), instructors(name), users:profiles!bookings_user_id_fkey(name, email)', { count: 'exact' });
+
+            // Apply Filters
+            if (statusFilter && statusFilter !== 'all') {
+                if (statusFilter === 'active') {
+                    // Active bookings: Pending Payment, Confirmed, Completed (Usually kept in active view until archived)
+                    query = query.neq('status', 'ملغي');
+                } else if (statusFilter === 'archived') {
+                    query = query.eq('status', 'ملغي');
+                } else {
+                    query = query.eq('status', statusFilter);
+                }
+            }
+
+            if (search) {
+                // Search by Booking ID (as text) or Package Name
+                // Note: Searching joined tables (child name) requires different syntax or filter, limiting to main table for perf
+                query = query.or(`id.ilike.%${search}%,package_name.ilike.%${search}%`);
+            }
+
+            // Apply Pagination
+            if (page && pageSize) {
+                const from = (page - 1) * pageSize;
+                const to = from + pageSize - 1;
+                query = query.range(from, to);
+            }
+            
+            query = query.order('created_at', { ascending: false });
+
+            const { data, error, count } = await query;
+
+            if (error) {
+                 console.warn("getAllBookings failed:", error.message);
+                 return { bookings: [], count: 0 };
+            }
+
+            return { bookings: data as any[], count: count || 0 };
+        } catch { return { bookings: [], count: 0 }; }
     },
 
     async getAllInstructors() {
@@ -158,7 +200,6 @@ export const bookingService = {
     
     async checkSlotAvailability(instructorId: number, dateStr: string, time: string): Promise<boolean> {
         try {
-            // 1. Get all active bookings for this instructor at this specific TIME (e.g. 10:00)
             const { data: bookingsData, error } = await supabase
                 .from('bookings')
                 .select('booking_date, package_name')
@@ -166,15 +207,12 @@ export const bookingService = {
                 .eq('booking_time', time)
                 .neq('status', 'ملغي');
 
-            if (error || !bookingsData) return true; // If error, assume open (fail open) or handle better
+            if (error || !bookingsData) return true; 
 
-            // Explicitly cast to any[] to fix TypeScript 'never' error
             const bookings = bookingsData as any[];
-
             const requestedDate = new Date(dateStr);
             requestedDate.setHours(0, 0, 0, 0);
 
-            // 2. Check overlap logic in memory
             for (const booking of bookings) {
                 const bookingStart = new Date(booking.booking_date);
                 bookingStart.setHours(0, 0, 0, 0);
@@ -182,17 +220,11 @@ export const bookingService = {
                 const diffTime = requestedDate.getTime() - bookingStart.getTime();
                 const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-                // If diffDays is negative, it means requested date is BEFORE this booking, so no conflict 
-                // UNLESS the requested booking is long enough to overlap THIS booking. 
-                // For simplicity, we assume strictly FCFS (First Come First Served) for now.
-                // However, checking forward overlap:
-                
                 if (diffDays >= 0 && diffDays % 7 === 0) {
                     const sessionCount = getSessionCountFromPackage(booking.package_name);
                     const sessionIndex = diffDays / 7;
                     
                     if (sessionIndex < sessionCount) {
-                         // Conflict found!
                          return false; 
                     }
                 }
@@ -348,7 +380,6 @@ export const bookingService = {
              safeRole = 'user'; 
         }
 
-        // Wrapped in Fail-Fast Logic
         await executeWithRetry(() => (supabase.from('session_messages') as any).insert([{
             booking_id: payload.bookingId,
             sender_id: payload.senderId,
@@ -375,7 +406,6 @@ export const bookingService = {
              safeRole = 'user';
         }
 
-        // Wrapped in Fail-Fast Logic
         await executeWithRetry(() => (supabase.from('session_attachments') as any).insert([{
             booking_id: payload.bookingId,
             uploader_id: payload.uploaderId,

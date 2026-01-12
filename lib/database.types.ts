@@ -204,6 +204,7 @@ export interface UserWithParent extends UserProfileWithRelations {
     activeStudentsCount: number;
     totalChildrenCount: number;
     isActuallyParent: boolean;
+    relatedChildName?: string;
 }
 
 export interface EnrichedBooking extends CreativeWritingBooking {
@@ -646,13 +647,13 @@ export interface SiteContent {
             philosophyTitle: string;
             heroImageUrl: string;
         };
-        curriculum: {
+        curriculum?: {
             heroTitle: string;
             heroSubtitle: string;
             treasuresTitle: string;
             treasuresSubtitle: string;
         };
-        instructors: {
+        instructors?: {
             heroTitle: string;
             heroSubtitle: string;
         };
@@ -662,7 +663,6 @@ export interface SiteContent {
         heroSubtitle: string;
         faqs: FAQItem[];
     };
-    // Added New Fields
     privacyPage: {
         title: string;
         content: string;
@@ -671,101 +671,87 @@ export interface SiteContent {
         title: string;
         content: string;
     };
-    footer: {
+    footer?: {
         copyrightText: string;
-        description?: string;
+        description: string;
     };
 }
 
 export type SessionStatus = 'upcoming' | 'completed' | 'missed';
 
 export interface ScheduledSession {
-    id: string;
-    booking_id: string;
-    subscription_id: string | null;
-    child_id: number;
-    instructor_id: number;
-    session_date: string;
-    status: SessionStatus;
-    notes?: string;
+  id: string;
+  booking_id: string | null;
+  subscription_id: string | null;
+  child_id: number;
+  instructor_id: number;
+  session_date: string;
+  status: SessionStatus;
+  notes?: string | null;
+  created_at?: string;
 }
 
 export interface SessionMessage {
-    id: string;
-    booking_id: string;
-    sender_id: string;
-    sender_role: UserRole; // Updated to match UserRole
-    message_text: string;
-    created_at: string;
+  id: string;
+  booking_id: string;
+  sender_id: string;
+  sender_role: string;
+  message_text: string;
+  created_at: string;
+  sender_name?: string;
 }
 
 export interface SessionAttachment {
-    id: string;
-    booking_id: string;
-    uploader_id: string;
-    uploader_role: UserRole; // Updated to match UserRole
-    file_name: string;
-    file_url: string;
-    created_at: string;
-}
-
-export interface SupportSessionRequest {
-    id: string;
-    instructor_id: number;
-    child_id: number;
-    reason: string;
-    status: 'pending' | 'approved' | 'rejected';
-    requested_at: string;
+  id: string;
+  booking_id: string;
+  uploader_id: string;
+  uploader_role: string;
+  file_name: string;
+  file_url: string;
+  created_at: string;
+  uploader_name?: string;
 }
 
 export interface InstructorPayout {
-    id: string;
-    instructor_id: number;
-    payout_date: string;
-    amount: number;
-    details: string;
-    created_at?: string;
-    created_by?: string;
+  id: number;
+  instructor_id: number;
+  amount: number;
+  payout_date: string;
+  details: string | null;
+  created_at?: string;
+}
+
+export interface SupportSessionRequest {
+  id: string;
+  instructor_id: number;
+  child_id: number;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requested_at: string;
 }
 
 export interface PricingSettings {
-    id?: number;
-    company_percentage: number;
-    fixed_fee: number;
+  id?: number;
+  company_percentage: number;
+  fixed_fee: number;
 }
 
 export interface CommunicationSettings {
-    support_email: string;
-    join_us_email: string;
-    whatsapp_number: string;
-    whatsapp_default_message: string;
-    instapay_url?: string;
-    instapay_qr_url?: string;
-    instapay_number?: string;
+  support_email: string;
+  join_us_email: string;
+  whatsapp_number: string;
+  whatsapp_default_message: string;
+  instapay_url: string;
+  instapay_qr_url?: string;
+  instapay_number?: string;
 }
 
 export interface JitsiSettings {
-    id?: number;
-    domain: string;
-    room_prefix: string;
-    join_minutes_before: number;
-    expire_minutes_after: number;
-    start_with_audio_muted: boolean;
-    start_with_video_muted: boolean;
-}
-
-export interface PublicData {
-    instructors: Instructor[];
-    blogPosts: BlogPost[];
-    personalizedProducts: PersonalizedProduct[];
-    creativeWritingPackages: CreativeWritingPackage[];
-    siteContent: SiteContent;
-    socialLinks: SocialLinks;
-    publicHolidays: string[];
-    subscriptionPlans: SubscriptionPlan[];
-    standaloneServices: StandaloneService[];
-    communicationSettings: CommunicationSettings;
-    badges: Badge[];
-    comparisonItems: ComparisonItem[];
-    pricingSettings: PricingSettings; // New field
+  id?: number;
+  domain: string;
+  room_prefix: string;
+  join_minutes_before: number;
+  expire_minutes_after: number;
+  start_with_audio_muted: boolean;
+  start_with_video_muted: boolean;
 }

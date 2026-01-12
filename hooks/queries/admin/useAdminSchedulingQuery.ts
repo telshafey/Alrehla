@@ -8,13 +8,15 @@ import type { ScheduledSession } from '../../../lib/database.types';
 export const useAdminScheduledSessions = () => useQuery({
     queryKey: ['adminScheduledSessions'],
     queryFn: async () => {
-        const [sessions, instructors, children, bookings, subscriptions] = await Promise.all([
+        const [sessions, instructors, children, bookingsResult, subscriptions] = await Promise.all([
             bookingService.getAllScheduledSessions(),
             bookingService.getAllInstructors(),
             userService.getAllChildProfiles(),
             bookingService.getAllBookings(),
             orderService.getAllSubscriptions()
         ]);
+
+        const bookings = bookingsResult.bookings;
 
         return sessions
             .map(session => {

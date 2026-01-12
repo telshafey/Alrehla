@@ -18,22 +18,60 @@ interface CreateServiceOrderPayload { userId: string; childId: number; total: nu
 interface CreateSubscriptionPayload { userId: string; childId: number; planId: number; planName: string; durationMonths: number; total: number; shippingCost?: number; receiptUrl?: string; shippingDetails?: any; }
 interface CreateProductPayload { key: string; title: string; description: string; features: string[]; price_printed: number | null; price_electronic: number | null; [key: string]: any; }
 
+interface GetOrdersOptions {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    statusFilter?: string;
+}
+
 export const orderService = {
     // --- Queries (SAFE MODE) ---
-    async getAllOrders() {
+    async getAllOrders(options: GetOrdersOptions = {}) {
         try {
-            const { data, error } = await supabase
+            const { page, pageSize, search, statusFilter } = options;
+            
+            let query = supabase
                 .from('orders')
-                .select('*, users:profiles!fk_orders_user(name, email), child_profiles:child_profiles!fk_orders_child(name)') 
-                .order('order_date', { ascending: false });
+                .select('*, users:profiles!fk_orders_user(name, email), child_profiles:child_profiles!fk_orders_child(name)', { count: 'exact' });
+
+            // Apply Filters
+            if (statusFilter && statusFilter !== 'all') {
+                if (statusFilter === 'active') {
+                    query = query.in('status', ['بانتظار الدفع', 'بانتظار المراجعة', 'قيد التجهيز', 'يحتاج مراجعة', 'قيد التنفيذ', 'تم الشحن']);
+                } else if (statusFilter === 'completed') {
+                    query = query.in('status', ['تم التسليم', 'مكتمل']);
+                } else if (statusFilter === 'cancelled') {
+                     query = query.in('status', ['ملغي', 'مرفوض']);
+                } else {
+                    query = query.eq('status', statusFilter);
+                }
+            }
+
+            if (search) {
+                // البحث في رقم الطلب أو ملخص العنصر
+                // ملاحظة: البحث في الجداول المرتبطة معقد في Supabase مباشرة، سنكتفي بالبحث في الحقول المباشرة حالياً للأداء
+                query = query.or(`id.ilike.%${search}%,item_summary.ilike.%${search}%`);
+            }
+
+            // Apply Pagination if provided
+            if (page && pageSize) {
+                const from = (page - 1) * pageSize;
+                const to = from + pageSize - 1;
+                query = query.range(from, to);
+            }
+            
+            query = query.order('order_date', { ascending: false });
+
+            const { data, error, count } = await query;
                 
             if (error) {
                 console.warn("getAllOrders failed:", error.message);
-                return []; 
+                return { orders: [], count: 0 }; 
             }
-            return data as any[];
+            return { orders: data as any[], count: count || 0 };
         } catch (e) {
-            return [];
+            return { orders: [], count: 0 };
         }
     },
 

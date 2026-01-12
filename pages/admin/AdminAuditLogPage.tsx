@@ -25,7 +25,10 @@ const AdminAuditLogPage: React.FC = () => {
     const [filters, setFilters] = useState({ startDate: '', endDate: '', actionType: 'all', userId: 'all' });
     const [isSearchTriggered, setIsSearchTriggered] = useState(true);
 
-    const { data: usersList = [] } = useAdminUsers(); 
+    // Fix: Provide arguments and extract users correctly
+    const { data: usersData } = useAdminUsers({ page: 1, pageSize: 1000, search: '', roleFilter: 'all' });
+    const usersList = usersData?.users || [];
+
     const { data: logData, isLoading, error, refetch, isRefetching } = useAdminAuditLogQuery(filters, isSearchTriggered);
 
     const logs = logData?.logs || [];

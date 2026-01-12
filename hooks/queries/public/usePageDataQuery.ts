@@ -9,7 +9,7 @@ export const useBookingData = () => {
         queryFn: async () => {
             const data = await publicService.getAllPublicData();
             // جلب كافة الحجوزات النشطة لفلترة المواعيد المشغولة
-            const bookings = await bookingService.getAllBookings();
+            const bookingsResult = await bookingService.getAllBookings();
             
             return {
                 instructors: data.instructors,
@@ -19,7 +19,7 @@ export const useBookingData = () => {
                 // تصحيح: تمرير إعدادات التسعير من الجذر مباشرة
                 pricingConfig: data.pricingSettings,
                 // نرسل فقط الحجوزات غير الملغية
-                activeBookings: bookings.filter(b => b.status !== 'ملغي')
+                activeBookings: bookingsResult.bookings.filter(b => b.status !== 'ملغي')
             };
         },
         staleTime: 1000 * 30, // تحديث كل 30 ثانية لضمان دقة المواعيد

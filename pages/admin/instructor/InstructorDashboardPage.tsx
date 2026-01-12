@@ -1,5 +1,6 @@
 
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useInstructorData } from '../../../hooks/queries/instructor/useInstructorDataQuery';
 import PageLoader from '../../../components/ui/PageLoader';
 import StatCard from '../../../components/admin/StatCard';
@@ -9,6 +10,7 @@ import WeeklySessionsWidget from '../../../components/admin/dashboards/WeeklySes
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 
 const InstructorDashboardPage: React.FC = () => {
+    const navigate = useNavigate();
     const { data, isLoading } = useInstructorData();
 
     // 1. استخلاص البيانات الأساسية بشكل آمن
@@ -16,7 +18,7 @@ const InstructorDashboardPage: React.FC = () => {
     const bookings = data?.bookings || [];
     const introSessionsThisMonth = data?.introSessionsThisMonth || 0;
 
-    // 2. معالجة الجلسات المجدولة باستخدام useMemo لمنع إعادة الحساب غير الضرورية
+    // 2. تجميع كل الجلسات المجدولة من كافة الحجوزات
     const allScheduledSessions = useMemo(() => {
         if (!bookings.length) return [];
         return bookings.flatMap((b: any) => 
@@ -42,7 +44,6 @@ const InstructorDashboardPage: React.FC = () => {
 
     const introSessionGoalMet = introSessionsThisMonth >= 1;
 
-    // 4. معالجة حالات العرض (بعد تعريف كل الـ Hooks)
     if (isLoading) {
         return <PageLoader text="جاري تحميل لوحة التحكم..." />;
     }
@@ -59,6 +60,7 @@ const InstructorDashboardPage: React.FC = () => {
 
     return (
         <div className="animate-fadeIn space-y-8 pb-20">
+            {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">أهلاً بك، {instructor.name}</h1>
@@ -73,16 +75,19 @@ const InstructorDashboardPage: React.FC = () => {
                 </div>
             </div>
             
+            {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard 
-                    title="جلساتك المجدولة" 
+                    title="جلسات الأسبوع القادمة" 
                     value={stats.upcomingTotal} 
                     icon={<Calendar className="h-4 w-4 text-blue-500" />} 
+                    onClick={() => navigate('/admin/schedule')}
                 />
                 <StatCard 
                     title="الطلاب النشطون" 
                     value={stats.activeStudentsCount} 
                     icon={<BookOpen className="h-4 w-4 text-purple-500" />} 
+                    onClick={() => navigate('/admin/journeys')}
                 />
                 <StatCard 
                     title="جلسات تعريفية (هذا الشهر)" 
@@ -102,12 +107,15 @@ const InstructorDashboardPage: React.FC = () => {
                 </Card>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                <div className="xl:col-span-2 space-y-8">
+            {/* Main Content Areas - Vertical Stack for better spacing */}
+            <div className="space-y-10">
+                {/* 1. Schedule Section */}
+                <div className="w-full">
                     <WeeklySessionsWidget sessions={allScheduledSessions} instructorName={instructor.name} />
                 </div>
                 
-                <div className="xl:col-span-1">
+                {/* 2. Students & Journeys Section */}
+                <div className="w-full">
                     <InstructorJourneysPanel instructorBookings={(bookings as any[])} />
                 </div>
             </div>

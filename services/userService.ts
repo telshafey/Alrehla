@@ -2,7 +2,6 @@
 import { supabase, getTemporaryClient } from '../lib/supabaseClient';
 import { reportingService } from './reportingService';
 import type { UserProfile, ChildProfile, UserRole } from '../lib/database.types';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface CreateUserPayload {
     name: string;
@@ -25,7 +24,14 @@ export interface UpdateUserPayload {
     country?: string;
     timezone?: string;
     currency?: string;
-    password?: string; // Add optional password to type
+    password?: string;
+}
+
+export interface GetUsersOptions {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    roleFilter?: string;
 }
 
 const checkEmailExists = async (email: string): Promise<boolean> => {
@@ -34,7 +40,7 @@ const checkEmailExists = async (email: string): Promise<boolean> => {
         const { data } = await supabase
             .from('profiles')
             .select('id')
-            .ilike('email', normalizedEmail) // Use ilike for case-insensitive check
+            .ilike('email', normalizedEmail)
             .maybeSingle();
         return !!data;
     } catch (e) {
@@ -43,17 +49,50 @@ const checkEmailExists = async (email: string): Promise<boolean> => {
 };
 
 export const userService = {
-    async getAllUsers() {
+    // تم تحديث الدالة لدعم Pagination والبحث
+    async getAllUsers(options: GetUsersOptions = {}) {
+        const { page = 1, pageSize = 50, search = '', roleFilter = 'all' } = options;
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+
         try {
-            const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+            let query = supabase
+                .from('profiles')
+                .select('*', { count: 'exact' });
+
+            // تطبيق البحث
+            if (search) {
+                query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+            }
+
+            // تطبيق فلتر الرتبة
+            if (roleFilter && roleFilter !== 'all') {
+                // التعامل مع فئات الرتب
+                if (roleFilter === 'staff') {
+                    query = query.in('role', ['super_admin', 'general_supervisor', 'instructor', 'content_editor', 'support_agent', 'enha_lak_supervisor', 'creative_writing_supervisor']);
+                } else if (roleFilter === 'customers') {
+                     query = query.in('role', ['user', 'parent']);
+                } else {
+                    query = query.eq('role', roleFilter);
+                }
+            }
+
+            // الترتيب والتقسيم
+            query = query
+                .order('created_at', { ascending: false })
+                .range(from, to);
+
+            const { data, error, count } = await query;
+
             if (error) {
                 console.warn("getAllUsers failed:", error.message);
-                return []; // Return empty instead of throwing to prevent crash
+                return { users: [], count: 0 };
             }
-            return (data || []) as UserProfile[];
+
+            return { users: (data || []) as UserProfile[], count: count || 0 };
         } catch (e) {
             console.error("Critical error fetching users:", e);
-            return [];
+            return { users: [], count: 0 };
         }
     },
 
@@ -65,17 +104,14 @@ export const userService = {
         const { name, email, role, phone, address, password } = payload;
         const normalizedEmail = email.toLowerCase().trim();
 
-        // Warning: This check might fail if DB is broken, allowing duplicates temporarily
         const taken = await checkEmailExists(normalizedEmail);
         if (taken) {
             throw new Error(`البريد الإلكتروني ${normalizedEmail} مسجل بالفعل لمستخدم آخر.`);
         }
-
-        // --- AUTH CREATION LOGIC ---
         
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: normalizedEmail,
-            password: password || '123456', // Fallback password if not provided
+            password: password || '123456',
             options: {
                 data: { name, role }
             }
@@ -86,7 +122,6 @@ export const userService = {
 
         const userId = authData.user.id;
 
-        // Ensure profile is created
         const { data: profile, error: pError } = await (supabase.from('profiles') as any)
             .upsert([{
                 id: userId,
@@ -104,7 +139,6 @@ export const userService = {
              console.error("Profile creation error (ignored if auth succeeded):", pError);
         }
 
-        // Create instructor record if role is instructor
         if (role === 'instructor') {
              try {
                 const slug = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(Math.random() * 1000);
@@ -125,17 +159,11 @@ export const userService = {
         return (profile || { id: userId, name, email, role }) as UserProfile;
     },
 
-    /**
-     * إنشاء حساب طالب وربطه بولي الأمر (الحل الجذري للمشاكل الثلاثة)
-     */
     async createAndLinkStudentAccount(payload: { name: string, email: string, password?: string, childProfileId: number }) {
         const normalizedEmail = payload.email.toLowerCase().trim();
-        
-        // 0. التحقق من وجود المستخدم الحالي (ولي الأمر) لضمان الصلاحية
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         if (!currentUser) throw new Error("يجب تسجيل الدخول كولي أمر أولاً.");
 
-        // 1. استخدام عميل مؤقت لمنع تبديل الجلسة (حل المشكلة 3)
         const tempSupabase = getTemporaryClient();
 
         const { data: authData, error: authError } = await tempSupabase.auth.signUp({
@@ -149,9 +177,7 @@ export const userService = {
 
         const studentUserId = authData.user.id;
 
-        // 2. إنشاء بروفايل الطالب باستخدام العميل المؤقت (لأنه هو المالك للحساب الجديد)
-        // هذا يضمن عدم وجود مشاكل RLS عند إنشاء البروفايل
-        const { error: profileError } = await (tempSupabase.from('profiles') as any).insert([{
+        await (tempSupabase.from('profiles') as any).insert([{
             id: studentUserId,
             name: payload.name,
             email: normalizedEmail,
@@ -159,36 +185,17 @@ export const userService = {
             created_at: new Date().toISOString()
         }]);
 
-        if (profileError) {
-             console.error("Student Profile Creation Error:", profileError);
-             // نكمل العملية لأن الحساب أُنشئ، لكن نسجل الخطأ
-        }
-
-        // 3. ربط الطالب بملف الطفل باستخدام العميل الرئيسي (ولي الأمر - حل المشكلة 1)
-        // نستخدم العميل الرئيسي `supabase` لأنه يملك صلاحية تعديل `child_profiles` التي يملكها الأب
-        // إذا تبدلت الجلسة (المشكلة 3)، ستفشل هذه الخطوة لأن الطالب لا يملك هذا الملف. استخدام العميل المؤقت في الخطوة 1 يمنع ذلك.
         const { error: linkError } = await (supabase.from('child_profiles') as any)
             .update({ student_user_id: studentUserId })
             .eq('id', payload.childProfileId);
         
         if (linkError) throw new Error(`فشل ربط الحساب بملف الطفل: ${linkError.message}`);
 
-        // 4. ترقية ولي الأمر إلى رتبة "parent" إذا كان "user" (حل المشكلة 2)
-        // نستخدم Casting صريح لتجنب خطأ TypeScript 'property role does not exist on type never'
-        const { data: profileData } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', currentUser.id)
-            .single();
-        
+        const { data: profileData } = await supabase.from('profiles').select('role').eq('id', currentUser.id).single();
         const parentProfile = profileData as { role: string } | null;
         
         if (parentProfile && parentProfile.role === 'user') {
-            const { error: roleError } = await (supabase.from('profiles') as any)
-                .update({ role: 'parent' })
-                .eq('id', currentUser.id);
-            
-            if (roleError) console.error("Failed to upgrade parent role:", roleError);
+            await (supabase.from('profiles') as any).update({ role: 'parent' }).eq('id', currentUser.id);
         }
 
         return { success: true, studentId: studentUserId };
@@ -213,7 +220,6 @@ export const userService = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("جلسة غير صالحة");
 
-        // إضافة الطفل
         const { data, error } = await (supabase.from('child_profiles') as any)
             .insert([{ ...payload, user_id: user.id }])
             .select()
@@ -221,14 +227,7 @@ export const userService = {
 
         if (error) throw new Error(error.message);
         
-        // التحقق وترقية ولي الأمر تلقائياً عند إضافة أول طفل
-        const { data: profileData } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-            
-        // Explicit casting fix
+        const { data: profileData } = await supabase.from('profiles').select('role').eq('id', user.id).single();
         const parentProfile = profileData as { role: string } | null;
 
         if (parentProfile && parentProfile.role === 'user') {
@@ -250,74 +249,47 @@ export const userService = {
         if (error) throw new Error(error.message);
         return { success: true };
     },
-    
-    async checkAndDowngradeParentRole(parentId: string) {
-       // Optional implementation
-    },
 
-    async getAllChildProfiles() {
+    async getAllChildProfiles(userIds?: string[]) {
         try {
-            const { data } = await supabase.from('child_profiles').select('*');
+            let query = supabase.from('child_profiles').select('*');
+            if (userIds && userIds.length > 0) {
+                query = query.in('user_id', userIds);
+            }
+            const { data } = await query;
             return (data || []) as ChildProfile[];
         } catch { return []; }
     },
 
     async updateUser(payload: UpdateUserPayload) {
-        // 1. Separate password from profile data
         const { id, password, ...updates } = payload;
-        
-        // 2. Update Profile Data in 'profiles' table
         const { data, error } = await (supabase.from('profiles') as any).update(updates).eq('id', id).select().single();
-        
         if (error) throw new Error(error.message);
 
-        // 3. Update Password Logic
         if (password && password.trim() !== '') {
-            // Check if we are updating ourselves
             const { data: { user: currentUser } } = await supabase.auth.getUser();
-            
             if (currentUser && currentUser.id === id) {
-                // A. Updating OWN password (Allowed)
                 const { error: updateError } = await supabase.auth.updateUser({ password: password });
                 if (updateError) throw new Error(`فشل تغيير كلمة المرور: ${updateError.message}`);
             } else {
-                // B. Admin updating ANOTHER user's password
-                // This typically fails in client-side Supabase without a Service Role.
-                try {
-                    const { error: adminError } = await supabase.auth.admin.updateUserById(id, { password: password });
-                    if (adminError) throw adminError;
-                } catch (err: any) {
-                    console.warn("Password update skipped (Client-side Admin restriction):", err.message);
-                    // Use RPC as fallback
-                     await this.resetStudentPassword({ studentUserId: id, newPassword: password });
-                }
+                 await this.resetStudentPassword({ studentUserId: id, newPassword: password });
             }
         }
-
         return data as UserProfile;
     },
 
     async updateUserPassword(payload: { userId: string, newPassword: string }) {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
-        
         if (currentUser && currentUser.id === payload.userId) {
              const { error } = await supabase.auth.updateUser({ password: payload.newPassword });
              if (error) throw new Error(error.message);
         } else {
-             // Fallback to RPC if client admin call fails
-             try {
-                const { error } = await supabase.auth.admin.updateUserById(payload.userId, { password: payload.newPassword });
-                if (error) throw error;
-             } catch (e) {
-                 return this.resetStudentPassword({ studentUserId: payload.userId, newPassword: payload.newPassword });
-             }
+             return this.resetStudentPassword({ studentUserId: payload.userId, newPassword: payload.newPassword });
         }
         return { success: true };
     },
 
     async resetStudentPassword(payload: { studentUserId: string; newPassword: string }) {
-        // نستخدم RPC المخصص "reset_student_password" الذي يسمح لولي الأمر بتغيير كلمة المرور
-        // Cast supabase.rpc to any to bypass strict typing if definition is missing in local types
         const { error } = await (supabase.rpc as any)('reset_student_password', {
             target_student_id: payload.studentUserId,
             new_password: payload.newPassword
@@ -326,17 +298,10 @@ export const userService = {
         if (error) {
              console.error("Password reset RPC error:", error);
              if (error.message.includes('Not authorized')) {
-                 throw new Error("غير مصرح لك بتغيير كلمة مرور هذا الطالب. تأكد من أنك ولي الأمر المرتبط به.");
+                 throw new Error("غير مصرح لك بتغيير كلمة مرور هذا المستخدم.");
              }
-             // محاولة أخيرة كمدير نظام (إذا كان المستخدم الحالي أدمن)
-             try {
-                 const { error: adminError } = await supabase.auth.admin.updateUserById(payload.studentUserId, { password: payload.newPassword });
-                 if (adminError) throw adminError;
-             } catch (e) {
-                  throw new Error("فشل تغيير كلمة المرور: " + error.message);
-             }
+             throw new Error("فشل تغيير كلمة المرور: " + error.message);
         }
-        
         return { success: true };
     },
 
