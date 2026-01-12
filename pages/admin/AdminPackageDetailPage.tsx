@@ -19,7 +19,7 @@ import { calculateCustomerPrice } from '../../utils/pricingCalculator';
 const AdminPackageDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const isNew = id === 'new';
+    const isNew = !id || id === 'new';
 
     const { data, isLoading: settingsLoading } = useAdminCWSettings();
     const { data: pricingConfig, isLoading: pricingLoading } = useAdminPricingSettings();
@@ -42,11 +42,17 @@ const AdminPackageDetailPage: React.FC = () => {
     const [featuresString, setFeaturesString] = useState('');
 
     useEffect(() => {
-        if (!isNew && data?.packages) {
-            const foundPkg = data.packages.find(p => p.id === Number(id));
+        if (!isNew && data?.packages && id) {
+            // Ensure ID comparison works (string vs number)
+            const packageId = parseInt(id, 10);
+            const foundPkg = data.packages.find(p => p.id === packageId);
+            
             if (foundPkg) {
                 setPkg({ ...foundPkg, comparison_values: foundPkg.comparison_values || {} });
                 setFeaturesString(foundPkg.features.join('\n'));
+            } else {
+                // If package not found in loaded data, maybe redirect
+                // navigate('/admin/creative-writing-packages');
             }
         }
     }, [id, isNew, data]);
@@ -73,12 +79,21 @@ const AdminPackageDetailPage: React.FC = () => {
         e.preventDefault();
         const payload = {
             ...pkg,
-            id: isNew ? undefined : Number(id), 
+            // Ensure ID is passed correctly for updates
+            id: isNew ? undefined : parseInt(id!, 10), 
             features: featuresString.split('\n').filter(f => f.trim() !== ''),
         };
-        if (isNew) await createPackage.mutateAsync(payload);
-        else await updatePackage.mutateAsync(payload);
-        navigate('/admin/creative-writing-packages');
+        
+        try {
+            if (isNew) {
+                await createPackage.mutateAsync(payload);
+            } else {
+                await updatePackage.mutateAsync(payload);
+            }
+            navigate('/admin/creative-writing-packages');
+        } catch (error) {
+            console.error("Save failed", error);
+        }
     };
 
     if ((settingsLoading || pricingLoading) && !isNew) return <PageLoader />;

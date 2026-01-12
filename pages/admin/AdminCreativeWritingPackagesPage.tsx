@@ -35,8 +35,12 @@ const AdminCreativeWritingPackagesPage: React.FC = () => {
     }, [data?.packages, sortConfig]);
 
     const handleDeletePackage = async (packageId: number) => {
-        if (window.confirm('هل أنت متأكد من حذف هذه الباقة؟')) {
-            await deletePackage.mutateAsync({ packageId });
+        if (window.confirm('هل أنت متأكد من حذف هذه الباقة؟ لا يمكن حذف الباقة إذا كانت مرتبطة بحجوزات موجودة.')) {
+            try {
+                await deletePackage.mutateAsync({ packageId });
+            } catch (error) {
+                console.error("Delete failed", error);
+            }
         }
     };
 
@@ -92,7 +96,7 @@ const AdminCreativeWritingPackagesPage: React.FC = () => {
                                                 <TableCell className="font-bold">{pkg.price === 0 ? 'مجانية' : `${pkg.price} ج.م`}</TableCell>
                                                 <TableCell className="flex items-center gap-2">
                                                     <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/creative-writing-packages/${pkg.id}`)} title="تعديل"><Edit size={20} /></Button>
-                                                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeletePackage(pkg.id)} title="حذف"><Trash2 size={20} /></Button>
+                                                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeletePackage(pkg.id)} title="حذف" loading={deletePackage.isPending}><Trash2 size={20} /></Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}

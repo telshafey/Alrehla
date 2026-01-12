@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { Calendar, CheckCircle, Clock, XCircle, Star, Package, Gift, ShieldQuestion, Check, X } from 'lucide-react';
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { Calendar, CheckCircle, Clock, XCircle, Star, Package, Gift, ShieldQuestion, Check, X, Filter, RefreshCw } from 'lucide-react';
 import { useAdminScheduledSessions } from '../../hooks/queries/admin/useAdminSchedulingQuery';
 import { useAdminSupportSessionRequests } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
@@ -7,7 +8,7 @@ import PageLoader from '../../components/ui/PageLoader';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { formatDate } from '../../utils/helpers';
-import type { SessionStatus, ScheduledSession, SupportSessionRequest } from '../../lib/database.types';
+import type { SessionStatus, ScheduledSession } from '../../lib/database.types';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
@@ -15,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Ta
 import { Button } from '../../components/ui/Button';
 import IntroductorySessionSchedulerModal from '../../components/admin/IntroductorySessionSchedulerModal';
 import SortableTableHead from '../../components/admin/ui/SortableTableHead';
-
+import DatePicker from '../../components/admin/ui/DatePicker';
 
 const getStatusInfo = (status: SessionStatus) => {
     switch (status) {
@@ -29,7 +30,7 @@ const getStatusInfo = (status: SessionStatus) => {
 type EnrichedSession = ScheduledSession & { instructor_name: string; child_name: string; type: string; package_name: string | null };
 
 const AdminScheduledSessionsPage: React.FC = () => {
-    const { data: sessions = [], isLoading: sessionsLoading, error: sessionsError, refetch: refetchSessions } = useAdminScheduledSessions();
+    const { data: sessions = [], isLoading: sessionsLoading, error: sessionsError, refetch: refetchSessions, isRefetching } = useAdminScheduledSessions();
     const { data: supportRequests = [], isLoading: supportLoading, error: supportError, refetch: refetchSupport } = useAdminSupportSessionRequests();
     const { approveSupportSessionRequest, rejectSupportSessionRequest } = useInstructorMutations();
     
@@ -39,13 +40,23 @@ const AdminScheduledSessionsPage: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'session_date', direction: 'desc' });
 
+    // Date Filtering State - Default to next 30 days for better performance/UX
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date();
+    nextMonth.setDate(nextMonth.getDate() + 30);
+    const nextMonthStr = nextMonth.toISOString().split('T')[0];
+
+    const [dateRange, setDateRange] = useState({ start: today, end: nextMonthStr });
+
     const isLoading = sessionsLoading || supportLoading;
     const error = sessionsError || supportError;
 
     const sortedAndFilteredSessions = useMemo(() => {
         let filtered = (sessions as any[]).filter(s => {
+            // 1. Status Filter
             const matchesStatus = statusFilter === 'all' || s.status === statusFilter;
             
+            // 2. Tab (Type) Filter
             let matchesType = false;
             switch (activeTab) {
                 case 'intro': matchesType = s.package_name === 'الجلسة التعريفية'; break;
@@ -54,9 +65,17 @@ const AdminScheduledSessionsPage: React.FC = () => {
                 default: matchesType = true;
             }
             
-            const matchesSearch = searchTerm === '' || (s.instructor_name && s.instructor_name.toLowerCase().includes(searchTerm.toLowerCase())) || (s.child_name && s.child_name.toLowerCase().includes(searchTerm.toLowerCase()));
+            // 3. Search Filter
+            const matchesSearch = searchTerm === '' || 
+                (s.instructor_name && s.instructor_name.toLowerCase().includes(searchTerm.toLowerCase())) || 
+                (s.child_name && s.child_name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-            return matchesStatus && matchesType && matchesSearch;
+            // 4. Date Range Filter
+            const sessionDate = s.session_date.split('T')[0];
+            const matchesDate = (!dateRange.start || sessionDate >= dateRange.start) && 
+                                (!dateRange.end || sessionDate <= dateRange.end);
+
+            return matchesStatus && matchesType && matchesSearch && matchesDate;
         });
         
         if (sortConfig !== null) {
@@ -67,7 +86,7 @@ const AdminScheduledSessionsPage: React.FC = () => {
             });
         }
         return filtered;
-    }, [sessions, statusFilter, activeTab, searchTerm, sortConfig]);
+    }, [sessions, statusFilter, activeTab, searchTerm, sortConfig, dateRange]);
     
     const handleSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -84,10 +103,14 @@ const AdminScheduledSessionsPage: React.FC = () => {
         <>
         <IntroductorySessionSchedulerModal isOpen={isSchedulerModalOpen} onClose={() => setIsSchedulerModalOpen(false)} />
         <div className="animate-fadeIn space-y-8">
-            <h1 className="text-3xl font-extrabold text-foreground">إدارة الجلسات</h1>
+            <div className="flex justify-between items-center">
+                 <h1 className="text-3xl font-extrabold text-foreground">إدارة الجلسات</h1>
+                 <Button onClick={() => { refetchSessions(); refetchSupport(); }} variant="ghost" size="sm" icon={<RefreshCw className={isRefetching ? 'animate-spin' : ''} size={16}/>}>تحديث</Button>
+            </div>
+           
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Calendar /> قائمة الجلسات</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><Calendar /> جدول الجلسات</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
@@ -118,17 +141,40 @@ const AdminScheduledSessionsPage: React.FC = () => {
                         </TabsContent>
                         
                         <TabsContent value={activeTab} className={activeTab === 'support' ? 'hidden' : ''}>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                <Input type="search" placeholder="ابحث بالمدرب أو الطالب..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                                <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}>
-                                    <option value="all">كل الحالات</option>
-                                    {(['upcoming', 'completed', 'missed'] as SessionStatus[]).map(s => <option key={s} value={s}>{getStatusInfo(s).text}</option>)}
-                                </Select>
-                            </div>
+                             
+                             {/* Filters Section */}
+                             <div className="bg-muted/30 p-4 rounded-xl border mb-6 space-y-4">
+                                <div className="flex items-center gap-2 mb-2 text-sm font-bold text-gray-700">
+                                    <Filter size={16} /> تصفية متقدمة
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                                    <div className="lg:col-span-2">
+                                        <DatePicker 
+                                            startDate={dateRange.start} 
+                                            endDate={dateRange.end} 
+                                            onStartDateChange={(d) => setDateRange(p => ({...p, start: d}))} 
+                                            onEndDateChange={(d) => setDateRange(p => ({...p, end: d}))}
+                                        />
+                                    </div>
+                                    <div className="w-full">
+                                         <label className="text-xs font-semibold mb-1 block">الحالة</label>
+                                         <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}>
+                                            <option value="all">كل الحالات</option>
+                                            {(['upcoming', 'completed', 'missed'] as SessionStatus[]).map(s => <option key={s} value={s}>{getStatusInfo(s).text}</option>)}
+                                        </Select>
+                                    </div>
+                                    <div className="w-full">
+                                        <label className="text-xs font-semibold mb-1 block">بحث</label>
+                                        <Input type="search" placeholder="ابحث بالمدرب أو الطالب..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                                    </div>
+                                </div>
+                             </div>
+
                             {activeTab === 'intro' && (
                                 <div className="mb-4"><Button onClick={() => setIsSchedulerModalOpen(true)} icon={<Calendar />}>جدولة جلسة تعريفية</Button></div>
                             )}
-                            <div className="overflow-x-auto">
+                            
+                            <div className="overflow-x-auto border rounded-lg">
                                 <Table>
                                     <TableHeader><TableRow>
                                         <SortableTableHead<EnrichedSession> sortKey="child_name" label="الطالب" sortConfig={sortConfig} onSort={handleSort} />
@@ -140,11 +186,14 @@ const AdminScheduledSessionsPage: React.FC = () => {
                                     <TableBody>
                                         {sortedAndFilteredSessions.map(session => {
                                             const statusInfo = getStatusInfo(session.status);
-                                            return (<TableRow key={session.id}><TableCell className="font-semibold">{session.child_name}</TableCell><TableCell>{session.instructor_name}</TableCell><TableCell className="text-sm">{formatDate(session.session_date)} - {new Date(session.session_date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</TableCell><TableCell className="text-sm">{session.type}</TableCell><TableCell><span className="flex items-center gap-2 text-sm font-semibold">{statusInfo.icon} {statusInfo.text}</span></TableCell></TableRow>)
+                                            return (<TableRow key={session.id} className="hover:bg-muted/10"><TableCell className="font-semibold">{session.child_name}</TableCell><TableCell>{session.instructor_name}</TableCell><TableCell className="text-sm">{formatDate(session.session_date)} - {new Date(session.session_date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</TableCell><TableCell className="text-sm">{session.type}</TableCell><TableCell><span className="flex items-center gap-2 text-sm font-semibold">{statusInfo.icon} {statusInfo.text}</span></TableCell></TableRow>)
                                         })}
                                     </TableBody>
                                 </Table>
-                                {sortedAndFilteredSessions.length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد جلسات تطابق بحثك.</p>}
+                                {sortedAndFilteredSessions.length === 0 && <p className="text-center py-12 text-muted-foreground font-semibold">لا توجد جلسات تطابق البحث أو الفلاتر المحددة.</p>}
+                            </div>
+                            <div className="mt-2 text-xs text-muted-foreground text-center">
+                                يتم عرض الجلسات في الفترة من {dateRange.start || 'البداية'} إلى {dateRange.end || 'النهاية'}
                             </div>
                         </TabsContent>
                     </Tabs>
