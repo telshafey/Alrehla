@@ -18,18 +18,24 @@ const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpe
     const { addToast } = useToast();
     const [copied, setCopied] = useState(false);
 
-    // رابط iCal الديناميكي (HTTPS لسهولة النسخ واللصق)
-    // نستخدم عنوان المشروع من الإعدادات لضمان الديناميكية
     const projectUrl = DEFAULT_CONFIG.supabase.projectUrl;
-    const calendarUrl = `${projectUrl}/functions/v1/instructor-calendar?id=${currentUser?.id}`;
     
-    // رابط الاشتراك المباشر لـ Google Calendar (يفتح واجهة الإضافة فوراً)
-    const googleSubscribeUrl = `https://calendar.google.com/calendar/r/settings/addbyurl?cid=${encodeURIComponent(calendarUrl)}`;
+    // Construct the URL
+    // 1. Append a dummy .ics parameter to help calendar validators recognize the file type
+    // 2. Use webcal:// protocol for the "Copy" link as it is standard for subscriptions
+    const baseApiUrl = `${projectUrl}/functions/v1/instructor-calendar`;
+    const params = `id=${currentUser?.id}&t=${Date.now()}&ext=.ics`; // Adding timestamp to prevent caching, ext for validation
+    
+    const webcalUrl = baseApiUrl.replace(/^https:/, 'webcal:') + '?' + params;
+    const httpsUrl = baseApiUrl + '?' + params;
+    
+    // Google Calendar 'Add by URL' direct link
+    const googleSubscribeUrl = `https://calendar.google.com/calendar/r/settings/addbyurl?cid=${encodeURIComponent(httpsUrl)}`;
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(calendarUrl);
+        navigator.clipboard.writeText(webcalUrl);
         setCopied(true);
-        addToast('تم نسخ رابط المزامنة (iCal) بنجاح!', 'success');
+        addToast('تم نسخ رابط webcal بنجاح!', 'success');
         setTimeout(() => setCopied(false), 3000);
     };
 
@@ -54,7 +60,7 @@ const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpe
                         </div>
                         <div className="text-sm leading-relaxed text-blue-800">
                             <p className="font-bold mb-1">كيف تعمل المزامنة؟</p>
-                            <p>عن طريق الاشتراك في رابط iCal الخاص بك، ستظهر جلساتك تلقائياً في تقويمك الشخصي. أي جلسة جديدة تُضاف أو تُعدل هنا ستنعكس هناك (قد يستغرق التحديث بضع ساعات حسب خدمة التقويم).</p>
+                            <p>عن طريق الاشتراك في رابط iCal الخاص بك، ستظهر جلساتك تلقائياً في تقويمك الشخصي. الرابط ديناميكي ويحتوي على "ext=.ics" لضمان التوافق.</p>
                         </div>
                     </div>
 
@@ -73,15 +79,18 @@ const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpe
                                     <PlusIcon /> إضافة إلى تقويم جوجل
                                 </a>
                             </div>
+                             <p className="text-xs text-muted-foreground">
+                                إذا واجهت مشكلة، جرب نسخ الرابط من تبويب "Outlook / Apple" وأضفه يدوياً عبر "Add by URL" في إعدادات جوجل.
+                            </p>
                         </div>
                     </TabsContent>
 
                     <TabsContent value="other" className="space-y-6">
                         <div className="space-y-4">
-                            <label className="text-sm font-black text-gray-700 block">رابط المزامنة اليدوي (iCal URL):</label>
+                            <label className="text-sm font-black text-gray-700 block">رابط المزامنة (Webcal/iCal):</label>
                             <div className="flex items-center gap-2">
                                 <div className="flex-1 bg-muted p-3 rounded-xl border font-mono text-[10px] break-all text-muted-foreground dir-ltr">
-                                    {calendarUrl}
+                                    {webcalUrl}
                                 </div>
                                 <Button 
                                     onClick={handleCopy} 

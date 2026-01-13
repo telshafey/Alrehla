@@ -6,7 +6,7 @@ import { useToast } from '../contexts/ToastContext';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import { useProduct } from '../contexts/ProductContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Send, Gift, Check, Star, ArrowLeft } from 'lucide-react';
+import { Send, Gift, Check, Star, ArrowLeft, Puzzle } from 'lucide-react';
 import ShareButtons from '../components/shared/ShareButtons';
 import { Button } from '../components/ui/Button';
 import PageLoader from '../components/ui/PageLoader';
@@ -23,13 +23,15 @@ import ShippingAddressForm from '../components/shared/ShippingAddressForm';
 import ChildDetailsSection from '../components/order/ChildDetailsSection';
 import ChildProfileModal from '../components/account/ChildProfileModal';
 import { EGYPTIAN_GOVERNORATES } from '../utils/governorates';
+import AddonsSection from '../components/order/AddonsSection';
 
-type SubscriptionStep = 'plan' | 'child' | 'customization' | 'images' | 'delivery';
+type SubscriptionStep = 'plan' | 'child' | 'customization' | 'addons' | 'images' | 'delivery';
 
 const stepsConfig = [
     { key: 'plan', title: 'اختر الباقة' },
     { key: 'child', title: 'بيانات الطفل' },
     { key: 'customization', title: 'تخصيص القصة' },
+    { key: 'addons', title: 'إضافات' },
     { key: 'images', title: 'رفع الصور' },
     { key: 'delivery', title: 'التوصيل' },
 ];
@@ -74,6 +76,11 @@ const SubscriptionPage: React.FC = () => {
         products.find((p: PersonalizedProduct) => p.key === 'subscription_box'), 
     [products]);
 
+    // جلب المنتجات الإضافية (Addons)
+    const addonProducts = useMemo(() => 
+        products.filter((p: PersonalizedProduct) => p.is_addon), 
+    [products]);
+
     const [step, setStep] = useState<SubscriptionStep>('plan');
     const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
     const [isChildModalOpen, setIsChildModalOpen] = useState(false);
@@ -98,16 +105,36 @@ const SubscriptionPage: React.FC = () => {
             sendDigitalCard: true,
             storyValue: '', // For Goal Selection
             customGoal: '',
-            // Dynamic fields will be added here
         };
     });
 
     const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
     
     const bestValuePlan = subscriptionPlans.find((p: SubscriptionPlan) => p.is_best_value) || subscriptionPlans[0];
     const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(bestValuePlan);
+
+    // Sync User Data when loaded (Fixes shipping calculation issue on first load)
+    useEffect(() => {
+        if (currentUser) {
+            setFormData(prev => {
+                // Only update if fields are empty to preserve user input
+                const defaultGov = currentUser.governorate || 
+                    (currentUser.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : prev.governorate);
+                
+                return {
+                    ...prev,
+                    governorate: defaultGov,
+                    recipientName: prev.recipientName || currentUser.name,
+                    recipientAddress: prev.recipientAddress || currentUser.address,
+                    recipientPhone: prev.recipientPhone || currentUser.phone,
+                    recipientEmail: prev.recipientEmail || currentUser.email,
+                };
+            });
+        }
+    }, [currentUser]);
 
     // Calculate Real-time Shipping Cost (Base Cost * Duration Months)
     const countryCosts = shippingCosts?.['مصر'] || {};
@@ -118,6 +145,14 @@ const SubscriptionPage: React.FC = () => {
     
     const planDuration = selectedPlan?.duration_months || 1;
     const totalShippingCost = baseShippingCost * planDuration;
+
+    // Calculate Addons Cost
+    const addonsCost = useMemo(() => {
+        return selectedAddons.reduce((total, key) => {
+            const product = addonProducts.find(p => p.key === key);
+            return total + (product?.price_printed || 0);
+        }, 0);
+    }, [selectedAddons, addonProducts]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -190,6 +225,12 @@ const SubscriptionPage: React.FC = () => {
         }
     };
     
+    const handleAddonToggle = (key: string) => {
+        setSelectedAddons(prev => 
+            prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+        );
+    };
+
     const validateStep = () => {
         const newErrors: { [key: string]: string } = {};
         switch(step) {
@@ -241,10 +282,7 @@ const SubscriptionPage: React.FC = () => {
                      newErrors.recipientPhone = 'يرجى إدخال رقم هاتف مصري صحيح (مثال: 01012345678)';
                 }
 
-                // Strict check: governorate is mandatory
-                if (!formData.governorate || formData.governorate.trim() === '') {
-                     newErrors.governorate = 'المحافظة مطلوبة لحساب الشحن.';
-                }
+                if (!formData.governorate) newErrors.governorate = 'المحافظة مطلوبة لحساب الشحن.';
                 break;
         }
         setErrors(newErrors);
@@ -279,7 +317,7 @@ const SubscriptionPage: React.FC = () => {
         }
 
          if (!validateStep()) {
-            addToast('يرجى مراجعة بيانات التوصيل (المحافظة مطلوبة).', 'warning');
+            addToast('يرجى مراجعة بيانات التوصيل.', 'warning');
             return;
         }
 
@@ -287,15 +325,18 @@ const SubscriptionPage: React.FC = () => {
         
         // Use selected child ID if available, otherwise assume manual entry (id: -1 or similar logic in backend)
         const childIdToUse = selectedChildId || (formData.childName ? -1 : null);
+        
+        // Calculate Total with Addons
+        const finalTotal = selectedPlan!.price + addonsCost; // Shipping calculated at cart level usually, but here passed separately
 
         addItemToCart({
             type: 'subscription',
             payload: { 
-                formData, 
+                formData: { ...formData, selectedAddons }, // Pass addons in form data
                 imageFiles,
-                total: selectedPlan!.price,
-                shippingPrice: totalShippingCost, // Use the multiplied total
-                summary: `صندوق الرحلة (${selectedPlan!.name})`,
+                total: finalTotal,
+                shippingPrice: totalShippingCost, 
+                summary: `صندوق الرحلة (${selectedPlan!.name})` + (selectedAddons.length > 0 ? ` + ${selectedAddons.length} إضافات` : ''),
                 plan: selectedPlan,
                 childId: childIdToUse
             }
@@ -422,6 +463,14 @@ const SubscriptionPage: React.FC = () => {
                         )}
                    </div>
                 );
+            case 'addons':
+                return (
+                    <AddonsSection 
+                        addonProducts={addonProducts} 
+                        selectedAddons={selectedAddons} 
+                        onToggle={handleAddonToggle} 
+                    />
+                );
             case 'images':
                  return (
                      <div className="space-y-6">
@@ -520,6 +569,9 @@ const SubscriptionPage: React.FC = () => {
                                     step={step}
                                     features={content?.features}
                                     shippingCost={totalShippingCost}
+                                    addonsCost={addonsCost}
+                                    selectedAddons={selectedAddons}
+                                    addonProducts={addonProducts}
                                     governorate={formData.governorate}
                                 />
                             </div>

@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Gift, Check, Send, Truck } from 'lucide-react';
-import type { SubscriptionPlan } from '../../lib/database.types';
+import { Gift, Check, Send, Truck, Puzzle, Plus } from 'lucide-react';
+import type { SubscriptionPlan, PersonalizedProduct } from '../../lib/database.types';
 import { Button } from '../ui/Button';
 
 interface SubscriptionSummaryProps {
@@ -11,6 +11,9 @@ interface SubscriptionSummaryProps {
     step: string;
     features?: string[];
     shippingCost?: number;
+    addonsCost?: number;
+    selectedAddons?: string[];
+    addonProducts?: PersonalizedProduct[];
     governorate?: string;
 }
 
@@ -28,6 +31,9 @@ const SubscriptionSummary: React.FC<SubscriptionSummaryProps> = ({
     step, 
     features, 
     shippingCost = 0,
+    addonsCost = 0,
+    selectedAddons = [],
+    addonProducts = [],
     governorate
 }) => {
     
@@ -36,7 +42,7 @@ const SubscriptionSummary: React.FC<SubscriptionSummaryProps> = ({
     
     // Calculate final total
     const planPrice = selectedPlan?.price || 0;
-    const finalTotal = planPrice + shippingCost;
+    const finalTotal = planPrice + shippingCost + addonsCost;
     const months = selectedPlan?.duration_months || 1;
 
     return (
@@ -68,6 +74,28 @@ const SubscriptionSummary: React.FC<SubscriptionSummaryProps> = ({
                         <span>سعر الباقة:</span>
                         <span>{planPrice} ج.م</span>
                     </div>
+
+                    {/* Addons Section */}
+                    {selectedAddons.length > 0 && (
+                        <div className="py-2 border-t border-dashed space-y-2">
+                            <p className="text-xs font-bold text-purple-700 flex items-center gap-1">
+                                <Puzzle size={12} /> إضافات (مع أول صندوق):
+                            </p>
+                            {selectedAddons.map(addonKey => {
+                                const product = addonProducts.find(p => p.key === addonKey);
+                                return product ? (
+                                    <div key={addonKey} className="flex justify-between items-center text-xs text-gray-600">
+                                        <span className="flex items-center gap-1"><Plus size={10} /> {product.title}</span>
+                                        <span>{product.price_printed} ج.م</span>
+                                    </div>
+                                ) : null;
+                            })}
+                            <div className="flex justify-between items-center text-sm font-semibold text-purple-800 pt-1 border-t border-dashed">
+                                <span>مجموع الإضافات:</span>
+                                <span>{addonsCost} ج.م</span>
+                            </div>
+                        </div>
+                    )}
                     
                     {shippingCost > 0 ? (
                         <div className="flex justify-between items-start text-green-700 text-sm bg-green-50 p-2 rounded">
