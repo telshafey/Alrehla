@@ -16,16 +16,21 @@ const WritingDraftPanel: React.FC<WritingDraftPanelProps> = ({ journeyId, canEdi
     const [draft, setDraft] = useState(initialDraft || '');
     const [lastSaved, setLastSaved] = useState<string | null>(null);
 
-    // تحديث النص إذا تغير من المصدر (عند التحميل الأول فقط)
+    // Sync state with initialDraft when it loads from DB (e.g. after refresh)
+    // Only update if local draft is empty to avoid overwriting unsaved work if re-renders occur
     useEffect(() => {
         if (initialDraft && draft === '') {
             setDraft(initialDraft);
         }
-    }, [initialDraft]);
+    }, [initialDraft]); // Removed 'draft' from dependency to avoid loop, logic handles check inside
 
     const handleSaveDraft = async () => {
-        await updateBookingDraft.mutateAsync({ bookingId: journeyId, draft });
-        setLastSaved(new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }));
+        try {
+            await updateBookingDraft.mutateAsync({ bookingId: journeyId, draft });
+            setLastSaved(new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }));
+        } catch (error) {
+            // Error handling done in mutation hook
+        }
     };
 
     return (
@@ -46,7 +51,7 @@ const WritingDraftPanel: React.FC<WritingDraftPanelProps> = ({ journeyId, canEdi
                     {lastSaved && <span className="text-xs text-green-600 flex items-center gap-1"><CheckCircle size={12}/> تم الحفظ {lastSaved}</span>}
                     
                     {canEdit ? (
-                        <Button onClick={handleSaveDraft} loading={updateBookingDraft.isPending} icon={<Save size={16}/>} disabled={!draft} size="sm">
+                        <Button onClick={handleSaveDraft} loading={updateBookingDraft.isPending} icon={<Save size={16}/>} disabled={!draft && !initialDraft} size="sm">
                             {updateBookingDraft.isPending ? 'جاري الحفظ...' : 'حفظ المسودة'}
                         </Button>
                     ) : (

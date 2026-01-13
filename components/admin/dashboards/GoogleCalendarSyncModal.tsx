@@ -6,6 +6,7 @@ import { Button } from '../../ui/Button';
 import { useToast } from '../../../contexts/ToastContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../ui/Tabs';
+import { DEFAULT_CONFIG } from '../../../lib/config';
 
 interface GoogleCalendarSyncModalProps {
     isOpen: boolean;
@@ -17,12 +18,13 @@ const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpe
     const { addToast } = useToast();
     const [copied, setCopied] = useState(false);
 
-    // رابط iCal الديناميكي (محاكاة)
-    const calendarUrl = `webcal://mqsmgtparbdpvnbyxokh.supabase.co/functions/v1/instructor-calendar?id=${currentUser?.id}`;
+    // رابط iCal الديناميكي (HTTPS لسهولة النسخ واللصق)
+    // نستخدم عنوان المشروع من الإعدادات لضمان الديناميكية
+    const projectUrl = DEFAULT_CONFIG.supabase.projectUrl;
+    const calendarUrl = `${projectUrl}/functions/v1/instructor-calendar?id=${currentUser?.id}`;
     
     // رابط الاشتراك المباشر لـ Google Calendar (يفتح واجهة الإضافة فوراً)
-    // ملاحظة: نستبدل webcal بـ http ليقبله جوجل في الرابط
-    const googleSubscribeUrl = `https://calendar.google.com/calendar/r/settings/addbyurl?cid=${encodeURIComponent(calendarUrl.replace('webcal://', 'https://'))}`;
+    const googleSubscribeUrl = `https://calendar.google.com/calendar/r/settings/addbyurl?cid=${encodeURIComponent(calendarUrl)}`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(calendarUrl);

@@ -28,9 +28,9 @@ export const useBookingMutations = () => {
 
     const updateBookingProgressNotes = useMutation({
         mutationFn: (payload: { bookingId: string, notes: string }) => bookingService.updateBookingProgressNotes(payload.bookingId, payload.notes),
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['adminRawCwBookings'] });
-            queryClient.invalidateQueries({ queryKey: ['trainingJourney'] });
+            queryClient.invalidateQueries({ queryKey: ['trainingJourney', variables.bookingId] });
             addToast('تم حفظ ملاحظات التقدم بنجاح.', 'success');
         },
          onError: (error: Error) => {
@@ -53,7 +53,11 @@ export const useBookingMutations = () => {
     
     const updateBookingDraft = useMutation({
         mutationFn: (payload: { bookingId: string, draft: string }) => bookingService.saveBookingDraft(payload.bookingId, payload.draft),
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
+            // تحديث بيانات الرحلة فوراً لتظهر المسودة عند الجميع (تحديث الكاش)
+            queryClient.invalidateQueries({ queryKey: ['trainingJourney', variables.bookingId] });
+            // تحديث الاستعلامات الأخرى ذات الصلة لضمان التزامن
+            queryClient.invalidateQueries({ queryKey: ['studentDashboardData'] });
             addToast('تم حفظ المسودة بنجاح.', 'success');
         },
         onError: (error: Error) => {

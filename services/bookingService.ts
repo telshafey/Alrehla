@@ -353,17 +353,28 @@ export const bookingService = {
     },
 
     async saveBookingDraft(bookingId: string, draft: string) {
+        // First, get the current details
         const { data: current, error: fetchError } = await supabase
             .from('bookings')
             .select('details')
             .eq('id', bookingId)
             .single();
 
-        if (fetchError) throw new Error(fetchError.message);
+        if (fetchError) {
+            console.error("Error fetching booking details:", fetchError);
+            throw new Error(fetchError.message);
+        }
 
-        const currentDetails = (current as any)?.details || {};
+        // Ensure currentDetails is an object
+        let currentDetails = (current as any)?.details;
+        if (typeof currentDetails !== 'object' || currentDetails === null) {
+            currentDetails = {};
+        }
+
+        // Merge existing details with new draft
         const updatedDetails = { ...currentDetails, draft };
 
+        // Update the database
         const { error } = await (supabase.from('bookings') as any)
             .update({ details: updatedDetails })
             .eq('id', bookingId);
