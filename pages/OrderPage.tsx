@@ -196,13 +196,19 @@ const OrderPage: React.FC = () => {
     }, [product, formData.deliveryType]);
     
     const addonsPrice = useMemo(() => {
+        // FIX 1: If product is Gift Box (or a known Bundle), treat included addons as free (price = 0)
+        // or assume base price covers them.
+        if (product?.key === 'gift_box' || product?.key === 'subscription_box') {
+             return 0;
+        }
+
         return selectedAddons.reduce((total, key) => {
             const componentProd = allProducts.find(p => p.key === key);
             if (!componentProd) return total;
             const price = componentProd.has_printed_version ? componentProd.price_printed : componentProd.price_electronic;
             return total + (price || 0);
         }, 0);
-    }, [selectedAddons, allProducts]);
+    }, [selectedAddons, allProducts, product]);
 
     const shippingPrice = useMemo(() => {
         // If electronic, no shipping. If no governorate selected, shipping is 0.
@@ -322,6 +328,14 @@ const OrderPage: React.FC = () => {
              addToast('يرجى مراجعة البيانات الناقصة.', 'warning');
             return;
         }
+
+        // FIX 2: Explicit check for governorate
+        if (formData.deliveryType === 'printed' && !formData.governorate) {
+             addToast('يرجى اختيار المحافظة لحساب تكلفة الشحن.', 'error');
+             setStep('delivery');
+             return;
+        }
+
         if (!isLoggedIn) {
             addToast('الرجاء تسجيل الدخول أولاً لإضافة الطلب للسلة.', 'warning');
             navigate('/account');
@@ -499,7 +513,13 @@ const OrderPage: React.FC = () => {
                                     addons={selectedAddons.map(key => {
                                         const componentProd = allProducts.find(p => p.key === key);
                                         if (!componentProd) return { key, title: `Unknown`, price: 0 };
-                                        const price = componentProd.has_printed_version ? componentProd.price_printed : componentProd.price_electronic;
+                                        
+                                        // FIX 1: If product is Gift Box/Subscription, display addons as 0 cost if needed visually
+                                        let price = componentProd.has_printed_version ? componentProd.price_printed : componentProd.price_electronic;
+                                        if (product.key === 'gift_box' || product.key === 'subscription_box') {
+                                            price = 0;
+                                        }
+
                                         return { key, title: componentProd?.title || '', price: price || 0 };
                                     })}
                                     totalPrice={totalPrice}

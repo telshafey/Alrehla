@@ -255,7 +255,12 @@ const AdminProductDetailPage: React.FC = () => {
                                     <Input type="number" name="price_printed" value={product.price_printed || ''} onChange={handleSimpleChange} disabled={!product.has_printed_version} />
                                 </FormField>
                             </div>
-                                <FormField label="نوع الهدف" htmlFor="goal_config">
+                            
+                            <div className="p-3 bg-yellow-50 text-yellow-800 rounded-lg text-xs">
+                                <p>ملاحظة: إذا اخترت <strong>"هدف مخصص"</strong> أو <strong>"قائمة + مخصص"</strong> أدناه، سيظهر تلقائياً صندوق نص للعميل لكتابة الهدف الخاص به، ولا داعي لإضافته يدوياً في حقول النصوص.</p>
+                            </div>
+
+                            <FormField label="نوع الهدف" htmlFor="goal_config">
                                 <Select id="goal_config" name="goal_config" value={product.goal_config} onChange={handleSimpleChange}>
                                     <option value="none">بدون هدف</option>
                                     <option value="predefined">قائمة محددة</option>

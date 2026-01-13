@@ -15,6 +15,7 @@ import OrderStepper from '../components/order/OrderStepper';
 import SubscriptionSummary from '../components/subscription/SubscriptionSummary';
 import FormField from '../components/ui/FormField';
 import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import ImageUpload from '../components/shared/ImageUpload';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
@@ -95,6 +96,8 @@ const SubscriptionPage: React.FC = () => {
             recipientEmail: currentUser?.email || '',
             giftMessage: '',
             sendDigitalCard: true,
+            storyValue: '', // For Goal Selection
+            customGoal: '',
             // Dynamic fields will be added here
         };
     });
@@ -207,6 +210,16 @@ const SubscriptionPage: React.FC = () => {
                         }
                     });
                 }
+                
+                // Goal Validation
+                if (subscriptionBoxProduct?.goal_config && subscriptionBoxProduct.goal_config !== 'none') {
+                    if (!formData.storyValue) {
+                        newErrors.storyValue = 'يرجى اختيار الهدف التربوي.';
+                    }
+                    if (formData.storyValue === 'custom' && !formData.customGoal) {
+                        newErrors.customGoal = 'يرجى كتابة الهدف المخصص.';
+                    }
+                }
                 break;
             case 'images':
                  // Dynamic Image Validation
@@ -228,7 +241,10 @@ const SubscriptionPage: React.FC = () => {
                      newErrors.recipientPhone = 'يرجى إدخال رقم هاتف مصري صحيح (مثال: 01012345678)';
                 }
 
-                if (!formData.governorate) newErrors.governorate = 'المحافظة مطلوبة لحساب الشحن.';
+                // Strict check: governorate is mandatory
+                if (!formData.governorate || formData.governorate.trim() === '') {
+                     newErrors.governorate = 'المحافظة مطلوبة لحساب الشحن.';
+                }
                 break;
         }
         setErrors(newErrors);
@@ -263,7 +279,7 @@ const SubscriptionPage: React.FC = () => {
         }
 
          if (!validateStep()) {
-            addToast('يرجى مراجعة بيانات التوصيل.', 'warning');
+            addToast('يرجى مراجعة بيانات التوصيل (المحافظة مطلوبة).', 'warning');
             return;
         }
 
@@ -319,51 +335,90 @@ const SubscriptionPage: React.FC = () => {
                     />
                 );
             case 'customization':
+                const hasGoals = subscriptionBoxProduct?.goal_config && subscriptionBoxProduct.goal_config !== 'none';
+                const showCustomGoal = subscriptionBoxProduct?.goal_config === 'custom' || subscriptionBoxProduct?.goal_config === 'predefined_and_custom';
+
                 return (
-                    <div className="p-6 space-y-6 bg-gray-50 rounded-lg border">
+                    <div className="p-6 space-y-8 bg-gray-50 rounded-lg border">
                         <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg text-sm mb-4">
                             <p>يتم استخدام هذه المعلومات لتخصيص القصة والأنشطة الشهرية لتناسب اهتمامات طفلك.</p>
                         </div>
                         
                         {/* Dynamic Text Fields from DB */}
                         {subscriptionBoxProduct?.text_fields && subscriptionBoxProduct.text_fields.length > 0 ? (
-                            subscriptionBoxProduct.text_fields.map(field => (
-                                <FormField 
-                                    key={field.id} 
-                                    label={field.label} // Use label exactly as Admin defined it (Admin adds * if required)
-                                    htmlFor={field.id}
-                                    error={errors[field.id]}
-                                >
-                                    {field.type === 'textarea' ? (
-                                        <Textarea 
-                                            id={field.id} 
-                                            name={field.id}
-                                            value={formData[field.id] || ''} 
-                                            onChange={handleChange} 
-                                            rows={3} 
-                                            placeholder={field.placeholder}
-                                        />
-                                    ) : (
-                                        <Input 
-                                            id={field.id} 
-                                            name={field.id}
-                                            value={formData[field.id] || ''} 
-                                            onChange={handleChange} 
-                                            placeholder={field.placeholder}
-                                        />
-                                    )}
-                                </FormField>
-                            ))
+                            <div className="space-y-6">
+                                {subscriptionBoxProduct.text_fields.map(field => (
+                                    <FormField 
+                                        key={field.id} 
+                                        label={field.label} // Use label exactly as Admin defined it
+                                        htmlFor={field.id}
+                                        error={errors[field.id]}
+                                    >
+                                        {field.type === 'textarea' ? (
+                                            <Textarea 
+                                                id={field.id} 
+                                                name={field.id}
+                                                value={formData[field.id] || ''} 
+                                                onChange={handleChange} 
+                                                rows={3} 
+                                                placeholder={field.placeholder}
+                                            />
+                                        ) : (
+                                            <Input 
+                                                id={field.id} 
+                                                name={field.id}
+                                                value={formData[field.id] || ''} 
+                                                onChange={handleChange} 
+                                                placeholder={field.placeholder}
+                                            />
+                                        )}
+                                    </FormField>
+                                ))}
+                            </div>
                         ) : (
                             // Fallback if no dynamic fields configured yet
-                            <>
+                            <div className="space-y-6">
                                 <FormField label="أخبرنا عن طفلك" htmlFor="childTraits">
                                     <Textarea id="childTraits" name="childTraits" value={formData.childTraits} onChange={handleChange} rows={4} placeholder="مثال: شجاع، يحب الديناصورات..."/>
                                 </FormField>
                                 <FormField label="أسماء أفراد العائلة" htmlFor="familyNames">
                                     <Textarea id="familyNames" name="familyNames" value={formData.familyNames} onChange={handleChange} rows={2} placeholder="مثال: الأم: فاطمة، الأب: علي"/>
                                 </FormField>
-                            </>
+                            </div>
+                        )}
+
+                        {/* Goals Selection */}
+                        {hasGoals && (
+                            <div className="pt-6 border-t border-gray-200">
+                                <h4 className="text-lg font-bold text-gray-800 mb-4">الأهداف التربوية</h4>
+                                <FormField label="الهدف من القصة*" htmlFor="storyValue" error={errors.storyValue}>
+                                    <Select 
+                                        id="storyValue" 
+                                        name="storyValue" 
+                                        value={formData.storyValue} 
+                                        onChange={handleChange}
+                                    >
+                                        <option value="" disabled>-- اختر هدفاً --</option>
+                                        {subscriptionBoxProduct.story_goals?.map(goal => (
+                                            <option key={goal.key} value={goal.key}>{goal.title}</option>
+                                        ))}
+                                        {showCustomGoal && <option value="custom">هدف آخر (مخصص)</option>}
+                                    </Select>
+                                </FormField>
+
+                                {showCustomGoal && formData.storyValue === 'custom' && (
+                                    <FormField label="اكتب الهدف الخاص بك*" htmlFor="customGoal" className="mt-4" error={errors.customGoal}>
+                                        <Textarea 
+                                            id="customGoal" 
+                                            name="customGoal" 
+                                            value={formData.customGoal} 
+                                            onChange={handleChange} 
+                                            rows={2} 
+                                            placeholder="ما القيمة التي تود التركيز عليها؟"
+                                        />
+                                    </FormField>
+                                )}
+                            </div>
                         )}
                    </div>
                 );
