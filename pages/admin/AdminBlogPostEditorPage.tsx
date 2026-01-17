@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Eye, Calendar, User, Image as ImageIcon, Type, Globe, FileText } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Calendar, User, Image as ImageIcon, Type, Globe, FileText, Clock } from 'lucide-react';
 import { useAdminBlogPosts } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useContentMutations } from '../../hooks/mutations/useContentMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -40,6 +40,9 @@ const AdminBlogPostEditorPage: React.FC = () => {
             } else if (!postsLoading) {
                 navigate('/admin/blog');
             }
+        } else if (isNew) {
+            // Set default date to now for new posts
+            setPost(prev => ({ ...prev, published_at: new Date().toISOString() }));
         }
     }, [id, isNew, posts, postsLoading, navigate]);
 
@@ -76,6 +79,17 @@ const AdminBlogPostEditorPage: React.FC = () => {
         });
     };
 
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const dateValue = e.target.value;
+        if (dateValue) {
+            // Convert datetime-local value to ISO string
+            const date = new Date(dateValue);
+            setPost(prev => ({ ...prev, published_at: date.toISOString() }));
+        } else {
+            setPost(prev => ({ ...prev, published_at: null }));
+        }
+    };
+
     const handleImageChange = (key: string, url: string) => {
         setPost(prev => ({ ...prev, image_url: url }));
     };
@@ -84,6 +98,7 @@ const AdminBlogPostEditorPage: React.FC = () => {
         e.preventDefault();
         
         let finalPost = { ...post };
+        // Ensure published_at is set if status is published
         if (finalPost.status === 'published' && !finalPost.published_at) {
             finalPost.published_at = new Date().toISOString();
         }
@@ -99,6 +114,16 @@ const AdminBlogPostEditorPage: React.FC = () => {
             console.error("Failed to save post", error);
             // سيتم عرض الخطأ تلقائياً عبر الـ Toast المرتبط بالـ Mutation
         }
+    };
+
+    // Helper to format ISO date to datetime-local input value (YYYY-MM-DDTHH:mm)
+    const getFormattedDate = (isoString: string | null | undefined) => {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        // Adjust for timezone offset to display correctly in local time
+        const offset = date.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(date.getTime() - offset)).toISOString().slice(0, 16);
+        return localISOTime;
     };
 
     const isSaving = createBlogPost.isPending || updateBlogPost.isPending;
@@ -180,8 +205,24 @@ const AdminBlogPostEditorPage: React.FC = () => {
                             <FormField label="الحالة" htmlFor="status">
                                 <Select id="status" name="status" value={post.status} onChange={handleChange}>
                                     <option value="draft">مسودة (غير منشور)</option>
-                                    <option value="published">منشور</option>
+                                    <option value="published">منشور / مجدول</option>
                                 </Select>
+                            </FormField>
+
+                            <FormField label="تاريخ النشر" htmlFor="published_at">
+                                <div className="relative">
+                                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                                    <Input 
+                                        id="published_at" 
+                                        type="datetime-local"
+                                        value={getFormattedDate(post.published_at)} 
+                                        onChange={handleDateChange} 
+                                        className="pr-10" 
+                                    />
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                    إذا اخترت تاريخاً مستقبلياً، لن يظهر المقال للزوار حتى يحين الموعد.
+                                </p>
                             </FormField>
                             
                             <FormField label="الكاتب" htmlFor="author_name">
@@ -194,7 +235,11 @@ const AdminBlogPostEditorPage: React.FC = () => {
                             {post.published_at && (
                                 <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md flex items-center gap-2">
                                     <Calendar size={14} />
-                                    <span>نُشر في: {new Date(post.published_at).toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                    <span>
+                                        {new Date(post.published_at) > new Date() ? 'سيتم النشر في:' : 'نُشر في:'} 
+                                        {' '}
+                                        {new Date(post.published_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    </span>
                                 </div>
                             )}
                         </CardContent>

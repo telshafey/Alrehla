@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
@@ -16,14 +17,21 @@ const BlogPostPage: React.FC = () => {
         return <PageLoader text="جاري تحميل المقال..." />;
     }
 
-    const post = data?.blogPosts.find(p => p.slug === slug && p.status === 'published');
+    const post = data?.blogPosts.find(p => {
+        const isMatch = p.slug === slug;
+        const isPublished = p.status === 'published';
+        // Allow immediate view if data is fresh from API (which already filters), 
+        // but double check here for safety.
+        const isPastDate = p.published_at ? new Date(p.published_at) <= new Date() : false;
+        return isMatch && isPublished && isPastDate;
+    });
 
     if (error) {
         return <div className="text-center py-20 text-red-500">{(error as Error).message}</div>;
     }
 
     if (!post) {
-        return <div className="text-center py-20">لم يتم العثور على المقال.</div>;
+        return <div className="text-center py-20">لم يتم العثور على المقال أو أنه غير متاح للعرض حالياً.</div>;
     }
 
     return (

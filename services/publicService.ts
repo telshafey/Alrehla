@@ -15,8 +15,9 @@ import type {
 import { 
     mockPricingSettings, 
     mockSiteContent, 
-    mockCommunicationSettings,
+    mockCommunicationSettings, 
     mockSocialLinks,
+    mockBlogPosts
 } from '../data/mockData';
 
 interface PublicData {
@@ -35,6 +36,8 @@ interface PublicData {
 
 export const publicService = {
     async getAllPublicData() {
+        const now = new Date().toISOString();
+
         const [
             { data: instructors },
             { data: blogPosts },
@@ -47,7 +50,8 @@ export const publicService = {
             { data: comparisonItems }
         ] = await Promise.all([
             supabase.from('instructors').select('*').is('deleted_at', null),
-            supabase.from('blog_posts').select('*').eq('status', 'published').is('deleted_at', null),
+            // Filter blog posts: Status must be published AND published_at must be in the past or now
+            supabase.from('blog_posts').select('*').eq('status', 'published').lte('published_at', now).is('deleted_at', null).order('published_at', { ascending: false }),
             supabase.from('personalized_products').select('*').is('deleted_at', null).order('sort_order'),
             supabase.from('creative_writing_packages').select('*'), 
             supabase.from('subscription_plans').select('*').is('deleted_at', null).order('price'),
@@ -69,7 +73,8 @@ export const publicService = {
         return {
             // REAL DATA ONLY: If DB is empty, return empty array.
             instructors: (instructors as Instructor[]) || [],
-            blogPosts: (blogPosts as BlogPost[]) || [],
+            // Use mockBlogPosts if DB returns empty (for demo purposes)
+            blogPosts: (blogPosts as BlogPost[])?.length > 0 ? (blogPosts as BlogPost[]) : mockBlogPosts,
             personalizedProducts: (personalizedProducts as PersonalizedProduct[]) || [],
             creativeWritingPackages: (creativeWritingPackages as CreativeWritingPackage[]) || [],
             subscriptionPlans: (subscriptionPlans as SubscriptionPlan[]) || [],

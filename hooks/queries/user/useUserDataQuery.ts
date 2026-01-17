@@ -74,6 +74,28 @@ export const useUserAccountData = () => {
             const rawBookings = (bookingsRes.data || []) as any[];
             let enrichedBookings: EnrichedBooking[] = [];
             let attachments: SessionAttachment[] = [];
+            
+            // --- Enrich Child Profiles with Student Emails ---
+            let enrichedChildProfiles = (childrenRes.data || []) as EnrichedChildProfile[];
+            const studentUserIds = enrichedChildProfiles
+                .map(c => c.student_user_id)
+                .filter(id => id !== null) as string[];
+
+            if (studentUserIds.length > 0) {
+                const { data: students } = await supabase
+                    .from('profiles')
+                    .select('id, email')
+                    .in('id', studentUserIds);
+                
+                const emailMap = new Map<string, string>();
+                students?.forEach((s: any) => emailMap.set(s.id, s.email));
+
+                enrichedChildProfiles = enrichedChildProfiles.map(child => ({
+                    ...child,
+                    student_email: child.student_user_id ? emailMap.get(child.student_user_id) : undefined
+                }));
+            }
+            // ------------------------------------------------
 
             // 2. Fetch related booking data (Optimized: Filter by IDs)
             if (rawBookings.length > 0) {
@@ -111,7 +133,7 @@ export const useUserAccountData = () => {
                 childBadges: (badgesRes.data || []) as ChildBadge[],
                 allBadges: (allBadgesRes.data || []) as Badge[],
                 attachments: attachments,
-                childProfiles: (childrenRes.data || []) as EnrichedChildProfile[]
+                childProfiles: enrichedChildProfiles
             };
         },
         enabled: !!currentUser,

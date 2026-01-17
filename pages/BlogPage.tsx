@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '../components/ui/PageLoader';
@@ -6,7 +7,13 @@ import ErrorState from '../components/ui/ErrorState';
 
 const BlogPage: React.FC = () => {
     const { data, isLoading, error, refetch } = usePublicData();
-    const posts = data?.blogPosts.filter(p => p.status === 'published') || [];
+
+    // Although the API filters this, we add a client-side safety check
+    const posts = data?.blogPosts.filter(p => {
+        const isPublished = p.status === 'published';
+        const isPastDate = p.published_at ? new Date(p.published_at) <= new Date() : false;
+        return isPublished && isPastDate;
+    }) || [];
 
     if (isLoading) {
         return (

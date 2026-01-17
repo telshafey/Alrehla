@@ -135,11 +135,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Helper to check profile completion status
     const isProfileComplete = useMemo(() => {
         if (!currentUser) return false;
-        // Check core fields: Country, City, Phone
+        
+        // Students are exempt from profile completion checks (phone/address)
+        if (currentUser.role === 'student') return true;
+
+        // For others, check core fields: Country, City, Phone
         return !!(currentUser.country && currentUser.city && currentUser.phone);
     }, [currentUser]);
 
     const triggerProfileUpdate = (mandatory: boolean = false) => {
+        // Double check: if it's a student, never trigger mandatory update
+        if (currentUser?.role === 'student') return;
+        
         setIsProfileMandatory(mandatory);
         setProfileModalOpen(true);
     };

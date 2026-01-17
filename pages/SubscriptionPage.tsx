@@ -1,202 +1,81 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+// ... existing imports
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Check, Star, Shield, Gift } from 'lucide-react';
+import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '../contexts/ToastContext';
-import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
-import { useProduct } from '../contexts/ProductContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Send, Gift, Check, Star, ArrowLeft, Puzzle } from 'lucide-react';
-import ShareButtons from '../components/shared/ShareButtons';
-import { Button } from '../components/ui/Button';
+import { useProduct } from '../contexts/ProductContext';
 import PageLoader from '../components/ui/PageLoader';
-import type { SubscriptionPlan, ChildProfile, PersonalizedProduct } from '../lib/database.types';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/Button';
 import OrderStepper from '../components/order/OrderStepper';
-import SubscriptionSummary from '../components/subscription/SubscriptionSummary';
-import FormField from '../components/ui/FormField';
-import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
-import { Textarea } from '../components/ui/Textarea';
-import ImageUpload from '../components/shared/ImageUpload';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
-import ShippingAddressForm from '../components/shared/ShippingAddressForm';
 import ChildDetailsSection from '../components/order/ChildDetailsSection';
+import ShippingAddressForm from '../components/shared/ShippingAddressForm';
+import SubscriptionSummary from '../components/subscription/SubscriptionSummary';
+import AddonsSection from '../components/order/AddonsSection';
 import ChildProfileModal from '../components/account/ChildProfileModal';
 import { EGYPTIAN_GOVERNORATES } from '../utils/governorates';
-import AddonsSection from '../components/order/AddonsSection';
 
-type SubscriptionStep = 'plan' | 'child' | 'customization' | 'addons' | 'images' | 'delivery';
-
-const stepsConfig = [
+const steps = [
     { key: 'plan', title: 'اختر الباقة' },
-    { key: 'child', title: 'بيانات الطفل' },
-    { key: 'customization', title: 'تخصيص القصة' },
+    { key: 'child', title: 'لمن الصندوق؟' },
     { key: 'addons', title: 'إضافات' },
-    { key: 'images', title: 'رفع الصور' },
-    { key: 'delivery', title: 'التوصيل' },
+    { key: 'delivery', title: 'الشحن والتأكيد' }
 ];
 
-const PlanCard: React.FC<{ plan: SubscriptionPlan, isSelected: boolean, onSelect: () => void }> = ({ plan, isSelected, onSelect }) => (
-    <button
-        type="button"
-        onClick={onSelect}
-        className={`relative text-right p-6 border-2 rounded-2xl transition-all duration-300 w-full ${isSelected ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50' : 'bg-white hover:border-blue-300'}`}
-    >
-        {plan.is_best_value && (
-            <div className="absolute -top-3 right-4 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                <Star size={12} /> الأفضل قيمة
-            </div>
-        )}
-        <h3 className="text-xl font-extrabold text-gray-800">{plan.name}</h3>
-        <p className="text-3xl font-black my-2">{plan.price} <span className="text-lg font-medium">ج.م</span></p>
-        <p className="text-sm text-gray-500">~{plan.price_per_month} ج.م / شهرياً</p>
-        {plan.savings_text && <p className="text-sm font-bold text-green-600 mt-2">{plan.savings_text}</p>}
-        <div className="mt-3 text-xs bg-gray-100 p-1 rounded text-center text-gray-600">
-            لمدة {plan.duration_months} أشهر
-        </div>
-    </button>
-);
-
-
 const SubscriptionPage: React.FC = () => {
-    const { addItemToCart } = useCart();
     const navigate = useNavigate();
+    const { data, isLoading } = usePublicData();
+    const { addItemToCart } = useCart();
     const { addToast } = useToast();
-    const { data, isLoading: contentLoading } = usePublicData();
-    const { shippingCosts } = useProduct(); 
-    const { childProfiles, currentUser, isProfileComplete, triggerProfileUpdate } = useAuth();
+    const { currentUser, childProfiles, isLoggedIn, isProfileComplete, triggerProfileUpdate } = useAuth();
+    const { shippingCosts } = useProduct();
 
-    const content = data?.siteContent?.enhaLakPage.subscription;
-    const subscriptionPlans = data?.subscriptionPlans || [];
-    const products = data?.personalizedProducts || [];
-    const pageUrl = window.location.href;
-
-    // البحث عن منتج "صندوق الرحلة" لجلب الحقول الديناميكية
-    const subscriptionBoxProduct = useMemo(() => 
-        products.find((p: PersonalizedProduct) => p.key === 'subscription_box'), 
-    [products]);
-
-    // جلب المنتجات الإضافية (Addons)
-    const addonProducts = useMemo(() => 
-        products.filter((p: PersonalizedProduct) => p.is_addon), 
-    [products]);
-
-    const [step, setStep] = useState<SubscriptionStep>('plan');
+    const [step, setStep] = useState(0);
+    const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
     const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
-    const [isChildModalOpen, setIsChildModalOpen] = useState(false);
-    
-    // Initialize form data with user defaults
-    const [formData, setFormData] = useState<Record<string, any>>(() => {
-        // Default governorate is EMPTY to force selection if not already in profile
-        const defaultGov = currentUser?.governorate || 
-            (currentUser?.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : '');
-            
-        return {
-            childName: '',
-            childBirthDate: '',
-            childGender: '' as 'ذكر' | 'أنثى' | '',
-            shippingOption: 'my_address' as 'my_address' | 'gift',
-            governorate: defaultGov,
-            recipientName: currentUser?.name || '',
-            recipientAddress: currentUser?.address || '',
-            recipientPhone: currentUser?.phone || '',
-            recipientEmail: currentUser?.email || '',
-            giftMessage: '',
-            sendDigitalCard: true,
-            storyValue: '', // For Goal Selection
-            customGoal: '',
-        };
+    const [formData, setFormData] = useState<any>({
+        childName: '',
+        childBirthDate: '',
+        childGender: '',
+        shippingOption: 'my_address',
+        recipientName: '',
+        recipientAddress: '',
+        recipientPhone: '',
+        governorate: '',
+        // Custom fields for box customization
+        childInterests: '',
+        childShirtSize: ''
     });
-
-    const [imageFiles, setImageFiles] = useState<{ [key: string]: File | null }>({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
-    
-    const bestValuePlan = subscriptionPlans.find((p: SubscriptionPlan) => p.is_best_value) || subscriptionPlans[0];
-    const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(bestValuePlan);
+    const [errors, setErrors] = useState<any>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isChildModalOpen, setIsChildModalOpen] = useState(false);
 
-    // Sync User Data when loaded (Fixes shipping calculation issue on first load)
+    const plans = data?.subscriptionPlans || [];
+    const addonProducts = data?.personalizedProducts.filter(p => p.is_addon) || [];
+    const boxContent = data?.siteContent?.enhaLakPage.subscription;
+
+    const selectedPlan = useMemo(() => plans.find(p => p.id === selectedPlanId) || null, [plans, selectedPlanId]);
+
+    // Auto-fill shipping
     useEffect(() => {
-        if (currentUser) {
-            setFormData(prev => {
-                // Only update if fields are empty to preserve user input
-                const defaultGov = currentUser.governorate || 
-                    (currentUser.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : prev.governorate);
-                
-                return {
-                    ...prev,
-                    governorate: defaultGov,
-                    recipientName: prev.recipientName || currentUser.name,
-                    recipientAddress: prev.recipientAddress || currentUser.address,
-                    recipientPhone: prev.recipientPhone || currentUser.phone,
-                    recipientEmail: prev.recipientEmail || currentUser.email,
-                };
-            });
+        if (isLoggedIn && currentUser && formData.shippingOption === 'my_address') {
+            setFormData(prev => ({
+                ...prev,
+                recipientName: currentUser.name || '',
+                recipientAddress: currentUser.address || '',
+                recipientPhone: currentUser.phone || '',
+                recipientEmail: currentUser.email || '',
+                governorate: currentUser.governorate || (currentUser.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : '')
+            }));
         }
-    }, [currentUser]);
+    }, [isLoggedIn, currentUser, formData.shippingOption]);
 
-    // Calculate Real-time Shipping Cost (Base Cost * Duration Months)
-    const countryCosts = shippingCosts?.['مصر'] || {};
-    // If no governorate selected, shipping is 0
-    const baseShippingCost = (formData.shippingOption === 'my_address' || formData.shippingOption === 'gift') 
-        ? (formData.governorate ? (countryCosts[formData.governorate] || 0) : 0)
-        : 0;
-    
-    const planDuration = selectedPlan?.duration_months || 1;
-    const totalShippingCost = baseShippingCost * planDuration;
-
-    // Calculate Addons Cost
-    const addonsCost = useMemo(() => {
-        return selectedAddons.reduce((total, key) => {
-            const product = addonProducts.find(p => p.key === key);
-            return total + (product?.price_printed || 0);
-        }, 0);
-    }, [selectedAddons, addonProducts]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value, type } = e.target;
-        const isCheckbox = type === 'checkbox';
-        const checked = (e.target as HTMLInputElement).checked;
-
-        setFormData(prev => ({ 
-            ...prev, 
-            [name]: isCheckbox ? checked : value 
-        }));
-        
-        // If user manually types, clear selected child ID to avoid confusion
-        if (name === 'childName' || name === 'childBirthDate' || name === 'childGender') {
-            setSelectedChildId(null);
-        }
-
-        if(errors[name]) setErrors(prev => {
-            const newErrors = {...prev};
-            delete newErrors[name];
-            return newErrors;
-        });
-    };
-
-    // Helper for non-event based updates (like shipping option buttons)
-    const handleManualSetValue = (name: string, value: any) => {
-        setFormData(prev => ({ ...prev, [name]: value }));
-        // Clear error for this field
-        if(errors[name]) setErrors(prev => {
-            const newErrors = {...prev};
-            delete newErrors[name];
-            return newErrors;
-        });
-    };
-
-    const handleFileChange = (id: string, file: File | null) => {
-        setImageFiles(prev => ({ ...prev, [id]: file }));
-         if(errors[id]) setErrors(prev => {
-            const newErrors = {...prev};
-            delete newErrors[id];
-            return newErrors;
-        });
-    };
-    
-    const handleChildSelect = (child: ChildProfile | null) => {
+    const handleChildSelect = (child: any) => {
         if (child) {
             setSelectedChildId(child.id);
             setFormData(prev => ({
@@ -204,73 +83,25 @@ const SubscriptionPage: React.FC = () => {
                 childName: child.name,
                 childBirthDate: child.birth_date,
                 childGender: child.gender,
+                childInterests: child.interests?.join(', ') || ''
             }));
-            // Clear errors for these fields
-            setErrors(prev => {
-                const newErrors = {...prev};
-                delete newErrors.childName;
-                delete newErrors.childBirthDate;
-                delete newErrors.childGender;
-                return newErrors;
-            });
         } else {
-            // Manual selection - clear fields
             setSelectedChildId(null);
-            setFormData(prev => ({
-                ...prev,
-                childName: '',
-                childBirthDate: '',
-                childGender: '',
-            }));
+            setFormData(prev => ({ ...prev, childName: '', childBirthDate: '', childGender: '', childInterests: '' }));
         }
     };
-    
-    const handleAddonToggle = (key: string) => {
-        setSelectedAddons(prev => 
-            prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-        );
-    };
 
-    const validateStep = () => {
-        const newErrors: { [key: string]: string } = {};
-        switch(step) {
+    const validateStep = (currentStepKey: string) => {
+        const newErrors: any = {};
+        
+        switch (currentStepKey) {
             case 'plan':
-                if (!selectedPlan) newErrors.plan = 'يجب اختيار باقة للمتابعة.';
+                if (!selectedPlanId) newErrors.plan = 'يرجى اختيار باقة.';
                 break;
             case 'child':
-                if (!formData.childName.trim()) newErrors.childName = 'اسم الطفل مطلوب.';
-                if (!formData.childBirthDate) newErrors.childBirthDate = 'تاريخ ميلاد الطفل مطلوب.';
+                if (!formData.childName) newErrors.childName = 'اسم الطفل مطلوب.';
+                if (!formData.childBirthDate) newErrors.childBirthDate = 'تاريخ الميلاد مطلوب.';
                 if (!formData.childGender) newErrors.childGender = 'الجنس مطلوب.';
-                break;
-            case 'customization':
-                // Dynamic Validation based on Admin Settings
-                if (subscriptionBoxProduct?.text_fields) {
-                    subscriptionBoxProduct.text_fields.forEach(field => {
-                        if (field.required && (!formData[field.id] || formData[field.id].trim() === '')) {
-                            newErrors[field.id] = `حقل "${field.label}" مطلوب.`;
-                        }
-                    });
-                }
-                
-                // Goal Validation
-                if (subscriptionBoxProduct?.goal_config && subscriptionBoxProduct.goal_config !== 'none') {
-                    if (!formData.storyValue) {
-                        newErrors.storyValue = 'يرجى اختيار الهدف التربوي.';
-                    }
-                    if (formData.storyValue === 'custom' && !formData.customGoal) {
-                        newErrors.customGoal = 'يرجى كتابة الهدف المخصص.';
-                    }
-                }
-                break;
-            case 'images':
-                 // Dynamic Image Validation
-                 if (subscriptionBoxProduct?.image_slots) {
-                     subscriptionBoxProduct.image_slots.forEach(slot => {
-                         if (slot.required && !imageFiles[slot.id]) {
-                             newErrors[slot.id] = `صورة "${slot.label}" مطلوبة.`;
-                         }
-                     });
-                 }
                 break;
             case 'delivery':
                 if (!formData.recipientName) newErrors.recipientName = 'اسم المستلم مطلوب.';
@@ -282,7 +113,10 @@ const SubscriptionPage: React.FC = () => {
                      newErrors.recipientPhone = 'يرجى إدخال رقم هاتف مصري صحيح (مثال: 01012345678)';
                 }
 
-                if (!formData.governorate) newErrors.governorate = 'المحافظة مطلوبة لحساب الشحن.';
+                // STRICT CHECK: Governorate is mandatory for shipping calculation
+                if (!formData.governorate) {
+                    newErrors.governorate = 'المحافظة مطلوبة بشكل إلزامي لحساب الشحن.';
+                }
                 break;
         }
         setErrors(newErrors);
@@ -290,24 +124,15 @@ const SubscriptionPage: React.FC = () => {
     };
 
     const handleNext = () => {
-        if (!validateStep()) {
-            addToast('يرجى إكمال الحقول المطلوبة للمتابعة.', 'warning');
-            return;
-        }
-        setErrors({});
-        const currentIndex = stepsConfig.findIndex(s => s.key === step);
-        if (currentIndex < stepsConfig.length - 1) {
-            setStep(stepsConfig[currentIndex + 1].key as SubscriptionStep);
+        if (validateStep(steps[step].key)) {
+            setStep(prev => prev + 1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            addToast('يرجى إكمال البيانات المطلوبة.', 'error');
         }
     };
-    
-    const handleBack = () => {
-        const currentIndex = stepsConfig.findIndex(s => s.key === step);
-        if (currentIndex > 0) {
-            setStep(stepsConfig[currentIndex - 1].key as SubscriptionStep);
-        }
-    };
+
+    const handleBack = () => setStep(prev => prev - 1);
 
     const handleSubmit = async () => {
          // Enforce Profile Completion
@@ -316,270 +141,169 @@ const SubscriptionPage: React.FC = () => {
             return;
         }
 
-         if (!validateStep()) {
-            addToast('يرجى مراجعة بيانات التوصيل.', 'warning');
-            return;
+        if (!validateStep('delivery')) return;
+        setIsSubmitting(true);
+
+        // Calculate Totals
+        const planPrice = selectedPlan?.price || 0;
+        const addonsPrice = selectedAddons.reduce((sum, key) => {
+            const p = addonProducts.find(ap => ap.key === key);
+            return sum + (p?.price_printed || 0);
+        }, 0);
+        
+        // Shipping Logic
+        let shippingPrice = 0;
+        if (shippingCosts && formData.governorate) {
+            const egyptCosts = shippingCosts['مصر'] || {};
+            const oneTimeShipping = egyptCosts[formData.governorate] || egyptCosts['باقي المحافظات'] || 0;
+            // Subscription shipping usually charged once or monthly? Assuming total shipping for duration here for simplicity
+            // Or typically subscription includes shipping? Let's check config.
+            // For now, let's charge shipping per month
+            shippingPrice = oneTimeShipping * (selectedPlan?.duration_months || 1);
         }
 
-        setIsSubmitting(true);
+        const total = planPrice + addonsPrice; // Base Total
         
-        // Use selected child ID if available, otherwise assume manual entry (id: -1 or similar logic in backend)
-        const childIdToUse = selectedChildId || (formData.childName ? -1 : null);
-        
-        // Calculate Total with Addons
-        const finalTotal = selectedPlan!.price + addonsCost; // Shipping calculated at cart level usually, but here passed separately
-
         addItemToCart({
             type: 'subscription',
-            payload: { 
-                formData: { ...formData, selectedAddons }, // Pass addons in form data
-                imageFiles,
-                total: finalTotal,
-                shippingPrice: totalShippingCost, 
-                summary: `صندوق الرحلة (${selectedPlan!.name})` + (selectedAddons.length > 0 ? ` + ${selectedAddons.length} إضافات` : ''),
-                plan: selectedPlan,
-                childId: childIdToUse
+            payload: {
+                planId: selectedPlanId,
+                planName: selectedPlan?.name,
+                durationMonths: selectedPlan?.duration_months,
+                childId: selectedChildId,
+                formData,
+                selectedAddons,
+                totalPrice: total,
+                shippingPrice, // Passed separately
+                summary: `اشتراك صندوق الرحلة (${selectedPlan?.name}) لـ ${formData.childName}`,
+                details: {
+                    ...formData,
+                    addons: selectedAddons,
+                    planName: selectedPlan?.name,
+                    durationMonths: selectedPlan?.duration_months
+                }
             }
         });
-        
-        addToast('تمت إضافة الاشتراك إلى السلة بنجاح!', 'success');
+
+        addToast('تمت إضافة الاشتراك للسلة!', 'success');
         navigate('/cart');
         setIsSubmitting(false);
     };
-    
-    const currentStepTitle = stepsConfig.find(s => s.key === step)?.title;
-    
-    const renderStepContent = () => {
-        switch (step) {
-            case 'plan':
-                return (
-                    <>
-                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {(subscriptionPlans as SubscriptionPlan[]).map(plan => (
-                                <PlanCard key={plan.id} plan={plan} isSelected={selectedPlan?.id === plan.id} onSelect={() => setSelectedPlan(plan)} />
-                            ))}
-                        </div>
-                         {errors.plan && <p className="mt-4 text-sm text-red-600">{errors.plan}</p>}
-                    </>
-                );
-            case 'child':
-                return (
-                    <ChildDetailsSection 
-                        childProfiles={childProfiles}
-                        onSelectChild={handleChildSelect}
-                        selectedChildId={selectedChildId}
-                        currentUser={currentUser}
-                        onAddChild={() => setIsChildModalOpen(true)}
-                        formData={formData}
-                        handleChange={handleChange}
-                        errors={errors}
-                    />
-                );
-            case 'customization':
-                const hasGoals = subscriptionBoxProduct?.goal_config && subscriptionBoxProduct.goal_config !== 'none';
-                const showCustomGoal = subscriptionBoxProduct?.goal_config === 'custom' || subscriptionBoxProduct?.goal_config === 'predefined_and_custom';
 
-                return (
-                    <div className="p-6 space-y-8 bg-gray-50 rounded-lg border">
-                        <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg text-sm mb-4">
-                            <p>يتم استخدام هذه المعلومات لتخصيص القصة والأنشطة الشهرية لتناسب اهتمامات طفلك.</p>
-                        </div>
-                        
-                        {/* Dynamic Text Fields from DB */}
-                        {subscriptionBoxProduct?.text_fields && subscriptionBoxProduct.text_fields.length > 0 ? (
-                            <div className="space-y-6">
-                                {subscriptionBoxProduct.text_fields.map(field => (
-                                    <FormField 
-                                        key={field.id} 
-                                        label={field.label} // Use label exactly as Admin defined it
-                                        htmlFor={field.id}
-                                        error={errors[field.id]}
-                                    >
-                                        {field.type === 'textarea' ? (
-                                            <Textarea 
-                                                id={field.id} 
-                                                name={field.id}
-                                                value={formData[field.id] || ''} 
-                                                onChange={handleChange} 
-                                                rows={3} 
-                                                placeholder={field.placeholder}
-                                            />
-                                        ) : (
-                                            <Input 
-                                                id={field.id} 
-                                                name={field.id}
-                                                value={formData[field.id] || ''} 
-                                                onChange={handleChange} 
-                                                placeholder={field.placeholder}
-                                            />
-                                        )}
-                                    </FormField>
-                                ))}
-                            </div>
-                        ) : (
-                            // Fallback if no dynamic fields configured yet
-                            <div className="space-y-6">
-                                <FormField label="أخبرنا عن طفلك" htmlFor="childTraits">
-                                    <Textarea id="childTraits" name="childTraits" value={formData.childTraits} onChange={handleChange} rows={4} placeholder="مثال: شجاع، يحب الديناصورات..."/>
-                                </FormField>
-                                <FormField label="أسماء أفراد العائلة" htmlFor="familyNames">
-                                    <Textarea id="familyNames" name="familyNames" value={formData.familyNames} onChange={handleChange} rows={2} placeholder="مثال: الأم: فاطمة، الأب: علي"/>
-                                </FormField>
-                            </div>
-                        )}
+    if (isLoading) return <PageLoader text="جاري تحميل الباقات..." />;
 
-                        {/* Goals Selection */}
-                        {hasGoals && (
-                            <div className="pt-6 border-t border-gray-200">
-                                <h4 className="text-lg font-bold text-gray-800 mb-4">الأهداف التربوية</h4>
-                                <FormField label="الهدف من القصة*" htmlFor="storyValue" error={errors.storyValue}>
-                                    <Select 
-                                        id="storyValue" 
-                                        name="storyValue" 
-                                        value={formData.storyValue} 
-                                        onChange={handleChange}
-                                    >
-                                        <option value="" disabled>-- اختر هدفاً --</option>
-                                        {subscriptionBoxProduct.story_goals?.map(goal => (
-                                            <option key={goal.key} value={goal.key}>{goal.title}</option>
-                                        ))}
-                                        {showCustomGoal && <option value="custom">هدف آخر (مخصص)</option>}
-                                    </Select>
-                                </FormField>
-
-                                {showCustomGoal && formData.storyValue === 'custom' && (
-                                    <FormField label="اكتب الهدف الخاص بك*" htmlFor="customGoal" className="mt-4" error={errors.customGoal}>
-                                        <Textarea 
-                                            id="customGoal" 
-                                            name="customGoal" 
-                                            value={formData.customGoal} 
-                                            onChange={handleChange} 
-                                            rows={2} 
-                                            placeholder="ما القيمة التي تود التركيز عليها؟"
-                                        />
-                                    </FormField>
-                                )}
-                            </div>
-                        )}
-                   </div>
-                );
-            case 'addons':
-                return (
-                    <AddonsSection 
-                        addonProducts={addonProducts} 
-                        selectedAddons={selectedAddons} 
-                        onToggle={handleAddonToggle} 
-                    />
-                );
-            case 'images':
-                 return (
-                     <div className="space-y-6">
-                        {/* Dynamic Image Slots from DB */}
-                        {subscriptionBoxProduct?.image_slots && subscriptionBoxProduct.image_slots.length > 0 ? (
-                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 rounded-lg border">
-                                {subscriptionBoxProduct.image_slots.map(slot => (
-                                    <div key={slot.id}>
-                                         {errors[slot.id] && <p className="mb-2 text-sm text-red-600 bg-red-50 p-2 rounded">{errors[slot.id]}</p>}
-                                         <ImageUpload 
-                                            id={slot.id} 
-                                            label={slot.label} 
-                                            onFileChange={handleFileChange} 
-                                            file={imageFiles[slot.id]} 
-                                        />
-                                    </div>
-                                ))}
-                             </div>
-                        ) : (
-                             // Fallback
-                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 rounded-lg border">
-                                 <ImageUpload id="child_photo_1" label="صورة وجه الطفل (إلزامي)" onFileChange={handleFileChange} file={imageFiles['child_photo_1']} />
-                             </div>
-                        )}
-                    </div>
-                 );
-            case 'delivery':
-                return (
-                    <div className="p-6 space-y-4 bg-gray-50 rounded-lg border">
-                        <ShippingAddressForm
-                            formData={formData}
-                            handleChange={handleChange}
-                            setValue={handleManualSetValue}
-                            errors={errors}
-                        />
-                    </div>
-                );
-        }
-    };
-
-
-    if (contentLoading) return <PageLoader />;
+    const currentStepKey = steps[step].key;
 
     return (
-        <>
-            <ChildProfileModal isOpen={isChildModalOpen} onClose={() => setIsChildModalOpen(false)} childToEdit={null} />
-            <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-12">
-                        <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-800 leading-tight">
-                            {content?.heroTitle.split(' ')[0]} <span className="text-orange-500">{content?.heroTitle.split(' ').slice(1).join(' ')}</span>
-                        </h1>
-                        <p className="mt-6 max-w-3xl mx-auto text-lg text-gray-600">
-                            {content?.heroSubtitle}
-                        </p>
-                        <div className="mt-8 flex justify-center">
-                            <ShareButtons 
-                                title='اكتشف صندوق الرحلة الشهري - هدية متجددة لطفلك!' 
-                                url={pageUrl} 
-                                label="شارك الاشتراك:"
-                            />
+        <div className="bg-gray-50 py-16 animate-fadeIn min-h-screen">
+             <ChildProfileModal isOpen={isChildModalOpen} onClose={() => setIsChildModalOpen(false)} childToEdit={null} />
+            <div className="container mx-auto px-4 max-w-5xl">
+                <div className="text-center mb-10">
+                    <h1 className="text-3xl font-extrabold text-foreground">{boxContent?.heroTitle || 'صندوق الرحلة الشهري'}</h1>
+                    <p className="mt-2 text-muted-foreground">{boxContent?.heroSubtitle}</p>
+                </div>
+                
+                <OrderStepper steps={steps} currentStep={currentStepKey} />
+
+                <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    <div className="lg:col-span-2 space-y-8">
+                        <Card>
+                            <CardContent className="pt-6">
+                                {currentStepKey === 'plan' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {plans.map(plan => (
+                                            <div 
+                                                key={plan.id} 
+                                                onClick={() => setSelectedPlanId(plan.id)}
+                                                className={`p-6 rounded-2xl border-2 cursor-pointer transition-all ${selectedPlanId === plan.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-gray-200 hover:border-primary/50'}`}
+                                            >
+                                                {plan.is_best_value && <span className="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded mb-2 inline-block">الأفضل قيمة</span>}
+                                                <h3 className="font-bold text-lg">{plan.name}</h3>
+                                                <div className="my-4">
+                                                    <span className="text-3xl font-extrabold">{plan.price} ج.م</span>
+                                                    <p className="text-xs text-muted-foreground">({plan.price_per_month} ج.م / شهر)</p>
+                                                </div>
+                                                <p className="text-sm text-gray-600">{plan.duration_months} أشهر من المرح والتعلم.</p>
+                                                {plan.savings_text && <p className="text-sm font-bold text-green-600 mt-2">{plan.savings_text}</p>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {currentStepKey === 'child' && (
+                                     <div className="space-y-6">
+                                        <ChildDetailsSection 
+                                            childProfiles={childProfiles}
+                                            onSelectChild={handleChildSelect}
+                                            selectedChildId={selectedChildId}
+                                            currentUser={currentUser}
+                                            onAddChild={() => setIsChildModalOpen(true)}
+                                            formData={formData}
+                                            handleChange={(e) => setFormData({...formData, [e.target.name]: e.target.value})}
+                                            errors={errors}
+                                        />
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                                             <div className="md:col-span-2">
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">اهتمامات الطفل (يساعدنا في اختيار محتوى الصندوق)</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="childInterests" 
+                                                    value={formData.childInterests} 
+                                                    onChange={e => setFormData({...formData, childInterests: e.target.value})}
+                                                    className="w-full p-2 border rounded-md"
+                                                    placeholder="فضاء، حيوانات، رسم..." 
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {currentStepKey === 'addons' && (
+                                    <AddonsSection 
+                                        addonProducts={addonProducts}
+                                        selectedAddons={selectedAddons}
+                                        onToggle={(key) => setSelectedAddons(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])}
+                                    />
+                                )}
+
+                                {currentStepKey === 'delivery' && (
+                                    <ShippingAddressForm 
+                                        formData={formData}
+                                        handleChange={(e) => {
+                                            const { name, value, type, checked } = e.target;
+                                            setFormData({...formData, [name]: type === 'checkbox' ? checked : value});
+                                        }}
+                                        setValue={(name, value) => setFormData({...formData, [name]: value})}
+                                        errors={errors}
+                                    />
+                                )}
+                            </CardContent>
+                        </Card>
+                        
+                        <div className="flex justify-between">
+                            <Button onClick={handleBack} disabled={step === 0} variant="outline">السابق</Button>
+                            {step < steps.length - 1 && <Button onClick={handleNext}>التالي</Button>}
                         </div>
                     </div>
-                    
-                    <div className="max-w-6xl mx-auto">
-                        <div className="mb-12">
-                            <OrderStepper steps={stepsConfig} currentStep={step} />
-                        </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                            <Card className="lg:col-span-2">
-                            {currentStepTitle && (
-                                    <CardHeader>
-                                        <CardTitle className="text-2xl">{currentStepTitle}</CardTitle>
-                                    </CardHeader>
-                                )}
-                                <CardContent className="pt-2 space-y-10">
-                                    {renderStepContent()}
-                                    <div className="flex justify-between pt-6 border-t">
-                                        <Button onClick={handleBack} variant="outline" icon={<ArrowLeft className="transform rotate-180" />} disabled={step === 'plan'}>
-                                            السابق
-                                        </Button>
-                                        {step !== 'delivery' ? (
-                                            <Button onClick={handleNext}>التالي <ArrowLeft className="mr-2 h-4 w-4" /></Button>
-                                        ) : (
-                                            <p className="text-sm text-gray-500">أكمل طلبك من الملخص على اليسار.</p>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
 
-                            <div className="lg:col-span-1 sticky top-24">
-                                <SubscriptionSummary
-                                    selectedPlan={selectedPlan}
-                                    isSubmitting={isSubmitting}
-                                    onSubmit={handleSubmit}
-                                    step={step}
-                                    features={content?.features}
-                                    shippingCost={totalShippingCost}
-                                    addonsCost={addonsCost}
-                                    selectedAddons={selectedAddons}
-                                    addonProducts={addonProducts}
-                                    governorate={formData.governorate}
-                                />
-                            </div>
-                        </div>
+                    <div className="lg:col-span-1 sticky top-24">
+                        <SubscriptionSummary 
+                            selectedPlan={selectedPlan}
+                            isSubmitting={isSubmitting}
+                            onSubmit={handleSubmit}
+                            step={currentStepKey}
+                            features={boxContent?.features}
+                            shippingCost={formData.governorate && shippingCosts ? ((shippingCosts['مصر']?.[formData.governorate] || shippingCosts['مصر']?.['باقي المحافظات'] || 0) * (selectedPlan?.duration_months || 1)) : 0}
+                            addonsCost={selectedAddons.reduce((sum, key) => sum + (addonProducts.find(p => p.key === key)?.price_printed || 0), 0)}
+                            selectedAddons={selectedAddons}
+                            addonProducts={addonProducts}
+                            governorate={formData.governorate}
+                        />
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 
