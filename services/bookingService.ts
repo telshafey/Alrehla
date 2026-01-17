@@ -390,7 +390,9 @@ export const bookingService = {
         return { success: true };
     },
 
+    // Fixed: More robust draft saving
     async saveBookingDraft(bookingId: string, draft: string) {
+        // 1. Fetch existing details first to avoid overwriting other keys
         const { data: current, error: fetchError } = await supabase
             .from('bookings')
             .select('details')
@@ -399,11 +401,13 @@ export const bookingService = {
 
         if (fetchError) throw new Error(fetchError.message);
 
+        // 2. Ensure details is an object
         let currentDetails = (current as any)?.details;
         if (typeof currentDetails !== 'object' || currentDetails === null) {
             currentDetails = {};
         }
 
+        // 3. Merge and Update
         const updatedDetails = { ...currentDetails, draft };
 
         const { error } = await (supabase.from('bookings') as any)

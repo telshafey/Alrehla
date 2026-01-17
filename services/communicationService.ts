@@ -29,11 +29,16 @@ export const communicationService = {
 
     async notifyAdmins(message: string, link: string, type: string = 'admin_alert') {
         try {
-            // Fetch admins with relevant roles
-            const { data: admins } = await supabase
+            // 1. Fetch admins with relevant roles
+            const { data: admins, error } = await supabase
                 .from('profiles')
                 .select('id')
                 .in('role', ['super_admin', 'general_supervisor', 'creative_writing_supervisor', 'enha_lak_supervisor']);
+
+            if (error) {
+                console.error("Error fetching admins for notification:", error);
+                return;
+            }
 
             if (admins && admins.length > 0) {
                 const notifications = admins.map((admin: any) => ({
@@ -45,7 +50,13 @@ export const communicationService = {
                     read: false
                 }));
 
-                await (supabase.from('notifications') as any).insert(notifications);
+                const { error: insertError } = await (supabase.from('notifications') as any).insert(notifications);
+                
+                if (insertError) {
+                    console.error("Error inserting admin notifications:", insertError);
+                }
+            } else {
+                 console.warn("No admins found to notify.");
             }
         } catch (error) {
             console.error("Failed to notify admins:", error);
@@ -77,7 +88,7 @@ export const communicationService = {
         if (error) throw new Error(error.message);
         
         // Notify Admins about new ticket
-        this.notifyAdmins(`تذكرة دعم فني جديدة من ${payload.name}`, '/admin/support', 'ticket');
+        await this.notifyAdmins(`تذكرة دعم فني جديدة من ${payload.name}`, '/admin/support', 'ticket');
         
         return { success: true };
     },
@@ -110,7 +121,7 @@ export const communicationService = {
         if (error) throw new Error(error.message);
         
         // Notify Admins
-        this.notifyAdmins(`طلب انضمام جديد من ${payload.name} (${payload.role})`, '/admin/join-requests', 'join_request');
+        await this.notifyAdmins(`طلب انضمام جديد من ${payload.name} (${payload.role})`, '/admin/join-requests', 'join_request');
 
         return { success: true };
     },

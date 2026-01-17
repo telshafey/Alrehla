@@ -10,7 +10,7 @@ import ErrorState from '../components/ui/ErrorState';
 import WritingDraftPanel from '../components/student/WritingDraftPanel';
 import { 
     MessageSquare, Paperclip, FileText, Send, Upload, 
-    Edit3, ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users, UserCheck, Clock, CheckCircle2, RefreshCw, AlertCircle
+    Edit3, ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users, UserCheck, Clock, CheckCircle2, RefreshCw, AlertCircle, Shield
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
@@ -86,6 +86,7 @@ const TrainingJourneyPage: React.FC = () => {
         let bubbleColor = 'bg-white text-gray-800 border border-gray-100';
         let align = isMe ? 'justify-end' : 'justify-start';
         let avatarUrl = null;
+        let icon = null;
 
         if (role === 'instructor') {
             label = 'المدرب';
@@ -97,9 +98,10 @@ const TrainingJourneyPage: React.FC = () => {
             avatarUrl = (journeyData as any)?.childProfile?.avatar_url;
         } else if (['parent', 'user'].includes(role)) {
             label = 'ولي الأمر';
-        } else {
-            label = 'الإدارة';
-            bubbleColor = 'bg-red-50 border-red-100 text-gray-800';
+        } else if (['super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(role)) {
+            label = 'الإدارة / المشرف';
+            bubbleColor = 'bg-purple-50 border-purple-100 text-purple-900 shadow-sm';
+            icon = <Shield size={12} className="text-purple-600" />;
         }
         
         if (isMe) {
@@ -107,7 +109,7 @@ const TrainingJourneyPage: React.FC = () => {
             label = 'أنت';
         }
         
-        return { label, bubbleColor, align, avatarUrl };
+        return { label, bubbleColor, align, avatarUrl, icon };
     };
 
     if (isLoading) return <PageLoader />;
@@ -131,11 +133,15 @@ const TrainingJourneyPage: React.FC = () => {
     const upcomingSession = scheduledSessions.find((s: any) => s.status === 'upcoming');
     const isPendingApproval = booking.status === 'بانتظار المراجعة' || booking.status === 'بانتظار الدفع';
 
-    const backLink = currentUser?.role === 'student' 
-        ? "/student/dashboard" 
-        : ['instructor', 'super_admin', 'creative_writing_supervisor'].includes(currentUser?.role || '')
-        ? "/admin"
-        : "/account";
+    // Smart Back Link Logic
+    let backLink = "/account";
+    if (currentUser?.role === 'student') {
+        backLink = "/student/dashboard";
+    } else if (currentUser?.role === 'instructor') {
+        backLink = "/admin/journeys";
+    } else if (['super_admin', 'creative_writing_supervisor'].includes(currentUser?.role || '')) {
+        backLink = `/admin/creative-writing/bookings/${booking.id}`;
+    }
 
     return (
         <div className="bg-gray-50/50 py-8 animate-fadeIn min-h-screen">
@@ -212,7 +218,7 @@ const TrainingJourneyPage: React.FC = () => {
                                             {/* Chat Area */}
                                             <div className="flex-grow overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#e5ddd5] bg-opacity-30" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/subtle-white-feathers.png')"}}>
                                                 {messages.length > 0 ? messages.map((msg: any, idx: number) => {
-                                                    const { label, bubbleColor, align, avatarUrl } = getSenderInfo(msg.sender_role, msg.sender_id);
+                                                    const { label, bubbleColor, align, avatarUrl, icon } = getSenderInfo(msg.sender_role, msg.sender_id);
                                                     const isMe = currentUser?.id === msg.sender_id;
                                                     const timeString = new Date(msg.created_at).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'});
                                                     const showAvatar = !isMe && (idx === 0 || messages[idx-1].sender_id !== msg.sender_id);
@@ -226,7 +232,9 @@ const TrainingJourneyPage: React.FC = () => {
                                                             )}
                                                             <div className={`max-w-[85%] sm:max-w-[70%] p-3 rounded-2xl shadow-sm relative text-sm ${bubbleColor} ${isMe ? 'rounded-br-none' : 'rounded-bl-none'}`}>
                                                                 {!isMe && (
-                                                                    <p className="text-[10px] font-bold text-primary mb-1 opacity-80">{label}</p>
+                                                                    <p className="text-[10px] font-bold text-primary mb-1 opacity-80 flex items-center gap-1">
+                                                                        {icon} {label}
+                                                                    </p>
                                                                 )}
                                                                 <p className="leading-relaxed whitespace-pre-wrap">{msg.message_text}</p>
                                                                 <div className={`text-[9px] mt-1 text-right ${isMe ? 'text-blue-100' : 'text-gray-400'}`}>
@@ -349,7 +357,7 @@ const TrainingJourneyPage: React.FC = () => {
                                                         <Clock size={10} />
                                                         {formatDate(s.session_date)}
                                                     </div>
-                                                    {isUpcoming && currentUser && (['student', 'parent', 'instructor', 'super_admin'].some(r => r === currentUser.role)) && (
+                                                    {isUpcoming && currentUser && (['student', 'parent', 'instructor', 'super_admin', 'creative_writing_supervisor'].some(r => r === currentUser.role)) && (
                                                         <Button as={Link} to={`/session/${s.id}`} size="sm" className={`w-full h-7 text-[10px] ${isNext ? 'bg-blue-600 hover:bg-blue-700' : ''}`} variant={isNext ? 'default' : 'outline'}>
                                                             {isNext ? 'بدء الجلسة' : 'دخول'}
                                                         </Button>

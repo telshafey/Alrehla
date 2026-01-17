@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -5,7 +6,7 @@ import { useCart } from '../contexts/CartContext';
 import { useProduct } from '../contexts/ProductContext';
 import { useUserNotifications } from '../hooks/queries/user/useUserDataQuery';
 import { useNotificationMutations } from '../hooks/mutations/useNotificationMutations';
-import { useHeaderNavigation } from '../hooks/useHeaderNavigation'; // Import the hook
+import { useHeaderNavigation } from '../hooks/useHeaderNavigation'; 
 import { 
     ShoppingCart, User, Menu, X, Bell
 } from 'lucide-react';
@@ -15,6 +16,7 @@ import UserDropdown from './header/UserDropdown';
 import NavItem from './header/NavItem';
 import MobileMenu from './header/MobileMenu';
 import Image from './ui/Image';
+import NotificationListener from './shared/NotificationListener';
 
 const Header: React.FC = () => {
     const { isLoggedIn, currentUser, hasAdminAccess, signOut } = useAuth();
@@ -63,6 +65,9 @@ const Header: React.FC = () => {
 
     return (
         <header className={`bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 ${headerStyle}`} dir="rtl">
+            {/* تشغيل مستمع الإشعارات في الخلفية */}
+            <NotificationListener />
+            
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <Link to="/" className="flex items-center gap-3" onClick={closeAllMenus}>
@@ -100,7 +105,7 @@ const Header: React.FC = () => {
                             <>
                                 <div ref={el => (menusRef.current['notifications'] = el)} className="relative">
                                      <Button variant="ghost" size="icon" onClick={() => toggleMenu('notifications')} aria-label="Notifications">
-                                        <Bell className="h-5 w-5" />
+                                        <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'animate-pulse text-primary' : ''}`} />
                                         {unreadCount > 0 && (
                                             <span className="absolute -top-1 -right-1 block h-4 w-4 rounded-full bg-destructive text-white text-[10px] flex items-center justify-center">
                                                 {unreadCount}

@@ -8,6 +8,7 @@ import WhatsAppButton from './components/WhatsAppButton';
 import ScrollToTopButton from './components/ScrollToTopButton';
 import AppRoutes from './AppRoutes';
 import OfflineBanner from './components/shared/OfflineBanner';
+import DevelopmentBanner from './components/shared/DevelopmentBanner';
 
 function App() {
   const location = useLocation();
@@ -21,6 +22,7 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen" dir="rtl">
+      <DevelopmentBanner />
       <OfflineBanner />
       {showLayout && <Header />}
       <ScrollToTop />

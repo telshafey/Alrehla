@@ -329,6 +329,11 @@ export interface PricingSettings {
     fixed_fee: number;
 }
 
+export interface MaintenanceSettings {
+    isActive: boolean;
+    message: string;
+}
+
 export type Prices = Record<string, number>;
 export type ShippingCosts = Record<string, Record<string, number>>;
 

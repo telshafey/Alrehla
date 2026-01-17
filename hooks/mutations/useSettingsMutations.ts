@@ -75,12 +75,25 @@ export const useSettingsMutations = () => {
         }
     });
 
+    const updateMaintenanceSettings = useMutation({
+        mutationFn: settingsService.updateMaintenanceSettings,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminMaintenanceSettings'] });
+            queryClient.invalidateQueries({ queryKey: ['publicData'] });
+            addToast('تم تحديث إعدادات شريط التنبيه بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث الإعدادات: ${error.message}`, 'error');
+        }
+    });
+
     return { 
         updateSocialLinks, 
         updateCommunicationSettings, 
         updatePricingSettings, 
         updateRolePermissions, 
         updateJitsiSettings,
-        updateSystemConfig
+        updateSystemConfig,
+        updateMaintenanceSettings
     };
 }

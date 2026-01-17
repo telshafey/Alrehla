@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Layout, Database, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Layout, Database, RefreshCw, AlertTriangle, PenTool } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
-import { useAdminSocialLinks, useAdminPricingSettings, useAdminCommunicationSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
+import { useAdminSocialLinks, useAdminPricingSettings, useAdminCommunicationSettings, useAdminMaintenanceSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
 import { useContentMutations } from '../../hooks/mutations/useContentMutations';
@@ -16,7 +16,8 @@ import PermissionsManager from '../../components/admin/PermissionsManager';
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 import { settingsService } from '../../services/settingsService';
 import { useToast } from '../../contexts/ToastContext';
-import type { SocialLinks, PricingSettings } from '../../lib/database.types';
+import type { SocialLinks, PricingSettings, MaintenanceSettings } from '../../lib/database.types';
+import { Checkbox } from '../../components/ui/Checkbox';
 
 const AdminSettingsPage: React.FC = () => {
     const { siteBranding: initialBranding, setSiteBranding, loading: brandingLoading } = useProduct();
@@ -33,10 +34,14 @@ const AdminSettingsPage: React.FC = () => {
     const [socials, setSocials] = useState<SocialLinks>({ id: 1, facebook_url: '', twitter_url: '', instagram_url: '' });
     
     const { data: pricingSettingsData, isLoading: pricingLoading } = useAdminPricingSettings();
-    const { updateSocialLinks, updateCommunicationSettings, updatePricingSettings } = useSettingsMutations();
+    const { data: maintenanceData, isLoading: maintenanceLoading } = useAdminMaintenanceSettings();
+    
+    const { updateSocialLinks, updateCommunicationSettings, updatePricingSettings, updateMaintenanceSettings } = useSettingsMutations();
     
     // Initialize with ID to satisfy TS type
     const [pricing, setPricing] = useState<PricingSettings>({ id: 1, company_percentage: 1.2, fixed_fee: 50 });
+    const [maintenance, setMaintenance] = useState<MaintenanceSettings>({ isActive: false, message: '' });
+    
     const [isSeeding, setIsSeeding] = useState(false);
     const { addToast } = useToast();
 
@@ -56,6 +61,11 @@ const AdminSettingsPage: React.FC = () => {
         if (pricingSettingsData) setPricing(pricingSettingsData as PricingSettings);
     }, [pricingSettingsData]);
 
+    useEffect(() => {
+        if (maintenanceData) setMaintenance(maintenanceData as MaintenanceSettings);
+    }, [maintenanceData]);
+
+
     const handleBrandingChange = (fieldKey: string, value: string) => {
         setBranding(prev => ({ ...prev, [fieldKey]: value }));
     };
@@ -73,6 +83,10 @@ const AdminSettingsPage: React.FC = () => {
         await updatePricingSettings.mutateAsync(pricing);
     };
 
+    const handleMaintenanceSubmit = async () => {
+        await updateMaintenanceSettings.mutateAsync(maintenance);
+    }
+
     const handleSeedDatabase = async () => {
         if (!window.confirm("تحذير: هذا الإجراء سيقوم بإعادة تعيين كافة نصوص الموقع وإعداداته إلى القيم الافتراضية (البيانات الوهمية). هل أنت متأكد؟")) return;
         
@@ -88,7 +102,7 @@ const AdminSettingsPage: React.FC = () => {
         }
     };
 
-    const isLoading = brandingLoading || socialsLoading || pricingLoading || commsLoading || contentLoading;
+    const isLoading = brandingLoading || socialsLoading || pricingLoading || commsLoading || contentLoading || maintenanceLoading;
     if (isLoading) return <PageLoader />;
 
     return (
@@ -101,6 +115,7 @@ const AdminSettingsPage: React.FC = () => {
                     <TabsTrigger value="communication"><Mail className="ml-2 w-4 h-4" /> التواصل</TabsTrigger>
                     <TabsTrigger value="pricing"><DollarSign className="ml-2 w-4 h-4" /> الماليات</TabsTrigger>
                     <TabsTrigger value="permissions"><Shield className="ml-2 w-4 h-4" /> الصلاحيات</TabsTrigger>
+                    <TabsTrigger value="maintenance"><PenTool className="ml-2 w-4 h-4" /> تنبيهات الموقع</TabsTrigger>
                     <TabsTrigger value="data"><Database className="ml-2 w-4 h-4" /> البيانات</TabsTrigger>
                 </TabsList>
 
@@ -179,6 +194,41 @@ const AdminSettingsPage: React.FC = () => {
 
                 <TabsContent value="permissions">
                     <PermissionsManager />
+                </TabsContent>
+                
+                <TabsContent value="maintenance" className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>شريط التنبيهات العلوي</CardTitle>
+                            <CardDescription>عرض شريط ثابت في أعلى الموقع لتنبيه الزوار بوجود صيانة أو تطوير.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex items-center gap-2">
+                                <Checkbox 
+                                    id="maintenance-active"
+                                    checked={maintenance.isActive}
+                                    onCheckedChange={(checked) => setMaintenance(prev => ({ ...prev, isActive: !!checked }))}
+                                />
+                                <label htmlFor="maintenance-active" className="text-sm font-medium">تفعيل الشريط</label>
+                            </div>
+                            <FormField label="نص الرسالة" htmlFor="maintenance-msg">
+                                <Input 
+                                    id="maintenance-msg" 
+                                    value={maintenance.message} 
+                                    onChange={e => setMaintenance(prev => ({ ...prev, message: e.target.value }))}
+                                    placeholder="مثال: الموقع قيد التطوير حالياً..."
+                                />
+                            </FormField>
+                            <div className="p-3 bg-yellow-400 text-black text-center font-bold text-sm rounded">
+                                معاينة: {maintenance.message || 'الموقع قيد التطوير'}
+                            </div>
+                            <div className="flex justify-end">
+                                <Button onClick={handleMaintenanceSubmit} loading={updateMaintenanceSettings.isPending} icon={<Save />}>
+                                    حفظ الإعدادات
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 <TabsContent value="data" className="space-y-6">

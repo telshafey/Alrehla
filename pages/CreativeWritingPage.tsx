@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Target, ArrowLeft, Calendar, CheckCircle, Sparkles, Star, Globe, Palette, Mic, User, Smile, PenSquare, Package } from 'lucide-react';
@@ -21,19 +22,39 @@ const WhoIsItForCard: React.FC<{ icon: React.ReactNode, title: string, descripti
     </Card>
 );
 
-const InstructorShowcaseCard: React.FC<{ instructor: Instructor }> = ({ instructor }) => (
-    <Card className="text-center h-full">
-        <CardContent className="pt-6">
-            <Image src={instructor.avatar_url || "https://i.ibb.co/2S4xT8w/male-avatar.png"} alt={instructor.name} className="w-24 h-24 rounded-full mx-auto object-cover ring-4 ring-primary/10" />
-            <h4 className="text-xl font-bold mt-4">{instructor.name}</h4>
-            <p className="text-primary font-semibold text-sm mb-4">{instructor.specialty}</p>
-            <ul className="text-sm text-muted-foreground space-y-2 text-right">
-                 <li className="flex items-start gap-2"><Star size={14} className="text-yellow-400 mt-1 flex-shrink-0" /><span>خبرة مثبتة في مجال أدب الطفل</span></li>
-                 <li className="flex items-start gap-2"><Star size={14} className="text-yellow-400 mt-1 flex-shrink-0" /><span>أسلوب تدريب تفاعلي ومحبب</span></li>
-            </ul>
-        </CardContent>
-    </Card>
-);
+const InstructorShowcaseCard: React.FC<{ instructor: Instructor }> = ({ instructor }) => {
+    // استخراج أول جملتين أو سطرين من السيرة الذاتية
+    const highlights = instructor.bio
+        ? instructor.bio
+            .split(/[.\n]/) // التقسيم بناءً على النقطة أو سطر جديد
+            .map(s => s.trim())
+            .filter(s => s.length > 10) // استبعاد الجمل القصيرة جداً
+            .slice(0, 2) // أخذ أول عنصرين فقط
+        : [];
+
+    // نص افتراضي في حال لم يتم العثور على جمل صالحة
+    const displayPoints = highlights.length > 0 
+        ? highlights 
+        : ["خبرة في تنمية المهارات الإبداعية", "أسلوب تعليمي متميز"];
+
+    return (
+        <Card className="text-center h-full">
+            <CardContent className="pt-6">
+                <Image src={instructor.avatar_url || "https://i.ibb.co/2S4xT8w/male-avatar.png"} alt={instructor.name} className="w-24 h-24 rounded-full mx-auto object-cover ring-4 ring-primary/10" />
+                <h4 className="text-xl font-bold mt-4">{instructor.name}</h4>
+                <p className="text-primary font-semibold text-sm mb-4">{instructor.specialty}</p>
+                <ul className="text-sm text-muted-foreground space-y-2 text-right">
+                    {displayPoints.map((point, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                            <Star size={14} className="text-yellow-400 mt-1 flex-shrink-0" />
+                            <span className="line-clamp-2">{point}</span>
+                        </li>
+                    ))}
+                </ul>
+            </CardContent>
+        </Card>
+    );
+};
 
 
 const CreativeWritingPage: React.FC = () => {

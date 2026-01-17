@@ -8,7 +8,8 @@ import {
     mockSiteBranding,
     mockSiteContent,
     mockPrices,
-    mockShippingCosts
+    mockShippingCosts,
+    mockMaintenanceSettings
 } from '../data/mockData';
 import { DEFAULT_CONFIG } from '../lib/config';
 import type { 
@@ -18,7 +19,8 @@ import type {
     JitsiSettings,
     SiteBranding,
     Prices,
-    ShippingCosts
+    ShippingCosts,
+    MaintenanceSettings
 } from '../lib/database.types';
 
 // Helper to fetch single setting safely with Auto-Seed capability
@@ -150,6 +152,16 @@ export const settingsService = {
         return config;
     },
 
+    // --- Maintenance Settings ---
+    async updateMaintenanceSettings(settings: MaintenanceSettings) {
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ key: 'maintenance_settings', value: settings, updated_at: new Date().toISOString() } as any);
+
+        if (error) throw new Error(error.message);
+        return settings;
+    },
+
     // --- Database Initialization (Can be called manually too) ---
     async initializeDefaults() {
         const defaults = [
@@ -161,7 +173,8 @@ export const settingsService = {
             { key: 'global_content', value: mockSiteContent },
             { key: 'prices', value: mockPrices },
             { key: 'shipping_costs', value: mockShippingCosts },
-            { key: 'system_config', value: DEFAULT_CONFIG } // Initialize system config
+            { key: 'system_config', value: DEFAULT_CONFIG },
+            { key: 'maintenance_settings', value: mockMaintenanceSettings }
         ];
 
         const promises = defaults.map(item => 

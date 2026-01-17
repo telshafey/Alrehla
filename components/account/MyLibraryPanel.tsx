@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Star, BookOpen, CreditCard, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Package } from 'lucide-react';
 import { useUserAccountData } from '../../hooks/queries/user/useUserDataQuery';
 import { useAuth } from '../../contexts/AuthContext';
@@ -122,6 +122,7 @@ interface MyLibraryPanelProps {
 }
 
 const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
+    const navigate = useNavigate();
     const { data } = useUserAccountData();
     const { childProfiles } = useAuth();
     const { userOrders: orders = [], userSubscriptions: subscriptions = [], userBookings: bookings = [] } = data || {};
@@ -234,7 +235,7 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                 title="لا توجد منتجات بعد" 
                                 message="ابدأ بتخصيص قصة لطفلك أو اشترك في الصندوق الشهري لتظهر طلباتك هنا." 
                                 actionText="اكتشف المتجر" 
-                                onAction={() => window.location.hash = '/enha-lak/store'} 
+                                onAction={() => navigate('/enha-lak/store')} 
                             />
                         )}
                     </div>
@@ -265,7 +266,7 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                 title="لم تبدأ أي رحلة بعد" 
                                 message="سجل طفلك في برنامج 'بداية الرحلة' لتنمية مهاراته الكتابية." 
                                 actionText="استعرض الباقات" 
-                                onAction={() => window.location.hash = '/creative-writing/packages'} 
+                                onAction={() => navigate('/creative-writing/packages')} 
                             />
                         )}
                     </div>

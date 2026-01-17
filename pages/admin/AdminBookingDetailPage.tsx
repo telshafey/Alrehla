@@ -9,7 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Select } from '../../components/ui/Select';
 import { Textarea } from '../../components/ui/Textarea';
-import { ArrowLeft, Save, Link as LinkIcon, BookOpen } from 'lucide-react';
+import { ArrowLeft, Save, Link as LinkIcon, BookOpen, ExternalLink, Users } from 'lucide-react';
 import DetailRow from '../../components/shared/DetailRow';
 import { formatDate, getStatusColor } from '../../utils/helpers';
 import type { BookingStatus } from '../../lib/database.types';
@@ -78,6 +78,28 @@ const AdminBookingDetailPage: React.FC = () => {
                         حفظ التغييرات
                     </Button>
                 </div>
+            </div>
+            
+            {/* زر الدخول لمساحة العمل للمراجعة */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                        <Users size={20} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-blue-900">مساحة العمل المشتركة</h3>
+                        <p className="text-sm text-blue-700">مراجعة المحادثات، المرفقات، ومسودة الطالب في هذه الرحلة.</p>
+                    </div>
+                </div>
+                <Button 
+                    as={Link} 
+                    to={`/journey/${booking.id}`} 
+                    variant="outline" 
+                    className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50"
+                    icon={<ExternalLink size={16} />}
+                >
+                    دخول للمراجعة
+                </Button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

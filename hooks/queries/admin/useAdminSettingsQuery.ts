@@ -7,6 +7,7 @@ import {
     mockRolePermissions,
     mockCommunicationSettings,
     mockJitsiSettings,
+    mockMaintenanceSettings,
 } from '../../../data/mockData';
 import { bookingService } from '../../../services/bookingService';
 import { DEFAULT_CONFIG } from '../../../lib/config';
@@ -72,4 +73,9 @@ export const useAdminRolePermissions = () => useQuery({
 export const useAdminSystemConfig = () => useQuery({
     queryKey: ['adminSystemConfig'],
     queryFn: () => fetchSetting('system_config', DEFAULT_CONFIG),
+});
+
+export const useAdminMaintenanceSettings = () => useQuery({
+    queryKey: ['adminMaintenanceSettings'],
+    queryFn: () => fetchSetting('maintenance_settings', mockMaintenanceSettings),
 });

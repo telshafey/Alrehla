@@ -225,7 +225,7 @@ const CheckoutPage: React.FC = () => {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {cart.map(item => (
-                                    <div key={item.id} className="flex justify-between items-center border-b pb-4 last:border-0 last:pb-0">
+                                    <div key={item.id} className="flex items-center gap-4 border-b pb-4 last:border-0 last:pb-0">
                                         <div>
                                             <p className="font-bold">{item.payload.summary}</p>
                                             {item.payload.shippingPrice > 0 && (

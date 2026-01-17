@@ -10,14 +10,16 @@ import type {
     SubscriptionPlan,
     StandaloneService,
     CommunicationSettings,
-    PricingSettings
+    PricingSettings,
+    MaintenanceSettings
 } from '../lib/database.types';
 import { 
     mockPricingSettings, 
     mockSiteContent, 
     mockCommunicationSettings, 
     mockSocialLinks,
-    mockBlogPosts
+    mockBlogPosts,
+    mockMaintenanceSettings
 } from '../data/mockData';
 
 interface PublicData {
@@ -32,6 +34,7 @@ interface PublicData {
     standaloneServices: StandaloneService[];
     communicationSettings: CommunicationSettings;
     pricingSettings: PricingSettings;
+    maintenanceSettings: MaintenanceSettings;
 }
 
 export const publicService = {
@@ -88,6 +91,7 @@ export const publicService = {
             socialLinks: getSetting('social_links', mockSocialLinks),
             communicationSettings: getSetting('communication_settings', mockCommunicationSettings),
             pricingSettings: getSetting('pricing_config', mockPricingSettings),
+            maintenanceSettings: getSetting('maintenance_settings', mockMaintenanceSettings),
             
             publicHolidays: [], 
         };
