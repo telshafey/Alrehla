@@ -116,7 +116,9 @@ export const generateGoogleCalendarUrl = (
     const startDate = new Date(startTime);
     const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
 
-    const formatGCalTime = (date: Date) => date.toISOString().replace(/-|:|\.\d\d\d/g, "");
+    // Format dates to YYYYMMDDTHHMMSSZ (UTC) for Google Calendar
+    // Ensuring 'Z' is present is crucial for Google to respect UTC
+    const formatGCalTime = (date: Date) => date.toISOString().replace(/-|:|\.\d+/g, "");
 
     const params = new URLSearchParams({
         action: 'TEMPLATE',

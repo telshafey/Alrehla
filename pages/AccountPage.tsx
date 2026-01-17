@@ -18,13 +18,24 @@ import { STAFF_ROLES, CUSTOMER_ROLES } from '../lib/roles';
 type AccountTab = 'dashboard' | 'myLibrary' | 'portfolio' | 'familyCenter' | 'settings' | 'notifications';
 
 const AccountPage: React.FC = () => {
-    const { isLoggedIn, loading: authLoading, currentUser } = useAuth();
+    const { isLoggedIn, loading: authLoading, currentUser, isProfileMandatory } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     
-    const defaultTab = (location.state as any)?.defaultTab || 'dashboard';
+    // Check if redirected due to mandatory profile update OR standard navigation
+    const defaultTab = isProfileMandatory 
+        ? 'settings' 
+        : (location.state as any)?.defaultTab || 'dashboard';
+
     const [activeTab, setActiveTab] = useState<AccountTab>(defaultTab);
     const [paymentItem, setPaymentItem] = useState<{ id: string; type: 'order' | 'subscription' | 'booking' } | null>(null);
+
+    // Update active tab if profile becomes mandatory while on page (edge case)
+    useEffect(() => {
+        if (isProfileMandatory) {
+            setActiveTab('settings');
+        }
+    }, [isProfileMandatory]);
 
     // التحقق من حالة التوجيه
     const shouldRedirect = useMemo(() => {
@@ -96,7 +107,7 @@ const AccountPage: React.FC = () => {
                             {activeTab === 'myLibrary' && <MyLibraryPanel onPay={(item) => setPaymentItem(item)} />}
                             {activeTab === 'portfolio' && <PortfolioPanel />}
                             {activeTab === 'familyCenter' && <FamilyCenterPanel />}
-                            {activeTab === 'settings' && <AccountSettingsPanel />}
+                            {activeTab === 'settings' && <AccountSettingsPanel isMandatoryMode={isProfileMandatory} />}
                             {activeTab === 'notifications' && <NotificationPanel />}
                         </div>
                     </div>

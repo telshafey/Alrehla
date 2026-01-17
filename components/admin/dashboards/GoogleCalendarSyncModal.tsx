@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
-import { Calendar, Copy, Check, ExternalLink, Info, Smartphone, Laptop, Globe, RefreshCw } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Calendar, Copy, Check, Info, Smartphone, Laptop, Download, AlertTriangle } from 'lucide-react';
 import Modal from '../../ui/Modal';
 import { Button } from '../../ui/Button';
 import { useToast } from '../../../contexts/ToastContext';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useInstructorData } from '../../../hooks/queries/instructor/useInstructorDataQuery';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../ui/Tabs';
 import { DEFAULT_CONFIG } from '../../../lib/config';
 
@@ -15,17 +16,15 @@ interface GoogleCalendarSyncModalProps {
 
 const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpen, onClose }) => {
     const { currentUser } = useAuth();
+    const { data } = useInstructorData();
     const { addToast } = useToast();
     const [copied, setCopied] = useState(false);
 
     const projectUrl = DEFAULT_CONFIG.supabase.projectUrl;
     
-    // Construct the URL
-    // 1. Append a dummy .ics parameter to help calendar validators recognize the file type
-    // 2. Use webcal:// protocol for the "Copy" link as it is standard for subscriptions
+    // Server-side Sync URL
     const baseApiUrl = `${projectUrl}/functions/v1/instructor-calendar`;
-    const params = `id=${currentUser?.id}&t=${Date.now()}&ext=.ics`; // Adding timestamp to prevent caching, ext for validation
-    
+    const params = `id=${currentUser?.id}&t=${Date.now()}&ext=.ics`;
     const webcalUrl = baseApiUrl.replace(/^https:/, 'webcal:') + '?' + params;
     const httpsUrl = baseApiUrl + '?' + params;
     
@@ -33,10 +32,57 @@ const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpe
     const googleSubscribeUrl = `https://calendar.google.com/calendar/r/settings/addbyurl?cid=${encodeURIComponent(httpsUrl)}`;
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(webcalUrl);
+        navigator.clipboard.writeText(httpsUrl); // Copy HTTPS url is safer for general use
         setCopied(true);
-        addToast('تم نسخ رابط webcal بنجاح!', 'success');
+        addToast('تم نسخ الرابط بنجاح!', 'success');
         setTimeout(() => setCopied(false), 3000);
+    };
+
+    // --- Client-Side ICS Generation (Robust Fallback) ---
+    const handleDownloadIcs = () => {
+        if (!data?.bookings) {
+            addToast('لا توجد بيانات لإنشاء الملف', 'error');
+            return;
+        }
+
+        const bookings = data.bookings;
+        let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Alrehla//Instructor Calendar//AR\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n";
+        
+        // Loop through all bookings and their sessions
+        bookings.forEach((booking: any) => {
+            if (booking.sessions) {
+                booking.sessions.forEach((session: any) => {
+                    if (session.status === 'upcoming' || session.status === 'completed') {
+                        const startDate = new Date(session.session_date);
+                        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // Assuming 1 hour
+                        
+                        // Format dates to YYYYMMDDTHHMMSSZ
+                        const format = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                        
+                        icsContent += "BEGIN:VEVENT\n";
+                        icsContent += `UID:${session.id}\n`;
+                        icsContent += `DTSTAMP:${format(new Date())}\n`;
+                        icsContent += `DTSTART:${format(startDate)}\n`;
+                        icsContent += `DTEND:${format(endDate)}\n`;
+                        icsContent += `SUMMARY:${booking.package_name} - ${booking.child_profiles?.name || 'طالب'}\n`;
+                        icsContent += `DESCRIPTION:جلسة تدريبية على منصة الرحلة.\nرابط الجلسة: ${window.location.origin}/session/${session.id}\n`;
+                        icsContent += "END:VEVENT\n";
+                    }
+                });
+            }
+        });
+
+        icsContent += "END:VCALENDAR";
+
+        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.setAttribute('download', `alrehla_schedule_${new Date().toISOString().split('T')[0]}.ics`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        addToast('تم تحميل ملف التقويم بنجاح', 'success');
     };
 
     return (
@@ -50,26 +96,21 @@ const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpe
             <Tabs defaultValue="google">
                 <TabsList className="w-full">
                     <TabsTrigger value="google" className="flex-1">Google Calendar</TabsTrigger>
-                    <TabsTrigger value="other" className="flex-1">Outlook / Apple</TabsTrigger>
+                    <TabsTrigger value="file" className="flex-1">ملف (ICS)</TabsTrigger>
+                    <TabsTrigger value="other" className="flex-1">رابط مباشر</TabsTrigger>
                 </TabsList>
 
                 <div className="mt-6">
-                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-start gap-4 mb-6">
-                        <div className="bg-white p-2 rounded-xl shadow-sm text-blue-600">
-                            <Info size={24} />
-                        </div>
-                        <div className="text-sm leading-relaxed text-blue-800">
-                            <p className="font-bold mb-1">كيف تعمل المزامنة؟</p>
-                            <p>عن طريق الاشتراك في رابط iCal الخاص بك، ستظهر جلساتك تلقائياً في تقويمك الشخصي. الرابط ديناميكي ويحتوي على "ext=.ics" لضمان التوافق.</p>
-                        </div>
-                    </div>
-
                     <TabsContent value="google" className="space-y-6">
-                        <div className="text-center space-y-4">
-                            <div className="p-6 border-2 border-dashed rounded-2xl bg-gray-50 flex flex-col items-center justify-center gap-4">
+                        <div className="text-center space-y-6">
+                            <div className="p-6 border-2 border-dashed rounded-2xl bg-blue-50/50 flex flex-col items-center justify-center gap-4">
                                 <Calendar className="w-16 h-16 text-blue-600" />
-                                <h3 className="font-bold text-lg">الاشتراك السريع</h3>
-                                <p className="text-sm text-muted-foreground max-w-sm">اضغط على الزر أدناه لفتح تقويم جوجل وإضافة جدولك مباشرة.</p>
+                                <h3 className="font-bold text-lg text-gray-800">الاشتراك التلقائي (Sync)</h3>
+                                <p className="text-sm text-gray-600 max-w-sm leading-relaxed">
+                                    اضغط أدناه لإضافة جدولك إلى تقويم جوجل وتلقي التحديثات تلقائياً.
+                                    <br/>
+                                    <span className="text-xs text-muted-foreground">(يتطلب تفعيل خدمة Calendar API من الإدارة)</span>
+                                </p>
                                 <a 
                                     href={googleSubscribeUrl} 
                                     target="_blank" 
@@ -79,18 +120,45 @@ const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpe
                                     <PlusIcon /> إضافة إلى تقويم جوجل
                                 </a>
                             </div>
-                             <p className="text-xs text-muted-foreground">
-                                إذا واجهت مشكلة، جرب نسخ الرابط من تبويب "Outlook / Apple" وأضفه يدوياً عبر "Add by URL" في إعدادات جوجل.
+
+                            <div className="flex items-center gap-3 p-3 bg-yellow-50 text-yellow-800 rounded-lg text-right text-xs border border-yellow-200">
+                                <AlertTriangle size={16} className="shrink-0" />
+                                <p>
+                                    إذا ظهرت رسالة خطأ "Settings Error" أو "Failed to add calendar" في جوجل، فهذا يعني أن خدمة المزامنة السحابية غير مفعلة حالياً. 
+                                    <strong className="block mt-1">الحل البديل: استخدم تبويب "ملف (ICS)" لتحميل المواعيد يدوياً.</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="file" className="space-y-6">
+                         <div className="text-center p-6 border rounded-2xl bg-gray-50">
+                            <Download className="w-12 h-12 text-green-600 mx-auto mb-3" />
+                            <h3 className="font-bold text-lg mb-2">تحميل ملف التقويم (Offline)</h3>
+                            <p className="text-sm text-gray-600 mb-6">
+                                هذا الخيار يعمل دائماً! سيقوم بتحميل ملف يحتوي على جميع جلساتك الحالية والمستقبلية. يمكنك فتحه لإضافتها إلى أي تقويم (Google, Outlook, Apple).
                             </p>
+                            <Button onClick={handleDownloadIcs} variant="success" size="lg" className="shadow-md" icon={<Download />}>
+                                تحميل ملف .ics الآن
+                            </Button>
                         </div>
                     </TabsContent>
 
                     <TabsContent value="other" className="space-y-6">
                         <div className="space-y-4">
-                            <label className="text-sm font-black text-gray-700 block">رابط المزامنة (Webcal/iCal):</label>
+                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-start gap-4">
+                                <div className="bg-white p-2 rounded-xl shadow-sm text-blue-600">
+                                    <Info size={24} />
+                                </div>
+                                <div className="text-sm leading-relaxed text-blue-800">
+                                    <p className="font-bold mb-1">رابط الاشتراك المباشر</p>
+                                    <p>استخدم هذا الرابط في Outlook أو Apple Calendar للاشتراك.</p>
+                                </div>
+                            </div>
+
                             <div className="flex items-center gap-2">
                                 <div className="flex-1 bg-muted p-3 rounded-xl border font-mono text-[10px] break-all text-muted-foreground dir-ltr">
-                                    {webcalUrl}
+                                    {httpsUrl}
                                 </div>
                                 <Button 
                                     onClick={handleCopy} 
