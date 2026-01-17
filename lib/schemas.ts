@@ -12,6 +12,27 @@ export const childDetailsSchema = z.object({
   childGender: z.enum(['ذكر', 'أنثى'], { errorMap: () => ({ message: "الجنس مطلوب" }) }),
 });
 
+// Define the interface explicitly to ensure all fields are typed correctly
+// regardless of the dynamic schema generation logic.
+export interface OrderFormValues {
+  childName: string;
+  childBirthDate: string;
+  childGender: 'ذكر' | 'أنثى';
+  deliveryType: 'printed' | 'electronic';
+  shippingOption: 'my_address' | 'gift';
+  governorate?: string;
+  recipientName?: string;
+  recipientAddress?: string;
+  recipientPhone?: string;
+  recipientEmail?: string;
+  giftMessage?: string;
+  sendDigitalCard?: boolean;
+  storyValue?: string;
+  customGoal?: string;
+  // Dynamic fields
+  [key: string]: any;
+}
+
 // Function to generate dynamic schema based on product configuration
 export const createOrderSchema = (product: PersonalizedProduct | undefined) => {
   if (!product) return z.object({});
@@ -115,6 +136,3 @@ export const createOrderSchema = (product: PersonalizedProduct | undefined) => {
     }
   });
 };
-
-// Type inference
-export type OrderFormValues = z.infer<ReturnType<typeof createOrderSchema>>;
