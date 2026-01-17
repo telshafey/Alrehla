@@ -10,6 +10,50 @@ import type {
 } from '../lib/database.types';
 
 export const communicationService = {
+    // --- Notification Helpers ---
+    
+    async sendNotification(userId: string, message: string, link: string, type: string = 'info') {
+        try {
+            await (supabase.from('notifications') as any).insert([{
+                user_id: userId,
+                message,
+                link,
+                type,
+                created_at: new Date().toISOString(),
+                read: false
+            }]);
+        } catch (error) {
+            console.error("Failed to send notification:", error);
+        }
+    },
+
+    async notifyAdmins(message: string, link: string, type: string = 'admin_alert') {
+        try {
+            // Fetch admins with relevant roles
+            const { data: admins } = await supabase
+                .from('profiles')
+                .select('id')
+                .in('role', ['super_admin', 'general_supervisor', 'creative_writing_supervisor', 'enha_lak_supervisor']);
+
+            if (admins && admins.length > 0) {
+                const notifications = admins.map((admin: any) => ({
+                    user_id: admin.id,
+                    message,
+                    link,
+                    type,
+                    created_at: new Date().toISOString(),
+                    read: false
+                }));
+
+                await (supabase.from('notifications') as any).insert(notifications);
+            }
+        } catch (error) {
+            console.error("Failed to notify admins:", error);
+        }
+    },
+
+    // --- Existing Methods ---
+
     async getAllSupportTickets() {
         const { data, error } = await supabase
             .from('support_tickets')
@@ -31,6 +75,10 @@ export const communicationService = {
         }]);
         
         if (error) throw new Error(error.message);
+        
+        // Notify Admins about new ticket
+        this.notifyAdmins(`تذكرة دعم فني جديدة من ${payload.name}`, '/admin/support', 'ticket');
+        
         return { success: true };
     },
 
@@ -60,6 +108,10 @@ export const communicationService = {
         }]);
 
         if (error) throw new Error(error.message);
+        
+        // Notify Admins
+        this.notifyAdmins(`طلب انضمام جديد من ${payload.name} (${payload.role})`, '/admin/join-requests', 'join_request');
+
         return { success: true };
     },
 
@@ -72,7 +124,6 @@ export const communicationService = {
         return data as SupportSessionRequest[];
     },
 
-    // New Update Methods moved from hooks for better logging support
     async updateSupportTicketStatus(ticketId: string, newStatus: TicketStatus) {
         const { error } = await (supabase.from('support_tickets') as any).update({ status: newStatus }).eq('id', ticketId);
         if (error) throw error;

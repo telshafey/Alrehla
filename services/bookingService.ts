@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { cloudinaryService } from './cloudinaryService';
 import { storageService } from './storageService';
 import { reportingService } from './reportingService';
+import { communicationService } from './communicationService';
 import type { 
     CreativeWritingBooking, 
     ScheduledSession, 
@@ -261,7 +262,18 @@ export const bookingService = {
 
         if (error) throw error;
 
-        // 2. Notify Instructor
+        // 2. Notify Instructor & Admin
+        const studentName = bookingData.child.name;
+        const packageName = bookingData.package.name;
+
+        // Notify Admins
+        communicationService.notifyAdmins(
+            `حجز جديد: ${packageName} للطالب ${studentName} (بانتظار المراجعة)`,
+            `/admin/creative-writing/bookings/${bookingId}`,
+            'booking'
+        );
+
+        // Notify Instructor
         try {
             const { data: instructorData } = await supabase
                 .from('instructors')
@@ -271,18 +283,14 @@ export const bookingService = {
             
             const safeInstructor = instructorData as any;
             if (safeInstructor && safeInstructor.user_id) {
-                await (supabase.from('notifications') as any).insert([{
-                    user_id: safeInstructor.user_id,
-                    message: `حجز جديد: ${bookingData.package.name} للطالب ${bookingData.child.name}`,
-                    link: '/admin/journeys', 
-                    type: 'booking',
-                    created_at: new Date().toISOString(),
-                    read: false
-                }]);
+                communicationService.sendNotification(
+                    safeInstructor.user_id,
+                    `حجز جديد: ${packageName} للطالب ${studentName}`,
+                    '/admin/journeys',
+                    'booking'
+                );
             }
-        } catch (e) {
-            console.error("Failed to notify instructor:", e);
-        }
+        } catch (e) { console.error("Failed to notify instructor:", e); }
 
         return data as CreativeWritingBooking;
     },
@@ -298,7 +306,25 @@ export const bookingService = {
 
         await reportingService.logAction('UPDATE_BOOKING_STATUS', bookingId, `حجز: ${booking.package_name}`, `تغيير الحالة إلى: ${newStatus}`);
 
+        // Notify User
+        communicationService.sendNotification(
+            booking.user_id,
+            `تم تحديث حالة حجزك (${booking.package_name}) إلى: ${newStatus}`,
+            `/journey/${bookingId}`,
+            'booking'
+        );
+
         if (newStatus === 'مؤكد') {
+            // Notify Instructor too if confirmed
+            if (booking.instructors?.user_id) {
+                 communicationService.sendNotification(
+                    booking.instructors.user_id,
+                    `تم تأكيد حجز ${booking.package_name} للطالب ${booking.child_profiles?.name}`,
+                    `/admin/journeys`,
+                    'booking'
+                );
+            }
+
             await supabase.from('scheduled_sessions').delete().eq('booking_id', bookingId).eq('status', 'upcoming');
             
             const { data: pkgData } = await supabase.from('creative_writing_packages').select('sessions').eq('name', booking.package_name).single();
@@ -349,32 +375,37 @@ export const bookingService = {
     async updateBookingProgressNotes(bookingId: string, notes: string) {
         const { error } = await (supabase.from('bookings') as any).update({ progress_notes: notes }).eq('id', bookingId);
         if (error) throw error;
+        
+        // Notify User about progress report
+        const { data: booking } = await supabase.from('bookings').select('user_id, package_name').eq('id', bookingId).single();
+        if (booking) {
+            communicationService.sendNotification(
+                (booking as any).user_id,
+                `قام المدرب بإضافة تقرير جديد لرحلة: ${(booking as any).package_name}`,
+                `/journey/${bookingId}`,
+                'report'
+            );
+        }
+
         return { success: true };
     },
 
     async saveBookingDraft(bookingId: string, draft: string) {
-        // First, get the current details
         const { data: current, error: fetchError } = await supabase
             .from('bookings')
             .select('details')
             .eq('id', bookingId)
             .single();
 
-        if (fetchError) {
-            console.error("Error fetching booking details:", fetchError);
-            throw new Error(fetchError.message);
-        }
+        if (fetchError) throw new Error(fetchError.message);
 
-        // Ensure currentDetails is an object
         let currentDetails = (current as any)?.details;
         if (typeof currentDetails !== 'object' || currentDetails === null) {
             currentDetails = {};
         }
 
-        // Merge existing details with new draft
         const updatedDetails = { ...currentDetails, draft };
 
-        // Update the database
         const { error } = await (supabase.from('bookings') as any)
             .update({ details: updatedDetails })
             .eq('id', bookingId);
@@ -425,6 +456,15 @@ export const bookingService = {
             file_url: publicUrl,
             created_at: new Date().toISOString()
         }]));
+        
+        // Notify if uploaded by student
+        if (safeRole === 'student') {
+             const { data: booking } = await supabase.from('bookings').select('instructors(user_id)').eq('id', payload.bookingId).single();
+             const instructorUserId = (booking as any)?.instructors?.user_id;
+             if (instructorUserId) {
+                 communicationService.sendNotification(instructorUserId, 'قام الطالب برفع ملف جديد.', `/journey/${payload.bookingId}`, 'attachment');
+             }
+        }
 
         return { success: true, url: publicUrl };
     },

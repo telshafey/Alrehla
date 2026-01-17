@@ -114,7 +114,7 @@ const SubscriptionPage: React.FC = () => {
                 }
 
                 // STRICT CHECK: Governorate is mandatory for shipping calculation
-                if (!formData.governorate) {
+                if (!formData.governorate || formData.governorate.trim() === '') {
                     newErrors.governorate = 'المحافظة مطلوبة بشكل إلزامي لحساب الشحن.';
                 }
                 break;
@@ -142,6 +142,21 @@ const SubscriptionPage: React.FC = () => {
         }
 
         if (!validateStep('delivery')) return;
+
+        // Double check shipping before submitting
+        let shippingPrice = 0;
+        if (shippingCosts && formData.governorate) {
+            const egyptCosts = shippingCosts['مصر'] || {};
+            const oneTimeShipping = egyptCosts[formData.governorate] || egyptCosts['باقي المحافظات'] || 0;
+            shippingPrice = oneTimeShipping * (selectedPlan?.duration_months || 1);
+        }
+
+        if (shippingPrice <= 0) {
+             addToast('عذراً، لم يتم حساب الشحن بشكل صحيح. يرجى التأكد من اختيار المحافظة.', 'error');
+             setErrors({...errors, governorate: 'المحافظة مطلوبة'});
+             return;
+        }
+
         setIsSubmitting(true);
 
         // Calculate Totals
@@ -151,17 +166,6 @@ const SubscriptionPage: React.FC = () => {
             return sum + (p?.price_printed || 0);
         }, 0);
         
-        // Shipping Logic
-        let shippingPrice = 0;
-        if (shippingCosts && formData.governorate) {
-            const egyptCosts = shippingCosts['مصر'] || {};
-            const oneTimeShipping = egyptCosts[formData.governorate] || egyptCosts['باقي المحافظات'] || 0;
-            // Subscription shipping usually charged once or monthly? Assuming total shipping for duration here for simplicity
-            // Or typically subscription includes shipping? Let's check config.
-            // For now, let's charge shipping per month
-            shippingPrice = oneTimeShipping * (selectedPlan?.duration_months || 1);
-        }
-
         const total = planPrice + addonsPrice; // Base Total
         
         addItemToCart({

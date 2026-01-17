@@ -154,26 +154,35 @@ const OrderPage: React.FC = () => {
             return;
         }
 
-        // STRICT CHECK: Cannot bypass shipping selection for printed orders
-        if (formData.deliveryType === 'printed') {
-            if (!formData.governorate) {
-                 addToast('لا يمكن إتمام الطلب بدون تحديد المحافظة لحساب الشحن.', 'error');
+        // STRICT CHECK: Double validation for Shipping Logic
+        if (data.deliveryType === 'printed') {
+            // 1. Check if governorate is present in the final data
+            if (!data.governorate || data.governorate.trim() === '') {
+                 addToast('عذراً، يجب تحديد المحافظة لحساب تكلفة الشحن.', 'error');
+                 // Redirect back to delivery step
                  const deliveryStepIndex = steps.findIndex(s => s.key === 'delivery');
                  setStep(deliveryStepIndex);
                  return;
             }
-            // Double check that shipping cost is calculated
-            if (shippingPrice <= 0) {
-                 // Try to recalculate or warn if it's genuinely 0 (rare, usually means missing config)
-                 // This handles edge cases where governorate is selected but context failed to load cost
-                 console.warn("Shipping cost is 0 for printed item");
+
+            // 2. Re-calculate shipping cost to ensure it's valid (> 0)
+            let calculatedShipping = 0;
+            if (shippingCosts && data.governorate) {
+                const egyptCosts = shippingCosts['مصر'] || {};
+                calculatedShipping = egyptCosts[data.governorate] || egyptCosts['باقي المحافظات'] || 0;
+            }
+
+            if (calculatedShipping <= 0) {
+                 addToast('حدث خطأ في حساب الشحن للمحافظة المختارة. يرجى التأكد من الاختيار.', 'error');
+                 const deliveryStepIndex = steps.findIndex(s => s.key === 'delivery');
+                 setStep(deliveryStepIndex);
+                 return;
             }
         }
 
         setIsSubmitting(true);
         
-        // Prepare file uploads (if any) from form data
-        // We need to extract files from the react-hook-form data which stores them as File objects
+        // Prepare file uploads
         const files: Record<string, File> = {};
         if (product.image_slots) {
             product.image_slots.forEach(slot => {
@@ -183,18 +192,25 @@ const OrderPage: React.FC = () => {
             });
         }
         
-        // Calculate totals for consistency
+        // Use the strictly calculated shipping price inside this function
+        // Re-calculate one last time to be safe based on 'data' argument, not 'formData' state
+        let finalShippingPrice = 0;
+        if (data.deliveryType === 'printed' && shippingCosts) {
+             const egyptCosts = shippingCosts['مصر'] || {};
+             finalShippingPrice = egyptCosts[data.governorate || ''] || egyptCosts['باقي المحافظات'] || 0;
+        }
+
         const finalTotal = totalPrice; // Base + Addons
-        
+
         addItemToCart({
             type: 'order',
             payload: {
                 productKey: product.key,
-                formData: data, // Stores all text data
-                files, // Stores files for processing later
+                formData: data, 
+                files, 
                 selectedAddons,
-                totalPrice: finalTotal, // Base + Addons
-                shippingPrice: shippingPrice, // Separate shipping cost
+                totalPrice: finalTotal,
+                shippingPrice: finalShippingPrice, // Use the strictly calculated value
                 summary: `${product.title} لـ ${data.childName}`,
                 details: {
                     ...data,
@@ -262,6 +278,12 @@ const OrderPage: React.FC = () => {
                                                 <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-sm text-yellow-800">
                                                     <p>بمجرد تأكيد الطلب، سيتم البدء في تجهيز قصتك المخصصة.</p>
                                                 </div>
+                                                {/* عرض تنبيه إذا كانت المحافظة فارغة في هذه الخطوة */}
+                                                {formData.deliveryType === 'printed' && (!formData.governorate || shippingPrice === 0) && (
+                                                    <div className="bg-red-50 p-3 rounded border border-red-200 text-red-700 font-bold text-sm">
+                                                        تنبيه: لم يتم تحديد المحافظة أو حساب الشحن. يرجى العودة لخطوة الشحن.
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </CardContent>
@@ -310,7 +332,7 @@ const OrderPage: React.FC = () => {
                                     })}
                                     totalPrice={totalPrice}
                                     shippingPrice={shippingPrice}
-                                    imagePreviewUrl={null} // Can implement preview logic later
+                                    imagePreviewUrl={null} 
                                     storyGoals={product.story_goals || []}
                                 />
                             </div>

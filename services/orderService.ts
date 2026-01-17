@@ -1,6 +1,8 @@
+
 import { supabase } from '../lib/supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
 import { storageService } from './storageService';
+import { communicationService } from './communicationService';
 import type { 
     Order, 
     OrderWithRelations, 
@@ -84,6 +86,15 @@ export const orderService = {
 
         if (error) throw new Error(error.message);
         
+        // Notify Admins if receipt is uploaded immediately
+        if (payload.receiptUrl) {
+            communicationService.notifyAdmins(
+                `طلب جديد: ${payload.summary} (قيد المراجعة)`,
+                `/admin/orders/${orderId}`,
+                'order'
+            );
+        }
+        
         return data as Order;
     },
 
@@ -133,26 +144,77 @@ export const orderService = {
         if (action === 'pause') status = 'paused';
         if (action === 'cancel') status = 'cancelled';
         
-        const { error } = await (supabase.from('subscriptions') as any).update({ status }).eq('id', subscriptionId);
+        const { data, error } = await (supabase.from('subscriptions') as any)
+            .update({ status })
+            .eq('id', subscriptionId)
+            .select('user_id, plan_name')
+            .single();
+            
         if (error) throw new Error(error.message);
+        
+        // Notify User
+        communicationService.sendNotification(
+            (data as any).user_id,
+            `تم تحديث حالة اشتراكك (${(data as any).plan_name}) إلى: ${status}`,
+            '/account',
+            'subscription'
+        );
+
         return { success: true };
     },
 
     async updateOrderStatus(orderId: string, newStatus: OrderStatus) {
-        const { error } = await (supabase.from('orders') as any).update({ status: newStatus }).eq('id', orderId);
+        const { data, error } = await (supabase.from('orders') as any)
+            .update({ status: newStatus })
+            .eq('id', orderId)
+            .select('user_id, item_summary')
+            .single();
+            
         if (error) throw new Error(error.message);
+        
+        // Notify User
+        communicationService.sendNotification(
+            (data as any).user_id,
+            `تحديث الطلب: ${newStatus} (${(data as any).item_summary})`,
+            `/account`,
+            'order'
+        );
+
         return { success: true };
     },
     
     async updateServiceOrderStatus(orderId: string, newStatus: OrderStatus) {
-        const { error } = await (supabase.from('service_orders') as any).update({ status: newStatus }).eq('id', orderId);
+        const { data, error } = await (supabase.from('service_orders') as any)
+            .update({ status: newStatus })
+            .eq('id', orderId)
+            .select('user_id')
+            .single();
+            
         if (error) throw new Error(error.message);
+        
+        // Notify User
+        communicationService.sendNotification(
+            (data as any).user_id,
+            `تحديث حالة خدمة إبداعية إلى: ${newStatus}`,
+            '/account',
+            'order'
+        );
+
         return { success: true };
     },
 
     async assignInstructorToServiceOrder(orderId: string, instructorId: number | null) {
         const { error } = await (supabase.from('service_orders') as any).update({ assigned_instructor_id: instructorId }).eq('id', orderId);
         if (error) throw new Error(error.message);
+        
+        // Notify Instructor if assigned
+        if (instructorId) {
+             const { data: instructor } = await supabase.from('instructors').select('user_id').eq('id', instructorId).single();
+             if ((instructor as any)?.user_id) {
+                 communicationService.sendNotification((instructor as any).user_id, 'تم تعيينك لخدمة إبداعية جديدة.', '/admin/instructor-financials', 'service');
+             }
+        }
+
         return { success: true };
     },
 
@@ -172,17 +234,43 @@ export const orderService = {
 
         const statusUpdate = itemType === 'subscription' ? { status: 'active' } : { status: 'بانتظار المراجعة' };
 
-        const { error } = await (supabase.from(table) as any)
+        const { data, error } = await (supabase.from(table) as any)
             .update({ receipt_url: url, ...statusUpdate })
-            .eq('id', itemId);
+            .eq('id', itemId)
+            .select('id')
+            .single();
 
         if (error) throw new Error(error.message);
+        
+        // Notify Admins
+        let link = '/admin/orders';
+        if (itemType === 'booking') link = '/admin/creative-writing';
+        if (itemType === 'subscription') link = '/admin/subscriptions';
+        
+        communicationService.notifyAdmins(
+            `تم رفع إيصال دفع جديد لـ ${itemType} #${itemId}`,
+            link,
+            'payment'
+        );
+
         return { success: true, url };
     },
 
     async bulkUpdateOrderStatus(orderIds: string[], status: OrderStatus) {
-        const { error } = await (supabase.from('orders') as any).update({ status }).in('id', orderIds);
+        const { data, error } = await (supabase.from('orders') as any)
+            .update({ status })
+            .in('id', orderIds)
+            .select('user_id');
+            
         if (error) throw new Error(error.message);
+        
+        // Notify Users in bulk (simplified loop)
+        if (data) {
+            data.forEach((order: any) => {
+                 communicationService.sendNotification(order.user_id, `تحديث حالة طلبك إلى: ${status}`, '/account', 'order');
+            });
+        }
+        
         return { success: true };
     },
 

@@ -4,50 +4,11 @@ import { useToast } from '../../contexts/ToastContext';
 import { supabase } from '../../lib/supabaseClient';
 import type { WeeklySchedule, AvailableSlots } from '../../lib/database.types';
 import { bookingService } from '../../services/bookingService';
+import { communicationService } from '../../services/communicationService';
 
 export const useInstructorMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
-
-    // دالة مساعدة لإرسال إشعار للمسؤولين
-    const notifyAdmins = async (message: string, link: string) => {
-        try {
-            const { data: admins } = await supabase
-                .from('profiles')
-                .select('id')
-                .in('role', ['super_admin', 'general_supervisor', 'creative_writing_supervisor']);
-
-            if (admins && admins.length > 0) {
-                const notifications = admins.map((admin: any) => ({
-                    user_id: admin.id,
-                    message,
-                    link,
-                    type: 'instructor_update',
-                    created_at: new Date().toISOString(),
-                    read: false
-                }));
-
-                await (supabase.from('notifications') as any).insert(notifications);
-            }
-        } catch (e) {
-            console.error("Failed to notify admins", e);
-        }
-    };
-
-    // دالة لإشعار المدرب
-    const notifyInstructor = async (instructorUserId: string, message: string, type: string) => {
-        if (!instructorUserId) return;
-        try {
-            await (supabase.from('notifications') as any).insert([{
-                user_id: instructorUserId,
-                message,
-                link: '/admin/profile',
-                type,
-                created_at: new Date().toISOString(),
-                read: false
-            }]);
-        } catch (e) { console.error("Failed to notify instructor", e); }
-    };
 
     const createInstructor = useMutation({
         mutationFn: bookingService.createInstructor,
@@ -117,7 +78,7 @@ export const useInstructorMutations = () => {
             
             // Notify Instructor
             if (instructor.user_id) {
-                await notifyInstructor(instructor.user_id, "تمت الموافقة على جدولك الأسبوعي الجديد.", "schedule_approved");
+                communicationService.sendNotification(instructor.user_id, "تمت الموافقة على جدولك الأسبوعي الجديد.", "/admin/schedule", "schedule_approved");
             }
 
             return { success: true };
@@ -136,7 +97,7 @@ export const useInstructorMutations = () => {
             if (error) throw error;
 
             if ((instructor as any)?.user_id) {
-                await notifyInstructor((instructor as any).user_id, "تم رفض طلب تعديل الجدول. يرجى مراجعة الإدارة.", "schedule_rejected");
+                communicationService.sendNotification((instructor as any).user_id, "تم رفض طلب تعديل الجدول. يرجى مراجعة الإدارة.", "/admin/schedule", "schedule_rejected");
             }
             
             return { success: true };
@@ -147,7 +108,6 @@ export const useInstructorMutations = () => {
         }
     });
 
-    // تحديث دالة الاعتماد لتقبل بيانات معدلة من قبل المدير (modifiedUpdates)
     const approveInstructorProfileUpdate = useMutation({
         mutationFn: async ({ instructorId, modifiedUpdates }: { instructorId: number, modifiedUpdates?: any }) => {
              const { data: instructorData, error: fetchError } = await supabase
@@ -161,31 +121,28 @@ export const useInstructorMutations = () => {
 
             const instructor = instructorData as any;
 
-            // نستخدم البيانات المعدلة من المدير إذا وجدت، وإلا نستخدم بيانات الطلب الأصلي
             const updatesSource = modifiedUpdates || instructor.pending_profile_data?.updates;
             
             if (!updatesSource) throw new Error("لا توجد تحديثات بانتظار الموافقة.");
 
-            // 1. استخراج الملاحظات (Feedback) وفصلها عن البيانات التي ستخزن في الجدول
             const { admin_feedback, ...dataToSave } = updatesSource;
 
-            // 2. تحديث سجل المدرب بالبيانات النظيفة فقط
             const { error: updateError } = await (supabase.from('instructors') as any)
                 .update({
-                    ...dataToSave, // ينشر البيانات (الأسعار، النبذة، إلخ)
+                    ...dataToSave,
                     profile_update_status: 'approved',
-                    pending_profile_data: null // مسح البيانات المعلقة
+                    pending_profile_data: null 
                 })
                 .eq('id', instructorId);
 
             if (updateError) throw updateError;
 
-            // 3. إرسال إشعار للمدرب
+            // Notify Instructor
             if (instructor.user_id) {
                 const msg = admin_feedback 
                     ? `تم اعتماد تحديثات ملفك/أسعارك. ملاحظة الإدارة: ${admin_feedback}`
                     : `تم اعتماد تحديثات ملفك الشخصي والأسعار بنجاح.`;
-                await notifyInstructor(instructor.user_id, msg, "profile_approved");
+                communicationService.sendNotification(instructor.user_id, msg, "/admin/profile", "profile_approved");
             }
 
             return { success: true };
@@ -196,7 +153,6 @@ export const useInstructorMutations = () => {
             addToast('تم اعتماد التعديلات ونشرها بنجاح.', 'success');
         },
         onError: (err: Error) => {
-            console.error("Approval Error:", err);
             addToast(`فشل الاعتماد: ${err.message}`, 'error');
         }
     });
@@ -205,7 +161,6 @@ export const useInstructorMutations = () => {
         mutationFn: async ({ instructorId, feedback }: { instructorId: number, feedback?: string }) => {
             const { data: instructor } = await supabase.from('instructors').select('user_id, pending_profile_data').eq('id', instructorId).single();
             
-            // نحتفظ بالبيانات المعلقة ولكن نغير الحالة لمرفوض، ونضيف الـ Feedback
             const currentPending = (instructor as any)?.pending_profile_data || {};
             const newPendingData = {
                 ...currentPending,
@@ -223,7 +178,7 @@ export const useInstructorMutations = () => {
 
             if ((instructor as any)?.user_id) {
                  const msg = feedback ? `تم رفض طلب التحديث. السبب: ${feedback}` : "تم رفض طلب التحديث الخاص بك.";
-                 await notifyInstructor((instructor as any).user_id, msg, "profile_rejected");
+                 communicationService.sendNotification((instructor as any).user_id, msg, "/admin/profile", "profile_rejected");
             }
 
             return { success: true };
@@ -252,9 +207,10 @@ export const useInstructorMutations = () => {
 
             if (error) throw error;
             
-            await notifyAdmins(
+            communicationService.notifyAdmins(
                 `قام المدرب ${instructorName} بطلب تحديث بياناته وأسعاره.`,
-                `/admin/instructors/${payload.instructorId}`
+                `/admin/instructors/${payload.instructorId}`,
+                'instructor_update'
             );
 
             return { success: true };
@@ -287,9 +243,10 @@ export const useInstructorMutations = () => {
 
             if (error) throw error;
 
-            await notifyAdmins(
+            communicationService.notifyAdmins(
                 `قام المدرب ${instructorName} بطلب تعديل جدوله الأسبوعي.`,
-                `/admin/instructors/${instructorId}`
+                `/admin/instructors/${instructorId}`,
+                'instructor_update'
             );
 
             return { success: true };
@@ -347,6 +304,13 @@ export const useInstructorMutations = () => {
                 requested_at: new Date().toISOString()
             }]);
             if (error) throw error;
+            
+            communicationService.notifyAdmins(
+                `طلب جلسة دعم/تغيير من مدرب لسبب: ${payload.reason.substring(0, 30)}...`,
+                '/admin/scheduled-sessions?tab=support',
+                'support_request'
+            );
+
             return { success: true };
         },
         onSuccess: () => {
