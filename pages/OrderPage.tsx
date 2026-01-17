@@ -1,5 +1,4 @@
 
-// ... existing imports
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -67,7 +66,9 @@ const OrderPage: React.FC = () => {
     });
 
     const { handleSubmit, watch, setValue, trigger, reset, getValues } = methods;
-    const formData = watch();
+    
+    // Explicitly cast formData to OrderFormValues to satisfy TypeScript during build
+    const formData = watch() as OrderFormValues;
 
     // Reset form when child is selected
     useEffect(() => {
@@ -176,8 +177,8 @@ const OrderPage: React.FC = () => {
         const files: Record<string, File> = {};
         if (product.image_slots) {
             product.image_slots.forEach(slot => {
-                if (data[slot.id] instanceof File) {
-                    files[slot.id] = data[slot.id];
+                if ((data as any)[slot.id] instanceof File) {
+                    files[slot.id] = (data as any)[slot.id];
                 }
             });
         }

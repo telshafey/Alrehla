@@ -16,6 +16,7 @@ import PermissionsManager from '../../components/admin/PermissionsManager';
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 import { settingsService } from '../../services/settingsService';
 import { useToast } from '../../contexts/ToastContext';
+import type { SocialLinks, PricingSettings } from '../../lib/database.types';
 
 const AdminSettingsPage: React.FC = () => {
     const { siteBranding: initialBranding, setSiteBranding, loading: brandingLoading } = useProduct();
@@ -28,12 +29,14 @@ const AdminSettingsPage: React.FC = () => {
     const [commSettings, setCommSettings] = useState({ support_email: '', join_us_email: '', whatsapp_number: '', whatsapp_default_message: '', instapay_url: '', instapay_qr_url: '', instapay_number: '' });
     
     const { data: socialLinksData, isLoading: socialsLoading } = useAdminSocialLinks();
-    const [socials, setSocials] = useState({ facebook_url: '', twitter_url: '', instagram_url: '' });
+    // Initialize with ID to satisfy TS type
+    const [socials, setSocials] = useState<SocialLinks>({ id: 1, facebook_url: '', twitter_url: '', instagram_url: '' });
     
     const { data: pricingSettingsData, isLoading: pricingLoading } = useAdminPricingSettings();
     const { updateSocialLinks, updateCommunicationSettings, updatePricingSettings } = useSettingsMutations();
     
-    const [pricing, setPricing] = useState({ company_percentage: 1.2, fixed_fee: 50 });
+    // Initialize with ID to satisfy TS type
+    const [pricing, setPricing] = useState<PricingSettings>({ id: 1, company_percentage: 1.2, fixed_fee: 50 });
     const [isSeeding, setIsSeeding] = useState(false);
     const { addToast } = useToast();
 
@@ -46,11 +49,11 @@ const AdminSettingsPage: React.FC = () => {
     }, [commsData]);
 
     useEffect(() => {
-        if (socialLinksData) setSocials(socialLinksData as any);
+        if (socialLinksData) setSocials(socialLinksData as SocialLinks);
     }, [socialLinksData]);
     
     useEffect(() => {
-        if (pricingSettingsData) setPricing(pricingSettingsData as any);
+        if (pricingSettingsData) setPricing(pricingSettingsData as PricingSettings);
     }, [pricingSettingsData]);
 
     const handleBrandingChange = (fieldKey: string, value: string) => {
