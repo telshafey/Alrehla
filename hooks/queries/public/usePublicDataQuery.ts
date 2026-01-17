@@ -11,7 +11,8 @@ import type {
     SubscriptionPlan,
     StandaloneService,
     CommunicationSettings,
-    PricingSettings
+    PricingSettings,
+    MaintenanceSettings
 } from '../../../lib/database.types';
 
 interface PublicData {
@@ -26,6 +27,7 @@ interface PublicData {
     standaloneServices: StandaloneService[];
     communicationSettings: CommunicationSettings;
     pricingSettings: PricingSettings;
+    maintenanceSettings: MaintenanceSettings;
 }
 
 export const usePublicData = () => {
