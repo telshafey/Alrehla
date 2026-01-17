@@ -69,7 +69,7 @@ const ShippingAddressForm: React.FC<ShippingAddressFormProps> = (props) => {
 
     // عند التحميل لأول مرة، إذا كان الخيار "عنواني"، نملأ البيانات إذا كانت الحقول فارغة
     useEffect(() => {
-        const currentName = isContextMode ? contextWatch!('recipientName') : props.formData?.recipientName;
+        const currentName = isContextMode && contextWatch ? contextWatch('recipientName') : props.formData?.recipientName;
         if (shippingOption === 'my_address' && currentUser && !currentName) {
             handleOptionChange('my_address');
         }
@@ -78,7 +78,13 @@ const ShippingAddressForm: React.FC<ShippingAddressFormProps> = (props) => {
     // Helper to generate props for inputs
     const getInputProps = (fieldName: string) => {
         if (isContextMode && register) {
-            return { ...register(fieldName) };
+            // Fix: Pass 'value' explicitly to make it a controlled component.
+            // This ensures when we call setValue (e.g. clearing for gift), the UI updates immediately.
+            const currentValue = contextWatch ? contextWatch(fieldName) : '';
+            return { 
+                ...register(fieldName),
+                value: currentValue || '' 
+            };
         }
         return {
             name: fieldName,
@@ -88,39 +94,22 @@ const ShippingAddressForm: React.FC<ShippingAddressFormProps> = (props) => {
         };
     };
 
-    // معالج خاص لمدخلات الهاتف لمنع الحروف
-    const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        // السماح فقط بالأرقام
-        if (!/^\d*$/.test(value)) {
-            return; // تجاهل الإدخال إذا لم يكن رقماً
-        }
-        
-        if (isContextMode && register) {
-            // في حالة React Hook Form، يتم التعامل مع التغيير عبر register
-            // لكن هنا نحتاج لتحديث القيمة يدوياً إذا أردنا منع الحروف فورياً
-            // الخيار الأبسط هو ترك التحقق للـ Schema أو استخدام Controller
-            // لكن للتبسيط هنا نمرر الحدث كما هو إذا كان رقماً
-            register(e.target.name).onChange(e);
-        } else if (props.handleChange) {
-            props.handleChange(e);
-        }
-    };
-
-    // Wrapper لـ getInputProps لدمج معالج الهاتف
+    // Wrapper specifically for Phone inputs to prevent non-numeric characters
     const getPhoneProps = (fieldName: string) => {
-        const propsData = getInputProps(fieldName);
+        const baseProps = getInputProps(fieldName);
+        const originalOnChange = baseProps.onChange;
+
         return {
-            ...propsData,
+            ...baseProps,
             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                // فلترة المدخلات لتكون أرقاماً فقط
                 const val = e.target.value;
+                // Only allow digits (and empty string to allow deletion)
                 if (/^\d*$/.test(val)) {
-                    propsData.onChange(e);
+                    if (originalOnChange) originalOnChange(e);
                 }
             },
             type: 'tel',
-            inputMode: 'numeric' as const, // يظهر لوحة مفاتيح الأرقام في الموبايل
+            inputMode: 'numeric' as const, // Shows numeric keypad on mobile
             pattern: "[0-9]*"
         };
     };

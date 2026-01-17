@@ -138,7 +138,24 @@ const AccountSettingsPanel: React.FC<AccountSettingsPanelProps> = ({ isMandatory
                             </FormField>
                         </div>
                         <FormField label="رقم الهاتف" htmlFor="phone">
-                            <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="01xxxxxxxxx" dir="ltr" className="text-left font-mono" />
+                            <Input 
+                                id="phone" 
+                                type="tel" 
+                                value={phone} 
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    // Only allow digits
+                                    if (/^\d*$/.test(val)) {
+                                        setPhone(val);
+                                    }
+                                }} 
+                                required 
+                                placeholder="01xxxxxxxxx" 
+                                dir="ltr" 
+                                className="text-left font-mono" 
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                            />
                         </FormField>
                         <FormField label="العنوان التفصيلي" htmlFor="address">
                             <Textarea id="address" value={address} onChange={e => setAddress(e.target.value)} placeholder="اسم الشارع، رقم المبنى..." />

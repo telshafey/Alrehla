@@ -121,9 +121,11 @@ const TrainingJourneyPage: React.FC = () => {
     const bookingPackageName = (booking as any).package_name || 'باقة تدريبية';
     const savedDraft = (booking as any).details?.draft;
 
+    // Strict Check: ONLY the student linked to this profile can edit the draft.
+    // Parents and Instructors can View only.
     const canEditDraft = currentUser && (
-        (currentUser.role === 'student' && childProfile?.student_user_id === currentUser.id) ||
-        (currentUser.id === booking.user_id)
+        currentUser.role === 'student' && 
+        childProfile?.student_user_id === currentUser.id
     );
     
     const upcomingSession = scheduledSessions.find((s: any) => s.status === 'upcoming');
