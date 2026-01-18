@@ -22,7 +22,11 @@ const StudentLayout: React.FC = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-100" dir="rtl">
-            <header className="bg-white shadow-md sticky top-0 z-10">
+            {/* 
+               Header offset: top-16 (4rem/64px) to account for the Main Site Header height.
+               Z-index set to 30 to sit below Main Header (z-40) but above content.
+            */}
+            <header className="bg-white shadow-md sticky top-16 z-30 transition-all">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-20">
                         <div className="flex items-center gap-4">
@@ -52,7 +56,11 @@ const StudentLayout: React.FC = () => {
                 </div>
             </header>
             
-            <div className="bg-white border-b sticky top-20 z-9">
+            {/* 
+                Nav offset: top-36 (16 + 20 = 36). 
+                Main Header (h-16) + Student Header (h-20) = 9rem offset.
+            */}
+            <div className="bg-white border-b sticky top-36 z-20 transition-all">
                 <nav className="container mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 rtl:space-x-reverse">
                     <NavLink 
                         to="/student/dashboard" 

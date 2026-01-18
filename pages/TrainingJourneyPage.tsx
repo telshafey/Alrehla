@@ -123,12 +123,20 @@ const TrainingJourneyPage: React.FC = () => {
     const bookingPackageName = (booking as any).package_name || 'باقة تدريبية';
     const savedDraft = (booking as any).details?.draft;
 
-    // Strict Check: ONLY the student linked to this profile can edit the draft.
-    // Parents and Instructors can View only.
-    const canEditDraft = currentUser && (
-        currentUser.role === 'student' && 
-        childProfile?.student_user_id === currentUser.id
-    );
+    // --- منطق الصلاحيات الجديد ---
+    // 1. هل المستخدم الحالي هو الطالب المرتبط بهذا الملف؟
+    const isLinkedStudent = currentUser?.role === 'student' && childProfile?.student_user_id === currentUser.id;
+    
+    // 2. هل المستخدم الحالي هو صاحب الحجز (دافع المال)؟
+    const isBookingOwner = currentUser?.id === booking.user_id;
+
+    // 3. هل هذا الملف ليس له حساب طالب مستقل؟ (أي أنه يدار بالكامل من قبل ولي الأمر أو المستخدم لنفسه)
+    const hasNoStudentAccount = !childProfile?.student_user_id;
+
+    // السماح بالكتابة في حالتين:
+    // أ: المستخدم هو الطالب الفعلي.
+    // ب: المستخدم هو صاحب الحجز والملف غير مرتبط بطالب آخر (حجز للنفس أو لطفل صغير).
+    const canEditDraft = currentUser && (isLinkedStudent || (isBookingOwner && hasNoStudentAccount));
     
     const upcomingSession = scheduledSessions.find((s: any) => s.status === 'upcoming');
     const isPendingApproval = booking.status === 'بانتظار المراجعة' || booking.status === 'بانتظار الدفع';

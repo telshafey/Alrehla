@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock, Send } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/Button';
 
@@ -20,6 +20,11 @@ const PaymentStatusPage: React.FC = () => {
             icon: <Clock className="h-16 w-16 text-primary" />,
             title: 'تم رفع الإيصال بنجاح!',
             message: 'شكراً لك. طلبك الآن قيد المراجعة وسيتم تأكيده خلال 24 ساعة.'
+        },
+        request_sent: {
+            icon: <Send className="h-16 w-16 text-purple-500" />,
+            title: 'تم إرسال الطلب لولي الأمر',
+            message: 'تم تحويل طلبك بنجاح إلى حساب ولي أمرك للاعتماد والدفع. ستظهر المنتجات في حسابك فور إتمام الدفع.'
         },
         cancelled: {
             icon: <AlertCircle className="h-16 w-16 text-destructive" />,
@@ -40,7 +45,7 @@ const PaymentStatusPage: React.FC = () => {
                     <CardTitle className="text-3xl">{currentStatus.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <CardDescription className="text-base">{currentStatus.message}</CardDescription>
+                    <CardDescription className="text-base leading-relaxed">{currentStatus.message}</CardDescription>
                     <Button as={Link} to="/account" className="mt-8">
                         الذهاب إلى حسابي
                     </Button>

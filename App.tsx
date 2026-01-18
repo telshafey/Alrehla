@@ -15,10 +15,11 @@ function App() {
 
   // Determine if the current route should hide the standard layout (Header/Footer)
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const isStudentArea = location.pathname.startsWith('/student');
+  // const isStudentArea = location.pathname.startsWith('/student'); // Removed to show header in student area
   const isSessionRoute = location.pathname.startsWith('/session');
   
-  const showLayout = !isAdminRoute && !isStudentArea && !isSessionRoute;
+  // Show layout for everyone except Admin pages and active Session pages
+  const showLayout = !isAdminRoute && !isSessionRoute;
 
   return (
     <div className="flex flex-col min-h-screen" dir="rtl">

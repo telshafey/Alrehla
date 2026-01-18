@@ -1,5 +1,4 @@
 
-// ... existing imports
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
@@ -11,17 +10,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { CheckCircle, AlertCircle, ShoppingBag, Truck, CreditCard } from 'lucide-react';
+import { CheckCircle, AlertCircle, ShoppingBag, Truck, CreditCard, Send, User } from 'lucide-react';
 import ReceiptUpload from '../components/shared/ReceiptUpload';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
-import { compressImage } from '../utils/imageCompression';
 import { storageService } from '../services/storageService';
 import Image from '../components/ui/Image';
 
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
     const { cart, clearCart, getCartTotal } = useCart();
-    const { currentUser, isProfileComplete, triggerProfileUpdate } = useAuth();
+    const { currentUser, isProfileComplete, triggerProfileUpdate, currentChildProfile } = useAuth();
     const { addToast } = useToast();
     const { createOrder } = useOrderMutations();
     const { createChildProfile } = useUserMutations();
@@ -33,12 +31,14 @@ const CheckoutPage: React.FC = () => {
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [copied, setCopied] = useState(false);
 
-    // Enforce Profile Check on Mount
+    const isStudent = currentUser?.role === 'student';
+
+    // Enforce Profile Check on Mount (Skip for students as their parent handles profile data mostly)
     React.useEffect(() => {
-        if (currentUser && !isProfileComplete) {
+        if (currentUser && !isStudent && !isProfileComplete) {
             triggerProfileUpdate(true);
         }
-    }, [currentUser, isProfileComplete, triggerProfileUpdate]);
+    }, [currentUser, isProfileComplete, triggerProfileUpdate, isStudent]);
 
     // Payment Info from Backend
     const instapayNumber = publicData?.communicationSettings?.instapay_number;
@@ -58,6 +58,7 @@ const CheckoutPage: React.FC = () => {
         if (childData.id && childData.id !== -1) return childData.id;
         
         // If child doesn't exist, create profile first
+        // Note: Students shouldn't reach here for creating profiles usually, but safe to keep
         const newChild = await createChildProfile.mutateAsync({
             name: childData.name || childData.childName,
             birth_date: childData.birth_date || childData.childBirthDate,
@@ -66,32 +67,27 @@ const CheckoutPage: React.FC = () => {
         return newChild.id;
     };
 
-    const processCartItem = async (item: any, receiptUrl: string) => {
+    const processCartItem = async (item: any, receiptUrl: string | undefined) => {
         if (!currentUser) throw new Error('User not authenticated');
         
+        // تحديد هوية "صاحب الطلب" (Payer ID)
+        // إذا كان المستخدم طالب، فالمالك هو ولي الأمر (الموجود في currentChildProfile.user_id)
+        // إذا كان مستخدم عادي/ولي أمر، فهو المستخدم نفسه
+        let payerUserId = currentUser.id;
+        if (isStudent && currentChildProfile?.user_id) {
+            payerUserId = currentChildProfile.user_id;
+        }
+
         // 1. Service Order
         if (item.type === 'order' && (item.payload.productKey?.startsWith('service_') || item.payload.details?.serviceId)) {
-            // Upload service file if exists
             let fileUrl = null;
             if (item.payload.files?.service_file) {
-                 fileUrl = await storageService.uploadFile(item.payload.files.service_file, 'receipts', `service_files/${currentUser.id}`);
+                 fileUrl = await storageService.uploadFile(item.payload.files.service_file, 'receipts', `service_files/${payerUserId}`);
             }
             
-            // Note: service orders are currently handled via createOrder in this implementation, 
-            // but we might need a dedicated mutation if table schema differs significantly.
-            // Assuming createOrder handles 'service_orders' table insertion or logic internally based on key.
-            // Correction: orderService.createOrder inserts into 'orders' table. 
-            // If we need 'service_orders', we should have a specific mutation.
-            // For now, let's assume standard order flow for simplicity unless service logic is distinct.
-            // WAIT: We have specific `service_orders` table. We need a way to insert there.
-            // Current `orderService.createOrder` creates in `orders`.
-            // Let's use `createOrder` for now as generic, but ideally we'd map this correctly.
-            // **Correction**: Since I don't have `createServiceOrder` mutation exposed here easily, I will treat it as a regular order.
-            
-            // For now, create standard order with details.
             return createOrder.mutateAsync({
-                userId: currentUser.id,
-                childId: item.payload.childId || (await ensureChildId(item.payload.details?.child || { name: 'Service Request', birth_date: '2000-01-01', gender: 'ذكر' })), // Dummy child if needed or use real if available
+                userId: payerUserId,
+                childId: item.payload.childId || (await ensureChildId(item.payload.details?.child || { name: 'Service Request', birth_date: '2000-01-01', gender: 'ذكر' })), 
                 summary: item.payload.summary,
                 total: item.payload.totalPrice,
                 shippingCost: 0,
@@ -105,11 +101,10 @@ const CheckoutPage: React.FC = () => {
         if (item.type === 'order') {
             const childId = await ensureChildId(item.payload.formData || item.payload.details);
             
-            // Upload images if any
             const uploadedImages: Record<string, string> = {};
             if (item.payload.files) {
                  for (const [key, file] of Object.entries(item.payload.files as Record<string, File>)) {
-                     const url = await storageService.uploadFile(file, 'receipts', `custom_images/${currentUser.id}`);
+                     const url = await storageService.uploadFile(file, 'receipts', `custom_images/${payerUserId}`);
                      uploadedImages[key] = url;
                  }
             }
@@ -119,17 +114,16 @@ const CheckoutPage: React.FC = () => {
                 ...uploadedImages
             };
 
-            // Explicitly calculate total including shipping
             const shippingCost = item.payload.shippingPrice || 0;
             const itemsTotal = item.payload.totalPrice || 0;
             const finalTotal = itemsTotal + shippingCost;
 
             return createOrder.mutateAsync({
-                userId: currentUser.id,
+                userId: payerUserId,
                 childId,
                 summary: item.payload.summary,
-                total: finalTotal, // Total amount user paid
-                shippingCost: shippingCost, // Tracked separately in DB
+                total: finalTotal,
+                shippingCost: shippingCost,
                 productKey: item.payload.productKey,
                 details: finalDetails,
                 receiptUrl
@@ -139,16 +133,14 @@ const CheckoutPage: React.FC = () => {
         // 3. Subscription
         if (item.type === 'subscription') {
             const childId = await ensureChildId(item.payload.formData);
-            // First create subscription record
             const sub = await createSubscription.mutateAsync({
-                userId: currentUser.id,
+                userId: payerUserId,
                 childId,
                 planName: item.payload.planName,
                 durationMonths: item.payload.durationMonths
             });
-            // Then create an order record for the payment
             return createOrder.mutateAsync({
-                userId: currentUser.id,
+                userId: payerUserId,
                 childId,
                 summary: item.payload.summary,
                 total: item.payload.totalPrice + (item.payload.shippingPrice || 0),
@@ -162,37 +154,46 @@ const CheckoutPage: React.FC = () => {
         // 4. Booking
         if (item.type === 'booking') {
             const childId = await ensureChildId(item.payload.child);
-            // Update payload with real child ID
             const bookingPayload = {
                 ...item.payload,
                 child: { ...item.payload.child, id: childId }
             };
             
             return createBooking.mutateAsync({
-                userId: currentUser.id,
+                userId: payerUserId,
                 payload: bookingPayload,
-                receiptUrl
+                receiptUrl: receiptUrl || '' // Booking mutation expects string, empty is treated as pending payment
             });
         }
     };
 
-    const handleConfirmPayment = async () => {
-        if (!receiptFile) {
+    const handleCheckout = async () => {
+        // Validation for non-students (receipt required)
+        if (!isStudent && !receiptFile) {
             addToast('يرجى رفع إيصال الدفع.', 'warning');
             return;
         }
 
         setIsSubmitting(true);
         try {
-            // Upload Receipt Once
-            const receiptUrl = await storageService.uploadFile(receiptFile, 'receipts', `payments/${currentUser?.id}`);
+            let receiptUrl: string | undefined = undefined;
+
+            // Upload Receipt Only if User provided it (Student won't)
+            if (receiptFile) {
+                receiptUrl = await storageService.uploadFile(receiptFile, 'receipts', `payments/${currentUser?.id}`);
+            }
 
             // Process all items
             const promises = cart.map(item => processCartItem(item, receiptUrl));
             await Promise.all(promises);
 
             clearCart();
-            navigate('/payment-status?status=success_review');
+            
+            if (isStudent) {
+                navigate('/payment-status?status=request_sent');
+            } else {
+                navigate('/payment-status?status=success_review');
+            }
         } catch (error: any) {
             console.error("Checkout Error:", error);
             addToast(`حدث خطأ أثناء المعالجة: ${error.message}`, 'error');
@@ -214,7 +215,9 @@ const CheckoutPage: React.FC = () => {
     return (
         <div className="bg-gray-50 py-12 sm:py-16 min-h-screen animate-fadeIn">
             <div className="container mx-auto px-4 max-w-4xl">
-                <h1 className="text-3xl font-extrabold text-gray-900 mb-8">إتمام الطلب والدفع</h1>
+                <h1 className="text-3xl font-extrabold text-gray-900 mb-8">
+                    {isStudent ? 'تأكيد الطلب وإرساله' : 'إتمام الطلب والدفع'}
+                </h1>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {/* Items Summary */}
@@ -247,56 +250,85 @@ const CheckoutPage: React.FC = () => {
                         </Card>
                     </div>
 
-                    {/* Payment */}
+                    {/* Payment / Request Action */}
                     <div className="md:col-span-1 space-y-6">
-                        <Card className="bg-blue-50 border-blue-200">
-                            <CardHeader>
-                                <CardTitle className="text-blue-900 flex items-center gap-2">
-                                    <CreditCard /> تعليمات الدفع
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <p className="text-sm text-blue-800">
-                                    يرجى تحويل المبلغ الإجمالي <strong>({totalAmount} ج.م)</strong> عبر Instapay أو المحافظ الإلكترونية.
-                                </p>
-                                
-                                {instapayQrUrl && (
-                                    <div className="flex justify-center bg-white p-2 rounded-lg border">
-                                        <Image src={instapayQrUrl} alt="QR Code" className="w-32 h-32 object-contain" />
+                        {isStudent ? (
+                            <Card className="bg-purple-50 border-purple-200">
+                                <CardHeader>
+                                    <CardTitle className="text-purple-900 flex items-center gap-2">
+                                        <User /> طلب موافقة ولي الأمر
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <p className="text-sm text-purple-800 leading-relaxed">
+                                        سيتم إرسال هذا الطلب إلى حساب ولي أمرك <strong>{currentChildProfile?.parentName || 'المسؤول'}</strong>.
+                                    </p>
+                                    <div className="bg-white p-3 rounded border border-purple-100 text-xs text-gray-600">
+                                        <p>سيقوم ولي الأمر بمراجعة الطلب وإتمام عملية الدفع لتأكيده.</p>
                                     </div>
-                                )}
-                                
-                                {instapayNumber && (
-                                    <div className="bg-white p-3 rounded border flex justify-between items-center">
-                                        <span className="font-mono font-bold text-lg dir-ltr">{instapayNumber}</span>
-                                        <Button size="icon" variant="ghost" onClick={handleCopyNumber} className="h-8 w-8">
-                                            {copied ? <CheckCircle size={16} className="text-green-500"/> : <span className="text-xs font-bold">نسخ</span>}
-                                        </Button>
+
+                                    <Button 
+                                        onClick={handleCheckout} 
+                                        loading={isSubmitting} 
+                                        className="w-full mt-4" 
+                                        size="lg"
+                                        variant="default" // Using default primary color for request
+                                        icon={<Send size={18} />}
+                                    >
+                                        إرسال الطلب للاعتماد
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card className="bg-blue-50 border-blue-200">
+                                <CardHeader>
+                                    <CardTitle className="text-blue-900 flex items-center gap-2">
+                                        <CreditCard /> تعليمات الدفع
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <p className="text-sm text-blue-800">
+                                        يرجى تحويل المبلغ الإجمالي <strong>({totalAmount} ج.م)</strong> عبر Instapay أو المحافظ الإلكترونية.
+                                    </p>
+                                    
+                                    {instapayQrUrl && (
+                                        <div className="flex justify-center bg-white p-2 rounded-lg border">
+                                            <Image src={instapayQrUrl} alt="QR Code" className="w-32 h-32 object-contain" />
+                                        </div>
+                                    )}
+                                    
+                                    {instapayNumber && (
+                                        <div className="bg-white p-3 rounded border flex justify-between items-center">
+                                            <span className="font-mono font-bold text-lg dir-ltr">{instapayNumber}</span>
+                                            <Button size="icon" variant="ghost" onClick={handleCopyNumber} className="h-8 w-8">
+                                                {copied ? <CheckCircle size={16} className="text-green-500"/> : <span className="text-xs font-bold">نسخ</span>}
+                                            </Button>
+                                        </div>
+                                    )}
+                                    
+                                    <div className="text-xs text-blue-700 mt-2">
+                                        <AlertCircle size={14} className="inline mr-1" />
+                                        بعد التحويل، يرجى رفع صورة الإيصال (Screenshot) أدناه لتأكيد طلبك.
                                     </div>
-                                )}
-                                
-                                <div className="text-xs text-blue-700 mt-2">
-                                    <AlertCircle size={14} className="inline mr-1" />
-                                    بعد التحويل، يرجى رفع صورة الإيصال (Screenshot) أدناه لتأكيد طلبك.
-                                </div>
 
-                                <div className="pt-4 border-t border-blue-200">
-                                    <label className="block text-sm font-bold text-blue-900 mb-2">إيصال الدفع</label>
-                                    <ReceiptUpload file={receiptFile} setFile={setReceiptFile} disabled={isSubmitting} />
-                                </div>
+                                    <div className="pt-4 border-t border-blue-200">
+                                        <label className="block text-sm font-bold text-blue-900 mb-2">إيصال الدفع</label>
+                                        <ReceiptUpload file={receiptFile} setFile={setReceiptFile} disabled={isSubmitting} />
+                                    </div>
 
-                                <Button 
-                                    onClick={handleConfirmPayment} 
-                                    loading={isSubmitting} 
-                                    disabled={!receiptFile || isSubmitting}
-                                    className="w-full mt-4" 
-                                    size="lg"
-                                    variant="success"
-                                >
-                                    تأكيد الطلب
-                                </Button>
-                            </CardContent>
-                        </Card>
+                                    <Button 
+                                        onClick={handleCheckout} 
+                                        loading={isSubmitting} 
+                                        disabled={!receiptFile || isSubmitting}
+                                        className="w-full mt-4" 
+                                        size="lg"
+                                        variant="success"
+                                    >
+                                        تأكيد الطلب
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
             </div>
