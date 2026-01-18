@@ -82,7 +82,8 @@ export const authService = {
             let parentName = undefined;
             if (child.user_id) {
                 // Fetch parent name for display purposes
-                const { data: parent } = await supabase.from('profiles').select('name').eq('id', child.user_id).maybeSingle();
+                const { data: parentData } = await supabase.from('profiles').select('name').eq('id', child.user_id).maybeSingle();
+                const parent = parentData as any;
                 if (parent) parentName = parent.name;
             }
             
