@@ -71,7 +71,11 @@ export const authService = {
 
     async getStudentProfile(userId: string) {
         try {
-            const { data: child } = await supabase.from('child_profiles').select('*').eq('student_user_id', userId).maybeSingle();
+            const { data } = await supabase.from('child_profiles').select('*').eq('student_user_id', userId).maybeSingle();
+            
+            // Explicit cast to 'any' to avoid "Property does not exist on type 'never'" error 
+            // since child_profiles might not be fully typed in the Database interface yet.
+            const child = data as any; 
             
             if (!child) return null;
             
