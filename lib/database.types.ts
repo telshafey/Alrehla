@@ -43,7 +43,7 @@ export interface Instructor {
     teaching_philosophy?: string;
     expertise_areas?: string[];
     published_works?: PublishedWork[];
-    rate_per_session?: number; // Base rate?
+    rate_per_session?: number; // Base rate
     package_rates?: Record<string, number>; // Package ID -> Rate
     service_rates?: Record<string, number>; // Service ID -> Rate
     weekly_schedule?: WeeklySchedule;
@@ -425,6 +425,31 @@ export interface Notification {
     created_at: string;
 }
 
+export interface AuditLog {
+    id: string;
+    user_id: string | null;
+    action: string;
+    target_description: string;
+    details: string;
+    timestamp: string;
+    user_name?: string; // Virtual
+}
+
+// Database helper type for Supabase
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export interface SiteSetting {
+    key: string;
+    value: Json;
+    updated_at: string;
+}
+
 // Interfaces for UI logic helpers
 export interface UserWithParent extends UserProfile {
     activeStudentsCount?: number;
@@ -449,15 +474,6 @@ export type EnrichedChildProfile = ChildProfile & {
     student_email?: string;
 }
 
-// Database helper type for Supabase
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
-
 export interface Database {
   public: {
     Tables: {
@@ -465,7 +481,127 @@ export interface Database {
         Row: UserProfile
         Insert: Partial<UserProfile>
         Update: Partial<UserProfile>
-      }
+      };
+      child_profiles: {
+        Row: ChildProfile
+        Insert: Partial<ChildProfile>
+        Update: Partial<ChildProfile>
+      };
+      instructors: {
+        Row: Instructor
+        Insert: Partial<Instructor>
+        Update: Partial<Instructor>
+      };
+      personalized_products: {
+        Row: PersonalizedProduct
+        Insert: Partial<PersonalizedProduct>
+        Update: Partial<PersonalizedProduct>
+      };
+      orders: {
+        Row: Order
+        Insert: Partial<Order>
+        Update: Partial<Order>
+      };
+      bookings: {
+        Row: CreativeWritingBooking
+        Insert: Partial<CreativeWritingBooking>
+        Update: Partial<CreativeWritingBooking>
+      };
+      site_settings: {
+        Row: SiteSetting
+        Insert: Partial<SiteSetting>
+        Update: Partial<SiteSetting>
+      };
+      audit_logs: {
+        Row: AuditLog
+        Insert: Partial<AuditLog>
+        Update: Partial<AuditLog>
+      };
+      instructor_payouts: {
+        Row: InstructorPayout
+        Insert: Partial<InstructorPayout>
+        Update: Partial<InstructorPayout>
+      };
+      creative_writing_packages: {
+        Row: CreativeWritingPackage
+        Insert: Partial<CreativeWritingPackage>
+        Update: Partial<CreativeWritingPackage>
+      };
+      standalone_services: {
+        Row: StandaloneService
+        Insert: Partial<StandaloneService>
+        Update: Partial<StandaloneService>
+      };
+      subscription_plans: {
+        Row: SubscriptionPlan
+        Insert: Partial<SubscriptionPlan>
+        Update: Partial<SubscriptionPlan>
+      };
+      subscriptions: {
+        Row: Subscription
+        Insert: Partial<Subscription>
+        Update: Partial<Subscription>
+      };
+      service_orders: {
+        Row: ServiceOrder
+        Insert: Partial<ServiceOrder>
+        Update: Partial<ServiceOrder>
+      };
+      scheduled_sessions: {
+        Row: ScheduledSession
+        Insert: Partial<ScheduledSession>
+        Update: Partial<ScheduledSession>
+      };
+      blog_posts: {
+        Row: BlogPost
+        Insert: Partial<BlogPost>
+        Update: Partial<BlogPost>
+      };
+      support_tickets: {
+        Row: SupportTicket
+        Insert: Partial<SupportTicket>
+        Update: Partial<SupportTicket>
+      };
+      join_requests: {
+        Row: JoinRequest
+        Insert: Partial<JoinRequest>
+        Update: Partial<JoinRequest>
+      };
+      support_session_requests: {
+        Row: SupportSessionRequest
+        Insert: Partial<SupportSessionRequest>
+        Update: Partial<SupportSessionRequest>
+      };
+      notifications: {
+        Row: Notification
+        Insert: Partial<Notification>
+        Update: Partial<Notification>
+      };
+      badges: {
+        Row: Badge
+        Insert: Partial<Badge>
+        Update: Partial<Badge>
+      };
+      child_badges: {
+        Row: ChildBadge
+        Insert: Partial<ChildBadge>
+        Update: Partial<ChildBadge>
+      };
+      comparison_items: {
+        Row: ComparisonItem
+        Insert: Partial<ComparisonItem>
+        Update: Partial<ComparisonItem>
+      };
+      session_messages: {
+        Row: SessionMessage
+        Insert: Partial<SessionMessage>
+        Update: Partial<SessionMessage>
+      };
+      session_attachments: {
+        Row: SessionAttachment
+        Insert: Partial<SessionAttachment>
+        Update: Partial<SessionAttachment>
+      };
     }
   }
 }

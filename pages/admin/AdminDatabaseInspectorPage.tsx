@@ -16,7 +16,7 @@ interface TableStatus {
     error?: string;
 }
 
-// القائمة الكاملة لجميع جداول النظام (25 جدول)
+// القائمة الكاملة لجميع جداول النظام (25 جدول - تم إزالة التكرار)
 const tableNames = [
     'profiles', 'child_profiles', 'instructors', 'personalized_products',
     'creative_writing_packages', 'standalone_services', 'subscription_plans',
@@ -108,7 +108,7 @@ const AdminDatabaseInspectorPage: React.FC = () => {
                     </h1>
                     <p className="text-sm text-muted-foreground italic">
                         {issuesCount === 0 
-                            ? 'جميع الجداول (25) تعمل بشكل سليم.' 
+                            ? `جميع الجداول (${results.length}) تعمل بشكل سليم.` 
                             : `تنبيه: هناك ${issuesCount} جداول تواجه مشاكل.`}
                     </p>
                 </div>

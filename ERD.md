@@ -1,13 +1,11 @@
 
 # Entity-Relationship Diagram (ERD) for Al-Rehla Platform
 
-This document provides a visual representation of the database schema for the Al-Rehla platform. It illustrates the primary entities (tables), their key attributes, and the relationships connecting them. This version has been updated to reflect backend implementation best practices.
+This document provides a visual representation of the database schema for the Al-Rehla platform.
 
 **Legend:**
 - `PK`: Primary Key
 - `FK`: Foreign Key
-- `|o--o{`: One-to-Many relationship
-- `}o--o|`: One-to-One relationship
 
 ---
 
@@ -28,8 +26,6 @@ erDiagram
         VARCHAR_255_ name
         DATE birth_date
         CHAR_36_ student_user_id FK "Student's User ID (nullable, unique)"
-        TIMESTAMP updated_at
-        TIMESTAMP deleted_at "Nullable"
     }
 
     instructors {
@@ -38,9 +34,32 @@ erDiagram
         VARCHAR_255_ name
         VARCHAR_255_ specialty
         JSON weekly_schedule
-        INT version "For optimistic locking"
+        JSON package_rates
+        JSON service_rates
+        DECIMAL rate_per_session
+    }
+    
+    site_settings {
+        VARCHAR_255_ key PK "Configuration Key"
+        JSON value "Dynamic Config Object"
         TIMESTAMP updated_at
-        TIMESTAMP deleted_at "Nullable"
+    }
+
+    audit_logs {
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ user_id FK "Nullable (System Actions)"
+        VARCHAR_255_ action
+        VARCHAR_255_ target_description
+        TEXT details
+        TIMESTAMP timestamp
+    }
+
+    instructor_payouts {
+        CHAR_36_ id PK "UUID"
+        CHAR_36_ instructor_id FK
+        DECIMAL amount
+        DATE payout_date
+        TEXT details
     }
 
     orders {
@@ -49,21 +68,15 @@ erDiagram
         CHAR_36_ child_id FK
         DECIMAL total
         ENUM status
-        INT version "For optimistic locking"
-        TIMESTAMP updated_at
-        TIMESTAMP deleted_at "Nullable"
     }
 
-    creative_writing_bookings {
+    bookings {
         CHAR_36_ id PK "UUID"
         CHAR_36_ user_id FK
         CHAR_36_ child_id FK
         CHAR_36_ instructor_id FK
         DECIMAL total
         ENUM status
-        INT version "For optimistic locking"
-        TIMESTAMP updated_at
-        TIMESTAMP deleted_at "Nullable"
     }
     
     subscriptions {
@@ -71,8 +84,6 @@ erDiagram
         CHAR_36_ user_id FK
         CHAR_36_ child_id FK
         ENUM status
-        TIMESTAMP updated_at
-        TIMESTAMP deleted_at "Nullable"
     }
 
     service_orders {
@@ -88,6 +99,7 @@ erDiagram
         CHAR_36_ id PK "UUID"
         VARCHAR_255_ name
         DECIMAL price
+        ENUM provider_type "company | instructor"
     }
 
     scheduled_sessions {
@@ -97,8 +109,6 @@ erDiagram
         CHAR_36_ child_id FK
         CHAR_36_ instructor_id FK
         ENUM status
-        INT version "For optimistic locking"
-        %% CHECK constraint: (booking_id IS NOT NULL OR subscription_id IS NOT NULL)
     }
 
     badges {
@@ -116,20 +126,20 @@ erDiagram
         CHAR_36_ id PK "UUID"
         VARCHAR_255_ title
         TEXT content
-        TIMESTAMP updated_at
-        TIMESTAMP deleted_at "Nullable"
     }
 
     support_tickets {
         CHAR_36_ id PK "UUID"
         VARCHAR_255_ name
         VARCHAR_255_ email
+        ENUM status
     }
 
     join_requests {
         CHAR_36_ id PK "UUID"
         VARCHAR_255_ name
         VARCHAR_255_ email
+        ENUM status
     }
     
     session_messages {
@@ -148,51 +158,35 @@ erDiagram
 
     %% --- Relationships ---
     
-    %% Core User & Profile Relationships
     users ||--o{ child_profiles : "has (parent)"
     users }o..|| child_profiles : "is (student)"
     users }o..|| instructors : "is (instructor)"
     
-    %% "Enha Lak" Relationships
+    instructors ||--o{ instructor_payouts : "receives"
+    
     users ||--o{ orders : "places"
     child_profiles ||--o{ orders : "is for"
     
     users ||--o{ subscriptions : "subscribes"
     child_profiles ||--o{ subscriptions : "is for"
     
-    %% "Creative Writing" Relationships
-    users ||--o{ creative_writing_bookings : "books"
-    child_profiles ||--o{ creative_writing_bookings : "is for"
-    instructors ||--o{ creative_writing_bookings : "is assigned to"
+    users ||--o{ bookings : "books"
+    child_profiles ||--o{ bookings : "is for"
+    instructors ||--o{ bookings : "is assigned to"
     
     users ||--o{ service_orders : "orders"
     child_profiles ||--o{ service_orders : "is for"
     standalone_services ||--o{ service_orders : "is ordered"
     instructors }o--o{ service_orders : "is assigned to"
     
-    %% Session Relationships
-    creative_writing_bookings ||--o{ scheduled_sessions : "consists of"
+    bookings ||--o{ scheduled_sessions : "consists of"
     subscriptions ||--o{ scheduled_sessions : "includes"
     instructors ||--o{ scheduled_sessions : "conducts"
     child_profiles ||--o{ scheduled_sessions : "attends"
     
-    %% Gamification
     child_profiles }o--o{ child_badges : "earns"
     badges ||--o{ child_badges : "is earned by"
     
-    %% Journey Workspace Relationships
-    creative_writing_bookings ||--o{ session_messages : "has"
-    creative_writing_bookings ||--o{ session_attachments : "has"
-    users ||--o{ session_messages : "sends"
-    users ||--o{ session_attachments : "uploads"
+    bookings ||--o{ session_messages : "has"
+    bookings ||--o{ session_attachments : "has"
 ```
-
-## Backend Implementation Notes
-
-These notes are for the backend development team to ensure best practices when implementing this schema in Laravel & MySQL.
-
-1.  **UUIDs**: For all `CHAR(36)` Primary Keys, use the `ramsey/uuid` package, which is standard in Laravel. In migrations, define these columns using `$table->uuid('id')->primary();`. This is more performant than `VARCHAR`.
-2.  **Column Naming**: Avoid Arabic column names. Stick to English (`snake_case`) names as shown in the schema for seamless integration with Laravel's Eloquent ORM.
-3.  **Timestamps & Soft Deletes**: Use Laravel's built-in functionality for `created_at`, `updated_at`, and `deleted_at`.
-    *   For `updated_at`/`created_at`, simply use `$table->timestamps();` in your migrations.
-    *   For `deleted_at`, use `$table->softDeletes();` and apply the `SoftDeletes` trait to the corresponding Eloquent model.
