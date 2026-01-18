@@ -28,6 +28,7 @@ export interface ChildProfile {
     interests?: string[];
     strengths?: string[];
     age?: number; // Virtual/Calculated
+    parentName?: string; // Virtual field for parent name
 }
 
 export interface Instructor {

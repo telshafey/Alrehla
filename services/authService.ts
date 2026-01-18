@@ -71,8 +71,18 @@ export const authService = {
 
     async getStudentProfile(userId: string) {
         try {
-            const { data } = await supabase.from('child_profiles').select('*').eq('student_user_id', userId).maybeSingle();
-            return data as ChildProfile | null;
+            const { data: child } = await supabase.from('child_profiles').select('*').eq('student_user_id', userId).maybeSingle();
+            
+            if (!child) return null;
+            
+            let parentName = undefined;
+            if (child.user_id) {
+                // Fetch parent name for display purposes
+                const { data: parent } = await supabase.from('profiles').select('name').eq('id', child.user_id).maybeSingle();
+                if (parent) parentName = parent.name;
+            }
+            
+            return { ...child, parentName } as ChildProfile;
         } catch (e) {
             return null;
         }
