@@ -68,10 +68,13 @@ export interface AvailableSlots {
     [date: string]: string[]; // '2023-10-25': ['10:00']
 }
 
+export type ProductType = 'hero_story' | 'library_book' | 'subscription_box';
+
 export interface PersonalizedProduct {
     id: number;
     key: string;
     title: string;
+    product_type: ProductType; // New Field
     description: string;
     image_url: string | null;
     features?: string[];

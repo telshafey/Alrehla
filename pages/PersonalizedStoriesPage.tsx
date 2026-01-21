@@ -1,9 +1,9 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import { ProductCardSkeleton } from '../components/ui/Skeletons';
-import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle, Gift } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle, Gift, Library, User, Sparkles } from 'lucide-react';
 import type { PersonalizedProduct } from '../lib/database.types';
 import { Button } from '../components/ui/Button';
 import ErrorState from '../components/ui/ErrorState';
@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { cn } from '../lib/utils';
 import Accordion from '../components/ui/Accordion';
 import Image from '../components/ui/Image';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 
 interface ProductCardProps {
     product: PersonalizedProduct;
@@ -22,74 +23,84 @@ const ProductCard = React.memo(React.forwardRef<HTMLElement, ProductCardProps>((
     const isSubscription = product.key === 'subscription_box';
     const orderLink = isSubscription ? '/enha-lak/subscription' : `/enha-lak/order/${product.key}`;
     const buttonText = isSubscription ? 'اشترك الآن' : 'اطلب الآن';
+    const isLibraryBook = product.product_type === 'library_book';
 
     return (
         <Card ref={ref} className={cn(
-            "flex flex-col transform hover:-translate-y-2 transition-transform duration-300 h-full",
+            "flex flex-col transform hover:-translate-y-2 transition-transform duration-300 h-full border-2 hover:border-primary/20",
             featured ? "w-80 flex-shrink-0" : ""
         )}>
-            <div className="h-64 w-full overflow-hidden relative bg-white">
+            <div className="h-64 w-full overflow-hidden relative bg-gray-50">
                 <Image 
                     src={product.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} 
                     alt={product.title} 
                     className="w-full h-full transition-transform duration-500 hover:scale-110"
-                    objectFit="cover"
+                    objectFit="contain"
                 />
+                 {isLibraryBook && (
+                    <div className="absolute top-3 right-3 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-10 flex items-center gap-1">
+                        <Library size={12} /> غلاف مخصص
+                    </div>
+                )}
+                {product.product_type === 'hero_story' && !isSubscription && (
+                    <div className="absolute top-3 right-3 bg-pink-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-10 flex items-center gap-1">
+                       <User size={12} /> بطل القصة
+                    </div>
+                )}
             </div>
             <CardHeader>
-                <CardTitle>{product.title}</CardTitle>
-                <CardDescription className="min-h-[4rem] flex flex-col justify-end">
+                <CardTitle className="text-xl">{product.title}</CardTitle>
+                <CardDescription className="min-h-[3.5rem] flex flex-col justify-end mt-2">
                     {isSubscription ? (
                         <>
-                            <span className="text-xl font-bold text-foreground">باقات متنوعة</span>
+                            <span className="text-lg font-bold text-foreground">باقات متنوعة</span>
                             <span className="text-sm text-muted-foreground block">
                                 {minSubscriptionPrice > 0 ? `تبدأ من ${minSubscriptionPrice} ج.م/شهرياً` : 'باقات متعددة'}
                             </span>
                         </>
                     ) : product.has_printed_version && product.price_printed ? (
-                         <>
-                            <span className="text-3xl font-extrabold text-foreground">{product.price_printed}</span>
-                            <span className="text-lg font-medium text-muted-foreground ml-1">ج.م</span>
-                            {product.price_electronic && <span className="text-sm text-muted-foreground block">(أو {product.price_electronic} ج.م للإلكترونية)</span>}
-                        </>
+                         <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-extrabold text-foreground">{product.price_printed}</span>
+                            <span className="text-sm font-medium text-muted-foreground">ج.م</span>
+                            {product.price_electronic && <span className="text-xs text-muted-foreground mr-2 font-normal">(أو {product.price_electronic} إلكتروني)</span>}
+                        </div>
                     ) : product.price_electronic ? (
-                         <>
-                            <span className="text-3xl font-extrabold text-foreground">{product.price_electronic}</span>
-                            <span className="text-lg font-medium text-muted-foreground ml-1">ج.م</span>
-                            <span className="text-sm text-muted-foreground block">للنسخة الإلكترونية</span>
-                        </>
+                         <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-extrabold text-foreground">{product.price_electronic}</span>
+                            <span className="text-sm font-medium text-muted-foreground">ج.م</span>
+                        </div>
                     ) : null}
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col flex-grow">
-                <p className="text-muted-foreground text-sm flex-grow line-clamp-3 mb-4">{product.description}</p>
+                <p className="text-muted-foreground text-sm flex-grow line-clamp-3 mb-4 leading-relaxed">{product.description}</p>
                 {product.features && product.features.length > 0 && (
-                     <Accordion title="عرض الميزات" className="mt-auto">
-                         <ul className="mt-2 space-y-2 text-sm p-2">
+                     <Accordion title="عرض الميزات" className="mt-auto border-t pt-2">
+                         <ul className="mt-2 space-y-2 text-sm p-1">
                             {product.features.map(feature => (
-                                <li key={feature} className="flex items-center gap-2">
-                                    <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
-                                    <span className="text-muted-foreground">{feature}</span>
+                                <li key={feature} className="flex items-start gap-2">
+                                    <CheckCircle size={14} className="text-green-500 flex-shrink-0 mt-0.5" />
+                                    <span className="text-muted-foreground text-xs">{feature}</span>
                                 </li>
                             ))}
                         </ul>
                      </Accordion>
                 )}
             </CardContent>
-            <CardFooter className="mt-auto">
+            <CardFooter className="mt-auto pt-0 pb-6">
                 {product.is_addon ? (
                      <div className="relative group w-full">
-                        <Button variant="secondary" className="w-full cursor-not-allowed">
-                            <span>يُضاف مع الطلب</span>
+                        <Button variant="secondary" className="w-full cursor-not-allowed bg-gray-100 text-gray-400">
+                            <span>يُضاف في سلة الشراء</span>
                         </Button>
                         <div className="absolute bottom-full mb-2 w-full hidden group-hover:block bg-popover text-popover-foreground text-xs rounded py-1 px-2 text-center z-10 shadow-md">
                             هذا المنتج هو إضافة ولا يمكن طلبه منفرداً.
                         </div>
                     </div>
                 ) : (
-                    <Button as={Link} to={orderLink} variant="pink" className="w-full">
+                    <Button as={Link} to={orderLink} variant={isLibraryBook ? "default" : "pink"} className="w-full shadow-sm hover:shadow-md transition-all">
                         <span>{buttonText}</span>
-                        <ArrowLeft className="transform rotate-180" />
+                        <ArrowLeft className="transform rotate-180" size={18} />
                     </Button>
                 )}
             </CardFooter>
@@ -104,105 +115,171 @@ const PersonalizedStoriesPage: React.FC = () => {
   const content = data?.siteContent?.enhaLakPage.store;
   const personalizedProducts = data?.personalizedProducts || [];
   const subscriptionPlans = data?.subscriptionPlans || [];
+  
+  const [activeTab, setActiveTab] = useState('hero');
 
   // Calculate the minimum subscription price dynamically
   const lowestSubscriptionPrice = useMemo(() => {
       if (!subscriptionPlans.length) return 0;
-      // Get minimum price_per_month
       return Math.min(...subscriptionPlans.map(plan => plan.price_per_month));
   }, [subscriptionPlans]);
 
-  const { featuredProducts, coreProducts, addonProducts } = useMemo(() => {
+  const { subscriptionProduct, otherHeroStories, libraryBooks, addonProducts } = useMemo(() => {
     const sortedProducts = [...personalizedProducts].sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
     
-    const featured = sortedProducts.filter(p => p.is_featured);
-    const core = sortedProducts.filter(p => !p.is_featured && !p.is_addon);
+    // 1. Subscription Box (Special handling)
+    const sub = sortedProducts.find(p => p.key === 'subscription_box');
+    
+    // 2. Hero Stories (Exclude sub box and addons)
+    const hero = sortedProducts.filter(p => !p.is_addon && p.key !== 'subscription_box' && (p.product_type === 'hero_story' || !p.product_type));
+    
+    // 3. Library Books
+    const library = sortedProducts.filter(p => !p.is_addon && p.product_type === 'library_book');
+    
+    // 4. Addons
     const addons = sortedProducts.filter(p => p.is_addon);
     
-    return { featuredProducts: featured, coreProducts: core, addonProducts: addons };
+    return { subscriptionProduct: sub, otherHeroStories: hero, libraryBooks: library, addonProducts: addons };
   }, [personalizedProducts]);
   
   return (
-    <div className="bg-muted/40 py-16 sm:py-20 animate-fadeIn">
+    <div className="bg-muted/30 py-12 sm:py-16 animate-fadeIn min-h-screen">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-                <h1 className="text-4xl sm:text-5xl font-extrabold text-pink-600">{content?.heroTitle}</h1>
+            
+            {/* Header */}
+            <div className="text-center mb-10">
+                <h1 className="text-4xl sm:text-5xl font-extrabold text-foreground">{content?.heroTitle}</h1>
                 <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
                     {content?.heroSubtitle}
                 </p>
             </div>
             
-             {/* Subscription Banner */}
-            <section className="mb-16 bg-gradient-to-r from-yellow-400 to-orange-500 p-8 rounded-2xl shadow-lg text-white">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                        <Gift size={48} />
-                        <div>
-                            <h2 className="text-2xl font-extrabold">{content?.subscriptionBannerTitle}</h2>
-                            <p className="text-yellow-100">هدية متجددة من الخيال تصل باب منزلك كل شهر.</p>
-                        </div>
-                    </div>
-                    <Button as={Link} to="/enha-lak/subscription" variant="outline" className="bg-white text-orange-600 font-bold border-transparent hover:bg-yellow-50">
-                        اشترك الآن
-                    </Button>
-                </div>
-            </section>
-
             {error ? <ErrorState message={(error as Error).message} onRetry={refetch} /> : (
             <>
-                {/* Featured Products Section */}
-                <section className="mb-20">
-                    <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><Star className="text-yellow-400" /> {content?.featuredProductsTitle}</h2>
-                    <div className="flex gap-8 pb-4 -mx-4 px-4 overflow-x-auto">
-                        {isLoading ? (
-                            Array.from({ length: 2 }).map((_, index) => <div className="w-80 flex-shrink-0" key={index}><ProductCardSkeleton /></div>)
-                        ) : (
-                            featuredProducts.map(product => (
-                                <ProductCard 
-                                    key={`featured-${product.id}`} 
-                                    product={product} 
-                                    featured 
-                                    minSubscriptionPrice={lowestSubscriptionPrice}
-                                />
-                            ))
-                        )}
+                 <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-12">
+                    <div className="flex justify-center mb-10 sticky top-20 z-30">
+                        <TabsList className="grid w-full max-w-lg grid-cols-2 p-1.5 bg-white/80 backdrop-blur-md border shadow-lg rounded-full">
+                            <TabsTrigger value="hero" className="rounded-full gap-2 text-base py-3 data-[state=active]:bg-pink-600 data-[state=active]:text-white">
+                                <User size={20} /> أنت البطل هنا
+                            </TabsTrigger>
+                            <TabsTrigger value="library" className="rounded-full gap-2 text-base py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                                <Library size={20} /> المكتبة العامة
+                            </TabsTrigger>
+                        </TabsList>
                     </div>
-                </section>
 
-                {/* Core Products */}
-                <section className="mb-20">
-                    <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><BookHeart className="text-pink-500" /> {content?.coreProductsTitle}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
-                        {isLoading ? (
-                            Array.from({ length: 3 }).map((_, index) => <ProductCardSkeleton key={`core-skel-${index}`} />)
-                        ) : (
-                            coreProducts.map(product => (
-                                <ProductCard 
-                                    key={`core-${product.id}`} 
-                                    product={product}
-                                    minSubscriptionPrice={lowestSubscriptionPrice}
-                                />
-                            ))
-                        )}
-                    </div>
-                </section>
+                    <TabsContent value="hero" className="animate-fadeIn space-y-12">
+                         {/* 1. Subscription Banner (Only in Hero Tab) */}
+                        <section className="bg-gradient-to-r from-pink-500 to-rose-500 p-8 sm:p-10 rounded-3xl shadow-xl text-white relative overflow-hidden">
+                             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+                             <div className="absolute bottom-0 left-0 w-40 h-40 bg-yellow-400/20 rounded-full -ml-10 -mb-10 blur-2xl"></div>
+                             
+                            <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+                                <div className="flex items-start gap-6">
+                                    <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-sm shadow-inner hidden sm:block">
+                                        <Gift size={48} className="text-yellow-300" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-3xl font-extrabold mb-2 flex items-center gap-2">
+                                            {subscriptionProduct?.title || content?.subscriptionBannerTitle}
+                                            <Sparkles className="text-yellow-300 animate-pulse" />
+                                        </h2>
+                                        <p className="text-pink-100 text-lg max-w-xl leading-relaxed">
+                                            {subscriptionProduct?.description || "هدية متجددة من الخيال تصل باب منزلك كل شهر."}
+                                        </p>
+                                        <div className="mt-4 flex flex-wrap gap-3">
+                                            {subscriptionProduct?.features?.slice(0,3).map(f => (
+                                                <span key={f} className="text-xs font-bold bg-black/20 px-3 py-1 rounded-full flex items-center gap-1">
+                                                    <CheckCircle size={12} /> {f}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-center gap-2 min-w-[200px]">
+                                     <div className="text-center mb-2">
+                                        <span className="block text-sm text-pink-100 opacity-90">تبدأ من</span>
+                                        <span className="text-3xl font-black text-white">{lowestSubscriptionPrice} ج.م</span>
+                                        <span className="text-sm"> / شهرياً</span>
+                                     </div>
+                                     <Button as={Link} to="/enha-lak/subscription" variant="secondary" size="lg" className="w-full font-bold shadow-lg hover:scale-105 transition-transform text-pink-600">
+                                        اشترك الآن
+                                    </Button>
+                                </div>
+                            </div>
+                        </section>
 
-                {/* Addon Products */}
-                <section>
-                    <h2 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3"><Puzzle className="text-green-500" /> {content?.addonProductsTitle}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
-                        {isLoading ? (
-                             Array.from({ length: 2 }).map((_, index) => <ProductCardSkeleton key={`addon-skel-${index}`} />)
-                        ) : (
-                            addonProducts.map(product => (
-                                <ProductCard 
-                                    key={`addon-${product.id}`} 
-                                    product={product} 
-                                />
-                            ))
+                        {/* 2. Hero Products Grid */}
+                        <div>
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="p-2 bg-pink-100 text-pink-600 rounded-lg"><Star size={24}/></div>
+                                <h2 className="text-2xl font-bold text-gray-800">قصص أبطالها أطفالكم</h2>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
+                                {isLoading ? (
+                                    Array.from({ length: 3 }).map((_, index) => <ProductCardSkeleton key={`hero-skel-${index}`} />)
+                                ) : (
+                                    otherHeroStories.length > 0 ? otherHeroStories.map(product => (
+                                        <ProductCard 
+                                            key={`hero-${product.id}`} 
+                                            product={product}
+                                        />
+                                    )) : <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed text-muted-foreground">لا توجد قصص في هذا القسم حالياً.</div>
+                                )}
+                            </div>
+                        </div>
+
+                         {/* 3. Addon Products - ONLY in Hero Tab */}
+                        {addonProducts.length > 0 && (
+                            <section className="mt-12 border-t pt-10">
+                                <div className="text-center mb-10">
+                                    <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-3">
+                                        <Puzzle className="text-green-500" /> {content?.addonProductsTitle}
+                                    </h2>
+                                    <p className="text-muted-foreground mt-2">منتجات ممتعة يمكن إضافتها لطلبك لتكتمل الهدية</p>
+                                </div>
+                            
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-fr">
+                                    {isLoading ? (
+                                        Array.from({ length: 2 }).map((_, index) => <ProductCardSkeleton key={`addon-skel-${index}`} />)
+                                    ) : (
+                                        addonProducts.map(product => (
+                                            <ProductCard 
+                                                key={`addon-${product.id}`} 
+                                                product={product} 
+                                            />
+                                        ))
+                                    )}
+                                </div>
+                            </section>
                         )}
-                    </div>
-                </section>
+                    </TabsContent>
+
+                    <TabsContent value="library" className="animate-fadeIn">
+                         {/* Library Products */}
+                         <div className="flex items-center gap-3 mb-8 justify-center sm:justify-start">
+                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><BookHeart size={24}/></div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800">مكتبة الرحلة المختارة</h2>
+                                <p className="text-sm text-muted-foreground">قصص عالمية بلمسة خاصة (غلاف مخصص باسم وصورة طفلك)</p>
+                            </div>
+                        </div>
+
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
+                            {isLoading ? (
+                                Array.from({ length: 3 }).map((_, index) => <ProductCardSkeleton key={`lib-skel-${index}`} />)
+                            ) : (
+                                libraryBooks.length > 0 ? libraryBooks.map(product => (
+                                    <ProductCard 
+                                        key={`lib-${product.id}`} 
+                                        product={product}
+                                    />
+                                )) : <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed text-muted-foreground">لا توجد كتب في المكتبة حالياً.</div>
+                            )}
+                        </div>
+                    </TabsContent>
+                </Tabs>
             </>
             )}
         </div>

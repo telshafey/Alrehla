@@ -1,5 +1,4 @@
 
-// ... existing imports
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -20,17 +19,9 @@ import AddonsSection from '../components/order/AddonsSection';
 import DeliverySection from '../components/order/DeliverySection';
 import InteractivePreview from '../components/order/InteractivePreview';
 import { Card, CardContent } from '../components/ui/card';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Library } from 'lucide-react';
 import ChildProfileModal from '../components/account/ChildProfileModal';
 import { EGYPTIAN_GOVERNORATES } from '../utils/governorates';
-
-const steps = [
-    { key: 'child', title: 'بيانات الطفل' },
-    { key: 'story', title: 'تخصيص القصة' },
-    { key: 'addons', title: 'إضافات' },
-    { key: 'delivery', title: 'الشحن' },
-    { key: 'review', title: 'المراجعة' },
-];
 
 const OrderPage: React.FC = () => {
     const { productKey } = useParams<{ productKey: string }>();
@@ -67,9 +58,22 @@ const OrderPage: React.FC = () => {
     });
 
     const { handleSubmit, watch, setValue, trigger, reset, getValues } = methods;
-    
-    // Explicitly cast formData to OrderFormValues to satisfy TypeScript during build
     const formData = watch() as OrderFormValues;
+
+    // --- Dynamic Steps Logic ---
+    const isLibraryBook = product?.product_type === 'library_book';
+
+    const steps = useMemo(() => {
+        const baseSteps = [
+            { key: 'child', title: 'بيانات الطفل' },
+             // Only show story customization for Hero Stories
+            !isLibraryBook ? { key: 'story', title: 'تخصيص القصة' } : null,
+            { key: 'addons', title: 'إضافات' },
+            { key: 'delivery', title: 'الشحن' },
+            { key: 'review', title: 'المراجعة' },
+        ];
+        return baseSteps.filter(Boolean) as { key: string; title: string }[];
+    }, [isLibraryBook]);
 
     // Reset form when child is selected
     useEffect(() => {
@@ -110,7 +114,6 @@ const OrderPage: React.FC = () => {
 
     const totalPrice = basePrice + addonsPrice;
 
-    // Calculate Shipping
     let shippingPrice = 0;
     if (formData.deliveryType === 'printed' && shippingCosts) {
         const gov = formData.governorate;
@@ -126,12 +129,15 @@ const OrderPage: React.FC = () => {
         let fieldsToValidate: any[] = [];
         
         if (currentStepKey === 'child') fieldsToValidate = ['childName', 'childBirthDate', 'childGender'];
-        if (currentStepKey === 'story') {
+        
+        // Validation for story customization only if step exists
+        if (currentStepKey === 'story' && !isLibraryBook) {
              fieldsToValidate = ['storyValue', 'customGoal'];
              if (product.text_fields) {
                  fieldsToValidate = [...fieldsToValidate, ...product.text_fields.filter(f => f.required).map(f => f.id)];
              }
         }
+        
         if (currentStepKey === 'delivery' && formData.deliveryType === 'printed') {
              fieldsToValidate = ['recipientName', 'recipientAddress', 'recipientPhone', 'governorate'];
              if(formData.sendDigitalCard) fieldsToValidate.push('recipientEmail');
@@ -149,24 +155,18 @@ const OrderPage: React.FC = () => {
     };
 
     const onSubmit = async (data: OrderFormValues) => {
-         // Enforce Profile Completion
         if (!isProfileComplete) {
-            triggerProfileUpdate(true); // Mandatory
+            triggerProfileUpdate(true); 
             return;
         }
 
-        // STRICT CHECK: Double validation for Shipping Logic
         if (data.deliveryType === 'printed') {
-            // 1. Check if governorate is present in the final data
             if (!data.governorate || data.governorate.trim() === '') {
                  addToast('عذراً، يجب تحديد المحافظة لحساب تكلفة الشحن.', 'error');
-                 // Redirect back to delivery step
                  const deliveryStepIndex = steps.findIndex(s => s.key === 'delivery');
                  setStep(deliveryStepIndex);
                  return;
             }
-
-            // 2. Re-calculate shipping cost to ensure it's valid (> 0)
             let calculatedShipping = 0;
             if (shippingCosts && data.governorate) {
                 const egyptCosts = shippingCosts['مصر'] || {};
@@ -174,7 +174,7 @@ const OrderPage: React.FC = () => {
             }
 
             if (calculatedShipping <= 0) {
-                 addToast('حدث خطأ في حساب الشحن للمحافظة المختارة. يرجى التأكد من الاختيار.', 'error');
+                 addToast('حدث خطأ في حساب الشحن للمحافظة المختارة.', 'error');
                  const deliveryStepIndex = steps.findIndex(s => s.key === 'delivery');
                  setStep(deliveryStepIndex);
                  return;
@@ -183,7 +183,6 @@ const OrderPage: React.FC = () => {
 
         setIsSubmitting(true);
         
-        // Prepare file uploads
         const files: Record<string, File> = {};
         if (product.image_slots) {
             product.image_slots.forEach(slot => {
@@ -193,15 +192,13 @@ const OrderPage: React.FC = () => {
             });
         }
         
-        // Use the strictly calculated shipping price inside this function
-        // Re-calculate one last time to be safe based on 'data' argument, not 'formData' state
         let finalShippingPrice = 0;
         if (data.deliveryType === 'printed' && shippingCosts) {
              const egyptCosts = shippingCosts['مصر'] || {};
              finalShippingPrice = egyptCosts[data.governorate || ''] || egyptCosts['باقي المحافظات'] || 0;
         }
 
-        const finalTotal = totalPrice; // Base + Addons
+        const finalTotal = totalPrice; 
 
         addItemToCart({
             type: 'order',
@@ -211,12 +208,13 @@ const OrderPage: React.FC = () => {
                 files, 
                 selectedAddons,
                 totalPrice: finalTotal,
-                shippingPrice: finalShippingPrice, // Use the strictly calculated value
+                shippingPrice: finalShippingPrice,
                 summary: `${product.title} لـ ${data.childName}`,
                 details: {
                     ...data,
                     productTitle: product.title,
-                    isPrinted: data.deliveryType === 'printed'
+                    isPrinted: data.deliveryType === 'printed',
+                    productType: product.product_type
                 }
             }
         });
@@ -233,7 +231,10 @@ const OrderPage: React.FC = () => {
                 <div className="container mx-auto px-4">
                     <div className="max-w-6xl mx-auto">
                         <div className="mb-8">
-                            <h1 className="text-3xl font-extrabold text-foreground mb-2">{product.title}</h1>
+                            <h1 className="text-3xl font-extrabold text-foreground mb-2 flex items-center gap-3">
+                                {product.title}
+                                {isLibraryBook && <span className="text-sm font-normal bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1"><Library size={12}/> مكتبة الرحلة</span>}
+                            </h1>
                             <OrderStepper steps={steps} currentStep={currentStepKey} />
                         </div>
 
@@ -242,6 +243,7 @@ const OrderPage: React.FC = () => {
                                 <Card>
                                     <CardContent className="pt-6">
                                         {currentStepKey === 'child' && (
+                                            <>
                                             <ChildDetailsSection 
                                                 childProfiles={childProfiles}
                                                 onSelectChild={(child) => setSelectedChildId(child ? child.id : null)}
@@ -249,8 +251,16 @@ const OrderPage: React.FC = () => {
                                                 currentUser={currentUser}
                                                 onAddChild={() => setIsChildModalOpen(true)}
                                             />
+                                            {/* Show basic cover customization for Library Books here since Story step is skipped */}
+                                            {isLibraryBook && (
+                                                <div className="mt-8 border-t pt-6">
+                                                    <h4 className="text-lg font-bold text-gray-800 mb-4">تخصيص الغلاف</h4>
+                                                    <ImageUploadSection imageSlots={product.image_slots || []} />
+                                                </div>
+                                            )}
+                                            </>
                                         )}
-                                        {currentStepKey === 'story' && (
+                                        {currentStepKey === 'story' && !isLibraryBook && (
                                             <>
                                                 <StoryCustomizationSection 
                                                     textFields={product.text_fields || []}
@@ -277,9 +287,8 @@ const OrderPage: React.FC = () => {
                                                 <h3 className="text-xl font-bold">مراجعة نهائية</h3>
                                                 <p className="text-muted-foreground">يرجى التأكد من صحة جميع البيانات قبل الإضافة للسلة.</p>
                                                 <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-sm text-yellow-800">
-                                                    <p>بمجرد تأكيد الطلب، سيتم البدء في تجهيز قصتك المخصصة.</p>
+                                                    <p>بمجرد تأكيد الطلب، سيتم البدء في تجهيز {isLibraryBook ? 'كتابك المختار' : 'قصتك المخصصة'}.</p>
                                                 </div>
-                                                {/* عرض تنبيه إذا كانت المحافظة فارغة في هذه الخطوة */}
                                                 {formData.deliveryType === 'printed' && (!formData.governorate || shippingPrice === 0) && (
                                                     <div className="bg-red-50 p-3 rounded border border-red-200 text-red-700 font-bold text-sm">
                                                         تنبيه: لم يتم تحديد المحافظة أو حساب الشحن. يرجى العودة لخطوة الشحن.

@@ -10,7 +10,7 @@ import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
 import { Select } from '../../components/ui/Select';
 import { ArrowLeft, Save, Gift, Settings, Type, Image as ImageIcon, Star } from 'lucide-react';
-import type { PersonalizedProduct } from '../../lib/database.types';
+import type { PersonalizedProduct, ProductType } from '../../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Checkbox } from '../../components/ui/Checkbox';
@@ -22,7 +22,7 @@ const AdminProductDetailPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const isNew = !id || id === 'new';
-    const productType = searchParams.get('type'); 
+    const initialType = searchParams.get('type'); 
     
     const { data: allProducts = [], isLoading: productsLoading } = useAdminPersonalizedProducts();
     const { createPersonalizedProduct, updatePersonalizedProduct } = useProductMutations();
@@ -31,6 +31,7 @@ const AdminProductDetailPage: React.FC = () => {
     const [product, setProduct] = useState<Partial<PersonalizedProduct>>({
         title: '',
         key: '',
+        product_type: 'hero_story', // Default
         description: '',
         features: [],
         sort_order: 99,
@@ -55,12 +56,12 @@ const AdminProductDetailPage: React.FC = () => {
                 navigate('/admin/personalized-products');
             }
         } else if (isNew) {
-            // ... (Initial setup logic remains same)
-             if (productType === 'subscription_box') {
+             if (initialType === 'subscription_box') {
                 setProduct(prev => ({
                     ...prev,
                     title: 'صندوق الرحلة الشهري',
                     key: 'subscription_box',
+                    product_type: 'subscription_box',
                     description: 'اشتراك شهري متجدد يحتوي على قصة مخصصة وأنشطة وهدايا.',
                     features: ['قصة مخصصة جديدة كل شهر', 'أنشطة تفاعلية وألعاب', 'هدية إضافية مختارة بعناية'],
                     goal_config: 'none',
@@ -69,11 +70,12 @@ const AdminProductDetailPage: React.FC = () => {
                     has_printed_version: true,
                     sort_order: -1,
                 }));
-            } else if (productType === 'emotion_story') {
+            } else if (initialType === 'emotion_story') {
                 setProduct(prev => ({
                     ...prev,
                     title: 'القصة المميزة',
                     key: 'emotion_story',
+                    product_type: 'hero_story',
                     description: 'قصة علاجية مخصصة لمساعدة طفلك على فهم مشاعره والتعبير عنها.',
                     features: ['تخصيص نفسى وسلوكي عميق', 'معالجة مشاعر محددة', 'بناء على مواقف واقعية'],
                     goal_config: 'predefined_and_custom',
@@ -89,7 +91,14 @@ const AdminProductDetailPage: React.FC = () => {
                 }));
             }
         }
-    }, [id, isNew, allProducts, navigate, productType]);
+    }, [id, isNew, allProducts, navigate, initialType]);
+
+    // Handle Type Change effect: If Library Book is selected, disable goal config
+    useEffect(() => {
+        if (product.product_type === 'library_book' && product.goal_config !== 'none') {
+            setProduct(prev => ({ ...prev, goal_config: 'none' }));
+        }
+    }, [product.product_type]);
 
     if (productsLoading && !isNew) return <PageLoader />;
     
@@ -134,7 +143,6 @@ const AdminProductDetailPage: React.FC = () => {
             price_electronic: Number(product.price_electronic) || null
         };
 
-        // Ensure key is present if creating new
         if (isNew && !payload.key) {
              payload.key = `prod_${uuidv4().slice(0,8)}`;
         }
@@ -163,6 +171,13 @@ const AdminProductDetailPage: React.FC = () => {
                                <FormField label="اسم المنتج*" htmlFor="title">
                                     <Input id="title" name="title" value={product.title} onChange={handleSimpleChange} required />
                                 </FormField>
+                                <FormField label="نوع المنتج" htmlFor="product_type">
+                                    <Select id="product_type" name="product_type" value={product.product_type} onChange={handleSimpleChange}>
+                                        <option value="hero_story">أنت البطل (تخصيص كامل)</option>
+                                        <option value="library_book">كتاب مكتبة (غلاف فقط)</option>
+                                        <option value="subscription_box">صندوق اشتراك</option>
+                                    </Select>
+                                </FormField>
                                 <FormField label="الوصف" htmlFor="description">
                                     <Textarea id="description" name="description" value={product.description || ''} onChange={handleSimpleChange} rows={3} />
                                 </FormField>
@@ -189,7 +204,7 @@ const AdminProductDetailPage: React.FC = () => {
                                 onChange={(idx, key, val) => handleDynamicListChange('text_fields', idx, key, val)}
                                 addButtonLabel="إضافة حقل نصي"
                                 fields={[
-                                    { key: 'id', placeholder: 'ID (txt_...)', disabled: productType === 'emotion_story' },
+                                    { key: 'id', placeholder: 'ID (txt_...)' },
                                     { key: 'label', placeholder: 'العنوان الظاهر' },
                                     { key: 'placeholder', placeholder: 'النص التوضيحي', width: 'flex-[2]' },
                                     { key: 'type', placeholder: 'النوع', type: 'select', options: [{label: 'نص طويل', value: 'textarea'}, {label: 'نص قصير', value: 'input'}] },
@@ -217,24 +232,27 @@ const AdminProductDetailPage: React.FC = () => {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader><CardTitle className="flex items-center gap-2"><Star /> الأهداف التربوية</CardTitle></CardHeader>
-                        <CardContent>
-                             <DynamicListManager 
-                                items={product.story_goals || []}
-                                onAdd={() => handleAddItem('story_goals')}
-                                onRemove={(idx) => handleRemoveItem('story_goals', idx)}
-                                onChange={(idx, key, val) => handleDynamicListChange('story_goals', idx, key, val)}
-                                addButtonLabel="إضافة هدف"
-                                disableAdd={product.goal_config !== 'predefined' && product.goal_config !== 'predefined_and_custom'}
-                                emptyMessage="يجب تفعيل 'قائمة محددة' أدناه لإضافة أهداف."
-                                fields={[
-                                    { key: 'key', placeholder: 'المعرف (key)' },
-                                    { key: 'title', placeholder: 'عنوان الهدف (مثال: الصدق)' },
-                                ]}
-                            />
-                        </CardContent>
-                    </Card>
+                    {/* Hide Goals Section for Library Books */}
+                    {product.product_type !== 'library_book' && (
+                        <Card>
+                            <CardHeader><CardTitle className="flex items-center gap-2"><Star /> الأهداف التربوية</CardTitle></CardHeader>
+                            <CardContent>
+                                <DynamicListManager 
+                                    items={product.story_goals || []}
+                                    onAdd={() => handleAddItem('story_goals')}
+                                    onRemove={(idx) => handleRemoveItem('story_goals', idx)}
+                                    onChange={(idx, key, val) => handleDynamicListChange('story_goals', idx, key, val)}
+                                    addButtonLabel="إضافة هدف"
+                                    disableAdd={product.goal_config !== 'predefined' && product.goal_config !== 'predefined_and_custom'}
+                                    emptyMessage="يجب تفعيل 'قائمة محددة' أدناه لإضافة أهداف."
+                                    fields={[
+                                        { key: 'key', placeholder: 'المعرف (key)' },
+                                        { key: 'title', placeholder: 'عنوان الهدف (مثال: الصدق)' },
+                                    ]}
+                                />
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
                 <div className="lg:col-span-1 sticky top-24 space-y-6">
@@ -256,18 +274,26 @@ const AdminProductDetailPage: React.FC = () => {
                                 </FormField>
                             </div>
                             
-                            <div className="p-3 bg-yellow-50 text-yellow-800 rounded-lg text-xs">
-                                <p>ملاحظة: إذا اخترت <strong>"هدف مخصص"</strong> أو <strong>"قائمة + مخصص"</strong> أدناه، سيظهر تلقائياً صندوق نص للعميل لكتابة الهدف الخاص به، ولا داعي لإضافته يدوياً في حقول النصوص.</p>
-                            </div>
+                            {product.product_type !== 'library_book' ? (
+                                <>
+                                    <div className="p-3 bg-yellow-50 text-yellow-800 rounded-lg text-xs">
+                                        <p>ملاحظة: إذا اخترت <strong>"هدف مخصص"</strong> سيظهر صندوق نص للعميل.</p>
+                                    </div>
+                                    <FormField label="نوع الهدف" htmlFor="goal_config">
+                                        <Select id="goal_config" name="goal_config" value={product.goal_config} onChange={handleSimpleChange}>
+                                            <option value="none">بدون هدف</option>
+                                            <option value="predefined">قائمة محددة</option>
+                                            <option value="custom">هدف مخصص</option>
+                                            <option value="predefined_and_custom">قائمة + مخصص</option>
+                                        </Select>
+                                    </FormField>
+                                </>
+                            ) : (
+                                <div className="p-3 bg-blue-50 text-blue-800 rounded-lg text-xs">
+                                    <p>خيار تخصيص الأهداف غير متاح لكتب المكتبة العامة.</p>
+                                </div>
+                            )}
 
-                            <FormField label="نوع الهدف" htmlFor="goal_config">
-                                <Select id="goal_config" name="goal_config" value={product.goal_config} onChange={handleSimpleChange}>
-                                    <option value="none">بدون هدف</option>
-                                    <option value="predefined">قائمة محددة</option>
-                                    <option value="custom">هدف مخصص</option>
-                                    <option value="predefined_and_custom">قائمة + مخصص</option>
-                                </Select>
-                            </FormField>
                             <div className="space-y-3 pt-4 border-t">
                                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_featured" checked={product.is_featured} onChange={handleSimpleChange}/> منتج مميز (الرئيسية)</label>
                                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_addon" checked={product.is_addon} onChange={handleSimpleChange}/> إضافة إبداعية (Addon)</label>
