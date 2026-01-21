@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import { ProductCardSkeleton } from '../components/ui/Skeletons';
-import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle, Gift, Library, User, Sparkles } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle, Gift, Library, User, Sparkles, BookOpen } from 'lucide-react';
 import type { PersonalizedProduct } from '../lib/database.types';
 import { Button } from '../components/ui/Button';
 import ErrorState from '../components/ui/ErrorState';
@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { cn } from '../lib/utils';
 import Accordion from '../components/ui/Accordion';
 import Image from '../components/ui/Image';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
+import { Tabs, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 
 interface ProductCardProps {
     product: PersonalizedProduct;
@@ -147,28 +147,40 @@ const PersonalizedStoriesPage: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             
             {/* Header */}
-            <div className="text-center mb-10">
-                <h1 className="text-4xl sm:text-5xl font-extrabold text-foreground">{content?.heroTitle}</h1>
+            <div className="text-center mb-12">
+                <h1 className="text-4xl sm:text-5xl font-extrabold text-foreground">المتجر</h1>
                 <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-                    {content?.heroSubtitle}
+                    كل ما يحتاجه طفلك من قصص ملهمة وكتب نافعة في مكان واحد
                 </p>
             </div>
             
             {error ? <ErrorState message={(error as Error).message} onRetry={refetch} /> : (
             <>
-                 <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-12">
-                    <div className="flex justify-center mb-10 sticky top-20 z-30">
-                        <TabsList className="grid w-full max-w-lg grid-cols-2 p-1.5 bg-white/80 backdrop-blur-md border shadow-lg rounded-full">
-                            <TabsTrigger value="hero" className="rounded-full gap-2 text-base py-3 data-[state=active]:bg-pink-600 data-[state=active]:text-white">
-                                <User size={20} /> أنت البطل هنا
-                            </TabsTrigger>
-                            <TabsTrigger value="library" className="rounded-full gap-2 text-base py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                                <Library size={20} /> المكتبة العامة
-                            </TabsTrigger>
-                        </TabsList>
+                 <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-12 w-full">
+                    
+                    {/* 
+                       Full Width Split Grid Buttons 
+                       REPLACED TabsList with standard grid div to eliminate scrolling 
+                    */}
+                    <div className="grid w-full grid-cols-2 gap-4 sm:gap-6 mb-10" role="tablist">
+                        <TabsTrigger 
+                            value="hero" 
+                            className="h-16 sm:h-20 w-full rounded-2xl border-2 border-pink-200 bg-white text-gray-600 text-lg sm:text-xl font-bold shadow-sm transition-all hover:border-pink-400 hover:text-pink-600 data-[state=active]:bg-pink-600 data-[state=active]:text-white data-[state=active]:border-pink-600 data-[state=active]:shadow-lg data-[state=active]:scale-[1.02] flex items-center justify-center gap-3"
+                        >
+                            <User className="w-6 h-6 sm:w-8 sm:h-8" />
+                            <span>أنت البطل هنا</span>
+                        </TabsTrigger>
+
+                        <TabsTrigger 
+                            value="library" 
+                            className="h-16 sm:h-20 w-full rounded-2xl border-2 border-blue-200 bg-white text-gray-600 text-lg sm:text-xl font-bold shadow-sm transition-all hover:border-blue-400 hover:text-blue-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 data-[state=active]:shadow-lg data-[state=active]:scale-[1.02] flex items-center justify-center gap-3"
+                        >
+                            <Library className="w-6 h-6 sm:w-8 sm:h-8" />
+                            <span>المكتبة العامة</span>
+                        </TabsTrigger>
                     </div>
 
-                    <TabsContent value="hero" className="animate-fadeIn space-y-12">
+                    <TabsContent value="hero" className="animate-fadeIn space-y-12 w-full">
                          {/* 1. Subscription Banner (Only in Hero Tab) */}
                         <section className="bg-gradient-to-r from-pink-500 to-rose-500 p-8 sm:p-10 rounded-3xl shadow-xl text-white relative overflow-hidden">
                              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
@@ -256,13 +268,13 @@ const PersonalizedStoriesPage: React.FC = () => {
                         )}
                     </TabsContent>
 
-                    <TabsContent value="library" className="animate-fadeIn">
+                    <TabsContent value="library" className="animate-fadeIn w-full">
                          {/* Library Products */}
                          <div className="flex items-center gap-3 mb-8 justify-center sm:justify-start">
                             <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><BookHeart size={24}/></div>
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-800">مكتبة الرحلة المختارة</h2>
-                                <p className="text-sm text-muted-foreground">قصص عالمية بلمسة خاصة (غلاف مخصص باسم وصورة طفلك)</p>
+                                <h2 className="text-2xl font-bold text-gray-800">المكتبة العامة للنشء</h2>
+                                <p className="text-sm text-muted-foreground">مجموعة مختارة من الكتب النافعة والقصص الملهمة للأطفال والشباب، مع إمكانية تخصيص الغلاف.</p>
                             </div>
                         </div>
 

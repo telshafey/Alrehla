@@ -20,7 +20,7 @@ export const useHeaderNavigation = () => {
     const enhaLakNavLinks = [
         { key: 'back', to: '/', text: 'الرئيسية', icon: React.createElement(ArrowLeft, { size: 16 }) },
         { key: 'enha-lak-home', to: '/enha-lak', text: 'عن المشروع' },
-        { key: 'enha-lak-store', to: '/enha-lak/store', text: 'متجر القصص' },
+        { key: 'enha-lak-store', to: '/enha-lak/store', text: 'المتجر' },
         { key: 'enha-lak-subscription', to: '/enha-lak/subscription', text: 'صندوق الرحلة' },
     ];
     
