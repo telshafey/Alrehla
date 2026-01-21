@@ -7,10 +7,9 @@ import { useToast } from '../contexts/ToastContext';
 import { useBookingMutations } from '../hooks/mutations/useBookingMutations';
 import PageLoader from '../components/ui/PageLoader';
 import ErrorState from '../components/ui/ErrorState';
-import WritingDraftPanel from '../components/student/WritingDraftPanel';
 import { 
     MessageSquare, Paperclip, FileText, Send, Upload, 
-    Edit3, ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users, UserCheck, Clock, CheckCircle2, RefreshCw, AlertCircle, Shield
+    ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users, UserCheck, Clock, CheckCircle2, RefreshCw, AlertCircle, Shield
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
@@ -27,7 +26,7 @@ const TrainingJourneyPage: React.FC = () => {
     const { data: journeyData, isLoading, refetch, isRefetching } = useTrainingJourneyData(journeyId);
     const { sendSessionMessage, uploadSessionAttachment } = useBookingMutations();
 
-    const [activeTab, setActiveTab] = useState<'draft' | 'discussion' | 'attachments'>('draft');
+    const [activeTab, setActiveTab] = useState<'discussion' | 'attachments'>('discussion');
     const [newMessage, setNewMessage] = useState('');
     const chatEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -121,22 +120,6 @@ const TrainingJourneyPage: React.FC = () => {
     const { booking, scheduledSessions, messages, attachments, childProfile } = journeyData;
     const instructorName = (journeyData as any).instructor?.name || 'غير محدد';
     const bookingPackageName = (booking as any).package_name || 'باقة تدريبية';
-    const savedDraft = (booking as any).details?.draft;
-
-    // --- منطق الصلاحيات الجديد ---
-    // 1. هل المستخدم الحالي هو الطالب المرتبط بهذا الملف؟
-    const isLinkedStudent = currentUser?.role === 'student' && childProfile?.student_user_id === currentUser.id;
-    
-    // 2. هل المستخدم الحالي هو صاحب الحجز (دافع المال)؟
-    const isBookingOwner = currentUser?.id === booking.user_id;
-
-    // 3. هل هذا الملف ليس له حساب طالب مستقل؟ (أي أنه يدار بالكامل من قبل ولي الأمر أو المستخدم لنفسه)
-    const hasNoStudentAccount = !childProfile?.student_user_id;
-
-    // السماح بالكتابة في حالتين:
-    // أ: المستخدم هو الطالب الفعلي.
-    // ب: المستخدم هو صاحب الحجز والملف غير مرتبط بطالب آخر (حجز للنفس أو لطفل صغير).
-    const canEditDraft = currentUser && (isLinkedStudent || (isBookingOwner && hasNoStudentAccount));
     
     const upcomingSession = scheduledSessions.find((s: any) => s.status === 'upcoming');
     const isPendingApproval = booking.status === 'بانتظار المراجعة' || booking.status === 'بانتظار الدفع';
@@ -207,21 +190,12 @@ const TrainingJourneyPage: React.FC = () => {
                                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-grow flex flex-col h-full">
                                     <div className="border-b bg-white px-4">
                                         <TabsList className="w-full justify-start h-14 bg-transparent p-0">
-                                            <TabsTrigger value="draft" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary text-gray-500 h-full"><Edit3 size={16} className="ml-2"/> مسودة القصة</TabsTrigger>
                                             <TabsTrigger value="discussion" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary text-gray-500 h-full"><MessageSquare size={16} className="ml-2"/> المحادثة</TabsTrigger>
                                             <TabsTrigger value="attachments" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary text-gray-500 h-full"><Paperclip size={16} className="ml-2"/> المرفقات</TabsTrigger>
                                         </TabsList>
                                     </div>
 
                                     <div className="flex-grow bg-slate-50/50 relative overflow-hidden flex flex-col">
-                                        <TabsContent value="draft" className="h-full mt-0 p-4 sm:p-6 overflow-hidden">
-                                            <WritingDraftPanel 
-                                                journeyId={booking.id} 
-                                                canEdit={!!canEditDraft} 
-                                                initialDraft={savedDraft} 
-                                            />
-                                        </TabsContent>
-
                                         <TabsContent value="discussion" className="h-full flex flex-col mt-0">
                                             {/* Chat Area */}
                                             <div className="flex-grow overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#e5ddd5] bg-opacity-30" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/subtle-white-feathers.png')"}}>

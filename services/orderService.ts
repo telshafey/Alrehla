@@ -31,6 +31,34 @@ interface CreateOrderPayload {
     receiptUrl?: string; 
 }
 
+// Helper to handle Schema Cache errors automatically
+const executeWithRetry = async <T>(operation: () => Promise<{ data: T | null; error: any }>): Promise<T | null> => {
+    let { data, error } = await operation();
+    
+    if (!error) return data;
+
+    // Detect Schema Cache issues (PGRST204 or specific error messages)
+    const errorMsg = error.message || '';
+    if (error.code === 'PGRST204' || errorMsg.includes('schema cache') || errorMsg.includes('Could not find the')) {
+        console.warn("⚠️ Stale Cache detected. Attempting to reload and retry...");
+        
+        // Try calling the RPC to reload cache (requires the RPC to be created in SQL)
+        try { await supabase.rpc('reload_schema_cache'); } catch (e) { console.log("RPC reload_schema_cache not found, skipping."); }
+        
+        // Wait a moment for the cache to refresh
+        await new Promise(r => setTimeout(r, 1000));
+        
+        // Retry the operation
+        const res2 = await operation();
+        if (!res2.error) return res2.data;
+        
+        // If it still fails, throw the new error
+        throw res2.error;
+    }
+
+    throw error;
+};
+
 export const orderService = {
     async getAllOrders(options: GetOrdersOptions = {}) {
         const { page = 1, pageSize = 10, search, statusFilter } = options;
@@ -71,31 +99,30 @@ export const orderService = {
         const orderId = `ORD-${Date.now().toString().slice(-6)}`;
         const initialStatus: OrderStatus = payload.receiptUrl ? 'بانتظار المراجعة' : 'بانتظار الدفع';
         
-        const { data, error } = await (supabase.from('orders') as any).insert([{
-            id: orderId,
-            user_id: payload.userId,
-            child_id: payload.childId, 
-            item_summary: payload.summary,
-            total: payload.total,
-            shipping_cost: payload.shippingCost || 0,
-            status: initialStatus,
-            details: payload.details,
-            receipt_url: payload.receiptUrl || null,
-            order_date: new Date().toISOString()
-        }]).select().single();
-
-        if (error) throw new Error(error.message);
-        
-        // Notify Admins if receipt is uploaded immediately
-        if (payload.receiptUrl) {
-            communicationService.notifyAdmins(
-                `طلب جديد: ${payload.summary} (قيد المراجعة)`,
-                `/admin/orders/${orderId}`,
-                'order'
-            );
-        }
-        
-        return data as Order;
+        return await executeWithRetry(async () => {
+             return await (supabase.from('orders') as any).insert([{
+                id: orderId,
+                user_id: payload.userId,
+                child_id: payload.childId, 
+                item_summary: payload.summary,
+                total: payload.total,
+                shipping_cost: payload.shippingCost || 0,
+                status: initialStatus,
+                details: payload.details,
+                receipt_url: payload.receiptUrl || null,
+                order_date: new Date().toISOString()
+            }]).select().single();
+        }).then(async (data: any) => {
+             // Notify Admins if receipt is uploaded immediately
+            if (payload.receiptUrl) {
+                communicationService.notifyAdmins(
+                    `طلب جديد: ${payload.summary} (قيد المراجعة)`,
+                    `/admin/orders/${orderId}`,
+                    'order'
+                );
+            }
+            return data as Order;
+        });
     },
 
     async createSubscription(payload: { userId: string, childId: number, planName: string, durationMonths: number }) {
@@ -105,19 +132,18 @@ export const orderService = {
         const nextRenewal = new Date();
         nextRenewal.setMonth(startDate.getMonth() + 1);
 
-        const { data, error } = await (supabase.from('subscriptions') as any).insert([{
-            id: uuidv4(),
-            user_id: payload.userId,
-            child_id: payload.childId,
-            plan_name: payload.planName,
-            start_date: startDate.toISOString(),
-            end_date: endDate.toISOString(),
-            next_renewal_date: nextRenewal.toISOString(),
-            status: 'pending_payment'
-        }]).select().single();
-
-        if (error) throw new Error(error.message);
-        return data as Subscription;
+        return await executeWithRetry(async () => {
+             return await (supabase.from('subscriptions') as any).insert([{
+                id: uuidv4(),
+                user_id: payload.userId,
+                child_id: payload.childId,
+                plan_name: payload.planName,
+                start_date: startDate.toISOString(),
+                end_date: endDate.toISOString(),
+                next_renewal_date: nextRenewal.toISOString(),
+                status: 'pending_payment'
+            }]).select().single();
+        }) as Subscription;
     },
 
     async getAllSubscriptions() {
@@ -144,63 +170,60 @@ export const orderService = {
         if (action === 'pause') status = 'paused';
         if (action === 'cancel') status = 'cancelled';
         
-        const { data, error } = await (supabase.from('subscriptions') as any)
-            .update({ status })
-            .eq('id', subscriptionId)
-            .select('user_id, plan_name')
-            .single();
-            
-        if (error) throw new Error(error.message);
-        
-        // Notify User
-        communicationService.sendNotification(
-            (data as any).user_id,
-            `تم تحديث حالة اشتراكك (${(data as any).plan_name}) إلى: ${status}`,
-            '/account',
-            'subscription'
-        );
-
-        return { success: true };
+        return await executeWithRetry(async () => {
+             return await (supabase.from('subscriptions') as any)
+                .update({ status })
+                .eq('id', subscriptionId)
+                .select('user_id, plan_name')
+                .single();
+        }).then((data: any) => {
+             // Notify User
+            communicationService.sendNotification(
+                data.user_id,
+                `تم تحديث حالة اشتراكك (${data.plan_name}) إلى: ${status}`,
+                '/account',
+                'subscription'
+            );
+            return { success: true };
+        });
     },
 
     async updateOrderStatus(orderId: string, newStatus: OrderStatus) {
-        const { data, error } = await (supabase.from('orders') as any)
-            .update({ status: newStatus })
-            .eq('id', orderId)
-            .select('user_id, item_summary')
-            .single();
-            
-        if (error) throw new Error(error.message);
-        
-        // Notify User
-        communicationService.sendNotification(
-            (data as any).user_id,
-            `تحديث الطلب: ${newStatus} (${(data as any).item_summary})`,
-            `/account`,
-            'order'
-        );
-
-        return { success: true };
+        return await executeWithRetry(async () => {
+             return await (supabase.from('orders') as any)
+                .update({ status: newStatus })
+                .eq('id', orderId)
+                .select('user_id, item_summary')
+                .single();
+        }).then((data: any) => {
+             // Notify User
+            communicationService.sendNotification(
+                data.user_id,
+                `تحديث الطلب: ${newStatus} (${data.item_summary})`,
+                `/account`,
+                'order'
+            );
+            return { success: true };
+        });
     },
     
     async updateServiceOrderStatus(orderId: string, newStatus: OrderStatus) {
-        const { data, error } = await (supabase.from('service_orders') as any)
-            .update({ status: newStatus })
-            .eq('id', orderId)
-            .select('user_id')
-            .single();
-            
-        if (error) throw new Error(error.message);
-        
-        // Notify User
-        communicationService.sendNotification(
-            (data as any).user_id,
-            `تحديث حالة خدمة إبداعية إلى: ${newStatus}`,
-            '/account',
-            'order'
-        );
-
-        return { success: true };
+        return await executeWithRetry(async () => {
+             return await (supabase.from('service_orders') as any)
+                .update({ status: newStatus })
+                .eq('id', orderId)
+                .select('user_id')
+                .single();
+        }).then((data: any) => {
+             // Notify User
+            communicationService.sendNotification(
+                data.user_id,
+                `تحديث حالة خدمة إبداعية إلى: ${newStatus}`,
+                '/account',
+                'order'
+            );
+            return { success: true };
+        });
     },
 
     async assignInstructorToServiceOrder(orderId: string, instructorId: number | null) {
@@ -234,26 +257,25 @@ export const orderService = {
 
         const statusUpdate = itemType === 'subscription' ? { status: 'active' } : { status: 'بانتظار المراجعة' };
 
-        const { data, error } = await (supabase.from(table) as any)
-            .update({ receipt_url: url, ...statusUpdate })
-            .eq('id', itemId)
-            .select('id')
-            .single();
-
-        if (error) throw new Error(error.message);
-        
-        // Notify Admins
-        let link = '/admin/orders';
-        if (itemType === 'booking') link = '/admin/creative-writing';
-        if (itemType === 'subscription') link = '/admin/subscriptions';
-        
-        communicationService.notifyAdmins(
-            `تم رفع إيصال دفع جديد لـ ${itemType} #${itemId}`,
-            link,
-            'payment'
-        );
-
-        return { success: true, url };
+        return await executeWithRetry(async () => {
+             return await (supabase.from(table) as any)
+                .update({ receipt_url: url, ...statusUpdate })
+                .eq('id', itemId)
+                .select('id')
+                .single();
+        }).then(() => {
+             // Notify Admins
+            let link = '/admin/orders';
+            if (itemType === 'booking') link = '/admin/creative-writing';
+            if (itemType === 'subscription') link = '/admin/subscriptions';
+            
+            communicationService.notifyAdmins(
+                `تم رفع إيصال دفع جديد لـ ${itemType} #${itemId}`,
+                link,
+                'payment'
+            );
+            return { success: true, url };
+        });
     },
 
     async bulkUpdateOrderStatus(orderIds: string[], status: OrderStatus) {
