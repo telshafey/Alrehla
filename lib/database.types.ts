@@ -74,13 +74,14 @@ export interface PersonalizedProduct {
     id: number;
     key: string;
     title: string;
-    product_type: ProductType; // New Field
+    product_type: ProductType; 
     description: string;
     image_url: string | null;
     features?: string[];
     sort_order: number;
     is_featured: boolean;
     is_addon: boolean;
+    is_active?: boolean; // New Field for Visibility Control
     has_printed_version: boolean;
     price_printed: number | null;
     price_electronic: number | null;
@@ -297,7 +298,6 @@ export interface SiteBranding {
     creativeWritingPortalImageUrl?: string;
     enhaLakPortalImageUrl?: string;
     aboutImageUrl?: string;
-    // ...
 }
 
 export interface SocialLinks {

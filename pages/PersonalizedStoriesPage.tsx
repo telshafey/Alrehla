@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import { ProductCardSkeleton } from '../components/ui/Skeletons';
-import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle, Gift, Library, User, Sparkles, BookOpen } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle, Gift, Library, User, Sparkles, Search } from 'lucide-react';
 import type { PersonalizedProduct } from '../lib/database.types';
 import { Button } from '../components/ui/Button';
 import ErrorState from '../components/ui/ErrorState';
@@ -12,6 +12,7 @@ import { cn } from '../lib/utils';
 import Accordion from '../components/ui/Accordion';
 import Image from '../components/ui/Image';
 import { Tabs, TabsTrigger, TabsContent } from '../components/ui/Tabs';
+import { Input } from '../components/ui/Input';
 
 interface ProductCardProps {
     product: PersonalizedProduct;
@@ -117,6 +118,7 @@ const PersonalizedStoriesPage: React.FC = () => {
   const subscriptionPlans = data?.subscriptionPlans || [];
   
   const [activeTab, setActiveTab] = useState('hero');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Calculate the minimum subscription price dynamically
   const lowestSubscriptionPrice = useMemo(() => {
@@ -124,10 +126,21 @@ const PersonalizedStoriesPage: React.FC = () => {
       return Math.min(...subscriptionPlans.map(plan => plan.price_per_month));
   }, [subscriptionPlans]);
 
+  // First filter by search
+  const filteredProducts = useMemo(() => {
+      const term = searchTerm.trim().toLowerCase();
+      if (!term) return personalizedProducts;
+      return personalizedProducts.filter(p => 
+          (p.title && p.title.toLowerCase().includes(term)) || 
+          (p.description && p.description.toLowerCase().includes(term))
+      );
+  }, [personalizedProducts, searchTerm]);
+
+  // Then categorize
   const { subscriptionProduct, otherHeroStories, libraryBooks, addonProducts } = useMemo(() => {
-    const sortedProducts = [...personalizedProducts].sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
+    const sortedProducts = [...filteredProducts].sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
     
-    // 1. Subscription Box (Special handling)
+    // 1. Subscription Box
     const sub = sortedProducts.find(p => p.key === 'subscription_box');
     
     // 2. Hero Stories (Exclude sub box and addons)
@@ -140,28 +153,38 @@ const PersonalizedStoriesPage: React.FC = () => {
     const addons = sortedProducts.filter(p => p.is_addon);
     
     return { subscriptionProduct: sub, otherHeroStories: hero, libraryBooks: library, addonProducts: addons };
-  }, [personalizedProducts]);
+  }, [filteredProducts]);
   
   return (
     <div className="bg-muted/30 py-12 sm:py-16 animate-fadeIn min-h-screen">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             
             {/* Header */}
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
                 <h1 className="text-4xl sm:text-5xl font-extrabold text-foreground">المتجر</h1>
                 <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
                     كل ما يحتاجه طفلك من قصص ملهمة وكتب نافعة في مكان واحد
                 </p>
             </div>
             
+            {/* Search Bar */}
+            <div className="max-w-2xl mx-auto mb-12 relative">
+                <div className="relative">
+                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Input 
+                        type="text" 
+                        placeholder="ابحث عن قصة أو كتاب..." 
+                        className="pr-12 h-14 rounded-full shadow-lg border-2 border-transparent focus:border-primary/20 text-lg"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
+            
             {error ? <ErrorState message={(error as Error).message} onRetry={refetch} /> : (
             <>
                  <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-12 w-full">
                     
-                    {/* 
-                       Full Width Split Grid Buttons 
-                       REPLACED TabsList with standard grid div to eliminate scrolling 
-                    */}
                     <div className="grid w-full grid-cols-2 gap-4 sm:gap-6 mb-10" role="tablist">
                         <TabsTrigger 
                             value="hero" 
@@ -181,45 +204,47 @@ const PersonalizedStoriesPage: React.FC = () => {
                     </div>
 
                     <TabsContent value="hero" className="animate-fadeIn space-y-12 w-full">
-                         {/* 1. Subscription Banner (Only in Hero Tab) */}
-                        <section className="bg-gradient-to-r from-pink-500 to-rose-500 p-8 sm:p-10 rounded-3xl shadow-xl text-white relative overflow-hidden">
-                             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
-                             <div className="absolute bottom-0 left-0 w-40 h-40 bg-yellow-400/20 rounded-full -ml-10 -mb-10 blur-2xl"></div>
-                             
-                            <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
-                                <div className="flex items-start gap-6">
-                                    <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-sm shadow-inner hidden sm:block">
-                                        <Gift size={48} className="text-yellow-300" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-3xl font-extrabold mb-2 flex items-center gap-2">
-                                            {subscriptionProduct?.title || content?.subscriptionBannerTitle}
-                                            <Sparkles className="text-yellow-300 animate-pulse" />
-                                        </h2>
-                                        <p className="text-pink-100 text-lg max-w-xl leading-relaxed">
-                                            {subscriptionProduct?.description || "هدية متجددة من الخيال تصل باب منزلك كل شهر."}
-                                        </p>
-                                        <div className="mt-4 flex flex-wrap gap-3">
-                                            {subscriptionProduct?.features?.slice(0,3).map(f => (
-                                                <span key={f} className="text-xs font-bold bg-black/20 px-3 py-1 rounded-full flex items-center gap-1">
-                                                    <CheckCircle size={12} /> {f}
-                                                </span>
-                                            ))}
+                         {/* 1. Subscription Banner (Only in Hero Tab AND if not filtered out by specific search) */}
+                        {!searchTerm && (
+                            <section className="bg-gradient-to-r from-pink-500 to-rose-500 p-8 sm:p-10 rounded-3xl shadow-xl text-white relative overflow-hidden">
+                                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+                                 <div className="absolute bottom-0 left-0 w-40 h-40 bg-yellow-400/20 rounded-full -ml-10 -mb-10 blur-2xl"></div>
+                                 
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+                                    <div className="flex items-start gap-6">
+                                        <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-sm shadow-inner hidden sm:block">
+                                            <Gift size={48} className="text-yellow-300" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-3xl font-extrabold mb-2 flex items-center gap-2">
+                                                {subscriptionProduct?.title || content?.subscriptionBannerTitle}
+                                                <Sparkles className="text-yellow-300 animate-pulse" />
+                                            </h2>
+                                            <p className="text-pink-100 text-lg max-w-xl leading-relaxed">
+                                                {subscriptionProduct?.description || "هدية متجددة من الخيال تصل باب منزلك كل شهر."}
+                                            </p>
+                                            <div className="mt-4 flex flex-wrap gap-3">
+                                                {subscriptionProduct?.features?.slice(0,3).map(f => (
+                                                    <span key={f} className="text-xs font-bold bg-black/20 px-3 py-1 rounded-full flex items-center gap-1">
+                                                        <CheckCircle size={12} /> {f}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="flex flex-col items-center gap-2 min-w-[200px]">
+                                         <div className="text-center mb-2">
+                                            <span className="block text-sm text-pink-100 opacity-90">تبدأ من</span>
+                                            <span className="text-3xl font-black text-white">{lowestSubscriptionPrice} ج.م</span>
+                                            <span className="text-sm"> / شهرياً</span>
+                                         </div>
+                                         <Button as={Link} to="/enha-lak/subscription" variant="secondary" size="lg" className="w-full font-bold shadow-lg hover:scale-105 transition-transform text-pink-600">
+                                            اشترك الآن
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col items-center gap-2 min-w-[200px]">
-                                     <div className="text-center mb-2">
-                                        <span className="block text-sm text-pink-100 opacity-90">تبدأ من</span>
-                                        <span className="text-3xl font-black text-white">{lowestSubscriptionPrice} ج.م</span>
-                                        <span className="text-sm"> / شهرياً</span>
-                                     </div>
-                                     <Button as={Link} to="/enha-lak/subscription" variant="secondary" size="lg" className="w-full font-bold shadow-lg hover:scale-105 transition-transform text-pink-600">
-                                        اشترك الآن
-                                    </Button>
-                                </div>
-                            </div>
-                        </section>
+                            </section>
+                        )}
 
                         {/* 2. Hero Products Grid */}
                         <div>
@@ -237,7 +262,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                                             key={`hero-${product.id}`} 
                                             product={product}
                                         />
-                                    )) : <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed text-muted-foreground">لا توجد قصص في هذا القسم حالياً.</div>
+                                    )) : <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed text-muted-foreground">لا توجد قصص في هذا القسم تطابق بحثك.</div>
                                 )}
                             </div>
                         </div>
@@ -287,7 +312,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                                         key={`lib-${product.id}`} 
                                         product={product}
                                     />
-                                )) : <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed text-muted-foreground">لا توجد كتب في المكتبة حالياً.</div>
+                                )) : <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed text-muted-foreground">لا توجد كتب في المكتبة تطابق بحثك.</div>
                             )}
                         </div>
                     </TabsContent>

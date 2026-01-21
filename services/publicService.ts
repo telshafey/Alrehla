@@ -55,6 +55,8 @@ export const publicService = {
             supabase.from('instructors').select('*').is('deleted_at', null),
             // Filter blog posts: Status must be published AND published_at must be in the past or now
             supabase.from('blog_posts').select('*').eq('status', 'published').lte('published_at', now).is('deleted_at', null).order('published_at', { ascending: false }),
+            // Fetch ALL products regardless of status, client will filter.
+            // This ensures products with 'null' is_active (legacy) are fetched.
             supabase.from('personalized_products').select('*').is('deleted_at', null).order('sort_order'),
             supabase.from('creative_writing_packages').select('*'), 
             supabase.from('subscription_plans').select('*').is('deleted_at', null).order('price'),
@@ -65,27 +67,27 @@ export const publicService = {
         ]);
 
         // Helper to get settings. 
-        // Note: For settings (single row configs like branding/texts), we still keep the seed logic 
-        // inside 'contentService' or 'settingsService' to populate the DB once if empty, 
-        // but here we just read what's there.
         const getSetting = (key: string, defaultValue?: any) => {
             const item = (settingsData as any[])?.find(s => s.key === key);
             return item ? item.value : defaultValue || null;
         };
+        
+        // CLIENT-SIDE FILTERING:
+        // We filter here to handle legacy data where 'is_active' might be null.
+        // Rule: If is_active is false, hide it. If true OR null/undefined, show it.
+        const activeProducts = (personalizedProducts as PersonalizedProduct[] || [])
+            .filter(p => p.is_active !== false);
 
         return {
-            // REAL DATA ONLY: If DB is empty, return empty array.
             instructors: (instructors as Instructor[]) || [],
-            // Use mockBlogPosts if DB returns empty (for demo purposes)
             blogPosts: (blogPosts as BlogPost[])?.length > 0 ? (blogPosts as BlogPost[]) : mockBlogPosts,
-            personalizedProducts: (personalizedProducts as PersonalizedProduct[]) || [],
+            personalizedProducts: activeProducts,
             creativeWritingPackages: (creativeWritingPackages as CreativeWritingPackage[]) || [],
             subscriptionPlans: (subscriptionPlans as SubscriptionPlan[]) || [],
             standaloneServices: (standaloneServices as StandaloneService[]) || [],
             badges: (badges as any[]) || [],
             comparisonItems: (comparisonItems as any[]) || [],
             
-            // Configs: Fallback to defaults only if DB row is missing entirely (Seeding logic)
             siteContent: getSetting('global_content', mockSiteContent),
             siteBranding: getSetting('branding'),
             socialLinks: getSetting('social_links', mockSocialLinks),

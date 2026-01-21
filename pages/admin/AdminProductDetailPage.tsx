@@ -9,8 +9,8 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
 import { Select } from '../../components/ui/Select';
-import { ArrowLeft, Save, Gift, Settings, Type, Image as ImageIcon, Star } from 'lucide-react';
-import type { PersonalizedProduct, ProductType } from '../../lib/database.types';
+import { ArrowLeft, Save, Gift, Settings, Type, Image as ImageIcon, Star, Eye } from 'lucide-react';
+import type { PersonalizedProduct } from '../../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Checkbox } from '../../components/ui/Checkbox';
@@ -37,6 +37,7 @@ const AdminProductDetailPage: React.FC = () => {
         sort_order: 99,
         is_featured: false,
         is_addon: false,
+        is_active: true, // Default to Active
         has_printed_version: true,
         price_printed: 0,
         price_electronic: 0,
@@ -51,7 +52,10 @@ const AdminProductDetailPage: React.FC = () => {
         if (!isNew && allProducts.length > 0) {
             const productToEdit = allProducts.find(p => p.id === parseInt(id!));
             if (productToEdit) {
-                setProduct(productToEdit);
+                setProduct({
+                    ...productToEdit,
+                    is_active: productToEdit.is_active ?? true // Ensure it defaults to true if missing
+                });
             } else {
                 navigate('/admin/personalized-products');
             }
@@ -256,9 +260,14 @@ const AdminProductDetailPage: React.FC = () => {
                 </div>
 
                 <div className="lg:col-span-1 sticky top-24 space-y-6">
-                    <Card>
+                    <Card className="border-t-4 border-t-primary">
                             <CardHeader><CardTitle className="flex items-center gap-2"><Settings /> الإعدادات</CardTitle></CardHeader>
                             <CardContent className="space-y-6">
+                            <label className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg cursor-pointer">
+                                <Checkbox checked={product.is_active} onCheckedChange={v => setProduct({...product, is_active: !!v})} />
+                                <span className="text-sm font-bold text-green-800 flex items-center gap-2"><Eye size={16}/> إتاحة المنتج للعرض في المتجر (Active)</span>
+                            </label>
+
                             <FormField label="المعرّف (Key)*" htmlFor="key">
                                 <Input id="key" name="key" value={product.key} onChange={handleSimpleChange} required disabled={!isNew} dir="ltr" />
                             </FormField>
@@ -268,6 +277,7 @@ const AdminProductDetailPage: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField label="سعر (إلكتروني)" htmlFor="price_electronic">
                                     <Input type="number" name="price_electronic" value={product.price_electronic || ''} onChange={handleSimpleChange} />
+                                    <p className="text-[10px] text-muted-foreground mt-1">اتركه فارغاً أو 0 إذا كان المنتج مطبوعاً فقط.</p>
                                 </FormField>
                                 <FormField label="سعر (مطبوع)" htmlFor="price_printed">
                                     <Input type="number" name="price_printed" value={product.price_printed || ''} onChange={handleSimpleChange} disabled={!product.has_printed_version} />

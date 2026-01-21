@@ -1,30 +1,50 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings, Box, Sparkles } from 'lucide-react';
+import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings, Box, Sparkles, BookHeart, Library } from 'lucide-react';
 import { useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useProductMutations } from '../../hooks/mutations/useProductMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import type { PersonalizedProduct } from '../../lib/database.types';
 import { Button } from '../../components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import ErrorState from '../../components/ui/ErrorState';
 import SortableTableHead from '../../components/admin/ui/SortableTableHead';
 import Dropdown from '../../components/ui/Dropdown';
 import Image from '../../components/ui/Image';
 import { formatCurrency } from '../../utils/helpers';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 
 const AdminPersonalizedProductsPage: React.FC = () => {
     const navigate = useNavigate();
     const { data: personalizedProducts = [], isLoading, error, refetch } = useAdminPersonalizedProducts();
     const { deletePersonalizedProduct } = useProductMutations();
     const [sortConfig, setSortConfig] = useState<{ key: keyof PersonalizedProduct; direction: 'asc' | 'desc' } | null>({ key: 'sort_order', direction: 'asc' });
+    const [activeTab, setActiveTab] = useState('hero');
     
-    const sortedProducts = useMemo(() => {
-        let sortableItems = [...personalizedProducts];
+    // تصنيف المنتجات حسب التبويب
+    const filteredProducts = useMemo(() => {
+        let products = personalizedProducts;
+        
+        // 1. التصفية حسب التبويب
+        if (activeTab === 'hero') {
+            products = personalizedProducts.filter(p => 
+                (p.product_type === 'hero_story' || !p.product_type) && 
+                !p.is_addon && 
+                p.key !== 'subscription_box'
+            );
+        } else if (activeTab === 'library') {
+            products = personalizedProducts.filter(p => p.product_type === 'library_book' && !p.is_addon);
+        } else if (activeTab === 'addons') {
+            products = personalizedProducts.filter(p => p.is_addon);
+        } else if (activeTab === 'subscription') {
+            products = personalizedProducts.filter(p => p.key === 'subscription_box' || p.product_type === 'subscription_box');
+        }
+
+        // 2. الترتيب
         if (sortConfig !== null) {
-            sortableItems.sort((a, b) => {
+            products.sort((a, b) => {
                 const aVal = a[sortConfig.key];
                 const bVal = b[sortConfig.key];
                 if (aVal === null || aVal === undefined) return 1;
@@ -34,8 +54,8 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                 return 0;
             });
         }
-        return sortableItems;
-    }, [personalizedProducts, sortConfig]);
+        return products;
+    }, [personalizedProducts, sortConfig, activeTab]);
 
     const handleSort = (key: keyof PersonalizedProduct) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -53,19 +73,24 @@ const AdminPersonalizedProductsPage: React.FC = () => {
 
     const addProductOptions = [
         { 
-            label: 'منتج قياسي جديد', 
-            action: () => navigate('/admin/personalized-products/new'),
-            icon: <Plus size={16} />
+            label: 'قصة بطل (تخصيص كامل)', 
+            action: () => navigate('/admin/personalized-products/new?type=hero_story'),
+            icon: <Sparkles size={16} />
         },
         { 
-            label: 'إضافة صندوق رحلة', 
+            label: 'كتاب مكتبة (غلاف فقط)', 
+            action: () => navigate('/admin/personalized-products/new?type=library_book'),
+            icon: <BookHeart size={16} />
+        },
+        { 
+            label: 'إضافة جديدة (Addon)', 
+            action: () => navigate('/admin/personalized-products/new?type=addon'),
+            icon: <Puzzle size={16} />
+        },
+        { 
+            label: 'صندوق اشتراك', 
             action: () => navigate('/admin/personalized-products/new?type=subscription_box'),
             icon: <Box size={16} />
-        },
-        { 
-            label: 'إضافة القصة المميزة', 
-            action: () => navigate('/admin/personalized-products/new?type=emotion_story'),
-            icon: <Sparkles size={16} />
         }
     ];
 
@@ -75,83 +100,119 @@ const AdminPersonalizedProductsPage: React.FC = () => {
     return (
         <div className="animate-fadeIn space-y-8">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold text-foreground">إدارة المنتجات المخصصة</h1>
+                <h1 className="text-3xl font-extrabold text-foreground">إدارة المنتجات</h1>
                 <Dropdown 
                     trigger={
                         <span className="flex items-center gap-2">
-                            <Plus size={18} /> إضافة منتج جديد
+                            <Plus size={18} /> إضافة جديد
                         </span>
                     }
                     items={addProductOptions}
                 />
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Gift /> قائمة المنتجات</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <SortableTableHead<PersonalizedProduct> sortKey="title" label="المنتج" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableTableHead<PersonalizedProduct> sortKey="price_printed" label="الأسعار (مطبوع/إلكتروني)" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableTableHead<PersonalizedProduct> sortKey="sort_order" label="الترتيب" sortConfig={sortConfig} onSort={handleSort} />
-                                    <TableHead className="text-center"><Star size={16} className="mx-auto" /></TableHead>
-                                    <TableHead className="text-center"><Puzzle size={16} className="mx-auto" /></TableHead>
-                                    <TableHead>إجراءات</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {sortedProducts.length > 0 ? (
-                                    sortedProducts.map(product => (
-                                        <TableRow key={product.id}>
-                                            <TableCell className="flex items-center gap-4">
-                                                <div className="w-12 h-12 flex-shrink-0 rounded-md overflow-hidden bg-muted border">
-                                                    <Image src={product.image_url || ''} alt={product.title} className="w-full h-full" objectFit="contain" />
-                                                </div>
-                                                <span className="font-semibold">{product.title}</span>
-                                            </TableCell>
-                                            <TableCell className="font-mono text-sm">
-                                                {product.key === 'subscription_box' ? (
-                                                    <span className="font-sans font-semibold text-primary">باقات متعددة</span>
-                                                ) : (
-                                                    `${product.price_printed ? formatCurrency(product.price_printed) : '-'} / ${product.price_electronic ? formatCurrency(product.price_electronic) : '-'}`
-                                                )}
-                                            </TableCell>
-                                            <TableCell>{product.sort_order}</TableCell>
-                                            <TableCell className="text-center">{product.is_featured ? <Check className="text-green-500 mx-auto" /> : <X className="text-destructive mx-auto" />}</TableCell>
-                                            <TableCell className="text-center">{product.is_addon ? <Check className="text-green-500 mx-auto" /> : <X className="text-destructive mx-auto" />}</TableCell>
-                                            <TableCell className="flex items-center gap-1">
-                                                {product.key === 'subscription_box' ? (
-                                                    <>
-                                                        <Button onClick={() => navigate(`/admin/subscription-box`)} variant="ghost" size="icon" title="إدارة الصندوق والصورة" className="text-primary hover:bg-primary/10">
-                                                            <Settings size={20} />
-                                                        </Button>
-                                                        <Button disabled variant="ghost" size="icon" className="opacity-30 cursor-not-allowed" title="لا يمكن حذف المنتج الأساسي"><Trash2 size={20} /></Button>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Button onClick={() => navigate(`/admin/personalized-products/${product.id}`)} variant="ghost" size="icon" title="تعديل"><Edit size={20} /></Button>
-                                                        <Button onClick={() => handleDeleteProduct(product.id)} variant="ghost" size="icon" className="text-destructive" title="حذف"><Trash2 size={20} /></Button>
-                                                    </>
-                                                )}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="mb-6 flex-wrap h-auto">
+                    <TabsTrigger value="hero" className="gap-2">
+                        <Sparkles size={16}/> قصص الأبطال
+                    </TabsTrigger>
+                    <TabsTrigger value="library" className="gap-2">
+                        <Library size={16}/> المكتبة العامة
+                    </TabsTrigger>
+                    <TabsTrigger value="addons" className="gap-2">
+                        <Puzzle size={16}/> الإضافات
+                    </TabsTrigger>
+                    <TabsTrigger value="subscription" className="gap-2">
+                        <Box size={16}/> الاشتراكات
+                    </TabsTrigger>
+                </TabsList>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            {activeTab === 'hero' && <><Sparkles className="text-pink-500" /> قائمة قصص "أنت البطل"</>}
+                            {activeTab === 'library' && <><BookHeart className="text-blue-500" /> قائمة كتب المكتبة</>}
+                            {activeTab === 'addons' && <><Puzzle className="text-yellow-500" /> قائمة المنتجات الإضافية</>}
+                            {activeTab === 'subscription' && <><Box className="text-purple-500" /> إدارة صناديق الاشتراك</>}
+                        </CardTitle>
+                        <CardDescription>
+                            {activeTab === 'hero' && "القصص التي يتم تخصيص محتواها وصورها بالكامل للطفل."}
+                            {activeTab === 'library' && "الكتب الجاهزة التي يتم تخصيص غلافها فقط باسم الطفل وصورته."}
+                            {activeTab === 'addons' && "المنتجات التي تظهر في سلة الشراء كاقتراحات إضافية."}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <SortableTableHead<PersonalizedProduct> sortKey="title" label="المنتج" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<PersonalizedProduct> sortKey="price_printed" label="الأسعار (مطبوع/إلكتروني)" sortConfig={sortConfig} onSort={handleSort} />
+                                        <SortableTableHead<PersonalizedProduct> sortKey="sort_order" label="الترتيب" sortConfig={sortConfig} onSort={handleSort} />
+                                        <TableHead className="text-center w-24">الحالة</TableHead>
+                                        <TableHead className="text-center"><Star size={16} className="mx-auto" /></TableHead>
+                                        <TableHead>إجراءات</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredProducts.length > 0 ? (
+                                        filteredProducts.map(product => (
+                                            <TableRow key={product.id}>
+                                                <TableCell className="flex items-center gap-4 min-w-[250px]">
+                                                    <div className="w-12 h-12 flex-shrink-0 rounded-md overflow-hidden bg-muted border">
+                                                        <Image src={product.image_url || ''} alt={product.title} className="w-full h-full" objectFit="contain" />
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold block text-base">{product.title}</span>
+                                                        <span className="text-xs text-muted-foreground font-mono">{product.key}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="font-mono text-sm">
+                                                    {product.key === 'subscription_box' ? (
+                                                        <span className="font-sans font-semibold text-primary">باقات متعددة</span>
+                                                    ) : (
+                                                        `${product.price_printed ? formatCurrency(product.price_printed) : '-'} / ${product.price_electronic ? formatCurrency(product.price_electronic) : '-'}`
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>{product.sort_order}</TableCell>
+                                                <TableCell className="text-center">
+                                                    {product.is_active !== false ? (
+                                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">نشط</span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">مخفي</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-center">{product.is_featured ? <Check className="text-green-500 mx-auto" size={18} /> : <span className="text-gray-300">-</span>}</TableCell>
+                                                <TableCell className="flex items-center gap-1">
+                                                    {product.key === 'subscription_box' ? (
+                                                        <>
+                                                            <Button onClick={() => navigate(`/admin/subscription-box`)} variant="ghost" size="icon" title="إدارة الصندوق والصورة" className="text-primary hover:bg-primary/10">
+                                                                <Settings size={20} />
+                                                            </Button>
+                                                            <Button disabled variant="ghost" size="icon" className="opacity-30 cursor-not-allowed" title="لا يمكن حذف المنتج الأساسي"><Trash2 size={20} /></Button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Button onClick={() => navigate(`/admin/personalized-products/${product.id}`)} variant="ghost" size="icon" title="تعديل"><Edit size={20} /></Button>
+                                                            <Button onClick={() => handleDeleteProduct(product.id)} variant="ghost" size="icon" className="text-destructive" title="حذف"><Trash2 size={20} /></Button>
+                                                        </>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                                                لا توجد منتجات في هذا القسم.
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                                            لا توجد منتجات بعد. ابدأ بإضافة منتجك الأول!
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            </Tabs>
         </div>
     );
 };
