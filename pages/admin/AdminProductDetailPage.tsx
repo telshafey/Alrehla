@@ -52,9 +52,12 @@ const AdminProductDetailPage: React.FC = () => {
         if (!isNew && allProducts.length > 0) {
             const productToEdit = allProducts.find(p => p.id === parseInt(id!));
             if (productToEdit) {
+                // If it's an addon in legacy data, ensure product_type reflects it for the UI
+                const displayType = productToEdit.is_addon ? 'addon' : (productToEdit.product_type || 'hero_story');
                 setProduct({
                     ...productToEdit,
-                    is_active: productToEdit.is_active ?? true // Ensure it defaults to true if missing
+                    product_type: displayType,
+                    is_active: productToEdit.is_active ?? true
                 });
             } else {
                 navigate('/admin/personalized-products');
@@ -74,35 +77,48 @@ const AdminProductDetailPage: React.FC = () => {
                     has_printed_version: true,
                     sort_order: -1,
                 }));
-            } else if (initialType === 'emotion_story') {
-                setProduct(prev => ({
+            } else if (initialType === 'addon') { // Handle predefined addon link
+                 setProduct(prev => ({
                     ...prev,
-                    title: 'القصة المميزة',
-                    key: 'emotion_story',
-                    product_type: 'hero_story',
-                    description: 'قصة علاجية مخصصة لمساعدة طفلك على فهم مشاعره والتعبير عنها.',
-                    features: ['تخصيص نفسى وسلوكي عميق', 'معالجة مشاعر محددة', 'بناء على مواقف واقعية'],
-                    goal_config: 'predefined_and_custom',
-                    is_featured: true,
-                    story_goals: [
-                        { key: 'anger', title: 'الغضب' },
-                        { key: 'fear', title: 'الخوف' },
-                    ],
-                    image_slots: [{ id: 'child_photo_1', label: 'صورة وجه الطفل (إلزامي)', required: true }],
-                    text_fields: [
-                        { id: 'homeEnvironment', label: 'البيئة المنزلية', placeholder: 'أسماء الوالدين...', required: true, type: 'textarea' },
-                    ]
+                    product_type: 'addon',
+                    is_addon: true,
+                    goal_config: 'none',
+                    sort_order: 50,
+                    has_printed_version: true
                 }));
             }
         }
     }, [id, isNew, allProducts, navigate, initialType]);
 
-    // Handle Type Change effect: If Library Book is selected, disable goal config
-    useEffect(() => {
-        if (product.product_type === 'library_book' && product.goal_config !== 'none') {
-            setProduct(prev => ({ ...prev, goal_config: 'none' }));
+    // Handle Type Change logic
+    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = e.target.value;
+        
+        if (value === 'addon') {
+            setProduct(prev => ({
+                ...prev,
+                product_type: 'addon',
+                is_addon: true,
+                goal_config: 'none' // Addons usually don't need goals
+            }));
+        } else if (value === 'library_book') {
+             setProduct(prev => ({
+                ...prev,
+                product_type: 'library_book',
+                is_addon: false,
+                goal_config: 'none'
+            }));
+        } else {
+            // Hero Story or Subscription Box
+             setProduct(prev => ({
+                ...prev,
+                product_type: value as any,
+                is_addon: false,
+                // Default goal config if switching back from library/addon
+                goal_config: prev.goal_config === 'none' ? 'predefined_and_custom' : prev.goal_config
+            }));
         }
-    }, [product.product_type]);
+    };
 
     if (productsLoading && !isNew) return <PageLoader />;
     
@@ -143,6 +159,8 @@ const AdminProductDetailPage: React.FC = () => {
         e.preventDefault();
         const payload: any = {
             ...product,
+            // Ensure is_addon is correctly set based on product_type
+            is_addon: product.product_type === 'addon',
             price_printed: product.has_printed_version ? Number(product.price_printed) : null,
             price_electronic: Number(product.price_electronic) || null
         };
@@ -176,9 +194,10 @@ const AdminProductDetailPage: React.FC = () => {
                                     <Input id="title" name="title" value={product.title} onChange={handleSimpleChange} required />
                                 </FormField>
                                 <FormField label="نوع المنتج" htmlFor="product_type">
-                                    <Select id="product_type" name="product_type" value={product.product_type} onChange={handleSimpleChange}>
+                                    <Select id="product_type" name="product_type" value={product.product_type} onChange={handleTypeChange}>
                                         <option value="hero_story">أنت البطل (تخصيص كامل)</option>
                                         <option value="library_book">كتاب مكتبة (غلاف فقط)</option>
+                                        <option value="addon">منتج إضافي (إضافات إبداعية)</option>
                                         <option value="subscription_box">صندوق اشتراك</option>
                                     </Select>
                                 </FormField>
@@ -236,8 +255,8 @@ const AdminProductDetailPage: React.FC = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Hide Goals Section for Library Books */}
-                    {product.product_type !== 'library_book' && (
+                    {/* Hide Goals Section for Library Books and Addons */}
+                    {product.product_type !== 'library_book' && product.product_type !== 'addon' && (
                         <Card>
                             <CardHeader><CardTitle className="flex items-center gap-2"><Star /> الأهداف التربوية</CardTitle></CardHeader>
                             <CardContent>
@@ -284,7 +303,7 @@ const AdminProductDetailPage: React.FC = () => {
                                 </FormField>
                             </div>
                             
-                            {product.product_type !== 'library_book' ? (
+                            {product.product_type !== 'library_book' && product.product_type !== 'addon' ? (
                                 <>
                                     <div className="p-3 bg-yellow-50 text-yellow-800 rounded-lg text-xs">
                                         <p>ملاحظة: إذا اخترت <strong>"هدف مخصص"</strong> سيظهر صندوق نص للعميل.</p>
@@ -300,13 +319,12 @@ const AdminProductDetailPage: React.FC = () => {
                                 </>
                             ) : (
                                 <div className="p-3 bg-blue-50 text-blue-800 rounded-lg text-xs">
-                                    <p>خيار تخصيص الأهداف غير متاح لكتب المكتبة العامة.</p>
+                                    <p>خيار تخصيص الأهداف غير متاح لكتب المكتبة والإضافات.</p>
                                 </div>
                             )}
 
                             <div className="space-y-3 pt-4 border-t">
                                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_featured" checked={product.is_featured} onChange={handleSimpleChange}/> منتج مميز (الرئيسية)</label>
-                                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_addon" checked={product.is_addon} onChange={handleSimpleChange}/> إضافة إبداعية (Addon)</label>
                                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="has_printed_version" checked={product.has_printed_version} onChange={handleSimpleChange}/> نسخة مطبوعة متاحة</label>
                             </div>
                             <Button type="submit" loading={isSaving} size="lg" icon={<Save />} className="w-full">
