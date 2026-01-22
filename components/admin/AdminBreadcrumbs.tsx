@@ -30,7 +30,6 @@ const routeNameMap: Record<string, string> = {
     'reports': 'التقارير',
     'audit-log': 'سجل النشاطات',
     'database-inspector': 'فحص القاعدة',
-    'migration': 'الترحيل',
     'my-profile': 'ملفي الشخصي',
     'financials': 'الماليات',
     'instructor-payouts': 'مستحقات المدربين',

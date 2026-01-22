@@ -5,7 +5,7 @@ import PageLoader from '../../components/ui/PageLoader';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import { Button } from '../../components/ui/Button';
-import { Database, RefreshCw, CheckCircle, AlertTriangle, ShieldCheck, ShieldAlert, Bug, Terminal, Copy } from 'lucide-react';
+import { Database, RefreshCw, CheckCircle, AlertTriangle, ShieldCheck, ShieldAlert, Bug } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 
 interface TableStatus {
@@ -88,11 +88,6 @@ const AdminDatabaseInspectorPage: React.FC = () => {
         }
     };
 
-    const copySql = () => {
-        navigator.clipboard.writeText("NOTIFY pgrst, 'reload config';");
-        addToast("تم نسخ الأمر SQL", "success");
-    };
-
     useEffect(() => { runDiagnosis(); }, []);
 
     const overallStatus = results.every(r => r.status === 'online') ? 'healthy' : 'issues';
@@ -114,29 +109,6 @@ const AdminDatabaseInspectorPage: React.FC = () => {
                 </div>
                 <Button onClick={runDiagnosis} loading={isRefreshing} icon={<RefreshCw size={16}/>}>تحديث الفحص</Button>
             </div>
-
-            {/* قسم حل مشكلة الكاش (جديد) */}
-            <Card className="border-l-4 border-blue-500 bg-blue-50/20">
-                <CardHeader>
-                    <CardTitle className="text-blue-700 flex items-center gap-2">
-                        <Terminal size={20} /> حل مشكلة "Schema Cache Error" (PGRST204)
-                    </CardTitle>
-                    <CardDescription className="text-blue-900/80">
-                        إذا كنت تواجه أخطاء عند إرسال الرسائل أو رفع الملفات بسبب عدم التعرف على الأعمدة الجديدة، قم بتنفيذ هذا الأمر في محرر SQL في Supabase لتحديث الذاكرة المؤقتة.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center gap-4 bg-black/90 p-4 rounded-lg text-green-400 font-mono text-sm shadow-inner dir-ltr">
-                        <span className="flex-grow">NOTIFY pgrst, 'reload config';</span>
-                        <Button size="sm" variant="ghost" className="text-white hover:bg-white/20 h-8 px-2" onClick={copySql}>
-                            <Copy size={14} /> نسخ
-                        </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                        خطوات: اذهب إلى Supabase Dashboard &gt; SQL Editor &gt; New Query &gt; الصق الأمر &gt; Run.
-                    </p>
-                </CardContent>
-            </Card>
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
                 <Card className={`xl:col-span-1 max-h-[75vh] overflow-y-auto border-t-4 ${overallStatus === 'healthy' ? 'border-green-500' : 'border-orange-500'}`}>

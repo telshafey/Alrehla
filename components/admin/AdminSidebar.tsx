@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
     LayoutDashboard, Users, ShoppingBag, BookOpen, UserCog, MessageSquare, UserPlus,
     FileText, Settings, Star, Package, Sparkles, CalendarCheck, Plug, DollarSign, BarChart, History, X,
-    Globe, Home, Info, Phone, Palette, Database, Layout, ListChecks, HelpCircle, Shield, Server, UploadCloud
+    Globe, Home, Info, HelpCircle, Shield, Server
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Image from '../ui/Image';
@@ -122,7 +122,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                     { to: '/admin/creative-writing', icon: <BookOpen size={20} />, label: 'الحجوزات', permission: permissions.canManageCreativeWritingBookings },
                     { to: '/admin/scheduled-sessions', icon: <CalendarCheck size={20} />, label: 'إدارة الجلسات', permission: permissions.canManageCreativeWritingBookings },
                     { to: '/admin/service-orders', icon: <Sparkles size={20} />, label: 'طلبات الخدمات', permission: permissions.canManageCreativeWritingBookings },
-                    { to: '/admin/price-review', icon: <ListChecks size={20} />, label: 'مصفوفة الأسعار', permission: permissions.canManageInstructors },
+                    { to: '/admin/price-review', icon: <DollarSign size={20} />, label: 'مصفوفة الأسعار', permission: permissions.canManageInstructors },
                     { to: '/admin/creative-writing-packages', icon: <Package size={20} />, label: 'إدارة الباقات', permission: permissions.canManageCreativeWritingSettings },
                     { to: '/admin/creative-writing-services', icon: <Sparkles size={20} />, label: 'إدارة الخدمات', permission: permissions.canManageCreativeWritingSettings },
                 ]
@@ -146,8 +146,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                      { to: '/admin/settings', icon: <Settings size={20} />, label: 'الإعدادات العامة', permission: permissions.canManageSettings },
                      { to: '/admin/system-config', icon: <Server size={20} />, label: 'تكوين النظام', permission: permissions.canManageSettings },
                      { to: '/admin/audit-log', icon: <History size={20} />, label: 'سجل النشاطات', permission: permissions.canViewAuditLog },
-                     { to: '/admin/database-inspector', icon: <Database size={20} />, label: 'مراقب القاعدة', permission: permissions.canManageSettings },
-                     { to: '/admin/migration', icon: <UploadCloud size={20} />, label: 'ترحيل الصور', permission: permissions.canManageSettings },
+                     { to: '/admin/database-inspector', icon: <Settings size={20} />, label: 'مراقب القاعدة', permission: permissions.canManageSettings },
                      { to: '/admin/integrations', icon: <Plug size={20} />, label: 'التكاملات', permission: permissions.canManageSettings },
                 ]
             },
