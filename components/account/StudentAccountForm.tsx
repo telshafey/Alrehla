@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, AlertCircle, ArrowLeft, UserPlus, Lock } from 'lucide-react';
+import { Save, AlertCircle, ArrowLeft, UserPlus, Lock, Globe } from 'lucide-react';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import type { ChildProfile } from '../../lib/database.types';
 import { Button } from '../ui/Button';
@@ -17,30 +17,42 @@ interface StudentAccountFormProps {
 
 const StudentAccountForm: React.FC<StudentAccountFormProps> = ({ childProfile, parentEmail, onCancel, onSuccess }) => {
     const { createAndLinkStudentAccount } = useUserMutations();
+    
+    // State for the custom english username part
+    const [usernamePart, setUsernamePart] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('123456'); // Default easy password
 
-    // Auto-generate email logic
+    // Initial setup: Try to guess english name from arabic name if possible, or leave blank
     useEffect(() => {
-        if (parentEmail && childProfile.name) {
-            // Clean child name: take first name, remove non-alphanumeric, lowercase
-            const childSlug = childProfile.name.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || `child${childProfile.id}`;
+        if (childProfile.name) {
+             // Try to keep only latin characters
+            const initialGuess = childProfile.name.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            setUsernamePart(initialGuess);
+        }
+    }, [childProfile]);
+
+    // Auto-generate email logic whenever usernamePart changes
+    useEffect(() => {
+        if (parentEmail) {
             // Clean parent email: take part before @
             const parentSlug = parentEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
             
+            // Use provided username or fallback to 'child'+ID if empty
+            const safeUsername = usernamePart.trim() || `child${childProfile.id}`;
+            
             // Format: name.parent@alrehla.student
-            // This ensures uniqueness relative to parent and clear association
-            const generatedEmail = `${childSlug}.${parentSlug}@alrehla.student`;
+            const generatedEmail = `${safeUsername}.${parentSlug}@alrehla.student`;
             setEmail(generatedEmail);
         }
-    }, [parentEmail, childProfile]);
+    }, [parentEmail, usernamePart, childProfile.id]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             await createAndLinkStudentAccount.mutateAsync({
-                name: childProfile.name,
-                email,
+                name: childProfile.name, // We keep the original Arabic name for display
+                email, // The email is generated using the English username
                 password,
                 childProfileId: childProfile.id
             });
@@ -72,23 +84,39 @@ const StudentAccountForm: React.FC<StudentAccountFormProps> = ({ childProfile, p
                         <Lock className="w-5 h-5 flex-shrink-0 mt-0.5" />
                         <div className="text-sm">
                             <p className="font-bold mb-1">نظام الحسابات المرتبطة</p>
-                            <p>يتم إنشاء حساب الطالب تلقائياً مرتبطاً ببريدك الإلكتروني لسهولة التذكر والإدارة. كلمة المرور الافتراضية هي <b>123456</b> ويمكنك تغييرها لاحقاً.</p>
+                            <p>يتم إنشاء حساب الطالب مرتبطاً ببريدك الإلكتروني لسهولة الإدارة. كلمة المرور الافتراضية هي <b>123456</b> ويمكنك تغييرها لاحقاً.</p>
                         </div>
                     </CardContent>
                 </Card>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <FormField label="اسم المستخدم / البريد الإلكتروني (تلقائي)" htmlFor="email">
+                    
+                    <FormField label="اسم الطالب (بالإنجليزي)" htmlFor="usernamePart">
+                        <div className="relative">
+                            <Input 
+                                type="text" 
+                                id="usernamePart" 
+                                value={usernamePart} 
+                                onChange={(e) => setUsernamePart(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase())}
+                                placeholder="مثال: ahmed"
+                                className="pl-10 text-left dir-ltr"
+                                required
+                            />
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            اكتب الاسم بأحرف إنجليزية فقط لتوليد إيميل احترافي (بدون أرقام عشوائية).
+                        </p>
+                    </FormField>
+
+                    <FormField label="البريد الإلكتروني للدخول (يتم توليده تلقائياً)" htmlFor="email">
                         <Input 
                             type="email" 
                             id="email" 
                             value={email} 
                             readOnly
-                            className="bg-gray-100 text-gray-500 cursor-not-allowed font-mono text-left dir-ltr"
+                            className="bg-gray-100 text-gray-600 cursor-not-allowed font-mono text-left dir-ltr border-dashed"
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
-                            تم توليد هذا البريد لضمان عدم التعارض وربطه بحسابك.
-                        </p>
                     </FormField>
                     
                     <FormField label="كلمة المرور" htmlFor="password">

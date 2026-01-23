@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, Lock } from 'lucide-react';
+import { Save, Lock, AlertTriangle } from 'lucide-react';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import type { EnrichedChildProfile } from '../../hooks/queries/user/useUserDataQuery';
 import { Button } from '../ui/Button';
 import FormField from '../ui/FormField';
 import { Input } from '../ui/Input';
 import Modal from '../ui/Modal';
+import { useToast } from '../../contexts/ToastContext';
 
 interface StudentPasswordModalProps {
     isOpen: boolean;
@@ -16,6 +17,7 @@ interface StudentPasswordModalProps {
 
 const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({ isOpen, onClose, child }) => {
     const { resetStudentPassword } = useUserMutations();
+    const { addToast } = useToast();
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -30,17 +32,27 @@ const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({ isOpen, onC
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
         if (newPassword !== confirmPassword) {
-            alert('كلمتا المرور غير متطابقتين');
+            addToast('كلمتا المرور غير متطابقتين', 'error');
             return;
         }
-        if (!child.student_user_id) return;
 
-        await resetStudentPassword.mutateAsync({
-            studentUserId: child.student_user_id,
-            newPassword
-        });
-        onClose();
+        if (!child.student_user_id) {
+            addToast('لا يوجد حساب طالب مرتبط بهذا الملف لتغيير كلمة مروره.', 'error');
+            return;
+        }
+
+        try {
+            await resetStudentPassword.mutateAsync({
+                studentUserId: child.student_user_id,
+                newPassword
+            });
+            onClose();
+        } catch (error) {
+            // Error is handled by mutation, but we keep modal open
+            console.error("Password reset error:", error);
+        }
     };
 
     return (
@@ -58,6 +70,13 @@ const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({ isOpen, onC
             }
         >
             <form id="reset-student-password-form" onSubmit={handleSubmit} className="space-y-6">
+                {!child.student_user_id && (
+                     <div className="bg-red-50 text-red-700 p-3 rounded-lg flex items-center gap-2 text-sm border border-red-200">
+                        <AlertTriangle size={16} />
+                        <span>خطأ: هذا الملف غير مرتبط بحساب طالب فعلي. يرجى إنشاء حساب أولاً.</span>
+                    </div>
+                )}
+                
                 <FormField label="كلمة المرور الجديدة" htmlFor="newPassword">
                     <Input 
                         type="password" 
@@ -67,6 +86,7 @@ const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({ isOpen, onC
                         required 
                         minLength={6}
                         placeholder="******"
+                        disabled={!child.student_user_id}
                     />
                 </FormField>
                 <FormField label="تأكيد كلمة المرور" htmlFor="confirmPassword">
@@ -76,6 +96,7 @@ const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({ isOpen, onC
                         value={confirmPassword} 
                         onChange={(e) => setConfirmPassword(e.target.value)} 
                         required 
+                        disabled={!child.student_user_id}
                     />
                 </FormField>
                 <div className="flex items-center gap-2 text-xs text-yellow-700 bg-yellow-50 p-2 rounded">
