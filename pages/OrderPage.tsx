@@ -131,7 +131,14 @@ const OrderPage: React.FC = () => {
     const handleNext = async () => {
         let fieldsToValidate: any[] = [];
         
-        if (currentStepKey === 'child') fieldsToValidate = ['childName', 'childBirthDate', 'childGender'];
+        if (currentStepKey === 'child') {
+            fieldsToValidate = ['childName', 'childBirthDate', 'childGender'];
+            // Fix: For Library Books, images are uploaded in the Child step
+            if (isLibraryBook && product.image_slots) {
+                const imageFields = product.image_slots.map(slot => slot.id);
+                fieldsToValidate = [...fieldsToValidate, ...imageFields];
+            }
+        }
         
         // Validation for story customization only if step exists
         if (currentStepKey === 'story' && !isLibraryBook) {
@@ -139,6 +146,11 @@ const OrderPage: React.FC = () => {
              if (product.text_fields) {
                  fieldsToValidate = [...fieldsToValidate, ...product.text_fields.filter(f => f.required).map(f => f.id)];
              }
+             // Fix: For Hero Stories, images are uploaded in the Story step
+             if (product.image_slots) {
+                const imageFields = product.image_slots.map(slot => slot.id);
+                fieldsToValidate = [...fieldsToValidate, ...imageFields];
+            }
         }
         
         if (currentStepKey === 'delivery' && formData.deliveryType === 'printed') {
@@ -150,6 +162,15 @@ const OrderPage: React.FC = () => {
         if (isValid) {
             setStep(prev => prev + 1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+             // Optional: visual feedback if validation fails silently (though fields usually turn red)
+             if (!isLibraryBook && currentStepKey === 'story' || isLibraryBook && currentStepKey === 'child') {
+                 // Check if image errors exist
+                 const errors = methods.formState.errors;
+                 if (product.image_slots?.some(slot => errors[slot.id])) {
+                     addToast("يرجى رفع الصور المطلوبة للمتابعة.", "error");
+                 }
+             }
         }
     };
 

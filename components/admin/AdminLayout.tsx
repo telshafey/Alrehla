@@ -7,6 +7,7 @@ import AdminNavbar from './AdminNavbar';
 import AdminFooter from './AdminFooter';
 import PageLoader from '../ui/PageLoader';
 import PermissionBasedRoute from '../auth/PermissionBasedRoute';
+import NotificationListener from '../shared/NotificationListener';
 
 // Lazy load admin pages
 const AdminDashboardPage = lazy(() => import('../../pages/admin/AdminDashboardPage'));
@@ -73,6 +74,9 @@ const AdminLayout: React.FC = () => {
 
     return (
         <div className="flex h-screen bg-muted/30 overflow-hidden" dir="rtl">
+            {/* إضافة مستمع الإشعارات هنا لضمان عمله داخل لوحة التحكم */}
+            <NotificationListener />
+
             {isMobileMenuOpen && (
                 <div 
                     className="fixed inset-0 bg-black/50 z-40 md:hidden animate-fadeIn"
