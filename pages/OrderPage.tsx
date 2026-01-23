@@ -52,6 +52,9 @@ const OrderPage: React.FC = () => {
         resolver: zodResolver(createOrderSchema(product)),
         mode: 'onChange',
         defaultValues: {
+            childName: '',
+            childBirthDate: '',
+            childGender: '' as any, // Initialize as empty to show placeholder
             deliveryType: 'printed',
             shippingOption: 'my_address'
         }
