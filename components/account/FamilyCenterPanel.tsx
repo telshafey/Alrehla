@@ -9,7 +9,6 @@ import EmptyState from './EmptyState';
 import ChildDashboardCard from './ChildDashboardCard';
 import ChildForm from './ChildForm';
 import StudentAccountForm from './StudentAccountForm';
-import StudentPasswordModal from './StudentPasswordModal';
 import PageLoader from '../ui/PageLoader';
 
 type ViewMode = 'list' | 'child-form' | 'student-form';
@@ -21,7 +20,6 @@ const FamilyCenterPanel: React.FC = () => {
 
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [selectedChild, setSelectedChild] = useState<EnrichedChildProfile | null>(null);
-    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     
     const childProfiles = accountData?.childProfiles || [];
     const { userOrders = [], userBookings = [], userSubscriptions = [], allBadges = [], childBadges = [] } = accountData || {};
@@ -58,11 +56,6 @@ const FamilyCenterPanel: React.FC = () => {
         setViewMode('student-form');
     };
 
-    const handleResetPassword = (child: EnrichedChildProfile) => {
-        setSelectedChild(child);
-        setIsPasswordModalOpen(true);
-    };
-
     if (isLoading) return <div className="p-8 bg-white rounded-2xl shadow-lg"><PageLoader text="جاري تحميل بيانات العائلة..." /></div>;
 
     if (viewMode === 'child-form') return <div className="bg-white p-8 rounded-2xl shadow-lg"><ChildForm childToEdit={selectedChild} onCancel={() => setViewMode('list')} onSuccess={() => setViewMode('list')} /></div>;
@@ -72,7 +65,6 @@ const FamilyCenterPanel: React.FC = () => {
 
     return (
         <>
-            <StudentPasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} child={selectedChild} />
             <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8 pb-4 border-b">
                     <div>
@@ -96,7 +88,6 @@ const FamilyCenterPanel: React.FC = () => {
                                 onEdit={handleEditChild}
                                 onDelete={handleDeleteChild}
                                 onCreateStudentAccount={handleCreateStudentAccount}
-                                onResetPassword={handleResetPassword}
                            />
                         ))}
                     </div>

@@ -1,12 +1,13 @@
 
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Edit, UserPlus, ShoppingBag, BookOpen, Star, ArrowLeft, Award, Lock, Mail, Key, Trash2, Link2Off } from 'lucide-react';
+import { Edit, UserPlus, ShoppingBag, BookOpen, Star, ArrowLeft, Award, Lock, Mail, Key, Trash2, Link2Off, Save, X, AlertTriangle, CheckCircle } from 'lucide-react';
 import type { Order, CreativeWritingBooking, Subscription, Badge, ChildBadge } from '../../lib/database.types';
 import type { EnrichedChildProfile } from '../../hooks/queries/user/useUserDataQuery';
 import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import FormField from '../ui/FormField';
 import { formatDate, calculateAge } from '../../utils/helpers';
-import BadgeDisplay from '../shared/BadgeDisplay';
 import Image from '../ui/Image';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 
@@ -22,7 +23,6 @@ interface ChildDashboardCardProps {
     onEdit: (child: EnrichedChildProfile) => void;
     onDelete: (childId: number) => void;
     onCreateStudentAccount: (child: EnrichedChildProfile) => void;
-    onResetPassword: (child: EnrichedChildProfile) => void;
 }
 
 const ActivityIcon: React.FC<{type: string}> = ({type}) => {
@@ -34,9 +34,16 @@ const ActivityIcon: React.FC<{type: string}> = ({type}) => {
     }
 }
 
-const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childActivity, allBadges, childBadges, onEdit, onDelete, onCreateStudentAccount, onResetPassword }) => {
-    const { unlinkStudentFromChildProfile } = useUserMutations();
+const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childActivity, allBadges, childBadges, onEdit, onDelete, onCreateStudentAccount }) => {
+    const { unlinkStudentFromChildProfile, resetStudentPassword } = useUserMutations();
     
+    // Inline Password Reset State
+    const [isResettingPassword, setIsResettingPassword] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [passwordSuccess, setPasswordSuccess] = useState(false);
+
     const recentActivity = useMemo(() => {
         const { orders, bookings, subscriptions } = childActivity;
         const allItems = [
@@ -61,6 +68,46 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
         if(window.confirm(`هل أنت متأكد من فك ارتباط حساب الطالب بملف "${child.name}"؟\n\nاستخدم هذا الخيار إذا كان الطالب يواجه مشاكل في الدخول أو يظهر كـ "غير مرتبط" في لوحته.\n\nسيحتاج الطالب لإنشاء حساب جديد للدخول.`)) {
             await unlinkStudentFromChildProfile.mutateAsync({ childProfileId: child.id });
         }
+    };
+
+    const handlePasswordReset = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordError(null);
+        
+        if (newPassword.length < 6) {
+             setPasswordError('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
+             return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setPasswordError('كلمتا المرور غير متطابقتين.');
+            return;
+        }
+
+        if (!child.student_user_id) return;
+
+        try {
+            await resetStudentPassword.mutateAsync({
+                studentUserId: child.student_user_id,
+                newPassword
+            });
+            setPasswordSuccess(true);
+            setNewPassword('');
+            setConfirmPassword('');
+            setTimeout(() => {
+                setPasswordSuccess(false);
+                setIsResettingPassword(false);
+            }, 2000);
+        } catch (error: any) {
+            setPasswordError(error.message || 'حدث خطأ أثناء تغيير كلمة المرور.');
+        }
+    };
+
+    const closePasswordReset = () => {
+        setIsResettingPassword(false);
+        setPasswordError(null);
+        setNewPassword('');
+        setConfirmPassword('');
     };
 
     return (
@@ -89,31 +136,90 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
                     </div>
                     
                     {/* حساب الطالب والبريد الإلكتروني المخصص */}
-                    <div className="mt-2 p-3 bg-white rounded-lg border border-gray-100 shadow-sm relative">
+                    <div className="mt-2 p-3 bg-white rounded-lg border border-gray-100 shadow-sm relative transition-all duration-300">
                         {child.student_user_id ? (
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between flex-wrap gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                        <span className="text-xs font-bold text-green-700">حساب طالب مرتبط</span>
+                            <>
+                                {!isResettingPassword ? (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between flex-wrap gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                                <span className="text-xs font-bold text-green-700">حساب طالب مرتبط</span>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <Button variant="outline" size="sm" onClick={() => setIsResettingPassword(true)} className="h-7 text-xs px-2" icon={<Key size={12} />}>
+                                                    تغيير كلمة المرور
+                                                </Button>
+                                                <Button variant="ghost" size="sm" onClick={handleUnlink} className="h-7 text-xs px-2 text-red-500 hover:text-red-700 hover:bg-red-50" title="فك الارتباط لإصلاح مشاكل الدخول">
+                                                    <Link2Off size={14} />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div className="text-sm bg-muted/30 p-2 rounded border border-dashed flex justify-between items-center">
+                                            <div className="flex items-center gap-2 text-gray-700 font-mono text-xs overflow-hidden">
+                                                <Mail size={14} className="text-primary flex-shrink-0"/>
+                                                <span className="truncate" dir="ltr">{child.student_email || 'البريد قيد التحديث...'}</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex gap-1">
-                                        <Button variant="outline" size="sm" onClick={() => onResetPassword(child)} className="h-7 text-xs px-2" icon={<Key size={12} />}>
-                                            كلمة المرور
-                                        </Button>
-                                        <Button variant="ghost" size="sm" onClick={handleUnlink} className="h-7 text-xs px-2 text-red-500 hover:text-red-700 hover:bg-red-50" title="فك الارتباط لإصلاح مشاكل الدخول">
-                                            <Link2Off size={14} />
-                                        </Button>
-                                    </div>
-                                </div>
-                                <div className="text-sm bg-muted/30 p-2 rounded border border-dashed flex justify-between items-center">
-                                    <div className="flex items-center gap-2 text-gray-700 font-mono text-xs overflow-hidden">
-                                        <Mail size={14} className="text-primary flex-shrink-0"/>
-                                        <span className="truncate" dir="ltr">{child.student_email || 'البريد قيد التحديث...'}</span>
-                                    </div>
-                                </div>
-                                <p className="text-[10px] text-gray-400">استخدم هذا البريد وكلمة المرور للدخول كطالب.</p>
-                            </div>
+                                ) : (
+                                    /* Inline Password Reset Form */
+                                    <form onSubmit={handlePasswordReset} className="space-y-3 animate-fadeIn bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="text-sm font-bold text-yellow-800 flex items-center gap-2">
+                                                <Lock size={14}/> تعيين كلمة مرور جديدة
+                                            </h4>
+                                            <Button type="button" variant="ghost" size="icon" onClick={closePasswordReset} className="h-6 w-6 text-yellow-700 hover:bg-yellow-100">
+                                                <X size={14} />
+                                            </Button>
+                                        </div>
+
+                                        {passwordSuccess ? (
+                                            <div className="flex flex-col items-center justify-center py-4 text-green-600">
+                                                <CheckCircle size={32} className="mb-2" />
+                                                <p className="font-bold text-sm">تم التغيير بنجاح</p>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    <FormField label="كلمة المرور الجديدة" htmlFor={`new-pass-${child.id}`} className="mb-0">
+                                                        <Input 
+                                                            type="password" 
+                                                            id={`new-pass-${child.id}`} 
+                                                            value={newPassword} 
+                                                            onChange={(e) => setNewPassword(e.target.value)} 
+                                                            className="h-8 text-sm bg-white"
+                                                            placeholder="******"
+                                                            minLength={6}
+                                                        />
+                                                    </FormField>
+                                                    <FormField label="تأكيد الكلمة" htmlFor={`confirm-pass-${child.id}`} className="mb-0">
+                                                        <Input 
+                                                            type="password" 
+                                                            id={`confirm-pass-${child.id}`} 
+                                                            value={confirmPassword} 
+                                                            onChange={(e) => setConfirmPassword(e.target.value)} 
+                                                            className="h-8 text-sm bg-white"
+                                                        />
+                                                    </FormField>
+                                                </div>
+                                                
+                                                {passwordError && (
+                                                    <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-100 flex items-center gap-1">
+                                                        <AlertTriangle size={12} /> {passwordError}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-end pt-2">
+                                                    <Button type="submit" size="sm" className="h-8 text-xs bg-yellow-600 hover:bg-yellow-700 text-white" loading={resetStudentPassword.isPending} icon={<Save size={12}/>}>
+                                                        حفظ التغيير
+                                                    </Button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </form>
+                                )}
+                            </>
                         ) : (
                             <div className="flex items-center justify-between">
                                 <span className="text-xs text-muted-foreground italic">لا يوجد حساب دخول للطالب</span>
