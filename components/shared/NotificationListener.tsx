@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
@@ -9,13 +9,24 @@ const NotificationListener: React.FC = () => {
     const { currentUser } = useAuth();
     const queryClient = useQueryClient();
     const { addToast } = useToast();
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        // Preload notification sound
+        audioRef.current = new Audio('https://cdn.freesound.org/previews/536/536108_10672036-lq.mp3');
+        audioRef.current.volume = 0.5;
+    }, []);
 
     useEffect(() => {
         if (!currentUser) return;
 
-        // إنشاء قناة استماع خاصة بالمستخدم الحالي
+        // Unique channel name per user to avoid conflicts
+        const channelName = `notifications:user:${currentUser.id}`;
+        
+        console.log(`📡 Connecting to notification channel: ${channelName}`);
+
         const channel = supabase
-            .channel(`notifications_user_${currentUser.id}`)
+            .channel(channelName)
             .on(
                 'postgres_changes',
                 {
@@ -26,25 +37,25 @@ const NotificationListener: React.FC = () => {
                 },
                 (payload) => {
                     const newNotification = payload.new as any;
-                    
-                    // 1. تحديث كاش البيانات فوراً ليظهر الرقم على الجرس
+                    console.log("🔔 New Notification Received:", newNotification);
+
+                    // 1. Invalidate queries to refresh UI counters immediately
                     queryClient.invalidateQueries({ queryKey: ['userNotifications'] });
                     
-                    // 2. إظهار تنبيه منبثق (Toast)
+                    // 2. Show Toast
                     addToast(newNotification.message, 'info');
                     
-                    // 3. تشغيل صوت تنبيه بسيط (اختياري)
-                    try {
-                        // صوت "Ding" خفيف
-                        const audio = new Audio('https://cdn.freesound.org/previews/536/536108_10672036-lq.mp3');
-                        audio.volume = 0.3;
-                        audio.play().catch(() => {}); // تجاهل الخطأ إذا كان المتصفح يمنع التشغيل التلقائي
-                    } catch(e) {}
+                    // 3. Play Sound
+                    if (audioRef.current) {
+                        audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
+                    }
                 }
             )
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
-                    // console.log("Listening for notifications...");
+                    // console.log("✅ Notification listener active");
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error("❌ Notification channel error. Retrying...");
                 }
             });
 
@@ -53,7 +64,7 @@ const NotificationListener: React.FC = () => {
         };
     }, [currentUser, queryClient, addToast]);
 
-    return null; // هذا المكون يعمل في الخلفية ولا يعرض شيئاً
+    return null; 
 };
 
 export default NotificationListener;

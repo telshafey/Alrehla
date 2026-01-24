@@ -30,6 +30,8 @@ export const communicationService = {
     async notifyAdmins(message: string, link: string, type: string = 'admin_alert') {
         try {
             // 1. Fetch admins with relevant roles
+            // NOTE: This requires "profiles" table to be readable by the sender (e.g. Student)
+            // Ensure RLS policy "Public profiles are viewable by everyone" is applied.
             const { data: admins, error } = await supabase
                 .from('profiles')
                 .select('id')
@@ -53,10 +55,8 @@ export const communicationService = {
                 const { error: insertError } = await (supabase.from('notifications') as any).insert(notifications);
                 
                 if (insertError) {
-                    console.error("Error inserting admin notifications:", insertError);
+                    console.error("Error inserting admin notifications (Check RLS):", insertError);
                 }
-            } else {
-                 console.warn("No admins found to notify.");
             }
         } catch (error) {
             console.error("Failed to notify admins:", error);
