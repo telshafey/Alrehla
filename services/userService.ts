@@ -272,7 +272,8 @@ export const userService = {
                 const { error: updateError } = await supabase.auth.updateUser({ password: password });
                 if (updateError) throw new Error(`فشل تغيير كلمة المرور: ${updateError.message}`);
             } else {
-                 await this.resetStudentPassword({ studentUserId: id, newPassword: password });
+                 // Fixed: using explicit reference instead of 'this'
+                 await userService.resetStudentPassword({ studentUserId: id, newPassword: password });
             }
         }
         return data as UserProfile;
@@ -284,7 +285,8 @@ export const userService = {
              const { error } = await supabase.auth.updateUser({ password: payload.newPassword });
              if (error) throw new Error(error.message);
         } else {
-             return this.resetStudentPassword({ studentUserId: payload.userId, newPassword: payload.newPassword });
+             // Fixed: using explicit reference instead of 'this'
+             return userService.resetStudentPassword({ studentUserId: payload.userId, newPassword: payload.newPassword });
         }
         return { success: true };
     },
