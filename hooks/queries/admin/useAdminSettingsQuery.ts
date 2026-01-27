@@ -8,6 +8,7 @@ import {
     mockCommunicationSettings,
     mockJitsiSettings,
     mockMaintenanceSettings,
+    mockLibraryPricingSettings,
 } from '../../../data/mockData';
 import { bookingService } from '../../../services/bookingService';
 import { DEFAULT_CONFIG } from '../../../lib/config';
@@ -63,6 +64,11 @@ export const useAdminJitsiSettings = () => useQuery({
 export const useAdminPricingSettings = () => useQuery({
     queryKey: ['adminPricingSettings'],
     queryFn: () => fetchSetting('pricing_config', mockPricingSettings),
+});
+
+export const useAdminLibraryPricingSettings = () => useQuery({
+    queryKey: ['adminLibraryPricingSettings'],
+    queryFn: () => fetchSetting('library_pricing_config', mockLibraryPricingSettings),
 });
 
 export const useAdminRolePermissions = () => useQuery({

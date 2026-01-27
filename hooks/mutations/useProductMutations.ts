@@ -33,6 +33,16 @@ export const useProductMutations = () => {
         },
         onError: (err: Error) => addToast(`فشل حذف المنتج: ${err.message}`, 'error'),
     });
+    
+    const approveProduct = useMutation({
+        mutationFn: (payload: { productId: number, status: 'approved' | 'rejected' }) => orderService.approveProduct(payload.productId, payload.status),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
+            const msg = variables.status === 'approved' ? 'تمت الموافقة على المنتج ونشره.' : 'تم رفض المنتج.';
+            addToast(msg, variables.status === 'approved' ? 'success' : 'info');
+        },
+        onError: (err: Error) => addToast(`فشل تغيير حالة المنتج: ${err.message}`, 'error'),
+    });
 
-    return { createPersonalizedProduct, updatePersonalizedProduct, deletePersonalizedProduct };
+    return { createPersonalizedProduct, updatePersonalizedProduct, deletePersonalizedProduct, approveProduct };
 }

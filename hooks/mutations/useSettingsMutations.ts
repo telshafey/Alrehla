@@ -41,6 +41,17 @@ export const useSettingsMutations = () => {
             addToast(`فشل تحديث الإعدادات: ${error.message}`, 'error');
         }
     });
+    
+    const updateLibraryPricingSettings = useMutation({
+        mutationFn: settingsService.updateLibraryPricingSettings,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['adminLibraryPricingSettings'] });
+            addToast('تم تحديث إعدادات تسعير المكتبة بنجاح.', 'success');
+        },
+        onError: (error: Error) => {
+            addToast(`فشل تحديث الإعدادات: ${error.message}`, 'error');
+        }
+    });
 
     const updateRolePermissions = useMutation({
         mutationFn: settingsService.updateRolePermissions,
@@ -91,6 +102,7 @@ export const useSettingsMutations = () => {
         updateSocialLinks, 
         updateCommunicationSettings, 
         updatePricingSettings, 
+        updateLibraryPricingSettings,
         updateRolePermissions, 
         updateJitsiSettings,
         updateSystemConfig,

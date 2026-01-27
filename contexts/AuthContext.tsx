@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (user.role === 'student') {
                 const profile = await authService.getStudentProfile(user.id);
                 setCurrentChildProfile(profile);
-            } else if (['user', 'parent', 'super_admin', 'general_supervisor', 'instructor'].includes(user.role)) {
+            } else if (['user', 'parent', 'super_admin', 'general_supervisor', 'instructor', 'publisher'].includes(user.role)) {
                 const children = await authService.getUserChildren(user.id);
                 setChildProfiles(children || []);
             }
@@ -136,8 +136,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const isProfileComplete = useMemo(() => {
         if (!currentUser) return false;
         
-        // Students are exempt from profile completion checks (phone/address)
-        if (currentUser.role === 'student') return true;
+        // Students and Publishers are exempt from profile completion checks (phone/address) for initial access
+        if (currentUser.role === 'student' || currentUser.role === 'publisher') return true;
 
         // For others, check core fields: Country, City, Phone
         return !!(currentUser.country && currentUser.city && currentUser.phone);
@@ -160,6 +160,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const userRole = currentUser?.role || 'user';
         const currentPermissions = getPermissions(userRole);
         
+        // القائمة المسموح لها بدخول لوحة التحكم (تمت إضافة publisher هنا لإصلاح المشكلة)
+        const allowedAdminRoles = [
+            'super_admin', 
+            'general_supervisor', 
+            'instructor', 
+            'enha_lak_supervisor', 
+            'creative_writing_supervisor',
+            'publisher', // <--- Added here
+            'content_editor',
+            'support_agent'
+        ];
+
         return {
             currentUser,
             currentChildProfile,
@@ -170,8 +182,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             updateCurrentUser,
             loading,
             error,
-            // حق الوصول للوحة بناءً على الرتبة المباشرة
-            hasAdminAccess: ['super_admin', 'general_supervisor', 'instructor', 'enha_lak_supervisor', 'creative_writing_supervisor'].includes(userRole),
+            hasAdminAccess: allowedAdminRoles.includes(userRole),
             permissions: currentPermissions,
             childProfiles,
             isParent: childProfiles.length > 0,

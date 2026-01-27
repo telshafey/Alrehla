@@ -20,10 +20,10 @@ const NotificationListener: React.FC = () => {
     useEffect(() => {
         if (!currentUser) return;
 
-        // Unique channel name per user to avoid conflicts
+        // Unique channel name per user
         const channelName = `notifications:user:${currentUser.id}`;
         
-        console.log(`📡 Connecting to notification channel: ${channelName}`);
+        // console.log(`📡 Connecting to notification channel: ${channelName}`);
 
         const channel = supabase
             .channel(channelName)
@@ -37,9 +37,8 @@ const NotificationListener: React.FC = () => {
                 },
                 (payload) => {
                     const newNotification = payload.new as any;
-                    console.log("🔔 New Notification Received:", newNotification);
-
-                    // 1. Invalidate queries to refresh UI counters immediately
+                    
+                    // 1. Invalidate queries
                     queryClient.invalidateQueries({ queryKey: ['userNotifications'] });
                     
                     // 2. Show Toast
@@ -51,18 +50,13 @@ const NotificationListener: React.FC = () => {
                     }
                 }
             )
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    // console.log("✅ Notification listener active");
-                } else if (status === 'CHANNEL_ERROR') {
-                    console.error("❌ Notification channel error. Retrying...");
-                }
-            });
+            .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentUser, queryClient, addToast]);
+        // FIX: Dependency on currentUser.id instead of currentUser object prevents infinite loop
+    }, [currentUser?.id, queryClient, addToast]);
 
     return null; 
 };

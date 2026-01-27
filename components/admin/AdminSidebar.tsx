@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
     LayoutDashboard, Users, ShoppingBag, BookOpen, UserCog, MessageSquare, UserPlus,
     FileText, Settings, Star, Package, Sparkles, CalendarCheck, Plug, DollarSign, BarChart, History, X,
-    Globe, Home, Info, HelpCircle, Shield, Server
+    Globe, Home, Info, HelpCircle, Shield, Server, Library
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Image from '../ui/Image';
@@ -47,6 +47,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
     const { permissions } = useAuth();
     
     const isInstructorOnly = permissions.isInstructor && !permissions.canViewGlobalStats;
+    const isPublisherOnly = permissions.isPublisher && !permissions.canViewGlobalStats;
 
     const renderNavContent = (navItems: any[]) => (
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
@@ -84,6 +85,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
         ].filter(item => item.permission);
         
         navigationContent = renderNavContent(instructorNav);
+    } else if (isPublisherOnly) {
+        const publisherNav = [
+            { to: '/admin', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: true },
+            { to: '/admin/publisher-products', icon: <Library size={20} />, label: 'إدارة كتبي', permission: permissions.canManageOwnProducts },
+            { to: '/admin/my-profile', icon: <UserCog size={20} />, label: 'إعدادات الحساب', permission: true },
+        ].filter(item => item.permission);
+        
+        navigationContent = renderNavContent(publisherNav);
     } else {
         const adminNavGroups = [
             {

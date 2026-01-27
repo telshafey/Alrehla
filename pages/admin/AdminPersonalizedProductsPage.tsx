@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings, Box, Sparkles, BookHeart, Library } from 'lucide-react';
+import { Gift, Plus, Edit, Trash2, Star, Puzzle, Check, X, Settings, Box, Sparkles, BookHeart, Library, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useProductMutations } from '../../hooks/mutations/useProductMutations';
 import PageLoader from '../../components/ui/PageLoader';
@@ -19,7 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Ta
 const AdminPersonalizedProductsPage: React.FC = () => {
     const navigate = useNavigate();
     const { data: personalizedProducts = [], isLoading, error, refetch } = useAdminPersonalizedProducts();
-    const { deletePersonalizedProduct } = useProductMutations();
+    const { deletePersonalizedProduct, approveProduct } = useProductMutations();
     const [sortConfig, setSortConfig] = useState<{ key: keyof PersonalizedProduct; direction: 'asc' | 'desc' } | null>({ key: 'sort_order', direction: 'asc' });
     const [activeTab, setActiveTab] = useState('hero');
     
@@ -35,11 +35,13 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                 p.key !== 'subscription_box'
             );
         } else if (activeTab === 'library') {
-            products = personalizedProducts.filter(p => p.product_type === 'library_book' && !p.is_addon);
+            products = personalizedProducts.filter(p => p.product_type === 'library_book' && !p.is_addon && p.approval_status !== 'pending');
         } else if (activeTab === 'addons') {
-            products = personalizedProducts.filter(p => p.is_addon);
+            products = personalizedProducts.filter(p => p.is_addon && p.approval_status !== 'pending');
         } else if (activeTab === 'subscription') {
             products = personalizedProducts.filter(p => p.key === 'subscription_box' || p.product_type === 'subscription_box');
+        } else if (activeTab === 'pending') {
+            products = personalizedProducts.filter(p => p.approval_status === 'pending');
         }
 
         // 2. الترتيب
@@ -94,6 +96,9 @@ const AdminPersonalizedProductsPage: React.FC = () => {
         }
     ];
 
+    // Count pending items
+    const pendingCount = personalizedProducts.filter(p => p.approval_status === 'pending').length;
+
     if (isLoading) return <PageLoader text="جاري تحميل المنتجات..." />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
 
@@ -125,6 +130,15 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                     <TabsTrigger value="subscription" className="gap-2">
                         <Box size={16}/> الاشتراكات
                     </TabsTrigger>
+                    <TabsTrigger value="pending" className="gap-2 relative">
+                        <Clock size={16} className={pendingCount > 0 ? "text-orange-500" : ""}/> 
+                        طلبات النشر
+                        {pendingCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full animate-pulse">
+                                {pendingCount}
+                            </span>
+                        )}
+                    </TabsTrigger>
                 </TabsList>
 
                 <Card>
@@ -134,11 +148,13 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                             {activeTab === 'library' && <><BookHeart className="text-blue-500" /> قائمة كتب المكتبة</>}
                             {activeTab === 'addons' && <><Puzzle className="text-yellow-500" /> قائمة المنتجات الإضافية</>}
                             {activeTab === 'subscription' && <><Box className="text-purple-500" /> إدارة صناديق الاشتراك</>}
+                            {activeTab === 'pending' && <><Clock className="text-orange-500" /> منتجات بانتظار الموافقة</>}
                         </CardTitle>
                         <CardDescription>
                             {activeTab === 'hero' && "القصص التي يتم تخصيص محتواها وصورها بالكامل للطفل."}
                             {activeTab === 'library' && "الكتب الجاهزة التي يتم تخصيص غلافها فقط باسم الطفل وصورته."}
                             {activeTab === 'addons' && "المنتجات التي تظهر في سلة الشراء كاقتراحات إضافية."}
+                            {activeTab === 'pending' && "كتب أضافها الناشرون وتحتاج لمراجعة وموافقة قبل النشر."}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -149,6 +165,7 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                                         <SortableTableHead<PersonalizedProduct> sortKey="title" label="المنتج" sortConfig={sortConfig} onSort={handleSort} />
                                         <SortableTableHead<PersonalizedProduct> sortKey="price_printed" label="الأسعار (مطبوع/إلكتروني)" sortConfig={sortConfig} onSort={handleSort} />
                                         <SortableTableHead<PersonalizedProduct> sortKey="sort_order" label="الترتيب" sortConfig={sortConfig} onSort={handleSort} />
+                                        {activeTab === 'pending' && <TableHead>الناشر</TableHead>}
                                         <TableHead className="text-center w-24">الحالة</TableHead>
                                         <TableHead className="text-center"><Star size={16} className="mx-auto" /></TableHead>
                                         <TableHead>إجراءات</TableHead>
@@ -175,6 +192,13 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                                                     )}
                                                 </TableCell>
                                                 <TableCell>{product.sort_order}</TableCell>
+                                                
+                                                {activeTab === 'pending' && (
+                                                    <TableCell className="text-sm">
+                                                        {product.publisher?.name || 'مجهول'}
+                                                    </TableCell>
+                                                )}
+
                                                 <TableCell className="text-center">
                                                     {product.is_active !== false ? (
                                                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">نشط</span>
@@ -184,7 +208,17 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                                                 </TableCell>
                                                 <TableCell className="text-center">{product.is_featured ? <Check className="text-green-500 mx-auto" size={18} /> : <span className="text-gray-300">-</span>}</TableCell>
                                                 <TableCell className="flex items-center gap-1">
-                                                    {product.key === 'subscription_box' ? (
+                                                    {activeTab === 'pending' ? (
+                                                        <>
+                                                            <Button onClick={() => approveProduct.mutate({ productId: product.id, status: 'approved' })} variant="success" size="sm" title="موافقة ونشر">
+                                                                <CheckCircle size={16} className="mr-1"/> نشر
+                                                            </Button>
+                                                            <Button onClick={() => approveProduct.mutate({ productId: product.id, status: 'rejected' })} variant="destructive" size="sm" title="رفض">
+                                                                <XCircle size={16} />
+                                                            </Button>
+                                                            <Button onClick={() => navigate(`/admin/personalized-products/${product.id}`)} variant="ghost" size="icon" title="معاينة"><Edit size={20} /></Button>
+                                                        </>
+                                                    ) : product.key === 'subscription_box' ? (
                                                         <>
                                                             <Button onClick={() => navigate(`/admin/subscription-box`)} variant="ghost" size="icon" title="إدارة الصندوق والصورة" className="text-primary hover:bg-primary/10">
                                                                 <Settings size={20} />
@@ -202,7 +236,7 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                                            <TableCell colSpan={activeTab === 'pending' ? 7 : 6} className="text-center py-12 text-muted-foreground">
                                                 لا توجد منتجات في هذا القسم.
                                             </TableCell>
                                         </TableRow>

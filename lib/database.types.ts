@@ -1,5 +1,5 @@
 
-export type UserRole = 'user' | 'parent' | 'student' | 'instructor' | 'super_admin' | 'general_supervisor' | 'enha_lak_supervisor' | 'creative_writing_supervisor' | 'content_editor' | 'support_agent';
+export type UserRole = 'user' | 'parent' | 'student' | 'instructor' | 'super_admin' | 'general_supervisor' | 'enha_lak_supervisor' | 'creative_writing_supervisor' | 'content_editor' | 'support_agent' | 'publisher';
 
 export interface UserProfile {
     id: string;
@@ -81,7 +81,7 @@ export interface PersonalizedProduct {
     sort_order: number;
     is_featured: boolean;
     is_addon: boolean;
-    is_active?: boolean; // New Field for Visibility Control
+    is_active?: boolean; 
     has_printed_version: boolean;
     price_printed: number | null;
     price_electronic: number | null;
@@ -90,7 +90,10 @@ export interface PersonalizedProduct {
     goal_config: GoalConfig;
     story_goals?: StoryGoal[];
     component_keys?: string[];
+    publisher_id?: string | null; 
+    approval_status?: 'pending' | 'approved' | 'rejected'; // New Field
     deleted_at?: string | null;
+    publisher?: { name: string }; // Virtual for join
 }
 
 export type GoalConfig = 'none' | 'predefined' | 'custom' | 'predefined_and_custom';
@@ -331,6 +334,13 @@ export interface PricingSettings {
     id: number;
     company_percentage: number;
     fixed_fee: number;
+}
+
+// إعدادات تسعير المكتبة (جديدة)
+export interface LibraryPricingSettings {
+    id: number;
+    company_percentage: number; // نسبة المنصة من سعر الكتب
+    fixed_fee: number; // رسوم ثابتة لكل كتاب
 }
 
 export interface MaintenanceSettings {

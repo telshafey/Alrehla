@@ -4,23 +4,25 @@ import {
     mockSocialLinks, 
     mockCommunicationSettings, 
     mockPricingSettings, 
-    mockJitsiSettings,
-    mockSiteBranding,
-    mockSiteContent,
-    mockPrices,
-    mockShippingCosts,
-    mockMaintenanceSettings
+    mockJitsiSettings, 
+    mockSiteBranding, 
+    mockSiteContent, 
+    mockPrices, 
+    mockShippingCosts, 
+    mockMaintenanceSettings, 
+    mockLibraryPricingSettings 
 } from '../data/mockData';
 import { DEFAULT_CONFIG } from '../lib/config';
 import type { 
     SocialLinks, 
     CommunicationSettings, 
     PricingSettings, 
-    JitsiSettings,
-    SiteBranding,
-    Prices,
-    ShippingCosts,
-    MaintenanceSettings
+    JitsiSettings, 
+    SiteBranding, 
+    Prices, 
+    ShippingCosts, 
+    MaintenanceSettings, 
+    LibraryPricingSettings 
 } from '../lib/database.types';
 
 // Helper to fetch single setting safely with Auto-Seed capability
@@ -124,6 +126,15 @@ export const settingsService = {
         return settings;
     },
 
+    async updateLibraryPricingSettings(settings: LibraryPricingSettings) {
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ key: 'library_pricing_config', value: settings, updated_at: new Date().toISOString() } as any);
+
+        if (error) throw new Error(error.message);
+        return settings;
+    },
+
     async updateJitsiSettings(settings: JitsiSettings) {
         const { error } = await supabase
             .from('site_settings')
@@ -169,6 +180,7 @@ export const settingsService = {
             { key: 'social_links', value: mockSocialLinks },
             { key: 'communication_settings', value: mockCommunicationSettings },
             { key: 'pricing_config', value: mockPricingSettings },
+            { key: 'library_pricing_config', value: mockLibraryPricingSettings },
             { key: 'jitsi_settings', value: mockJitsiSettings },
             { key: 'global_content', value: mockSiteContent },
             { key: 'prices', value: mockPrices },

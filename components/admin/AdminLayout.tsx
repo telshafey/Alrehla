@@ -64,6 +64,10 @@ const InstructorJourneysPage = lazy(() => import('../../pages/admin/instructor/I
 const InstructorFinancialsPage = lazy(() => import('../../pages/admin/instructor/InstructorFinancialsPage'));
 const InstructorPricingPage = lazy(() => import('../../pages/admin/instructor/InstructorPricingPage'));
 
+// Publisher-specific pages
+const PublisherDashboardPage = lazy(() => import('../../pages/admin/publisher/PublisherDashboardPage'));
+const PublisherProductsPage = lazy(() => import('../../pages/admin/publisher/PublisherProductsPage'));
+
 const AdminLayout: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -106,18 +110,26 @@ const AdminLayout: React.FC = () => {
                                     <Route index element={
                                         permissions.canViewGlobalStats ? <AdminDashboardPage /> :
                                         permissions.isInstructor ? <InstructorDashboardPage /> :
+                                        permissions.isPublisher ? <PublisherDashboardPage /> :
                                         <Navigate to="/" replace />
                                     } />
 
                                     {/* الصفحة الشخصية للإدارة والموظفين */}
                                     <Route path="my-profile" element={<AdminMyProfilePage />} />
 
-                                    {/* مسارات المدرب - تظهر للمدرب أو المدير المسؤول */}
+                                    {/* مسارات المدرب */}
                                     <Route path="profile" element={<InstructorProfilePage />} />
                                     <Route path="schedule" element={<InstructorSchedulePage />} />
                                     <Route path="journeys" element={<InstructorJourneysPage />} />
                                     <Route path="pricing" element={<InstructorPricingPage />} />
                                     <Route path="instructor-financials" element={<InstructorFinancialsPage />} />
+
+                                    {/* مسارات دار النشر (Publisher) */}
+                                    <Route path="publisher-products" element={<PermissionBasedRoute permission="canManageOwnProducts"><PublisherProductsPage /></PermissionBasedRoute>} />
+                                    
+                                    {/* إعادة استخدام صفحة تعديل المنتج للناشر مع صلاحيات خاصة */}
+                                    <Route path="publisher-products/:id" element={<PermissionBasedRoute permission="canManageOwnProducts"><AdminProductDetailPage /></PermissionBasedRoute>} />
+                                    <Route path="publisher-products/new" element={<PermissionBasedRoute permission="canManageOwnProducts"><AdminProductDetailPage /></PermissionBasedRoute>} />
 
                                     {/* مسارات الإدارة الأساسية */}
                                     <Route path="users" element={<PermissionBasedRoute permission="canManageUsers"><AdminUsersPage /></PermissionBasedRoute>} />
@@ -166,7 +178,7 @@ const AdminLayout: React.FC = () => {
                                         <Route path="transactions-log" element={<TransactionsLogPage />} />
                                     </Route>
 
-                                    {/* سقوط آمن: العودة للرئيسية في حال عدم مطابقة أي مسار فرعي */}
+                                    {/* سقوط آمن */}
                                     <Route path="*" element={<Navigate to="/admin" replace />} />
                                 </Routes>
                             </Suspense>

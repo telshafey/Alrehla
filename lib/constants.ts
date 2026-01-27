@@ -25,6 +25,7 @@ export const USER_ROLES: { value: UserRole; label: string }[] = [
     { value: 'parent', label: 'ولي أمر' },
     { value: 'student', label: 'طالب' },
     { value: 'instructor', label: 'مدرب' },
+    { value: 'publisher', label: 'دار نشر' },
     { value: 'super_admin', label: 'مدير النظام' },
     { value: 'general_supervisor', label: 'مشرف عام' },
     { value: 'enha_lak_supervisor', label: 'مشرف إنها لك' },

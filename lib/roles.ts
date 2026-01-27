@@ -13,6 +13,7 @@ export const roleNames: Record<UserRole, string> = {
   instructor: 'مدرب',
   content_editor: 'محرر محتوى',
   support_agent: 'وكيل دعم',
+  publisher: 'دار نشر',
 };
 
 // تصنيف الأدوار لتسهيل الفصل في الإدارة
@@ -23,7 +24,8 @@ export const STAFF_ROLES: UserRole[] = [
     'creative_writing_supervisor',
     'instructor',
     'content_editor',
-    'support_agent'
+    'support_agent',
+    'publisher'
 ];
 
 export const CUSTOMER_ROLES: UserRole[] = [
@@ -54,6 +56,8 @@ export interface Permissions {
   canManageOwnSchedule: boolean;
   canManageOwnProfile: boolean;
   canViewOwnFinancials: boolean;
+  isPublisher: boolean;
+  canManageOwnProducts: boolean;
 }
 
 export const permissionKeys: (keyof Permissions)[] = [
@@ -77,7 +81,9 @@ export const permissionKeys: (keyof Permissions)[] = [
     'isInstructor',
     'canManageOwnSchedule',
     'canManageOwnProfile',
-    'canViewOwnFinancials'
+    'canViewOwnFinancials',
+    'isPublisher',
+    'canManageOwnProducts'
 ];
 
 export const permissionLabels: Record<keyof Permissions, string> = {
@@ -102,6 +108,8 @@ export const permissionLabels: Record<keyof Permissions, string> = {
     canManageOwnSchedule: 'إدارة جدوله الخاص',
     canManageOwnProfile: 'إدارة ملفه الشخصي',
     canViewOwnFinancials: 'عرض بياناته المالية',
+    isPublisher: 'دور دار نشر',
+    canManageOwnProducts: 'إدارة منتجاته الخاصة'
 };
 
 export const defaultPermissions: Permissions = {
@@ -126,6 +134,8 @@ export const defaultPermissions: Permissions = {
   canManageOwnSchedule: false,
   canManageOwnProfile: false,
   canViewOwnFinancials: false,
+  isPublisher: false,
+  canManageOwnProducts: false,
 };
 
 export const permissionsByRole: Record<UserRole, Permissions> = {
@@ -135,7 +145,7 @@ export const permissionsByRole: Record<UserRole, Permissions> = {
       canManageUsers: true, canManageInstructors: true, canManageInstructorUpdates: true, canManageBlog: true,
       canManageSiteContent: true, canManageSupportTickets: true, canManageJoinRequests: true, canManageSettings: true,
       canManageFinancials: true, canViewAuditLog: true, isInstructor: false, canManageOwnSchedule: false,
-      canManageOwnProfile: false, canViewOwnFinancials: false,
+      canManageOwnProfile: false, canViewOwnFinancials: false, isPublisher: false, canManageOwnProducts: false
   },
   general_supervisor: {
     ...defaultPermissions,
@@ -149,12 +159,16 @@ export const permissionsByRole: Record<UserRole, Permissions> = {
   },
   creative_writing_supervisor: {
     ...defaultPermissions,
-    canViewDashboard: true, canManageCreativeWritingBookings: true, canManageCreativeWritingSettings: true,
+    canViewDashboard: true, canViewGlobalStats: false, canManageCreativeWritingBookings: true, canManageCreativeWritingSettings: true,
     canManageInstructors: true, canManageInstructorUpdates: true,
   },
   instructor: {
     ...defaultPermissions,
     canViewDashboard: true, isInstructor: true, canManageOwnSchedule: true, canManageOwnProfile: true, canViewOwnFinancials: true,
+  },
+  publisher: {
+    ...defaultPermissions,
+    canViewDashboard: true, isPublisher: true, canManageOwnProducts: true,
   },
   content_editor: {
     ...defaultPermissions,

@@ -322,7 +322,13 @@ export const orderService = {
     },
 
     async getPersonalizedProducts() {
-        const { data, error } = await supabase.from('personalized_products').select('*').is('deleted_at', null).order('sort_order');
+        // Updated to join with publisher's profile name
+        const { data, error } = await supabase
+            .from('personalized_products')
+            .select('*, publisher:profiles!personalized_products_publisher_id_fkey(name)')
+            .is('deleted_at', null)
+            .order('sort_order');
+            
         if (error) return [];
         return data as PersonalizedProduct[];
     },
@@ -334,8 +340,20 @@ export const orderService = {
     },
 
     async updatePersonalizedProduct(product: Partial<PersonalizedProduct> & { id: number }) {
-        const { id, ...updates } = product;
+        const { id, publisher, ...updates } = product; // Remove virtual fields
         const { error } = await (supabase.from('personalized_products') as any).update(updates).eq('id', id);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+    
+    async approveProduct(productId: number, status: 'approved' | 'rejected') {
+        const { error } = await (supabase.from('personalized_products') as any)
+            .update({ 
+                approval_status: status,
+                is_active: status === 'approved' // Automatically active if approved
+            })
+            .eq('id', productId);
+            
         if (error) throw new Error(error.message);
         return { success: true };
     },

@@ -1,37 +1,43 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
+import { useAdminLibraryPricingSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useProductMutations } from '../../hooks/mutations/useProductMutations';
+import { useAuth } from '../../contexts/AuthContext';
 import PageLoader from '../../components/ui/PageLoader';
 import { Button } from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
 import { Select } from '../../components/ui/Select';
-import { ArrowLeft, Save, Gift, Settings, Type, Image as ImageIcon, Star, Eye } from 'lucide-react';
+import { ArrowLeft, Save, Gift, Settings, Type, Image as ImageIcon, Star, Eye, Calculator } from 'lucide-react';
 import type { PersonalizedProduct } from '../../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Checkbox } from '../../components/ui/Checkbox';
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 import DynamicListManager from '../../components/admin/DynamicListManager';
+import { calculateLibraryProductPrice, calculatePublisherNet } from '../../utils/pricingCalculator';
 
 const AdminProductDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { currentUser, permissions } = useAuth();
+    
     const isNew = !id || id === 'new';
     const initialType = searchParams.get('type'); 
     
     const { data: allProducts = [], isLoading: productsLoading } = useAdminPersonalizedProducts();
+    const { data: pricingConfig, isLoading: configLoading } = useAdminLibraryPricingSettings();
     const { createPersonalizedProduct, updatePersonalizedProduct } = useProductMutations();
     const isSaving = createPersonalizedProduct.isPending || updatePersonalizedProduct.isPending;
 
     const [product, setProduct] = useState<Partial<PersonalizedProduct>>({
         title: '',
         key: '',
-        product_type: 'hero_story', // Default
+        product_type: permissions.isPublisher ? 'library_book' : 'hero_story',
         description: '',
         features: [],
         sort_order: 99,
@@ -47,23 +53,50 @@ const AdminProductDetailPage: React.FC = () => {
         story_goals: [],
         component_keys: [],
     });
+    
+    // State for NET prices (Publisher Input)
+    const [netPricePrinted, setNetPricePrinted] = useState<string>('');
+    const [netPriceElectronic, setNetPriceElectronic] = useState<string>('');
 
     useEffect(() => {
         if (!isNew && allProducts.length > 0) {
             const productToEdit = allProducts.find(p => p.id === parseInt(id!));
             if (productToEdit) {
-                // If it's an addon in legacy data, ensure product_type reflects it for the UI
                 const displayType = productToEdit.is_addon ? 'addon' : (productToEdit.product_type || 'hero_story');
                 setProduct({
                     ...productToEdit,
                     product_type: displayType,
                     is_active: productToEdit.is_active ?? true
                 });
+                
+                // Reverse Calculate Net Price for display if configured
+                // Note: Only for library books/addons usually, but we apply to all to keep logic uniform if needed
+                if (pricingConfig) {
+                    const netP = calculatePublisherNet(productToEdit.price_printed || 0, pricingConfig);
+                    const netE = calculatePublisherNet(productToEdit.price_electronic || 0, pricingConfig);
+                    setNetPricePrinted(netP > 0 ? netP.toString() : '');
+                    setNetPriceElectronic(netE > 0 ? netE.toString() : '');
+                } else {
+                     setNetPricePrinted(productToEdit.price_printed?.toString() || '');
+                     setNetPriceElectronic(productToEdit.price_electronic?.toString() || '');
+                }
             } else {
-                navigate('/admin/personalized-products');
+                navigate(permissions.isPublisher ? '/admin/publisher-products' : '/admin/personalized-products');
             }
         } else if (isNew) {
-             if (initialType === 'subscription_box') {
+             // Defaults for Publisher
+             if (permissions.isPublisher || initialType === 'library_book') {
+                setProduct(prev => ({
+                    ...prev,
+                    product_type: 'library_book',
+                    is_addon: false,
+                    goal_config: 'none',
+                    image_slots: [],
+                    text_fields: [],
+                }));
+             }
+             // ... other defaults
+             else if (initialType === 'subscription_box') {
                 setProduct(prev => ({
                     ...prev,
                     title: 'صندوق الرحلة الشهري',
@@ -77,7 +110,7 @@ const AdminProductDetailPage: React.FC = () => {
                     has_printed_version: true,
                     sort_order: -1,
                 }));
-            } else if (initialType === 'addon') { // Handle predefined addon link
+            } else if (initialType === 'addon') {
                  setProduct(prev => ({
                     ...prev,
                     product_type: 'addon',
@@ -88,40 +121,39 @@ const AdminProductDetailPage: React.FC = () => {
                 }));
             }
         }
-    }, [id, isNew, allProducts, navigate, initialType]);
-
-    // Handle Type Change logic
-    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const value = e.target.value;
-        
-        if (value === 'addon') {
+    }, [id, isNew, allProducts, navigate, initialType, permissions.isPublisher, pricingConfig]);
+    
+    // Update final price when net price changes
+    useEffect(() => {
+        if (pricingConfig) {
+            const finalP = calculateLibraryProductPrice(parseFloat(netPricePrinted), pricingConfig);
+            const finalE = calculateLibraryProductPrice(parseFloat(netPriceElectronic), pricingConfig);
             setProduct(prev => ({
                 ...prev,
-                product_type: 'addon',
-                is_addon: true,
-                goal_config: 'none' // Addons usually don't need goals
-            }));
-        } else if (value === 'library_book') {
-             setProduct(prev => ({
-                ...prev,
-                product_type: 'library_book',
-                is_addon: false,
-                goal_config: 'none'
+                price_printed: finalP,
+                price_electronic: finalE
             }));
         } else {
-            // Hero Story or Subscription Box
+             // Fallback if no config loaded yet
              setProduct(prev => ({
                 ...prev,
-                product_type: value as any,
-                is_addon: false,
-                // Default goal config if switching back from library/addon
-                goal_config: prev.goal_config === 'none' ? 'predefined_and_custom' : prev.goal_config
+                price_printed: parseFloat(netPricePrinted) || 0,
+                price_electronic: parseFloat(netPriceElectronic) || 0
             }));
+        }
+    }, [netPricePrinted, netPriceElectronic, pricingConfig]);
+
+    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = e.target.value;
+        if (value === 'addon') {
+            setProduct(prev => ({ ...prev, product_type: 'addon', is_addon: true, goal_config: 'none' }));
+        } else if (value === 'library_book') {
+             setProduct(prev => ({ ...prev, product_type: 'library_book', is_addon: false, goal_config: 'none' }));
+        } else {
+             setProduct(prev => ({ ...prev, product_type: value as any, is_addon: false, goal_config: prev.goal_config === 'none' ? 'predefined_and_custom' : prev.goal_config }));
         }
     };
 
-    if (productsLoading && !isNew) return <PageLoader />;
-    
     const handleSimpleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         const isCheckbox = type === 'checkbox';
@@ -133,7 +165,6 @@ const AdminProductDetailPage: React.FC = () => {
         }));
     };
     
-    // Generic handler for all dynamic lists using the new component
     const handleDynamicListChange = (listKey: keyof PersonalizedProduct, index: number, field: string, value: any) => {
         setProduct(prev => {
             const list = [...(prev[listKey] as any[] || [])];
@@ -159,29 +190,39 @@ const AdminProductDetailPage: React.FC = () => {
         e.preventDefault();
         const payload: any = {
             ...product,
-            // Ensure is_addon is correctly set based on product_type
             is_addon: product.product_type === 'addon',
             price_printed: product.has_printed_version ? Number(product.price_printed) : null,
-            price_electronic: Number(product.price_electronic) || null
+            price_electronic: Number(product.price_electronic) || null,
         };
 
+        // Ensure key exists
         if (isNew && !payload.key) {
              payload.key = `prod_${uuidv4().slice(0,8)}`;
+        }
+        
+        // Ensure Publisher ID is set correctly
+        if (permissions.isPublisher && currentUser) {
+            payload.publisher_id = currentUser.id;
         }
 
         if (isNew) await createPersonalizedProduct.mutateAsync(payload);
         else await updatePersonalizedProduct.mutateAsync(payload);
-        navigate('/admin/personalized-products');
+        
+        navigate(permissions.isPublisher ? '/admin/publisher-products' : '/admin/personalized-products');
     };
+
+    if ((productsLoading || configLoading) && !isNew) return <PageLoader />;
+
+    const backLink = permissions.isPublisher ? "/admin/publisher-products" : "/admin/personalized-products";
 
     return (
          <div className="animate-fadeIn space-y-8">
             <div className="flex justify-between items-center">
-                <Link to="/admin/personalized-products" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold">
+                <Link to={backLink} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold">
                     <ArrowLeft size={16} /> العودة
                 </Link>
                 <h1 className="text-2xl font-bold text-foreground">
-                    {isNew ? 'منتج جديد' : `تعديل: ${product.title}`}
+                    {isNew ? 'كتاب جديد' : `تعديل: ${product.title}`}
                 </h1>
             </div>
             
@@ -190,36 +231,41 @@ const AdminProductDetailPage: React.FC = () => {
                     <Card>
                         <CardHeader><CardTitle className="flex items-center gap-2"><Gift /> المعلومات الأساسية</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                               <FormField label="اسم المنتج*" htmlFor="title">
+                               <FormField label="عنوان الكتاب / المنتج*" htmlFor="title">
                                     <Input id="title" name="title" value={product.title} onChange={handleSimpleChange} required />
                                 </FormField>
-                                <FormField label="نوع المنتج" htmlFor="product_type">
-                                    <Select id="product_type" name="product_type" value={product.product_type} onChange={handleTypeChange}>
-                                        <option value="hero_story">أنت البطل (تخصيص كامل)</option>
-                                        <option value="library_book">كتاب مكتبة (غلاف فقط)</option>
-                                        <option value="addon">منتج إضافي (إضافات إبداعية)</option>
-                                        <option value="subscription_box">صندوق اشتراك</option>
-                                    </Select>
-                                </FormField>
+                                {!permissions.isPublisher && (
+                                    <FormField label="نوع المنتج" htmlFor="product_type">
+                                        <Select id="product_type" name="product_type" value={product.product_type} onChange={handleTypeChange}>
+                                            <option value="hero_story">أنت البطل (تخصيص كامل)</option>
+                                            <option value="library_book">كتاب مكتبة (غلاف فقط)</option>
+                                            <option value="addon">منتج إضافي (إضافات إبداعية)</option>
+                                            <option value="subscription_box">صندوق اشتراك</option>
+                                        </Select>
+                                    </FormField>
+                                )}
                                 <FormField label="الوصف" htmlFor="description">
                                     <Textarea id="description" name="description" value={product.description || ''} onChange={handleSimpleChange} rows={3} />
                                 </FormField>
                                 <ImageUploadField 
-                                    label="صورة المنتج" 
+                                    label="صورة الغلاف" 
                                     fieldKey="image_url" 
                                     currentUrl={product.image_url || ''} 
                                     onUrlChange={(k, v) => setProduct(p => ({...p, [k]: v}))}
                                     recommendedSize="800x800px" 
                                 />
                                 <FormField label="الميزات (كل ميزة في سطر)" htmlFor="features">
-                                    <Textarea id="features" value={(product.features || []).join('\n')} onChange={e => setProduct({...product, features: e.target.value.split('\n')})} rows={4} />
+                                    <Textarea id="features" value={(product.features || []).join('\n')} onChange={e => setProduct({...product, features: e.target.value.split('\n')})} rows={4} placeholder="مثال: طباعة فاخرة&#10;غلاف مقوى" />
                                 </FormField>
                         </CardContent>
                     </Card>
                     
+                    {/* Advanced Customization - Hidden for Publishers to keep it simple, or enabled if they need it */}
+                    {/* Allowing Publishers to add text fields if they want customizations like 'Dedication' */}
                     <Card>
-                        <CardHeader><CardTitle className="flex items-center gap-2"><Type /> حقول النصوص المخصصة</CardTitle></CardHeader>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><Type /> حقول التخصيص (للمشتري)</CardTitle></CardHeader>
                         <CardContent>
+                            <p className="text-sm text-muted-foreground mb-4">أضف حقولاً ليقوم العميل بملئها عند الشراء (مثال: اسم الطفل للإهداء).</p>
                             <DynamicListManager 
                                 items={product.text_fields || []}
                                 onAdd={() => handleAddItem('text_fields')}
@@ -227,36 +273,15 @@ const AdminProductDetailPage: React.FC = () => {
                                 onChange={(idx, key, val) => handleDynamicListChange('text_fields', idx, key, val)}
                                 addButtonLabel="إضافة حقل نصي"
                                 fields={[
-                                    { key: 'id', placeholder: 'ID (txt_...)' },
-                                    { key: 'label', placeholder: 'العنوان الظاهر' },
-                                    { key: 'placeholder', placeholder: 'النص التوضيحي', width: 'flex-[2]' },
-                                    { key: 'type', placeholder: 'النوع', type: 'select', options: [{label: 'نص طويل', value: 'textarea'}, {label: 'نص قصير', value: 'input'}] },
+                                    { key: 'label', placeholder: 'العنوان (مثال: اسم الطفل)' },
                                     { key: 'required', placeholder: 'إلزامي؟', type: 'checkbox', width: 'w-24' },
                                 ]}
                             />
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon /> حقول رفع الصور</CardTitle></CardHeader>
-                        <CardContent>
-                             <DynamicListManager 
-                                items={product.image_slots || []}
-                                onAdd={() => handleAddItem('image_slots')}
-                                onRemove={(idx) => handleRemoveItem('image_slots', idx)}
-                                onChange={(idx, key, val) => handleDynamicListChange('image_slots', idx, key, val)}
-                                addButtonLabel="إضافة حقل صورة"
-                                fields={[
-                                    { key: 'id', placeholder: 'ID (img_...)' },
-                                    { key: 'label', placeholder: 'عنوان الحقل (مثال: صورة الطفل)' },
-                                    { key: 'required', placeholder: 'إلزامي؟', type: 'checkbox', width: 'w-24' },
-                                ]}
-                            />
-                        </CardContent>
-                    </Card>
-
-                    {/* Hide Goals Section for Library Books and Addons */}
-                    {product.product_type !== 'library_book' && product.product_type !== 'addon' && (
+                    {/* Only Admins manage Goal Configs for complex stories */}
+                    {!permissions.isPublisher && product.product_type !== 'library_book' && product.product_type !== 'addon' && (
                         <Card>
                             <CardHeader><CardTitle className="flex items-center gap-2"><Star /> الأهداف التربوية</CardTitle></CardHeader>
                             <CardContent>
@@ -267,7 +292,6 @@ const AdminProductDetailPage: React.FC = () => {
                                     onChange={(idx, key, val) => handleDynamicListChange('story_goals', idx, key, val)}
                                     addButtonLabel="إضافة هدف"
                                     disableAdd={product.goal_config !== 'predefined' && product.goal_config !== 'predefined_and_custom'}
-                                    emptyMessage="يجب تفعيل 'قائمة محددة' أدناه لإضافة أهداف."
                                     fields={[
                                         { key: 'key', placeholder: 'المعرف (key)' },
                                         { key: 'title', placeholder: 'عنوان الهدف (مثال: الصدق)' },
@@ -279,56 +303,83 @@ const AdminProductDetailPage: React.FC = () => {
                 </div>
 
                 <div className="lg:col-span-1 sticky top-24 space-y-6">
+                    {/* التسعير الديناميكي للمكتبة */}
+                    <Card className="border-t-4 border-green-500 shadow-sm">
+                        <CardHeader className="bg-green-50 border-b border-green-100 pb-4">
+                            <CardTitle className="flex items-center gap-2 text-green-800"><Calculator /> تسعير المنتج</CardTitle>
+                            <CardDescription>أدخل السعر الصافي الذي ترغب في الحصول عليه.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6 pt-6">
+                             {/* نسخة إلكترونية */}
+                             <div className="bg-white p-3 rounded-xl border space-y-2 shadow-sm">
+                                <FormField label="صافي ربحك (نسخة إلكترونية)" htmlFor="netPriceElectronic">
+                                    <Input 
+                                        type="number" 
+                                        id="netPriceElectronic" 
+                                        value={netPriceElectronic} 
+                                        onChange={(e) => setNetPriceElectronic(e.target.value)} 
+                                        className="font-bold text-lg"
+                                        placeholder="0"
+                                    />
+                                </FormField>
+                                <div className="flex justify-between items-center bg-gray-50 p-2 rounded text-xs">
+                                    <span className="text-gray-500">يظهر للعميل بـ:</span>
+                                    <span className="font-black text-lg text-blue-600">{product.price_electronic} ج.م</span>
+                                </div>
+                            </div>
+
+                            {/* نسخة مطبوعة */}
+                            <div className={`bg-white p-3 rounded-xl border space-y-2 shadow-sm transition-opacity ${!product.has_printed_version ? 'opacity-50 pointer-events-none' : ''}`}>
+                                <FormField label="صافي ربحك (نسخة مطبوعة)" htmlFor="netPricePrinted">
+                                    <Input 
+                                        type="number" 
+                                        id="netPricePrinted" 
+                                        value={netPricePrinted} 
+                                        onChange={(e) => setNetPricePrinted(e.target.value)} 
+                                        className="font-bold text-lg"
+                                        placeholder="0"
+                                        disabled={!product.has_printed_version}
+                                    />
+                                </FormField>
+                                <div className="flex justify-between items-center bg-gray-50 p-2 rounded text-xs">
+                                    <span className="text-gray-500">يظهر للعميل بـ:</span>
+                                    <span className="font-black text-lg text-blue-600">{product.price_printed} ج.م</span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     <Card className="border-t-4 border-t-primary">
                             <CardHeader><CardTitle className="flex items-center gap-2"><Settings /> الإعدادات</CardTitle></CardHeader>
                             <CardContent className="space-y-6">
-                            <label className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg cursor-pointer">
+                            <label className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg cursor-pointer hover:bg-green-100 transition-colors">
                                 <Checkbox checked={product.is_active} onCheckedChange={v => setProduct({...product, is_active: !!v})} />
-                                <span className="text-sm font-bold text-green-800 flex items-center gap-2"><Eye size={16}/> إتاحة المنتج للعرض في المتجر (Active)</span>
+                                <span className="text-sm font-bold text-green-800 flex items-center gap-2"><Eye size={16}/> عرض في المتجر</span>
                             </label>
 
-                            <FormField label="المعرّف (Key)*" htmlFor="key">
-                                <Input id="key" name="key" value={product.key} onChange={handleSimpleChange} required disabled={!isNew} dir="ltr" />
-                            </FormField>
-                            <FormField label="ترتيب العرض" htmlFor="sort_order">
-                                <Input type="number" id="sort_order" name="sort_order" value={product.sort_order || ''} onChange={handleSimpleChange} />
-                            </FormField>
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField label="سعر (إلكتروني)" htmlFor="price_electronic">
-                                    <Input type="number" name="price_electronic" value={product.price_electronic || ''} onChange={handleSimpleChange} />
-                                    <p className="text-[10px] text-muted-foreground mt-1">اتركه فارغاً أو 0 إذا كان المنتج مطبوعاً فقط.</p>
+                            {!permissions.isPublisher && (
+                                <FormField label="المعرّف (Key)*" htmlFor="key">
+                                    <Input id="key" name="key" value={product.key} onChange={handleSimpleChange} required disabled={!isNew} dir="ltr" />
                                 </FormField>
-                                <FormField label="سعر (مطبوع)" htmlFor="price_printed">
-                                    <Input type="number" name="price_printed" value={product.price_printed || ''} onChange={handleSimpleChange} disabled={!product.has_printed_version} />
+                            )}
+
+                            {!permissions.isPublisher && (
+                                <FormField label="ترتيب العرض" htmlFor="sort_order">
+                                    <Input type="number" id="sort_order" name="sort_order" value={product.sort_order || ''} onChange={handleSimpleChange} />
                                 </FormField>
-                            </div>
-                            
-                            {product.product_type !== 'library_book' && product.product_type !== 'addon' ? (
-                                <>
-                                    <div className="p-3 bg-yellow-50 text-yellow-800 rounded-lg text-xs">
-                                        <p>ملاحظة: إذا اخترت <strong>"هدف مخصص"</strong> سيظهر صندوق نص للعميل.</p>
-                                    </div>
-                                    <FormField label="نوع الهدف" htmlFor="goal_config">
-                                        <Select id="goal_config" name="goal_config" value={product.goal_config} onChange={handleSimpleChange}>
-                                            <option value="none">بدون هدف</option>
-                                            <option value="predefined">قائمة محددة</option>
-                                            <option value="custom">هدف مخصص</option>
-                                            <option value="predefined_and_custom">قائمة + مخصص</option>
-                                        </Select>
-                                    </FormField>
-                                </>
-                            ) : (
-                                <div className="p-3 bg-blue-50 text-blue-800 rounded-lg text-xs">
-                                    <p>خيار تخصيص الأهداف غير متاح لكتب المكتبة والإضافات.</p>
-                                </div>
                             )}
 
                             <div className="space-y-3 pt-4 border-t">
-                                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_featured" checked={product.is_featured} onChange={handleSimpleChange}/> منتج مميز (الرئيسية)</label>
-                                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="has_printed_version" checked={product.has_printed_version} onChange={handleSimpleChange}/> نسخة مطبوعة متاحة</label>
+                                {!permissions.isPublisher && (
+                                    <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_featured" checked={product.is_featured} onChange={handleSimpleChange}/> منتج مميز</label>
+                                )}
+                                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                    <Checkbox checked={product.has_printed_version} onCheckedChange={v => setProduct({...product, has_printed_version: !!v})} />
+                                    <span>نسخة مطبوعة متاحة</span>
+                                </label>
                             </div>
                             <Button type="submit" loading={isSaving} size="lg" icon={<Save />} className="w-full">
-                                {isSaving ? 'جاري الحفظ...' : 'حفظ المنتج'}
+                                {isSaving ? 'جاري الحفظ...' : 'حفظ الكتاب'}
                             </Button>
                         </CardContent>
                     </Card>

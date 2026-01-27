@@ -14,7 +14,8 @@ import type {
     JitsiSettings,
     UserRole,
     ComparisonItem,
-    MaintenanceSettings
+    MaintenanceSettings,
+    LibraryPricingSettings
 } from '../lib/database.types';
 import { permissionsByRole } from '../lib/roles';
 
@@ -234,6 +235,12 @@ export const mockPricingSettings: PricingSettings = {
     id: 1,
     company_percentage: 1.2, // 20% markup
     fixed_fee: 50 // 50 EGP fixed fee
+};
+
+export const mockLibraryPricingSettings: LibraryPricingSettings = {
+    id: 1,
+    company_percentage: 1.3, // 30% markup for products
+    fixed_fee: 30 // 30 EGP fixed fee
 };
 
 export const mockMaintenanceSettings: MaintenanceSettings = {

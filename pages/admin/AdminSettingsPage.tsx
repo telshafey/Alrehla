@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Layout, Database, RefreshCw, AlertTriangle, PenTool } from 'lucide-react';
+import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Layout, Database, RefreshCw, AlertTriangle, PenTool, Library } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
-import { useAdminSocialLinks, useAdminPricingSettings, useAdminCommunicationSettings, useAdminMaintenanceSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
+import { useAdminSocialLinks, useAdminPricingSettings, useAdminCommunicationSettings, useAdminMaintenanceSettings, useAdminLibraryPricingSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
 import { useContentMutations } from '../../hooks/mutations/useContentMutations';
@@ -16,7 +16,7 @@ import PermissionsManager from '../../components/admin/PermissionsManager';
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 import { settingsService } from '../../services/settingsService';
 import { useToast } from '../../contexts/ToastContext';
-import type { SocialLinks, PricingSettings, MaintenanceSettings } from '../../lib/database.types';
+import type { SocialLinks, PricingSettings, MaintenanceSettings, LibraryPricingSettings } from '../../lib/database.types';
 import { Checkbox } from '../../components/ui/Checkbox';
 
 const AdminSettingsPage: React.FC = () => {
@@ -34,12 +34,14 @@ const AdminSettingsPage: React.FC = () => {
     const [socials, setSocials] = useState<SocialLinks>({ id: 1, facebook_url: '', twitter_url: '', instagram_url: '' });
     
     const { data: pricingSettingsData, isLoading: pricingLoading } = useAdminPricingSettings();
+    const { data: libraryPricingData, isLoading: libPricingLoading } = useAdminLibraryPricingSettings();
     const { data: maintenanceData, isLoading: maintenanceLoading } = useAdminMaintenanceSettings();
     
-    const { updateSocialLinks, updateCommunicationSettings, updatePricingSettings, updateMaintenanceSettings } = useSettingsMutations();
+    const { updateSocialLinks, updateCommunicationSettings, updatePricingSettings, updateMaintenanceSettings, updateLibraryPricingSettings } = useSettingsMutations();
     
     // Initialize with ID to satisfy TS type
     const [pricing, setPricing] = useState<PricingSettings>({ id: 1, company_percentage: 1.2, fixed_fee: 50 });
+    const [libraryPricing, setLibraryPricing] = useState<LibraryPricingSettings>({ id: 1, company_percentage: 1.3, fixed_fee: 30 });
     const [maintenance, setMaintenance] = useState<MaintenanceSettings>({ isActive: false, message: '' });
     
     const [isSeeding, setIsSeeding] = useState(false);
@@ -60,6 +62,10 @@ const AdminSettingsPage: React.FC = () => {
     useEffect(() => {
         if (pricingSettingsData) setPricing(pricingSettingsData as PricingSettings);
     }, [pricingSettingsData]);
+
+    useEffect(() => {
+        if (libraryPricingData) setLibraryPricing(libraryPricingData as LibraryPricingSettings);
+    }, [libraryPricingData]);
 
     useEffect(() => {
         if (maintenanceData) setMaintenance(maintenanceData as MaintenanceSettings);
@@ -83,6 +89,10 @@ const AdminSettingsPage: React.FC = () => {
         await updatePricingSettings.mutateAsync(pricing);
     };
 
+    const handleLibraryPricingSubmit = async () => {
+        await updateLibraryPricingSettings.mutateAsync(libraryPricing);
+    };
+
     const handleMaintenanceSubmit = async () => {
         await updateMaintenanceSettings.mutateAsync(maintenance);
     }
@@ -102,7 +112,7 @@ const AdminSettingsPage: React.FC = () => {
         }
     };
 
-    const isLoading = brandingLoading || socialsLoading || pricingLoading || commsLoading || contentLoading || maintenanceLoading;
+    const isLoading = brandingLoading || socialsLoading || pricingLoading || commsLoading || contentLoading || maintenanceLoading || libPricingLoading;
     if (isLoading) return <PageLoader />;
 
     return (
@@ -113,7 +123,8 @@ const AdminSettingsPage: React.FC = () => {
                 <TabsList className="mb-8 flex-wrap h-auto">
                     <TabsTrigger value="branding"><ImageIcon className="ml-2 w-4 h-4" /> هوية الموقع</TabsTrigger>
                     <TabsTrigger value="communication"><Mail className="ml-2 w-4 h-4" /> التواصل</TabsTrigger>
-                    <TabsTrigger value="pricing"><DollarSign className="ml-2 w-4 h-4" /> الماليات</TabsTrigger>
+                    <TabsTrigger value="pricing"><DollarSign className="ml-2 w-4 h-4" /> ماليات التدريب</TabsTrigger>
+                    <TabsTrigger value="library_pricing"><Library className="ml-2 w-4 h-4" /> ماليات المكتبة</TabsTrigger>
                     <TabsTrigger value="permissions"><Shield className="ml-2 w-4 h-4" /> الصلاحيات</TabsTrigger>
                     <TabsTrigger value="maintenance"><PenTool className="ml-2 w-4 h-4" /> تنبيهات الموقع</TabsTrigger>
                     <TabsTrigger value="data"><Database className="ml-2 w-4 h-4" /> البيانات</TabsTrigger>
@@ -165,8 +176,8 @@ const AdminSettingsPage: React.FC = () => {
                 <TabsContent value="pricing" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>هيكل التسعير (المعادلة الحسابية)</CardTitle>
-                            <CardDescription>هذه الإعدادات تحدد كيف يتم حساب السعر النهائي للعميل بناءً على سعر المدرب المختار.</CardDescription>
+                            <CardTitle>هيكل تسعير (بداية الرحلة)</CardTitle>
+                            <CardDescription>هذه الإعدادات تحدد كيف يتم حساب السعر النهائي لخدمات وباقات المدربين.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -187,7 +198,37 @@ const AdminSettingsPage: React.FC = () => {
                                 </div>
                             </div>
                             
-                            <div className="flex justify-end"><Button onClick={handlePricingSubmit} icon={<Save />}>حفظ إعدادات التسعير</Button></div>
+                            <div className="flex justify-end"><Button onClick={handlePricingSubmit} icon={<Save />}>حفظ إعدادات التدريب</Button></div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="library_pricing" className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>هيكل تسعير (المكتبة)</CardTitle>
+                            <CardDescription>هذه الإعدادات تحدد كيف يتم حساب السعر النهائي للكتب والمنتجات المضافة بواسطة دور النشر.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField label="نسبة المنصة (مُعامل الضرب)" htmlFor="lib_company_percentage">
+                                    <Input id="lib_company_percentage" type="number" step="0.1" value={libraryPricing.company_percentage} onChange={(e) => setLibraryPricing({...libraryPricing, company_percentage: parseFloat(e.target.value)})} />
+                                    <p className="text-xs text-muted-foreground mt-1">مثال: 1.3 تعني زيادة 30% على صافي سعر دار النشر.</p>
+                                </FormField>
+                                <FormField label="الرسوم الثابتة لكل كتاب (ج.م)" htmlFor="lib_fixed_fee">
+                                    <Input id="lib_fixed_fee" type="number" value={libraryPricing.fixed_fee} onChange={(e) => setLibraryPricing({...libraryPricing, fixed_fee: parseFloat(e.target.value)})} />
+                                    <p className="text-xs text-muted-foreground mt-1">تغطي تكاليف المعالجة والتشغيل.</p>
+                                </FormField>
+                            </div>
+                            
+                            <div className="p-4 bg-purple-50 rounded-lg border border-dashed border-purple-200">
+                                <p className="text-sm font-bold text-purple-800 mb-2">معاينة معادلة المكتبة:</p>
+                                <div className="text-lg font-mono text-center bg-white p-3 rounded border">
+                                    سعر العميل = (صافي الناشر * {libraryPricing.company_percentage}) + {libraryPricing.fixed_fee} ج.م
+                                </div>
+                            </div>
+                            
+                            <div className="flex justify-end"><Button onClick={handleLibraryPricingSubmit} icon={<Save />}>حفظ إعدادات المكتبة</Button></div>
                         </CardContent>
                     </Card>
                 </TabsContent>
