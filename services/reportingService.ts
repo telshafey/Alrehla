@@ -220,9 +220,12 @@ export const reportingService = {
             .select('key, title, price_printed, price_electronic, publisher_id')
             .eq('publisher_id', publisherId);
             
-        if (!myProducts || myProducts.length === 0) return null;
+        // Explicitly cast to unknown then PersonalizedProduct[] to fix TS build error
+        const products = (myProducts || []) as unknown as PersonalizedProduct[];
+            
+        if (products.length === 0) return null;
         
-        const myProductKeys = myProducts.map(p => p.key);
+        const myProductKeys = products.map(p => p.key);
         
         // 2. Fetch completed orders
         const { data: completedOrders } = await supabase
@@ -256,7 +259,7 @@ export const reportingService = {
         const transactions: any[] = [];
         
         relevantOrders.forEach((order: any) => {
-             const product = myProducts.find(p => p.key === (order.productKey || order.details?.productKey));
+             const product = products.find(p => p.key === (order.productKey || order.details?.productKey));
              if (!product) return;
              
              // Determine if printed or electronic based on order details
