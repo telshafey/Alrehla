@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useAdminPersonalizedProducts } from '../../../hooks/queries/admin/useAdminEnhaLakQuery';
@@ -11,15 +11,22 @@ import { Button } from '../../../components/ui/Button';
 const PublisherDashboardPage: React.FC = () => {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
-    // This hook will now filter by RLS, so it only returns the publisher's products
-    const { data: products = [], isLoading } = useAdminPersonalizedProducts();
+    // This hook fetches products. We must filter them to ensure we only count THIS publisher's items.
+    const { data: allProducts = [], isLoading } = useAdminPersonalizedProducts();
+
+    // Filter strictly by publisher ID
+    const myProducts = useMemo(() => {
+        if (!currentUser) return [];
+        return allProducts.filter(p => p.publisher_id === currentUser.id);
+    }, [allProducts, currentUser]);
 
     if (isLoading) {
         return <PageLoader text="جاري تحميل لوحة التحكم..." />;
     }
 
-    const activeBooks = products.filter(p => p.is_active !== false).length;
-    const totalBooks = products.length;
+    const activeBooks = myProducts.filter(p => p.is_active !== false && p.approval_status === 'approved').length;
+    const pendingBooks = myProducts.filter(p => p.approval_status === 'pending').length;
+    const totalBooks = myProducts.length;
 
     return (
         <div className="animate-fadeIn space-y-8">
@@ -41,14 +48,14 @@ const PublisherDashboardPage: React.FC = () => {
                     onClick={() => navigate('/admin/publisher-products')}
                 />
                 <StatCard 
-                    title="كتب نشطة (معروضة)" 
+                    title="كتب منشورة" 
                     value={activeBooks} 
                     icon={<CheckCircle className="h-4 w-4 text-green-500" />} 
                 />
                 <StatCard 
-                    title="مشاهدات الكتب" 
-                    value="--" // Future implementation: Add analytics
-                    icon={<Eye className="h-4 w-4 text-gray-500" />} 
+                    title="قيد المراجعة" 
+                    value={pendingBooks} 
+                    icon={<Eye className="h-4 w-4 text-orange-500" />} 
                 />
             </div>
 
@@ -57,7 +64,7 @@ const PublisherDashboardPage: React.FC = () => {
                 <ul className="list-disc list-inside text-blue-800 text-sm space-y-2">
                     <li>يمكنك إضافة كتب جديدة من نوع "كتب المكتبة" ليتم عرضها في المتجر العام.</li>
                     <li>تأكد من رفع صورة غلاف عالية الجودة لكل كتاب.</li>
-                    <li>الكتب التي تقوم بإضافتها ستكون مرتبطة بحسابك تلقائياً.</li>
+                    <li>الكتب التي تقوم بإضافتها ستخضع للمراجعة قبل الظهور للجمهور.</li>
                 </ul>
             </div>
         </div>

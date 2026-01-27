@@ -34,6 +34,9 @@ const AdminProductDetailPage: React.FC = () => {
     const { createPersonalizedProduct, updatePersonalizedProduct } = useProductMutations();
     const isSaving = createPersonalizedProduct.isPending || updatePersonalizedProduct.isPending;
 
+    // UI State for electronic toggle
+    const [hasElectronicOption, setHasElectronicOption] = useState(false);
+
     const [product, setProduct] = useState<Partial<PersonalizedProduct>>({
         title: '',
         key: '',
@@ -44,7 +47,7 @@ const AdminProductDetailPage: React.FC = () => {
         is_featured: false,
         is_addon: false,
         is_active: true, // Default to Active
-        has_printed_version: true,
+        has_printed_version: true, // Default: Printed is primary
         price_printed: 0,
         price_electronic: 0,
         image_slots: [],
@@ -69,8 +72,12 @@ const AdminProductDetailPage: React.FC = () => {
                     is_active: productToEdit.is_active ?? true
                 });
                 
+                // Set UI toggle based on data
+                if (productToEdit.price_electronic && productToEdit.price_electronic > 0) {
+                    setHasElectronicOption(true);
+                }
+
                 // Reverse Calculate Net Price for display if configured
-                // Note: Only for library books/addons usually, but we apply to all to keep logic uniform if needed
                 if (pricingConfig) {
                     const netP = calculatePublisherNet(productToEdit.price_printed || 0, pricingConfig);
                     const netE = calculatePublisherNet(productToEdit.price_electronic || 0, pricingConfig);
@@ -93,6 +100,7 @@ const AdminProductDetailPage: React.FC = () => {
                     goal_config: 'none',
                     image_slots: [],
                     text_fields: [],
+                    has_printed_version: true // Explicitly true for library books
                 }));
              }
              // ... other defaults
@@ -127,28 +135,30 @@ const AdminProductDetailPage: React.FC = () => {
     useEffect(() => {
         if (pricingConfig) {
             const finalP = calculateLibraryProductPrice(parseFloat(netPricePrinted), pricingConfig);
-            const finalE = calculateLibraryProductPrice(parseFloat(netPriceElectronic), pricingConfig);
+            // Only calc electronic if the option is enabled
+            const finalE = hasElectronicOption ? calculateLibraryProductPrice(parseFloat(netPriceElectronic), pricingConfig) : 0;
+            
             setProduct(prev => ({
                 ...prev,
                 price_printed: finalP,
                 price_electronic: finalE
             }));
         } else {
-             // Fallback if no config loaded yet
+             // Fallback
              setProduct(prev => ({
                 ...prev,
                 price_printed: parseFloat(netPricePrinted) || 0,
-                price_electronic: parseFloat(netPriceElectronic) || 0
+                price_electronic: hasElectronicOption ? (parseFloat(netPriceElectronic) || 0) : 0
             }));
         }
-    }, [netPricePrinted, netPriceElectronic, pricingConfig]);
+    }, [netPricePrinted, netPriceElectronic, pricingConfig, hasElectronicOption]);
 
     const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = e.target.value;
         if (value === 'addon') {
             setProduct(prev => ({ ...prev, product_type: 'addon', is_addon: true, goal_config: 'none' }));
         } else if (value === 'library_book') {
-             setProduct(prev => ({ ...prev, product_type: 'library_book', is_addon: false, goal_config: 'none' }));
+             setProduct(prev => ({ ...prev, product_type: 'library_book', is_addon: false, goal_config: 'none', has_printed_version: true }));
         } else {
              setProduct(prev => ({ ...prev, product_type: value as any, is_addon: false, goal_config: prev.goal_config === 'none' ? 'predefined_and_custom' : prev.goal_config }));
         }
@@ -191,8 +201,9 @@ const AdminProductDetailPage: React.FC = () => {
         const payload: any = {
             ...product,
             is_addon: product.product_type === 'addon',
-            price_printed: product.has_printed_version ? Number(product.price_printed) : null,
-            price_electronic: Number(product.price_electronic) || null,
+            has_printed_version: true, // Force Printed for library/publisher products
+            price_printed: Number(product.price_printed),
+            price_electronic: hasElectronicOption ? (Number(product.price_electronic) || null) : null,
         };
 
         // Ensure key exists
@@ -260,8 +271,7 @@ const AdminProductDetailPage: React.FC = () => {
                         </CardContent>
                     </Card>
                     
-                    {/* Advanced Customization - Hidden for Publishers to keep it simple, or enabled if they need it */}
-                    {/* Allowing Publishers to add text fields if they want customizations like 'Dedication' */}
+                    {/* Advanced Customization */}
                     <Card>
                         <CardHeader><CardTitle className="flex items-center gap-2"><Type /> حقول التخصيص (للمشتري)</CardTitle></CardHeader>
                         <CardContent>
@@ -306,30 +316,13 @@ const AdminProductDetailPage: React.FC = () => {
                     {/* التسعير الديناميكي للمكتبة */}
                     <Card className="border-t-4 border-green-500 shadow-sm">
                         <CardHeader className="bg-green-50 border-b border-green-100 pb-4">
-                            <CardTitle className="flex items-center gap-2 text-green-800"><Calculator /> تسعير المنتج</CardTitle>
-                            <CardDescription>أدخل السعر الصافي الذي ترغب في الحصول عليه.</CardDescription>
+                            <CardTitle className="flex items-center gap-2 text-green-800"><Calculator /> تسعير الكتاب</CardTitle>
+                            <CardDescription>أدخل السعر الصافي الذي ترغب في الحصول عليه من المبيعات.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
-                             {/* نسخة إلكترونية */}
-                             <div className="bg-white p-3 rounded-xl border space-y-2 shadow-sm">
-                                <FormField label="صافي ربحك (نسخة إلكترونية)" htmlFor="netPriceElectronic">
-                                    <Input 
-                                        type="number" 
-                                        id="netPriceElectronic" 
-                                        value={netPriceElectronic} 
-                                        onChange={(e) => setNetPriceElectronic(e.target.value)} 
-                                        className="font-bold text-lg"
-                                        placeholder="0"
-                                    />
-                                </FormField>
-                                <div className="flex justify-between items-center bg-gray-50 p-2 rounded text-xs">
-                                    <span className="text-gray-500">يظهر للعميل بـ:</span>
-                                    <span className="font-black text-lg text-blue-600">{product.price_electronic} ج.م</span>
-                                </div>
-                            </div>
-
-                            {/* نسخة مطبوعة */}
-                            <div className={`bg-white p-3 rounded-xl border space-y-2 shadow-sm transition-opacity ${!product.has_printed_version ? 'opacity-50 pointer-events-none' : ''}`}>
+                             
+                            {/* نسخة مطبوعة (Primary) */}
+                            <div className="bg-white p-3 rounded-xl border space-y-2 shadow-sm">
                                 <FormField label="صافي ربحك (نسخة مطبوعة)" htmlFor="netPricePrinted">
                                     <Input 
                                         type="number" 
@@ -338,7 +331,6 @@ const AdminProductDetailPage: React.FC = () => {
                                         onChange={(e) => setNetPricePrinted(e.target.value)} 
                                         className="font-bold text-lg"
                                         placeholder="0"
-                                        disabled={!product.has_printed_version}
                                     />
                                 </FormField>
                                 <div className="flex justify-between items-center bg-gray-50 p-2 rounded text-xs">
@@ -346,6 +338,34 @@ const AdminProductDetailPage: React.FC = () => {
                                     <span className="font-black text-lg text-blue-600">{product.price_printed} ج.م</span>
                                 </div>
                             </div>
+
+                             {/* نسخة إلكترونية (Optional) */}
+                            <div className={`p-3 rounded-xl border space-y-3 transition-colors ${hasElectronicOption ? 'bg-white shadow-sm' : 'bg-muted/30 border-dashed'}`}>
+                                <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                                    <Checkbox checked={hasElectronicOption} onCheckedChange={setHasElectronicOption} />
+                                    توفير نسخة إلكترونية (PDF)
+                                </label>
+
+                                {hasElectronicOption && (
+                                    <>
+                                        <FormField label="صافي ربحك (نسخة إلكترونية)" htmlFor="netPriceElectronic">
+                                            <Input 
+                                                type="number" 
+                                                id="netPriceElectronic" 
+                                                value={netPriceElectronic} 
+                                                onChange={(e) => setNetPriceElectronic(e.target.value)} 
+                                                className="font-bold text-lg"
+                                                placeholder="0"
+                                            />
+                                        </FormField>
+                                        <div className="flex justify-between items-center bg-gray-50 p-2 rounded text-xs">
+                                            <span className="text-gray-500">يظهر للعميل بـ:</span>
+                                            <span className="font-black text-lg text-blue-600">{product.price_electronic} ج.م</span>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
                         </CardContent>
                     </Card>
 
@@ -373,10 +393,6 @@ const AdminProductDetailPage: React.FC = () => {
                                 {!permissions.isPublisher && (
                                     <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_featured" checked={product.is_featured} onChange={handleSimpleChange}/> منتج مميز</label>
                                 )}
-                                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                    <Checkbox checked={product.has_printed_version} onCheckedChange={v => setProduct({...product, has_printed_version: !!v})} />
-                                    <span>نسخة مطبوعة متاحة</span>
-                                </label>
                             </div>
                             <Button type="submit" loading={isSaving} size="lg" icon={<Save />} className="w-full">
                                 {isSaving ? 'جاري الحفظ...' : 'حفظ الكتاب'}
