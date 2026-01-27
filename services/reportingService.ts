@@ -1,7 +1,9 @@
 
 import { supabase } from '../lib/supabaseClient';
-import type { Order, CreativeWritingBooking, ServiceOrder, Subscription, Instructor, SubscriptionPlan } from '../lib/database.types';
+import type { Order, CreativeWritingBooking, ServiceOrder, Subscription, Instructor, SubscriptionPlan, PublisherPayout, PersonalizedProduct } from '../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
+import { calculatePublisherNet } from '../utils/pricingCalculator';
+import { mockLibraryPricingSettings } from '../data/mockData';
 
 const LOCAL_STORAGE_KEY = 'admin_audit_logs_backup';
 
@@ -208,6 +210,95 @@ export const reportingService = {
             safeFetch(supabase.from('instructors').select('id, name'), [] as Instructor[])
         ]);
         return { orders, bookings, serviceOrders, payouts, instructors };
+    },
+    
+    // --- New Function for Publisher Financials ---
+    async getPublisherFinancials(publisherId: string) {
+        // 1. Fetch publisher's products
+        const { data: myProducts } = await supabase
+            .from('personalized_products')
+            .select('key, title, price_printed, price_electronic, publisher_id')
+            .eq('publisher_id', publisherId);
+            
+        if (!myProducts || myProducts.length === 0) return null;
+        
+        const myProductKeys = myProducts.map(p => p.key);
+        
+        // 2. Fetch completed orders
+        const { data: completedOrders } = await supabase
+            .from('orders')
+            .select('*')
+            .in('status', ['تم التسليم', 'مكتمل']);
+
+        // 3. Filter orders containing my products
+        const relevantOrders = (completedOrders || []).filter((o: any) => {
+             const key = o.productKey || o.details?.productKey;
+             return myProductKeys.includes(key);
+        });
+
+        // 4. Fetch Payouts
+        const { data: payouts } = await supabase
+            .from('publisher_payouts')
+            .select('*')
+            .eq('publisher_id', publisherId);
+
+        // 5. Fetch Pricing Config (Library)
+        const { data: configData } = await supabase
+            .from('site_settings')
+            .select('value')
+            .eq('key', 'library_pricing_config')
+            .single();
+            
+        const pricingConfig = (configData as any)?.value || mockLibraryPricingSettings;
+
+        // 6. Calculate Earnings
+        let totalEarnings = 0;
+        const transactions: any[] = [];
+        
+        relevantOrders.forEach((order: any) => {
+             const product = myProducts.find(p => p.key === (order.productKey || order.details?.productKey));
+             if (!product) return;
+             
+             // Determine if printed or electronic based on order details
+             const isPrinted = order.details?.deliveryType === 'printed' || order.details?.isPrinted;
+             const customerPrice = isPrinted ? product.price_printed : product.price_electronic;
+             
+             // Reverse Calc to get Publisher Net
+             // Formula: Net = (CustomerPrice - Fixed) / %
+             const netEarning = calculatePublisherNet(customerPrice || 0, pricingConfig);
+             
+             if (netEarning > 0) {
+                 totalEarnings += netEarning;
+                 transactions.push({
+                     id: order.id,
+                     date: order.order_date,
+                     type: 'earning',
+                     description: `مبيعات: ${product.title}`,
+                     amount: netEarning,
+                     customerPrice: customerPrice
+                 });
+             }
+        });
+        
+        // Add Payouts to transactions
+        (payouts || []).forEach((p: any) => {
+            transactions.push({
+                id: p.id,
+                date: p.payout_date,
+                type: 'payout',
+                description: p.details || 'تحويل مستحقات',
+                amount: p.amount
+            });
+        });
+        
+        const totalPaid = (payouts || []).reduce((sum: number, p: any) => sum + p.amount, 0);
+
+        return {
+            totalEarnings,
+            totalPaid,
+            outstandingBalance: totalEarnings - totalPaid,
+            transactions: transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        };
     },
 
     async getReportData(reportType: 'orders' | 'users' | 'instructors', filters: any) {

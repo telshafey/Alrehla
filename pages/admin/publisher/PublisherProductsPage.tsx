@@ -13,6 +13,7 @@ import SortableTableHead from '../../../components/admin/ui/SortableTableHead';
 import Image from '../../../components/ui/Image';
 import { formatCurrency } from '../../../utils/helpers';
 import type { PersonalizedProduct } from '../../../lib/database.types';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const StatusBadge: React.FC<{ status: string, isActive: boolean }> = ({ status, isActive }) => {
     if (status === 'pending') {
@@ -42,10 +43,19 @@ const StatusBadge: React.FC<{ status: string, isActive: boolean }> = ({ status, 
 
 const PublisherProductsPage: React.FC = () => {
     const navigate = useNavigate();
-    // Hook now uses RLS, so it naturally only returns this publisher's products
-    const { data: myProducts = [], isLoading, error, refetch } = useAdminPersonalizedProducts();
+    const { currentUser } = useAuth();
+    
+    // Query fetches all visible products (including active ones from others due to public store RLS)
+    const { data: allProducts = [], isLoading, error, refetch } = useAdminPersonalizedProducts();
+    
     const { deletePersonalizedProduct } = useProductMutations();
     const [sortConfig, setSortConfig] = useState<{ key: keyof PersonalizedProduct; direction: 'asc' | 'desc' } | null>({ key: 'title', direction: 'asc' });
+
+    // Client-side filtering to show ONLY products owned by this publisher in their dashboard
+    const myProducts = useMemo(() => {
+        if (!currentUser) return [];
+        return allProducts.filter(p => p.publisher_id === currentUser.id);
+    }, [allProducts, currentUser]);
 
     const sortedProducts = useMemo(() => {
         let products = [...myProducts];

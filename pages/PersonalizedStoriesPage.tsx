@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import { ProductCardSkeleton } from '../components/ui/Skeletons';
-import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle, Gift, Library, User, Sparkles, Search } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Star, BookHeart, Puzzle, Gift, Library, User, Sparkles, Search, Filter, ArrowUpDown, Building2 } from 'lucide-react';
 import type { PersonalizedProduct } from '../lib/database.types';
 import { Button } from '../components/ui/Button';
 import ErrorState from '../components/ui/ErrorState';
@@ -11,8 +11,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { cn } from '../lib/utils';
 import Accordion from '../components/ui/Accordion';
 import Image from '../components/ui/Image';
-import { Tabs, TabsTrigger, TabsContent } from '../components/ui/Tabs';
+import { Tabs, TabsTrigger, TabsContent, TabsList } from '../components/ui/Tabs';
 import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
 
 interface ProductCardProps {
     product: PersonalizedProduct;
@@ -51,6 +52,15 @@ const ProductCard = React.memo(React.forwardRef<HTMLElement, ProductCardProps>((
             </div>
             <CardHeader>
                 <CardTitle className="text-xl">{product.title}</CardTitle>
+                
+                {/* Publisher Name Badge */}
+                {product.publisher?.name && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 bg-gray-100 w-fit px-2 py-0.5 rounded">
+                        <Building2 size={10} />
+                        <span>{product.publisher.name}</span>
+                    </div>
+                )}
+
                 <CardDescription className="min-h-[3.5rem] flex flex-col justify-end mt-2">
                     {isSubscription ? (
                         <>
@@ -119,6 +129,8 @@ const PersonalizedStoriesPage: React.FC = () => {
   
   const [activeTab, setActiveTab] = useState('hero');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPublisher, setSelectedPublisher] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'default' | 'price-asc' | 'price-desc'>('default');
 
   // Calculate the minimum subscription price dynamically
   const lowestSubscriptionPrice = useMemo(() => {
@@ -126,34 +138,61 @@ const PersonalizedStoriesPage: React.FC = () => {
       return Math.min(...subscriptionPlans.map(plan => plan.price_per_month));
   }, [subscriptionPlans]);
 
-  // First filter by search
-  const filteredProducts = useMemo(() => {
-      const term = searchTerm.trim().toLowerCase();
-      if (!term) return personalizedProducts;
+  // Extract unique publishers from products
+  const publishers = useMemo(() => {
+      const pubs = new Set<string>();
+      personalizedProducts.forEach(p => {
+          if (p.publisher?.name) {
+              pubs.add(p.publisher.name);
+          }
+      });
+      return Array.from(pubs);
+  }, [personalizedProducts]);
+
+  // 1. Base Search Filter (Global for all tabs)
+  const searchedProducts = useMemo(() => {
+      if (!searchTerm.trim()) return personalizedProducts;
+      const term = searchTerm.toLowerCase();
       return personalizedProducts.filter(p => 
           (p.title && p.title.toLowerCase().includes(term)) || 
           (p.description && p.description.toLowerCase().includes(term))
       );
   }, [personalizedProducts, searchTerm]);
 
-  // Then categorize
+  // 2. Separate Products by Category (Applied after Search)
   const { subscriptionProduct, otherHeroStories, libraryBooks, addonProducts } = useMemo(() => {
-    const sortedProducts = [...filteredProducts].sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
     
-    // 1. Subscription Box
-    const sub = sortedProducts.find(p => p.key === 'subscription_box');
+    // Subscription Box
+    const sub = personalizedProducts.find(p => p.key === 'subscription_box');
     
-    // 2. Hero Stories (Exclude sub box and addons)
-    const hero = sortedProducts.filter(p => !p.is_addon && p.key !== 'subscription_box' && (p.product_type === 'hero_story' || !p.product_type));
+    // Hero Stories (Filtered by Search only)
+    const hero = searchedProducts.filter(p => !p.is_addon && p.key !== 'subscription_box' && (p.product_type === 'hero_story' || !p.product_type));
     
-    // 3. Library Books
-    const library = sortedProducts.filter(p => !p.is_addon && p.product_type === 'library_book');
+    // Library Books (Filtered by Search + Publisher + Sort)
+    let library = searchedProducts.filter(p => !p.is_addon && p.product_type === 'library_book');
     
-    // 4. Addons
-    const addons = sortedProducts.filter(p => p.is_addon);
+    // Apply Publisher Filter (Only for Library)
+    if (selectedPublisher !== 'all') {
+        library = library.filter(p => p.publisher?.name === selectedPublisher);
+    }
+
+    // Apply Sort (Only for Library)
+    if (sortOrder !== 'default') {
+        library.sort((a, b) => {
+            const priceA = a.price_printed || a.price_electronic || 0;
+            const priceB = b.price_printed || b.price_electronic || 0;
+            return sortOrder === 'price-asc' ? priceA - priceB : priceB - priceA;
+        });
+    } else {
+        // Default sort by sort_order
+        library.sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
+    }
+    
+    // Addons
+    const addons = searchedProducts.filter(p => p.is_addon);
     
     return { subscriptionProduct: sub, otherHeroStories: hero, libraryBooks: library, addonProducts: addons };
-  }, [filteredProducts]);
+  }, [searchedProducts, personalizedProducts, selectedPublisher, sortOrder]);
   
   return (
     <div className="bg-muted/30 py-12 sm:py-16 animate-fadeIn min-h-screen">
@@ -167,14 +206,14 @@ const PersonalizedStoriesPage: React.FC = () => {
                 </p>
             </div>
             
-            {/* Search Bar */}
-            <div className="max-w-2xl mx-auto mb-12 relative">
+            {/* Global Search Bar */}
+            <div className="max-w-3xl mx-auto mb-10 bg-white p-2 rounded-2xl shadow-sm border">
                 <div className="relative">
                     <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
                     <Input 
                         type="text" 
-                        placeholder="ابحث عن قصة أو كتاب..." 
-                        className="pr-12 h-14 rounded-full shadow-lg border-2 border-transparent focus:border-primary/20 text-lg"
+                        placeholder="ابحث عن قصة، كتاب، أو موضوع..." 
+                        className="pr-12 h-12 rounded-xl border-none focus:ring-0 shadow-none text-lg"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -204,7 +243,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                     </div>
 
                     <TabsContent value="hero" className="animate-fadeIn space-y-12 w-full">
-                         {/* 1. Subscription Banner (Only in Hero Tab AND if not filtered out by specific search) */}
+                         {/* 1. Subscription Banner */}
                         {!searchTerm && (
                             <section className="bg-gradient-to-r from-pink-500 to-rose-500 p-8 sm:p-10 rounded-3xl shadow-xl text-white relative overflow-hidden">
                                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
@@ -294,12 +333,44 @@ const PersonalizedStoriesPage: React.FC = () => {
                     </TabsContent>
 
                     <TabsContent value="library" className="animate-fadeIn w-full">
-                         {/* Library Products */}
-                         <div className="flex items-center gap-3 mb-8 justify-center sm:justify-start">
-                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><BookHeart size={24}/></div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-gray-800">المكتبة العامة للنشء</h2>
-                                <p className="text-sm text-muted-foreground">مجموعة مختارة من الكتب النافعة والقصص الملهمة للأطفال والشباب، مع إمكانية تخصيص الغلاف.</p>
+                         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-6">
+                             {/* Title */}
+                             <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><BookHeart size={24}/></div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-800">المكتبة العامة للنشء</h2>
+                                    <p className="text-sm text-muted-foreground">مجموعة مختارة من الكتب النافعة والقصص الملهمة للأطفال والشباب.</p>
+                                </div>
+                            </div>
+                            
+                            {/* Library Filters */}
+                            <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                                <div className="relative w-full sm:w-48">
+                                     <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                     <Select 
+                                        value={selectedPublisher} 
+                                        onChange={(e) => setSelectedPublisher(e.target.value)}
+                                        className="w-full pr-10 h-10 text-sm bg-white"
+                                     >
+                                        <option value="all">كل دور النشر</option>
+                                        {publishers.map(pub => (
+                                            <option key={pub} value={pub}>{pub}</option>
+                                        ))}
+                                     </Select>
+                                 </div>
+                                 
+                                 <div className="relative w-full sm:w-48">
+                                     <ArrowUpDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                     <Select 
+                                        value={sortOrder} 
+                                        onChange={(e) => setSortOrder(e.target.value as any)}
+                                        className="w-full pr-10 h-10 text-sm bg-white"
+                                     >
+                                        <option value="default">الترتيب الافتراضي</option>
+                                        <option value="price-asc">السعر: من الأقل للأعلى</option>
+                                        <option value="price-desc">السعر: من الأعلى للأقل</option>
+                                     </Select>
+                                 </div>
                             </div>
                         </div>
 
@@ -312,7 +383,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                                         key={`lib-${product.id}`} 
                                         product={product}
                                     />
-                                )) : <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed text-muted-foreground">لا توجد كتب في المكتبة تطابق بحثك.</div>
+                                )) : <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed text-muted-foreground">لا توجد كتب تطابق خياراتك الحالية.</div>
                             )}
                         </div>
                     </TabsContent>

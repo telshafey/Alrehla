@@ -67,6 +67,7 @@ const InstructorPricingPage = lazy(() => import('../../pages/admin/instructor/In
 // Publisher-specific pages
 const PublisherDashboardPage = lazy(() => import('../../pages/admin/publisher/PublisherDashboardPage'));
 const PublisherProductsPage = lazy(() => import('../../pages/admin/publisher/PublisherProductsPage'));
+const PublisherFinancialsPage = lazy(() => import('../../pages/admin/publisher/PublisherFinancialsPage'));
 
 const AdminLayout: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -126,6 +127,7 @@ const AdminLayout: React.FC = () => {
 
                                     {/* مسارات دار النشر (Publisher) */}
                                     <Route path="publisher-products" element={<PermissionBasedRoute permission="canManageOwnProducts"><PublisherProductsPage /></PermissionBasedRoute>} />
+                                    <Route path="publisher-financials" element={<PermissionBasedRoute permission="canManageOwnProducts"><PublisherFinancialsPage /></PermissionBasedRoute>} />
                                     
                                     {/* إعادة استخدام صفحة تعديل المنتج للناشر مع صلاحيات خاصة */}
                                     <Route path="publisher-products/:id" element={<PermissionBasedRoute permission="canManageOwnProducts"><AdminProductDetailPage /></PermissionBasedRoute>} />

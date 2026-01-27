@@ -56,8 +56,11 @@ export const publicService = {
             // Filter blog posts: Status must be published AND published_at must be in the past or now
             supabase.from('blog_posts').select('*').eq('status', 'published').lte('published_at', now).is('deleted_at', null).order('published_at', { ascending: false }),
             // Fetch ALL products regardless of status, client will filter.
-            // This ensures products with 'null' is_active (legacy) are fetched.
-            supabase.from('personalized_products').select('*').is('deleted_at', null).order('sort_order'),
+            // Updated: Join with publisher profile to get the name
+            supabase.from('personalized_products')
+                .select('*, publisher:profiles!personalized_products_publisher_id_fkey(name)')
+                .is('deleted_at', null)
+                .order('sort_order'),
             supabase.from('creative_writing_packages').select('*'), 
             supabase.from('subscription_plans').select('*').is('deleted_at', null).order('price'),
             supabase.from('standalone_services').select('*'), 

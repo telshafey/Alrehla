@@ -176,6 +176,8 @@ export interface Order {
     receipt_url: string | null;
     order_date: string;
     created_at?: string;
+    // New fields usually joined
+    productKey?: string;
 }
 
 export interface OrderWithRelations extends Order {
@@ -266,6 +268,15 @@ export interface InstructorPayout {
     amount: number;
     payout_date: string;
     details: string;
+}
+
+export interface PublisherPayout {
+    id: string;
+    publisher_id: string;
+    amount: number;
+    payout_date: string;
+    details: string;
+    created_at: string;
 }
 
 export interface BlogPost {
@@ -534,6 +545,11 @@ export interface Database {
         Row: InstructorPayout
         Insert: Partial<InstructorPayout>
         Update: Partial<InstructorPayout>
+      };
+      publisher_payouts: {
+        Row: PublisherPayout
+        Insert: Partial<PublisherPayout>
+        Update: Partial<PublisherPayout>
       };
       creative_writing_packages: {
         Row: CreativeWritingPackage
