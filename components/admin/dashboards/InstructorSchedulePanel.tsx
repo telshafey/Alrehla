@@ -3,14 +3,20 @@ import React, { useMemo, useState } from 'react';
 import { Calendar, Clock, CheckCircle, BookOpen } from 'lucide-react';
 import AdminSection from '../AdminSection';
 import { WeeklyScheduleManager } from '../WeeklyScheduleManager';
-import type { Instructor, ScheduledSession, CreativeWritingPackage } from '../../../lib/database.types';
+import type { Instructor, ScheduledSession, CreativeWritingPackage, CreativeWritingBooking } from '../../../lib/database.types';
 import { formatDate } from '../../../utils/helpers';
 import Accordion from '../../ui/Accordion';
 import { Button } from '../../ui/Button';
 import RequestSessionChangeModal from './RequestSessionChangeModal';
 import IntroductoryAvailabilityManager from './IntroductoryAvailabilityManager';
 
-type EnrichedInstructorBooking = any;
+// Define strict type for the joined booking data
+type EnrichedInstructorBooking = CreativeWritingBooking & {
+    sessions: ScheduledSession[];
+    packageDetails?: CreativeWritingPackage;
+    child_profiles: { name: string; avatar_url: string | null } | null;
+    package_name: string;
+};
 
 interface InstructorSchedulePanelProps {
     instructor: Instructor;
@@ -34,11 +40,11 @@ const parseTotalSessions = (sessionString: string | undefined): number => {
 const JourneyScheduleCard: React.FC<{ journey: EnrichedInstructorBooking; onSessionChangeRequest: (session: ScheduledSession) => void; }> = ({ journey, onSessionChangeRequest }) => {
     
     const sortedSessions = useMemo(() => 
-        [...(journey.sessions || [])].sort((a:any, b:any) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime()),
+        [...(journey.sessions || [])].sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime()),
     [journey.sessions]);
     
     const totalSessions = parseTotalSessions(journey.packageDetails?.sessions);
-    const completedSessionsCount = sortedSessions.filter((s:any) => s.status === 'completed').length;
+    const completedSessionsCount = sortedSessions.filter(s => s.status === 'completed').length;
 
     return (
         <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border">
@@ -53,7 +59,7 @@ const JourneyScheduleCard: React.FC<{ journey: EnrichedInstructorBooking; onSess
                 </div>
             </div>
              <div className="space-y-3">
-                {sortedSessions.map((session: any, index: number) => {
+                {sortedSessions.map((session, index) => {
                     const statusInfo = getStatusInfo(session.status);
                     return (
                         <div key={session.id} className="p-3 bg-gray-50 rounded-lg flex flex-col sm:flex-row justify-between items-start gap-3">

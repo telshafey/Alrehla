@@ -75,11 +75,15 @@ export const publicService = {
             return item ? item.value : defaultValue || null;
         };
         
-        // CLIENT-SIDE FILTERING:
-        // We filter here to handle legacy data where 'is_active' might be null.
-        // Rule: If is_active is false, hide it. If true OR null/undefined, show it.
+        // CLIENT-SIDE FILTERING & TRANSFORMATION:
+        // Rule 1: If is_active is false, hide it.
+        // Rule 2: If publisher is missing, default to "الرحلة".
         const activeProducts = (personalizedProducts as PersonalizedProduct[] || [])
-            .filter(p => p.is_active !== false);
+            .filter(p => p.is_active !== false)
+            .map(p => ({
+                ...p,
+                publisher: p.publisher ? p.publisher : { name: 'الرحلة' }
+            }));
 
         return {
             instructors: (instructors as Instructor[]) || [],

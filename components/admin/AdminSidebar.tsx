@@ -19,6 +19,16 @@ interface NavItemProps {
     onClick?: () => void;
 }
 
+interface NavGroup {
+    title?: string;
+    items: {
+        to: string;
+        icon: React.ReactNode;
+        label: string;
+        permission: boolean;
+    }[];
+}
+
 const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed, onClick }) => {
     return (
         <NavLink
@@ -49,22 +59,28 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
     const isInstructorOnly = permissions.isInstructor && !permissions.canViewGlobalStats;
     const isPublisherOnly = permissions.isPublisher && !permissions.canViewGlobalStats;
 
-    const renderNavContent = (navItems: any[]) => (
+    const renderNavContent = (navItems: (NavGroup | NavItemProps)[]) => (
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-             {navItems.map((group: any, index: number) => {
-                if (group.to) {
-                     return <NavItem key={group.to} {...group} isCollapsed={isCollapsed} onClick={onMobileClose} />;
+             {navItems.map((groupOrItem, index) => {
+                // Check if it's a direct NavItem
+                if ('to' in groupOrItem) {
+                     const item = groupOrItem as NavItemProps & { permission?: boolean };
+                     return item.permission !== false ? <NavItem key={item.to} {...item} isCollapsed={isCollapsed} onClick={onMobileClose} /> : null;
                 }
                 
-                const filteredItems = group.items.filter((item: any) => item.permission);
+                // It's a Group
+                const group = groupOrItem as NavGroup;
+                const filteredItems = group.items.filter(item => item.permission);
+                
                 if (filteredItems.length === 0) return null;
+                
                 return (
                     <div key={index} className="mb-4">
                         {!isCollapsed && group.title && (
                             <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{group.title}</h3>
                         )}
                         <div className="space-y-1">
-                            {filteredItems.map((item: any) => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} onClick={onMobileClose} />)}
+                            {filteredItems.map((item) => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} onClick={onMobileClose} />)}
                         </div>
                     </div>
                 );
@@ -82,20 +98,21 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
             { to: '/admin/journeys', icon: <BookOpen size={20} />, label: 'رحلات الطلاب', permission: true },
             { to: '/admin/pricing', icon: <DollarSign size={20} />, label: 'التسعير', permission: true },
             { to: '/admin/financials', icon: <DollarSign size={20} />, label: 'الماليات', permission: permissions.canViewOwnFinancials },
-        ].filter(item => item.permission);
+        ];
         
-        navigationContent = renderNavContent(instructorNav);
+        // Wrap in simple structure for renderer
+        navigationContent = renderNavContent(instructorNav.map(i => ({ ...i, onClick: onMobileClose, isCollapsed })));
     } else if (isPublisherOnly) {
         const publisherNav = [
             { to: '/admin', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: true },
             { to: '/admin/publisher-products', icon: <Library size={20} />, label: 'إدارة كتبي', permission: permissions.canManageOwnProducts },
             { to: '/admin/publisher-financials', icon: <Wallet size={20} />, label: 'الماليات', permission: true },
             { to: '/admin/my-profile', icon: <UserCog size={20} />, label: 'إعدادات الحساب', permission: true },
-        ].filter(item => item.permission);
+        ];
         
-        navigationContent = renderNavContent(publisherNav);
+        navigationContent = renderNavContent(publisherNav.map(i => ({ ...i, onClick: onMobileClose, isCollapsed })));
     } else {
-        const adminNavGroups = [
+        const adminNavGroups: NavGroup[] = [
             {
                 items: [
                     { to: '/admin', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: permissions.canViewDashboard },

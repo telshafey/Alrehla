@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useAdminLibraryPricingSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
+import { useAllPublishers } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useProductMutations } from '../../hooks/mutations/useProductMutations';
 import { useAuth } from '../../contexts/AuthContext';
 import PageLoader from '../../components/ui/PageLoader';
@@ -11,7 +12,7 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
 import { Select } from '../../components/ui/Select';
-import { ArrowLeft, Save, Gift, Settings, Type, Image as ImageIcon, Star, Eye, Calculator } from 'lucide-react';
+import { ArrowLeft, Save, Gift, Settings, Type, Image as ImageIcon, Star, Eye, Calculator, Building2 } from 'lucide-react';
 import type { PersonalizedProduct } from '../../lib/database.types';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
@@ -31,6 +32,8 @@ const AdminProductDetailPage: React.FC = () => {
     
     const { data: allProducts = [], isLoading: productsLoading } = useAdminPersonalizedProducts();
     const { data: pricingConfig, isLoading: configLoading } = useAdminLibraryPricingSettings();
+    const { data: publishers = [], isLoading: publishersLoading } = useAllPublishers();
+
     const { createPersonalizedProduct, updatePersonalizedProduct } = useProductMutations();
     const isSaving = createPersonalizedProduct.isPending || updatePersonalizedProduct.isPending;
 
@@ -55,6 +58,7 @@ const AdminProductDetailPage: React.FC = () => {
         goal_config: 'predefined_and_custom',
         story_goals: [],
         component_keys: [],
+        publisher_id: null,
     });
     
     // State for NET prices (Publisher Input)
@@ -222,7 +226,7 @@ const AdminProductDetailPage: React.FC = () => {
         navigate(permissions.isPublisher ? '/admin/publisher-products' : '/admin/personalized-products');
     };
 
-    if ((productsLoading || configLoading) && !isNew) return <PageLoader />;
+    if ((productsLoading || configLoading || publishersLoading) && !isNew) return <PageLoader />;
 
     const backLink = permissions.isPublisher ? "/admin/publisher-products" : "/admin/personalized-products";
 
@@ -246,14 +250,29 @@ const AdminProductDetailPage: React.FC = () => {
                                     <Input id="title" name="title" value={product.title} onChange={handleSimpleChange} required />
                                 </FormField>
                                 {!permissions.isPublisher && (
-                                    <FormField label="نوع المنتج" htmlFor="product_type">
-                                        <Select id="product_type" name="product_type" value={product.product_type} onChange={handleTypeChange}>
-                                            <option value="hero_story">أنت البطل (تخصيص كامل)</option>
-                                            <option value="library_book">كتاب مكتبة (غلاف فقط)</option>
-                                            <option value="addon">منتج إضافي (إضافات إبداعية)</option>
-                                            <option value="subscription_box">صندوق اشتراك</option>
-                                        </Select>
-                                    </FormField>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <FormField label="نوع المنتج" htmlFor="product_type">
+                                            <Select id="product_type" name="product_type" value={product.product_type} onChange={handleTypeChange}>
+                                                <option value="hero_story">أنت البطل (تخصيص كامل)</option>
+                                                <option value="library_book">كتاب مكتبة (غلاف فقط)</option>
+                                                <option value="addon">منتج إضافي (إضافات إبداعية)</option>
+                                                <option value="subscription_box">صندوق اشتراك</option>
+                                            </Select>
+                                        </FormField>
+                                        <FormField label="دار النشر (المالك)" htmlFor="publisher_id">
+                                            <Select id="publisher_id" name="publisher_id" value={product.publisher_id || ''} onChange={handleSimpleChange}>
+                                                <option value="">(بدون ناشر - المنصة)</option>
+                                                {publishers.map(pub => (
+                                                    <option key={pub.id} value={pub.id}>{pub.name}</option>
+                                                ))}
+                                            </Select>
+                                        </FormField>
+                                    </div>
+                                )}
+                                {permissions.isPublisher && (
+                                    <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm flex items-center gap-2 border border-blue-200">
+                                        <Building2 size={16}/> <span>دار النشر: <strong>{currentUser?.name}</strong></span>
+                                    </div>
                                 )}
                                 <FormField label="الوصف" htmlFor="description">
                                     <Textarea id="description" name="description" value={product.description || ''} onChange={handleSimpleChange} rows={3} />

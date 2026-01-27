@@ -163,9 +163,9 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                                 <TableHeader>
                                     <TableRow>
                                         <SortableTableHead<PersonalizedProduct> sortKey="title" label="المنتج" sortConfig={sortConfig} onSort={handleSort} />
+                                        <TableHead>الناشر</TableHead>
                                         <SortableTableHead<PersonalizedProduct> sortKey="price_printed" label="الأسعار (مطبوع/إلكتروني)" sortConfig={sortConfig} onSort={handleSort} />
                                         <SortableTableHead<PersonalizedProduct> sortKey="sort_order" label="الترتيب" sortConfig={sortConfig} onSort={handleSort} />
-                                        {activeTab === 'pending' && <TableHead>الناشر</TableHead>}
                                         <TableHead className="text-center w-24">الحالة</TableHead>
                                         <TableHead className="text-center"><Star size={16} className="mx-auto" /></TableHead>
                                         <TableHead>إجراءات</TableHead>
@@ -184,6 +184,11 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                                                         <span className="text-xs text-muted-foreground font-mono">{product.key}</span>
                                                     </div>
                                                 </TableCell>
+                                                
+                                                <TableCell className="text-sm">
+                                                    {product.publisher?.name || 'المنصة'}
+                                                </TableCell>
+                                                
                                                 <TableCell className="font-mono text-sm">
                                                     {product.key === 'subscription_box' ? (
                                                         <span className="font-sans font-semibold text-primary">باقات متعددة</span>
@@ -192,12 +197,6 @@ const AdminPersonalizedProductsPage: React.FC = () => {
                                                     )}
                                                 </TableCell>
                                                 <TableCell>{product.sort_order}</TableCell>
-                                                
-                                                {activeTab === 'pending' && (
-                                                    <TableCell className="text-sm">
-                                                        {product.publisher?.name || 'مجهول'}
-                                                    </TableCell>
-                                                )}
 
                                                 <TableCell className="text-center">
                                                     {product.is_active !== false ? (

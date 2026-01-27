@@ -158,3 +158,12 @@ export const useAdminAllChildProfiles = () => useQuery({
     queryFn: () => userService.getAllChildProfiles(),
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
 });
+
+export const useAllPublishers = () => useQuery({
+    queryKey: ['allPublishers'],
+    queryFn: async () => {
+        const { data } = await supabase.from('profiles').select('id, name').eq('role', 'publisher');
+        return data || [];
+    },
+    staleTime: 1000 * 60 * 5, // 5 min cache
+});
