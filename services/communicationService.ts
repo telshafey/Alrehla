@@ -30,8 +30,7 @@ export const communicationService = {
     async notifyAdmins(message: string, link: string, type: string = 'admin_alert') {
         try {
             // 1. Fetch admins with relevant roles
-            // NOTE: This requires "profiles" table to be readable by the sender (e.g. Student)
-            // Ensure RLS policy "Public profiles are viewable by everyone" is applied.
+            // NOTE: Requires "profiles" table to be readable (See fix_notifications.sql)
             const { data: admins, error } = await supabase
                 .from('profiles')
                 .select('id')
@@ -55,7 +54,7 @@ export const communicationService = {
                 const { error: insertError } = await (supabase.from('notifications') as any).insert(notifications);
                 
                 if (insertError) {
-                    console.error("Error inserting admin notifications (Check RLS):", insertError);
+                    console.error("Error inserting admin notifications:", insertError);
                 }
             }
         } catch (error) {
@@ -72,7 +71,7 @@ export const communicationService = {
             .order('created_at', { ascending: false });
         
         if (error) {
-            console.warn("Error fetching support tickets (table might be missing):", error.message);
+            console.warn("Error fetching support tickets:", error.message);
             return [];
         }
         return data as SupportTicket[];
@@ -100,7 +99,7 @@ export const communicationService = {
             .order('created_at', { ascending: false });
             
         if (error) {
-            console.warn("Error fetching join requests (table might be missing):", error.message);
+            console.warn("Error fetching join requests:", error.message);
             return [];
         }
         return data as JoinRequest[];
@@ -129,7 +128,7 @@ export const communicationService = {
     async getAllSupportSessionRequests() {
         const { data, error } = await supabase.from('support_session_requests').select('*');
         if (error) {
-            console.warn("Table 'support_session_requests' missing or error:", error.message);
+            console.warn("Table 'support_session_requests' error:", error.message);
             return [] as SupportSessionRequest[];
         }
         return data as SupportSessionRequest[];

@@ -14,19 +14,20 @@ const PrivacyPolicyPage: React.FC = () => {
 
   const lastUpdated = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
 
-  // Function to render text with paragraphs and headers
+  // Function to render text with paragraphs
   const renderContent = (content: string) => {
-    return content.split('\n').map((line, index) => {
+    // Handle both \n and \r\n, and multiple newlines
+    return content.split(/\r?\n/).map((line, index) => {
         const trimmed = line.trim();
         if (!trimmed) return <div key={index} className="h-4" />; // Spacer for empty lines
         
-        // Check for headers (lines starting with number like "1." or asterisks "**")
+        // Check for headers (simple heuristic: starts with number or *)
         const isHeader = /^\d+\./.test(trimmed) || trimmed.startsWith('**');
-        const cleanText = trimmed.replace(/\*\*/g, ''); // Remove markdown bold if present
+        const cleanText = trimmed.replace(/\*\*/g, '');
         
         if (isHeader) {
             return (
-                <h3 key={index} className="text-xl font-bold text-gray-900 mt-6 mb-3 border-b pb-2 border-green-100 w-fit">
+                 <h3 key={index} className="text-xl font-bold text-gray-900 mt-6 mb-3 border-b pb-2 border-green-100 w-fit">
                     {cleanText}
                 </h3>
             );
@@ -62,17 +63,16 @@ const PrivacyPolicyPage: React.FC = () => {
         </div>
 
         <Card className="shadow-lg border-t-4 border-t-green-500 bg-white">
-            <CardContent className="p-8 sm:p-12">
-                 <div className="prose prose-lg max-w-none text-right">
-                    {/* Render Content */}
-                    {privacy?.content ? (
-                        renderContent(privacy.content)
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                            <p>جاري تحميل نص السياسة...</p>
-                        </div>
-                    )}
-                </div>
+            <CardContent className="p-8 sm:p-12 text-justify">
+                {privacy?.content ? (
+                    <div className="prose prose-lg max-w-none text-right">
+                         {renderContent(privacy.content)}
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <p>جاري تحميل نص السياسة...</p>
+                    </div>
+                )}
                 
                 <div className="mt-12 pt-8 border-t border-gray-100 text-center">
                     <p className="text-sm text-gray-500">

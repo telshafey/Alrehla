@@ -20,11 +20,9 @@ const NotificationListener: React.FC = () => {
     useEffect(() => {
         if (!currentUser) return;
 
-        // Unique channel name per user
+        // Unique channel name per user to avoid conflicts
         const channelName = `notifications:user:${currentUser.id}`;
         
-        // console.log(`📡 Connecting to notification channel: ${channelName}`);
-
         const channel = supabase
             .channel(channelName)
             .on(
@@ -33,12 +31,12 @@ const NotificationListener: React.FC = () => {
                     event: 'INSERT',
                     schema: 'public',
                     table: 'notifications',
-                    filter: `user_id=eq.${currentUser.id}`,
+                    filter: `user_id=eq.${currentUser.id}`, // Listen ONLY for notifications sent to ME
                 },
                 (payload) => {
                     const newNotification = payload.new as any;
                     
-                    // 1. Invalidate queries
+                    // 1. Invalidate queries to refresh the list UI
                     queryClient.invalidateQueries({ queryKey: ['userNotifications'] });
                     
                     // 2. Show Toast
@@ -46,7 +44,7 @@ const NotificationListener: React.FC = () => {
                     
                     // 3. Play Sound
                     if (audioRef.current) {
-                        audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
+                        audioRef.current.play().catch(e => console.warn("Audio play blocked (user interaction needed first):", e));
                     }
                 }
             )
@@ -55,8 +53,7 @@ const NotificationListener: React.FC = () => {
         return () => {
             supabase.removeChannel(channel);
         };
-        // FIX: Dependency on currentUser.id instead of currentUser object prevents infinite loop
-    }, [currentUser?.id, queryClient, addToast]);
+    }, [currentUser?.id, queryClient, addToast]); // Depend on ID specifically to prevent loop
 
     return null; 
 };

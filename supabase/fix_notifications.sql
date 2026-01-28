@@ -1,32 +1,37 @@
 
 -- إصلاح أذونات الإشعارات (Notifications RLS)
--- المشكلة: المستخدم العادي (طالب/ولي أمر) لا يملك صلاحية إنشاء إشعار لمستخدم آخر (مدير/مدرب).
+-- هذا السكربت يقوم بحذف السياسات القديمة وإعادة إنشائها لتجنب أخطاء التكرار
 
--- 1. تفعيل RLS (للتأكد)
+-- 1. تفعيل RLS
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
--- 2. حذف السياسات القديمة المقيدة (لتجنب التكرار)
+-- 2. حذف السياسات القديمة (لتجنب الخطأ: policy already exists)
 DROP POLICY IF EXISTS "Users can view own notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
 DROP POLICY IF EXISTS "Users can insert notifications" ON public.notifications;
 DROP POLICY IF EXISTS "System can insert notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Allow creating notifications for others" ON public.notifications;
 
--- 3. السماح للمستخدمين برؤية إشعاراتهم الخاصة فقط
+-- 3. إعادة إنشاء السياسات
+-- السماح للمستخدمين برؤية إشعاراتهم الخاصة فقط
 CREATE POLICY "Users can view own notifications" ON public.notifications
     FOR SELECT USING (auth.uid() = user_id);
 
--- 4. السماح بتحديث الإشعارات الخاصة (لجعلها مقروءة)
+-- السماح للمستخدم بتحديث إشعاراته (مثلاً: تعليمها كمقروءة)
 CREATE POLICY "Users can update own notifications" ON public.notifications
     FOR UPDATE USING (auth.uid() = user_id);
 
--- 5. السماح لأي مستخدم مسجل بإنشاء إشعار لأي مستخدم آخر
--- (هذا ضروري لكي يتمكن الطالب من إشعار المدرب أو الإدارة عند حدوث إجراء)
+-- السماح لأي مستخدم مسجل بإنشاء إشعار لأي مستخدم آخر (مهم للتفاعل بين الطلاب والمدربين)
 CREATE POLICY "Allow creating notifications for others" ON public.notifications
     FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
--- إصلاح أذونات قراءة الملفات الشخصية (Profiles RLS)
--- المشكلة: النظام يحتاج لمعرفة "من هم المدراء" لإرسال الإشعار، والطالب قد لا يملك صلاحية البحث في جدول المستخدمين.
+-- 4. تفعيل Realtime للجدول
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
 
--- 1. السماح للجميع بقراءة البيانات الأساسية للمستخدمين (الاسم، الرتبة، المعرف)
+-- 5. إصلاح أذونات قراءة الملفات الشخصية (ضروري لإرسال الإشعارات للمشرفين)
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles
     FOR SELECT USING (true);
+
+-- تحديث الكاش
+NOTIFY pgrst, 'reload config';

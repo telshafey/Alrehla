@@ -14,17 +14,17 @@ const TermsOfUsePage: React.FC = () => {
 
   const lastUpdated = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
 
-  // Function to render text with paragraphs and headers
+  // Function to render text with paragraphs
   const renderContent = (content: string) => {
-    return content.split('\n').map((line, index) => {
+    return content.split(/\r?\n/).map((line, index) => {
         const trimmed = line.trim();
         if (!trimmed) return <div key={index} className="h-4" />;
         
         const isHeader = /^\d+\./.test(trimmed) || trimmed.startsWith('**');
         const cleanText = trimmed.replace(/\*\*/g, '');
-
+        
         if (isHeader) {
-            return (
+             return (
                 <h3 key={index} className="text-xl font-bold text-gray-900 mt-6 mb-3 border-b pb-2 border-blue-100 w-fit">
                     {cleanText}
                 </h3>
@@ -61,16 +61,16 @@ const TermsOfUsePage: React.FC = () => {
         </div>
 
         <Card className="shadow-lg border-t-4 border-t-blue-500 bg-white">
-            <CardContent className="p-8 sm:p-12">
-                 <div className="prose prose-lg max-w-none text-right">
-                    {terms?.content ? (
-                        renderContent(terms.content)
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                             <p>جاري تحميل نص الشروط...</p>
-                        </div>
-                    )}
-                </div>
+            <CardContent className="p-8 sm:p-12 text-justify">
+                 {terms?.content ? (
+                    <div className="prose prose-lg max-w-none text-right">
+                        {renderContent(terms.content)}
+                    </div>
+                 ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                            <p>جاري تحميل نص الشروط...</p>
+                    </div>
+                 )}
 
                 <div className="mt-12 pt-8 border-t border-gray-100 text-center">
                     <p className="text-sm text-gray-500">
