@@ -3,15 +3,16 @@ import React, { useMemo } from 'react';
 import { DollarSign, Landmark, TrendingUp, ArrowUpRight, Wallet, History, AlertCircle } from 'lucide-react';
 import AdminSection from '../AdminSection';
 import { Button } from '../../ui/Button';
-import type { Instructor } from '../../../lib/database.types';
+import type { Instructor, CreativeWritingBooking, ServiceOrder, InstructorPayout } from '../../../lib/database.types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/Table';
 import { formatDate } from '../../../utils/helpers';
 import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
 
+// Define strict types for props instead of any[]
 interface InstructorFinancialsPanelProps {
-    bookings: any[];
-    serviceOrders: any[];
-    payouts: any[];
+    bookings: CreativeWritingBooking[];
+    serviceOrders: ServiceOrder[];
+    payouts: InstructorPayout[];
     instructor: Instructor;
 }
 
@@ -23,8 +24,13 @@ const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ b
         const bookingEarnings = bookings
             .filter(b => b.status === 'مكتمل')
             .map(b => {
-                const netAmount = instructor.package_rates?.[b.package_id] || (instructor.rate_per_session * 1);
-                return { ...b, netAmount, type: 'جلسة/باقة' };
+                const netAmount = instructor.package_rates?.[b.package_name] || (instructor.rate_per_session || 0 * 1);
+                return { 
+                    ...b, 
+                    netAmount, 
+                    type: 'جلسة/باقة',
+                    date: b.booking_date
+                };
             });
 
         // 2. أرباح الخدمات الإضافية
@@ -32,7 +38,13 @@ const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ b
             .filter(o => o.status === 'مكتمل')
             .map(o => {
                 const netAmount = instructor.service_rates?.[o.service_id] || (o.total * 0.7);
-                return { ...o, netAmount, type: 'خدمة' };
+                return { 
+                    ...o, 
+                    netAmount, 
+                    type: 'خدمة',
+                    date: o.created_at,
+                    package_name: (o as any).service_name || 'خدمة' // Fallback for display
+                };
             });
 
         const totalEarned = [...bookingEarnings, ...serviceEarnings].reduce((sum, item) => sum + item.netAmount, 0);
@@ -44,7 +56,7 @@ const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ b
             totalPaid,
             outstanding,
             recentItems: [...bookingEarnings, ...serviceEarnings]
-                .sort((a, b) => new Date(b.created_at || b.booking_date).getTime() - new Date(a.created_at || a.booking_date).getTime())
+                .sort((a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime())
                 .slice(0, 10)
         };
     }, [bookings, serviceOrders, payouts, instructor]);
@@ -133,15 +145,15 @@ const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ b
                                         {financialSummary.recentItems.map((item, idx) => (
                                             <TableRow key={idx} className="hover:bg-muted/5">
                                                 <TableCell>
-                                                    <p className="font-bold text-sm text-gray-800">{item.package_name || item.details?.serviceName}</p>
-                                                    <p className="text-[10px] text-muted-foreground">{item.child_profiles?.name}</p>
+                                                    <p className="font-bold text-sm text-gray-800">{item.package_name || (item as any).details?.serviceName}</p>
+                                                    <p className="text-[10px] text-muted-foreground">{(item as any).child_profiles?.name}</p>
                                                 </TableCell>
                                                 <TableCell>
                                                     <span className={`text-[10px] px-2 py-0.5 rounded-full border ${item.type === 'خدمة' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-purple-50 text-purple-700 border-purple-100'}`}>
                                                         {item.type}
                                                     </span>
                                                 </TableCell>
-                                                <TableCell className="text-xs text-gray-500 font-mono">{formatDate(item.booking_date || item.created_at)}</TableCell>
+                                                <TableCell className="text-xs text-gray-500 font-mono">{formatDate(item.date)}</TableCell>
                                                 <TableCell className="text-left">
                                                     <span className="font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md border border-green-100">
                                                         +{item.netAmount} ج.م

@@ -76,7 +76,12 @@ export const useSessionDetails = (sessionId: string | undefined) => {
         queryKey: ['sessionDetails', sessionId],
         queryFn: async () => {
             if (!sessionId) return null;
-            const { data } = await supabase.from('scheduled_sessions').select('*, instructors(name)').eq('id', sessionId).single();
+            // Updated: Added child_profiles(name) to the selection
+            const { data } = await supabase
+                .from('scheduled_sessions')
+                .select('*, instructors(name), child_profiles(name)')
+                .eq('id', sessionId)
+                .single();
             return data;
         },
         enabled: !!sessionId,

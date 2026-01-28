@@ -14,11 +14,18 @@ import { Select } from '../../../components/ui/Select';
 import { CheckCircle, ArrowRight, Star, Award, User } from 'lucide-react';
 import { formatDate } from '../../../utils/helpers';
 import { useToast } from '../../../contexts/ToastContext';
+import { ScheduledSession } from '../../../lib/database.types';
+
+// Define the shape of session with joined data based on the updated hook
+interface JoinedSessionData extends ScheduledSession {
+    child_profiles: { name: string } | null;
+    instructors: { name: string } | null;
+}
 
 const SessionReportPage: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
     const navigate = useNavigate();
-    const { data: session, isLoading: sessionLoading } = useSessionDetails(sessionId);
+    const { data: sessionData, isLoading: sessionLoading } = useSessionDetails(sessionId);
     const { updateScheduledSession } = useBookingMutations();
     const { awardBadge } = useGamificationMutations();
     const { data: publicData } = usePublicData();
@@ -28,15 +35,15 @@ const SessionReportPage: React.FC = () => {
     const [selectedBadgeId, setSelectedBadgeId] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Casting session to any to access potentially loosely typed fields
-    const safeSession = session as any;
+    // Use strict type
+    const session = sessionData as JoinedSessionData | null;
 
     useEffect(() => {
-        if (safeSession?.notes) setNotes(safeSession.notes);
-    }, [safeSession]);
+        if (session?.notes) setNotes(session.notes);
+    }, [session]);
 
     if (sessionLoading) return <PageLoader text="جاري تحميل بيانات الجلسة..." />;
-    if (!safeSession) return <div className="p-20 text-center">عذراً، لم يتم العثور على الجلسة.</div>;
+    if (!session) return <div className="p-20 text-center">عذراً، لم يتم العثور على الجلسة.</div>;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,7 +51,7 @@ const SessionReportPage: React.FC = () => {
         try {
             // 1. تحديث حالة الجلسة وحفظ الملاحظات (عملية أساسية)
             await updateScheduledSession.mutateAsync({
-                sessionId: safeSession.id,
+                sessionId: session.id,
                 updates: {
                     status: 'completed',
                     notes: notes
@@ -55,9 +62,9 @@ const SessionReportPage: React.FC = () => {
             if (selectedBadgeId) {
                 try {
                     await awardBadge.mutateAsync({
-                        childId: safeSession.child_id,
+                        childId: session.child_id,
                         badgeId: parseInt(selectedBadgeId),
-                        instructorId: safeSession.instructor_id
+                        instructorId: session.instructor_id
                     });
                 } catch (badgeError) {
                     console.warn("Badge awarding skipped due to permissions/error:", badgeError);
@@ -97,8 +104,8 @@ const SessionReportPage: React.FC = () => {
                                 <div>
                                     <CardTitle className="text-2xl">تقرير إنجاز الجلسة</CardTitle>
                                     <CardDescription>
-                                        الطالب: <span className="font-bold text-foreground">{safeSession.child_profiles?.name || 'غير معروف'}</span> | 
-                                        تاريخ الجلسة: {formatDate(safeSession.session_date)}
+                                        الطالب: <span className="font-bold text-foreground">{session.child_profiles?.name || 'غير معروف'}</span> | 
+                                        تاريخ الجلسة: {formatDate(session.session_date)}
                                     </CardDescription>
                                 </div>
                             </div>

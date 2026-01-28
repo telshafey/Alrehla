@@ -163,7 +163,7 @@ export const useAllPublishers = () => useQuery({
     queryKey: ['allPublishers'],
     queryFn: async () => {
         const { data } = await supabase.from('profiles').select('id, name').eq('role', 'publisher');
-        return data || [];
+        return (data || []) as { id: string; name: string }[];
     },
     staleTime: 1000 * 60 * 5, // 5 min cache
 });

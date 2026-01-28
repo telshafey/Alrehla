@@ -7,15 +7,22 @@ import { Button } from '../../ui/Button';
 import { formatDate, formatTime, generateGoogleCalendarUrl } from '../../../utils/helpers';
 import RequestSessionChangeModal from './RequestSessionChangeModal';
 import GoogleCalendarSyncModal from './GoogleCalendarSyncModal';
+import { ScheduledSession } from '../../../lib/database.types';
+
+// Define the shape of session objects passed to this widget
+export interface WidgetSession extends ScheduledSession {
+    child_name?: string;
+    package_name?: string;
+}
 
 interface WeeklySessionsWidgetProps {
-    sessions: any[];
+    sessions: WidgetSession[];
     instructorName: string;
 }
 
 const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, instructorName }) => {
     const navigate = useNavigate();
-    const [rescheduleModalSession, setRescheduleModalSession] = useState<any>(null);
+    const [rescheduleModalSession, setRescheduleModalSession] = useState<WidgetSession | null>(null);
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
     const weekData = useMemo(() => {
@@ -59,7 +66,7 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
         return { pastNeedsAction, todaySessions, upcomingSessions, startOfWeek, endOfWeek };
     }, [sessions]);
 
-    const handleAddToGoogleCalendar = (session: any) => {
+    const handleAddToGoogleCalendar = (session: WidgetSession) => {
         const url = generateGoogleCalendarUrl(
             `جلسة: ${session.child_name || 'طالب'} - ${session.package_name}`,
             `جلسة تدريبية مع الطالب ${session.child_name}.\nرابط الجلسة: ${window.location.origin}/session/${session.id}`,
