@@ -1,7 +1,7 @@
 
 import { supabase, getTemporaryClient } from '../lib/supabaseClient';
 import { reportingService } from './reportingService';
-import type { UserProfile, ChildProfile, UserRole } from '../lib/database.types';
+import type { UserProfile, ChildProfile, UserRole, PublisherProfile } from '../lib/database.types';
 
 export interface CreateUserPayload {
     name: string;
@@ -139,6 +139,7 @@ export const userService = {
              console.error("Profile creation error (ignored if auth succeeded):", pError);
         }
 
+        // Auto-create related profiles based on role
         if (role === 'instructor') {
              try {
                 const slug = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(Math.random() * 1000);
@@ -153,6 +154,16 @@ export const userService = {
                     profile_update_status: 'approved'
                 }]);
              } catch (e) { console.warn("Failed to create instructor record", e); }
+        } else if (role === 'publisher') {
+             try {
+                const slug = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(Math.random() * 1000);
+                await (supabase.from('publisher_profiles') as any).insert([{
+                    user_id: userId,
+                    store_name: name,
+                    slug: slug,
+                    description: 'يرجى تحديث وصف دار النشر.',
+                }]);
+             } catch (e) { console.warn("Failed to create publisher record", e); }
         }
 
         await reportingService.logAction('CREATE_USER', userId, `مستخدم: ${name}`, `إنشاء حساب جديد برتبة: ${role}`);
@@ -311,5 +322,30 @@ export const userService = {
         const { error } = await supabase.from('profiles').delete().in('id', userIds);
         if (error) throw new Error(error.message);
         return { success: true };
+    },
+
+    // --- PUBLISHER SPECIFIC METHODS ---
+    async getPublisherProfile(userId: string) {
+        const { data, error } = await supabase
+            .from('publisher_profiles')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle();
+        
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+            console.error("Error fetching publisher profile:", error);
+        }
+        return data as PublisherProfile | null;
+    },
+
+    async updatePublisherProfile(payload: Partial<PublisherProfile> & { user_id: string }) {
+        // We use upsert to handle both insert and update based on user_id
+        const { data, error } = await (supabase.from('publisher_profiles') as any)
+            .upsert(payload, { onConflict: 'user_id' })
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as PublisherProfile;
     }
 };

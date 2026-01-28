@@ -10,7 +10,7 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
-import { ArrowLeft, Save, Shield, Briefcase, GraduationCap, Link as LinkIcon, AlertTriangle, Trash2, Info } from 'lucide-react';
+import { ArrowLeft, Save, Shield, Briefcase, GraduationCap, Link as LinkIcon, AlertTriangle, Trash2, Info, Building2 } from 'lucide-react';
 import PageLoader from '../../components/ui/PageLoader';
 import { useAuth } from '../../contexts/AuthContext';
 import Modal from '../../components/ui/Modal';
@@ -24,6 +24,12 @@ const AdminUserFormPage: React.FC = () => {
 
     const type = searchParams.get('type') || 'customer';
     const isStaffFlow = type === 'staff';
+    const isPublisherFlow = type === 'publisher';
+
+    // Set default role based on flow
+    let defaultRole: UserRole = 'user';
+    if (isStaffFlow) defaultRole = 'instructor';
+    if (isPublisherFlow) defaultRole = 'publisher';
 
     // Fix: Provide arguments to useAdminUsers and extract users correctly
     const { data: usersData, isLoading: usersLoading } = useAdminUsers({ page: 1, pageSize: 1000, search: '', roleFilter: 'all' });
@@ -37,7 +43,7 @@ const AdminUserFormPage: React.FC = () => {
         name: '',
         email: '',
         password: '',
-        role: (isStaffFlow ? 'instructor' : 'user') as UserRole,
+        role: defaultRole,
         phone: '',
         address: ''
     });
@@ -101,6 +107,22 @@ const AdminUserFormPage: React.FC = () => {
         ? `أنت على وشك حذف حساب الطالب "${formData.name}". سيؤدي هذا إلى فك ارتباطه بملف الطفل فوراً ولن يتمكن من الدخول إلى المنصة مرة أخرى.`
         : `أنت على وشك حذف حساب المستخدم "${formData.name}". سيتم حذف كافة البيانات المرتبطة به نهائياً ولا يمكن التراجع عن هذا الإجراء.`;
 
+    const getIcon = () => {
+        if (enrichedUser?.role === 'student') return <GraduationCap className="text-blue-500"/>;
+        if (isPublisherFlow || enrichedUser?.role === 'publisher') return <Building2 className="text-amber-500"/>;
+        if (isStaffFlow) return <Shield className="text-primary"/>;
+        return <Briefcase className="text-pink-500"/>;
+    };
+
+    const getTitle = () => {
+        if (isNew) {
+            if (isPublisherFlow) return 'إضافة دار نشر جديدة';
+            if (isStaffFlow) return 'إضافة موظف جديد';
+            return 'إضافة عميل جديد';
+        }
+        return `تعديل حساب: ${formData.name}`;
+    }
+
     return (
         <div className="animate-fadeIn space-y-8 max-w-4xl mx-auto">
             {/* نافذة تأكيد الحذف */}
@@ -157,8 +179,8 @@ const AdminUserFormPage: React.FC = () => {
 
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-extrabold text-foreground flex items-center gap-3">
-                    {enrichedUser?.role === 'student' ? <GraduationCap className="text-blue-500"/> : isStaffFlow ? <Shield className="text-primary"/> : <Briefcase className="text-pink-500"/>}
-                    {isNew ? (isStaffFlow ? 'إضافة موظف جديد' : 'إضافة عميل جديد') : `تعديل حساب: ${formData.name}`}
+                    {getIcon()}
+                    {getTitle()}
                 </h1>
                 <Button type="submit" form="user-form" loading={isSaving} icon={<Save size={18} />}>حفظ التغييرات</Button>
             </div>
@@ -196,7 +218,7 @@ const AdminUserFormPage: React.FC = () => {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField label="الاسم الكامل" htmlFor="name">
+                            <FormField label="الاسم الكامل / اسم الجهة" htmlFor="name">
                                 <Input id="name" name="name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
                             </FormField>
                             <FormField label="البريد الإلكتروني" htmlFor="email">

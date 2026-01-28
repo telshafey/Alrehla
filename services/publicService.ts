@@ -11,7 +11,8 @@ import type {
     StandaloneService,
     CommunicationSettings,
     PricingSettings,
-    MaintenanceSettings
+    MaintenanceSettings,
+    PublisherProfile
 } from '../lib/database.types';
 import { 
     mockPricingSettings, 
@@ -19,11 +20,13 @@ import {
     mockCommunicationSettings, 
     mockSocialLinks,
     mockBlogPosts,
-    mockMaintenanceSettings
+    mockMaintenanceSettings,
+    mockPublishers // Import mock publishers
 } from '../data/mockData';
 
 interface PublicData {
     instructors: Instructor[];
+    publishers: PublisherProfile[];
     blogPosts: BlogPost[];
     personalizedProducts: PersonalizedProduct[];
     creativeWritingPackages: CreativeWritingPackage[];
@@ -50,13 +53,11 @@ export const publicService = {
             { data: standaloneServices },
             { data: settingsData },
             { data: badges },
-            { data: comparisonItems }
+            { data: comparisonItems },
+            { data: publishers } 
         ] = await Promise.all([
             supabase.from('instructors').select('*').is('deleted_at', null),
-            // Filter blog posts: Status must be published AND published_at must be in the past or now
             supabase.from('blog_posts').select('*').eq('status', 'published').lte('published_at', now).is('deleted_at', null).order('published_at', { ascending: false }),
-            // Fetch ALL products regardless of status, client will filter.
-            // Updated: Join with publisher profile to get the name
             supabase.from('personalized_products')
                 .select('*, publisher:profiles!personalized_products_publisher_id_fkey(name)')
                 .is('deleted_at', null)
@@ -66,7 +67,8 @@ export const publicService = {
             supabase.from('standalone_services').select('*'), 
             (supabase.from('site_settings') as any).select('*'), 
             supabase.from('badges').select('*'),
-            supabase.from('comparison_items').select('*').order('sort_order')
+            supabase.from('comparison_items').select('*').order('sort_order'),
+            supabase.from('publisher_profiles').select('*') 
         ]);
 
         // Helper to get settings. 
@@ -75,18 +77,19 @@ export const publicService = {
             return item ? item.value : defaultValue || null;
         };
         
-        // CLIENT-SIDE FILTERING & TRANSFORMATION:
-        // Rule 1: If is_active is false, hide it.
-        // Rule 2: If publisher is missing, default to "الرحلة".
         const activeProducts = (personalizedProducts as PersonalizedProduct[] || [])
             .filter(p => p.is_active !== false)
             .map(p => ({
                 ...p,
                 publisher: p.publisher ? p.publisher : { name: 'الرحلة' }
             }));
+        
+        // Use mock publishers if DB is empty to ensure section visibility for demo
+        const displayPublishers = (publishers && publishers.length > 0) ? (publishers as PublisherProfile[]) : mockPublishers;
 
         return {
             instructors: (instructors as Instructor[]) || [],
+            publishers: displayPublishers,
             blogPosts: (blogPosts as BlogPost[])?.length > 0 ? (blogPosts as BlogPost[]) : mockBlogPosts,
             personalizedProducts: activeProducts,
             creativeWritingPackages: (creativeWritingPackages as CreativeWritingPackage[]) || [],

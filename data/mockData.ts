@@ -15,7 +15,8 @@ import type {
     UserRole,
     ComparisonItem,
     MaintenanceSettings,
-    LibraryPricingSettings
+    LibraryPricingSettings,
+    PublisherProfile
 } from '../lib/database.types';
 import { permissionsByRole } from '../lib/roles';
 
@@ -73,6 +74,37 @@ export const mockScheduledSessions: ScheduledSession[] = [];
 export const mockSessionMessages: SessionMessage[] = [];
 export const mockSessionAttachments: SessionAttachment[] = [];
 export const mockSupportSessionRequests: SupportSessionRequest[] = [];
+
+// --- Mock Publishers ---
+export const mockPublishers: PublisherProfile[] = [
+    {
+        id: 1,
+        user_id: 'mock-pub-1',
+        store_name: 'دار الشروق',
+        slug: 'dar-el-shourouk',
+        logo_url: 'https://upload.wikimedia.org/wikipedia/ar/7/7a/Dar_El_Shorouk_Logo.png',
+        description: 'من أعرق دور النشر في العالم العربي، تقدم محتوى متميز للأطفال واليافعين.',
+        website: 'https://www.shorouk.com'
+    },
+    {
+        id: 2,
+        user_id: 'mock-pub-2',
+        store_name: 'نهضة مصر',
+        slug: 'nahdet-misr',
+        logo_url: 'https://yt3.googleusercontent.com/ytc/AIdro_nGEy_QJO_sXFk_d4lTjWv5vC9Q_gC9_qC9_qC9=s900-c-k-c0x00ffffff-no-rj',
+        description: 'رواد في مجال النشر التعليمي والثقافي لأكثر من 80 عاماً.',
+        website: 'https://www.nahdetmisr.com'
+    },
+    {
+        id: 3,
+        user_id: 'mock-pub-3',
+        store_name: 'دار نشر الرحلة',
+        slug: 'alrehla-publisher',
+        logo_url: 'https://i.ibb.co/C0bSJJT/favicon.png', 
+        description: 'الدار الرسمية لمنصة الرحلة، نقدم قصصاً مخصصة ومنتجات تربوية فريدة.',
+        website: 'https://alrehla.com'
+    }
+];
 
 // --- CONSTANTS & SETTINGS (Used for Seeding) ---
 

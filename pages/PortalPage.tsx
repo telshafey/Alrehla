@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Feather, Target, ArrowLeft, Search, Edit, Gift } from 'lucide-react';
+import { BookOpen, Feather, Target, ArrowLeft, Search, Edit, Gift, Building2 } from 'lucide-react';
 import { useProduct } from '../contexts/ProductContext';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import TestimonialCard from '../components/shared/TestimonialCard';
@@ -85,7 +85,7 @@ const HowItWorksStep: React.FC<{ icon: React.ReactNode, title: string, descripti
 const PortalPage: React.FC = () => {
     const { siteBranding, loading: productLoading } = useProduct();
     const { data, isLoading: publicDataLoading } = usePublicData();
-    const { blogPosts, siteContent, personalizedProducts = [] } = data || {};
+    const { blogPosts, siteContent, personalizedProducts = [], publishers = [] } = data || {};
 
     // الحصول على صور المشاريع من المنتجات المخصصة لضمان المزامنة
     const customStoryImg = useMemo(() => personalizedProducts.find(p => p.key === 'custom_story')?.image_url, [personalizedProducts]);
@@ -133,11 +133,48 @@ const PortalPage: React.FC = () => {
                 </section>
             )}
 
+            {/* Publishers / Partners Section */}
+            {publishers.length > 0 && (
+                <section className="py-20 sm:py-24 bg-white relative overflow-hidden">
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')" }}></div>
+
+                    <div className="container mx-auto px-4 text-center relative z-10">
+                        <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-6 flex items-center justify-center gap-3">
+                             <Building2 className="text-blue-600" /> شركاؤنا في النجاح
+                        </h2>
+                        <p className="max-w-2xl mx-auto text-lg text-muted-foreground mb-16 leading-relaxed">
+                            نفخر بالتعاون مع نخبة من دور النشر العربية لتقديم أفضل محتوى لأطفالكم.
+                        </p>
+                        
+                        <div className="flex flex-wrap justify-center gap-10 md:gap-16 items-center">
+                            {publishers.map(publisher => (
+                                <Link 
+                                    key={publisher.id} 
+                                    to={`/publisher/${publisher.slug}`}
+                                    className="group flex flex-col items-center gap-4 transition-all duration-300 transform hover:-translate-y-2"
+                                >
+                                    <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white shadow-lg group-hover:shadow-xl bg-white flex items-center justify-center p-3 overflow-hidden ring-1 ring-gray-100 group-hover:ring-blue-200">
+                                        <Image 
+                                            src={publisher.logo_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
+                                            alt={publisher.store_name} 
+                                            className="w-full h-full"
+                                            objectFit="contain"
+                                        />
+                                    </div>
+                                    <span className="font-bold text-lg text-gray-700 group-hover:text-primary transition-colors">{publisher.store_name}</span>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {content?.showStepsSection !== false && (
-                <section className="bg-background py-20 sm:py-24">
+                <section className="bg-background py-20 sm:py-24 border-t">
                   <div className="container mx-auto px-4">
                       <div className="text-center mb-16">
-                          <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.stepsTitle || "رحلتك معنا في 3 خطوات"}</h2>
+                          <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.stepsTitle || "رحلتنا في 3 خطوات"}</h2>
                       </div>
                       {content?.steps ? (
                            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-start relative max-w-5xl mx-auto">

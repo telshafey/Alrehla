@@ -12,11 +12,13 @@ import type {
     StandaloneService,
     CommunicationSettings,
     PricingSettings,
-    MaintenanceSettings
+    MaintenanceSettings,
+    PublisherProfile
 } from '../../../lib/database.types';
 
 interface PublicData {
     instructors: Instructor[];
+    publishers: PublisherProfile[]; // Added publishers
     blogPosts: BlogPost[];
     personalizedProducts: PersonalizedProduct[];
     creativeWritingPackages: CreativeWritingPackage[];
@@ -37,6 +39,6 @@ export const usePublicData = () => {
             const data = await publicService.getAllPublicData();
             return data as PublicData;
         },
-        staleTime: 60 * 1000, // Cache for 1 minute since it's public data
+        staleTime: 60 * 1000, 
     });
 };

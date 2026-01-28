@@ -19,6 +19,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import PaymentStatusPage from './pages/PaymentStatusPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfUsePage from './pages/TermsOfUsePage';
+import PublisherPublicProfilePage from './pages/PublisherPublicProfilePage';
 
 // --- Auth Pages ---
 import AdminLoginPage from './pages/admin/AdminLoginPage';
@@ -69,6 +70,7 @@ const AppRoutes: React.FC = () => {
                     <Route path="/blog/:slug" element={<BlogPostPage />} />
                     <Route path="/account" element={<AccountPage />} />
                     <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/publisher/:slug" element={<PublisherPublicProfilePage />} />
                     
                     {/* Password Reset */}
                     <Route path="/reset-password" element={<ResetPasswordPage />} />

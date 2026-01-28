@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
 import { userService } from '../../services/userService';
+import type { PublisherProfile } from '../../lib/database.types';
 
 export const useUserMutations = () => {
     const queryClient = useQueryClient();
@@ -131,6 +132,17 @@ export const useUserMutations = () => {
         onError: (error: Error) => addToast(`فشل حذف المستخدمين: ${error.message}`, 'error'),
     });
 
+    // --- PUBLISHER ---
+    const updatePublisherProfile = useMutation({
+        mutationFn: (payload: Partial<PublisherProfile> & { user_id: string }) => userService.updatePublisherProfile(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['publisherProfile'] });
+            queryClient.invalidateQueries({ queryKey: ['publicData'] });
+            addToast('تم تحديث ملف دار النشر بنجاح.', 'success');
+        },
+        onError: (error: Error) => addToast(`فشل تحديث ملف دار النشر: ${error.message}`, 'error'),
+    });
+
     return { 
         createUser,
         updateUser, 
@@ -142,6 +154,7 @@ export const useUserMutations = () => {
         linkStudentToChildProfile, 
         unlinkStudentFromChildProfile,
         resetStudentPassword,
-        bulkDeleteUsers 
+        bulkDeleteUsers,
+        updatePublisherProfile
     };
 };

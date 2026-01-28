@@ -1,30 +1,61 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
+import { usePublisherProfile } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useToast } from '../../contexts/ToastContext';
-import { User, Key, Globe } from 'lucide-react';
+import { User, Key, Globe, Building2, Save } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { Textarea } from '../../components/ui/Textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 import { supportedCountries } from '../../data/mockData';
+import PageLoader from '../../components/ui/PageLoader';
 
 const AdminMyProfilePage: React.FC = () => {
     const { currentUser, updateCurrentUser } = useAuth();
-    const { updateUser, updateUserPassword } = useUserMutations();
+    const { updateUser, updateUserPassword, updatePublisherProfile } = useUserMutations();
     const { addToast } = useToast();
     
+    // --- Basic Profile State ---
     const [name, setName] = useState(currentUser?.name || '');
     const [email, setEmail] = useState(currentUser?.email || '');
     const [phone, setPhone] = useState(currentUser?.phone || '');
     const [country, setCountry] = useState(currentUser?.country ? supportedCountries.find(c => c.name === currentUser?.country)?.code || 'EG' : 'EG');
     const [city, setCity] = useState(currentUser?.city || '');
 
-    const [currentPassword, setCurrentPassword] = useState('');
+    // --- Password State ---
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+
+    // --- Publisher Profile State ---
+    const isPublisher = currentUser?.role === 'publisher';
+    const { data: publisherData, isLoading: publisherLoading } = usePublisherProfile(currentUser?.id);
+
+    const [storeName, setStoreName] = useState('');
+    const [slug, setSlug] = useState('');
+    const [description, setDescription] = useState('');
+    const [website, setWebsite] = useState('');
+    const [logoUrl, setLogoUrl] = useState('');
+    const [coverUrl, setCoverUrl] = useState('');
+
+    // Load Publisher Data
+    useEffect(() => {
+        if (publisherData) {
+            setStoreName(publisherData.store_name || '');
+            setSlug(publisherData.slug || '');
+            setDescription(publisherData.description || '');
+            setWebsite(publisherData.website || '');
+            setLogoUrl(publisherData.logo_url || '');
+            setCoverUrl(publisherData.cover_url || '');
+        } else if (currentUser?.role === 'publisher') {
+            // Default initialization if no record exists yet
+            setStoreName(currentUser.name || '');
+        }
+    }, [publisherData, currentUser]);
 
     const handleBasicInfoSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,7 +93,6 @@ const AdminMyProfilePage: React.FC = () => {
         
         try {
             await updateUserPassword.mutateAsync({ userId: currentUser.id, newPassword });
-            setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
         } catch (error) {
@@ -70,23 +100,99 @@ const AdminMyProfilePage: React.FC = () => {
         }
     };
 
+    const handlePublisherSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!currentUser) return;
+
+        const payload = {
+            user_id: currentUser.id,
+            store_name: storeName,
+            slug,
+            description,
+            website,
+            logo_url: logoUrl,
+            cover_url: coverUrl
+        };
+
+        await updatePublisherProfile.mutateAsync(payload);
+    };
+    
+    if (isPublisher && publisherLoading) return <PageLoader text="جاري تحميل بياناتك..." />;
+
     return (
         <div className="animate-fadeIn space-y-8 max-w-4xl mx-auto pb-20">
             <div>
-                <h1 className="text-3xl font-extrabold text-foreground">إعدادات الحساب الشخصي</h1>
-                <p className="text-muted-foreground mt-1">تعديل بياناتك الشخصية ومعلومات الدخول.</p>
+                <h1 className="text-3xl font-extrabold text-foreground">إعدادات الحساب</h1>
+                <p className="text-muted-foreground mt-1">
+                    {isPublisher ? 'تعديل بيانات دار النشر والملف الشخصي' : 'تعديل بياناتك الشخصية ومعلومات الدخول'}
+                </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Basic Info */}
+                
+                {/* --- PUBLISHER SECTION (Full Width) --- */}
+                {isPublisher && (
+                    <div className="lg:col-span-3">
+                        <form onSubmit={handlePublisherSubmit}>
+                            <Card className="border-t-4 border-t-blue-600 shadow-md">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-blue-800"><Building2 /> بيانات دار النشر (عامة)</CardTitle>
+                                    <CardDescription>هذه البيانات تظهر للجمهور في صفحة دار النشر الخاصة بك.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <ImageUploadField 
+                                            label="شعار الدار (Logo)" 
+                                            fieldKey="logoUrl" 
+                                            currentUrl={logoUrl} 
+                                            onUrlChange={(_, url) => setLogoUrl(url)} 
+                                            recommendedSize="400x400px"
+                                        />
+                                        <ImageUploadField 
+                                            label="صورة الغلاف (Cover)" 
+                                            fieldKey="coverUrl" 
+                                            currentUrl={coverUrl} 
+                                            onUrlChange={(_, url) => setCoverUrl(url)} 
+                                            recommendedSize="1200x400px"
+                                        />
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <FormField label="اسم الدار" htmlFor="storeName">
+                                            <Input id="storeName" value={storeName} onChange={e => setStoreName(e.target.value)} required />
+                                        </FormField>
+                                        <FormField label="معرّف الرابط (Slug)" htmlFor="slug">
+                                            <Input id="slug" value={slug} onChange={e => setSlug(e.target.value)} required dir="ltr" placeholder="my-store-name" />
+                                            <p className="text-[10px] text-muted-foreground mt-1">يستخدم في رابط صفحتك: /publisher/your-slug</p>
+                                        </FormField>
+                                    </div>
+
+                                    <FormField label="نبذة عن الدار" htmlFor="description">
+                                        <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder="اكتب نبذة مختصرة عن تاريخ الدار وتوجهها..." />
+                                    </FormField>
+
+                                    <FormField label="الموقع الإلكتروني" htmlFor="website">
+                                        <Input id="website" value={website} onChange={e => setWebsite(e.target.value)} dir="ltr" placeholder="https://..." />
+                                    </FormField>
+
+                                    <div className="flex justify-end pt-4 border-t">
+                                        <Button type="submit" loading={updatePublisherProfile.isPending} icon={<Save />}>حفظ إعدادات النشر</Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </form>
+                    </div>
+                )}
+
+                {/* --- BASIC INFO --- */}
                 <div className="lg:col-span-2 space-y-8">
                     <form onSubmit={handleBasicInfoSubmit}>
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><User /> المعلومات الأساسية</CardTitle>
+                                <CardTitle className="flex items-center gap-2"><User /> المعلومات الشخصية (الخاصة)</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <FormField label="الاسم الكامل" htmlFor="name">
+                                <FormField label="الاسم الكامل (للمسؤول)" htmlFor="name">
                                     <Input id="name" value={name} onChange={e => setName(e.target.value)} required />
                                 </FormField>
                                 <FormField label="البريد الإلكتروني" htmlFor="email">
@@ -122,13 +228,13 @@ const AdminMyProfilePage: React.FC = () => {
                     </form>
                 </div>
 
-                {/* Password Change */}
+                {/* --- PASSWORD --- */}
                 <div className="lg:col-span-1">
                     <form onSubmit={handlePasswordSubmit}>
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Key /> تغيير كلمة المرور</CardTitle>
-                                <CardDescription>يستحسن تغيير كلمة المرور دورياً للأمان.</CardDescription>
+                                <CardTitle className="flex items-center gap-2"><Key /> الأمان</CardTitle>
+                                <CardDescription>تغيير كلمة المرور الخاصة بحسابك.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <FormField label="كلمة المرور الجديدة" htmlFor="newPassword">
@@ -138,6 +244,7 @@ const AdminMyProfilePage: React.FC = () => {
                                         value={newPassword} 
                                         onChange={e => setNewPassword(e.target.value)} 
                                         required 
+                                        minLength={6}
                                     />
                                 </FormField>
                                 <FormField label="تأكيد كلمة المرور" htmlFor="confirmPassword">

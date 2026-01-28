@@ -55,6 +55,20 @@ export interface Instructor {
     deleted_at?: string | null;
 }
 
+// New Interface for Publisher Public Profile
+export interface PublisherProfile {
+    id: number;
+    user_id: string;
+    store_name: string;
+    slug: string;
+    logo_url: string | null;
+    cover_url?: string | null;
+    description: string;
+    website?: string;
+    social_links?: { facebook?: string; instagram?: string; twitter?: string };
+    created_at?: string;
+}
+
 export interface PublishedWork {
     title: string;
     cover_url: string;
@@ -515,6 +529,11 @@ export interface Database {
         Row: Instructor
         Insert: Partial<Instructor>
         Update: Partial<Instructor>
+      };
+      publisher_profiles: {
+        Row: PublisherProfile
+        Insert: Partial<PublisherProfile>
+        Update: Partial<PublisherProfile>
       };
       personalized_products: {
         Row: PersonalizedProduct

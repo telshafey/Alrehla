@@ -1,9 +1,9 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAdminUsers, useAdminAllChildProfiles, transformUsersWithRelations, type UserWithParent } from '../../hooks/queries/admin/useAdminUsersQuery';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
-import { Users, Plus, Edit, Trash2, Search, Link as LinkIcon, RefreshCw, User, Baby, GraduationCap, Shield, ShoppingBag, Link2Off, ChevronLeft, ChevronRight, UserCheck, AlertTriangle } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Link as LinkIcon, RefreshCw, User, Baby, GraduationCap, Shield, ShoppingBag, Link2Off, ChevronLeft, ChevronRight, UserCheck, AlertTriangle, Building2 } from 'lucide-react';
 import { roleNames } from '../../lib/roles';
 import { Button } from '../../components/ui/Button';
 import ErrorState from '../../components/ui/ErrorState';
@@ -17,20 +17,26 @@ import { useDebounce } from '../../hooks/useDebounce';
 
 const AdminUsersPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     
     // Pagination & Search State
     const [page, setPage] = useState(1);
     const [pageSize] = useState(10);
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 500); 
-    const [activeTab, setActiveTab] = useState<'parents' | 'customers' | 'students' | 'staff'>('parents');
+    
+    // Parse query param for tab or default to 'parents'
+    const queryParams = new URLSearchParams(location.search);
+    const defaultTab = queryParams.get('tab') as any || 'parents';
+    const [activeTab, setActiveTab] = useState<'parents' | 'customers' | 'students' | 'staff' | 'publishers'>(defaultTab);
 
     const roleFilter = useMemo(() => {
         switch(activeTab) {
             case 'parents': return 'parent'; 
-            case 'customers': return 'customers';
+            case 'customers': return 'customers'; // Custom filter logic in service
             case 'students': return 'student';
-            case 'staff': return 'staff';
+            case 'staff': return 'staff'; // Custom filter logic in service
+            case 'publishers': return 'publisher';
             default: return 'all';
         }
     }, [activeTab]);
@@ -90,6 +96,11 @@ const AdminUsersPage: React.FC = () => {
             icon: <User size={16} />
         },
         { 
+            label: 'إضافة دار نشر', 
+            action: () => navigate('/admin/users/new?type=publisher'),
+            icon: <Building2 size={16} />
+        },
+        { 
             label: 'إضافة موظف / إداري', 
             action: () => navigate('/admin/users/new?type=staff'),
             icon: <Shield size={16} />
@@ -142,6 +153,7 @@ const AdminUsersPage: React.FC = () => {
                                 <TabsTrigger value="parents" className="gap-2"><Baby size={16}/> أولياء الأمور</TabsTrigger>
                                 <TabsTrigger value="customers" className="gap-2"><ShoppingBag size={16}/> عملاء (أخرى)</TabsTrigger>
                                 <TabsTrigger value="students" className="gap-2"><GraduationCap size={16}/> حسابات الطلاب</TabsTrigger>
+                                <TabsTrigger value="publishers" className="gap-2"><Building2 size={16}/> شركاء (دور النشر)</TabsTrigger>
                                 <TabsTrigger value="staff" className="gap-2"><Shield size={16}/> الموظفون والمدربون</TabsTrigger>
                             </TabsList>
 
@@ -195,6 +207,7 @@ const AdminUsersPage: React.FC = () => {
                                                 <span className={`inline-flex w-fit items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                                                     value === 'student' ? 'bg-indigo-100 text-indigo-800' : 
                                                     value === 'parent' ? 'bg-green-100 text-green-800' :
+                                                    value === 'publisher' ? 'bg-amber-100 text-amber-800' :
                                                     value === 'instructor' ? 'bg-orange-100 text-orange-800' :
                                                     value === 'user' ? 'bg-gray-100 text-gray-800' : 'bg-purple-100 text-purple-800'
                                                 }`}>
@@ -204,9 +217,10 @@ const AdminUsersPage: React.FC = () => {
                                         },
                                         {
                                             accessorKey: 'totalChildrenCount',
-                                            header: 'بيانات العائلة',
+                                            header: 'بيانات مرتبطة',
                                             cell: ({ row }) => {
                                                 if (row.role === 'student') return <span className="text-[10px] text-muted-foreground">-</span>;
+                                                if (row.role === 'publisher') return <span className="text-[10px] text-muted-foreground">ملف الدار + المنتجات</span>;
                                                 
                                                 if (row.totalChildrenCount > 0) {
                                                     return (

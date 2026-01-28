@@ -167,3 +167,10 @@ export const useAllPublishers = () => useQuery({
     },
     staleTime: 1000 * 60 * 5, // 5 min cache
 });
+
+// New Hook for Publisher Profile
+export const usePublisherProfile = (userId: string | undefined) => useQuery({
+    queryKey: ['publisherProfile', userId],
+    queryFn: () => userId ? userService.getPublisherProfile(userId) : null,
+    enabled: !!userId,
+});
