@@ -95,16 +95,20 @@ const AdminProductDetailPage: React.FC = () => {
                 navigate(permissions.isPublisher ? '/admin/publisher-products' : '/admin/personalized-products');
             }
         } else if (isNew) {
-             // Defaults for Publisher
+             // Defaults for Library Books (Publishers or Admin selected type)
              if (permissions.isPublisher || initialType === 'library_book') {
                 setProduct(prev => ({
                     ...prev,
                     product_type: 'library_book',
                     is_addon: false,
                     goal_config: 'none',
-                    image_slots: [],
+                    // Enforce Mandatory Image Slots for Library Books
+                    image_slots: [
+                        { id: 'face_image', label: 'صورة وجه الطفل (إلزامي)', required: true },
+                        { id: 'extra_image', label: 'صورة أخرى (اختياري)', required: false }
+                    ],
                     text_fields: [],
-                    has_printed_version: true // Explicitly true for library books
+                    has_printed_version: true 
                 }));
              }
              // ... other defaults
@@ -160,10 +164,22 @@ const AdminProductDetailPage: React.FC = () => {
     const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = e.target.value;
         if (value === 'addon') {
-            setProduct(prev => ({ ...prev, product_type: 'addon', is_addon: true, goal_config: 'none' }));
+            setProduct(prev => ({ ...prev, product_type: 'addon', is_addon: true, goal_config: 'none', image_slots: [] }));
         } else if (value === 'library_book') {
-             setProduct(prev => ({ ...prev, product_type: 'library_book', is_addon: false, goal_config: 'none', has_printed_version: true }));
+             setProduct(prev => ({ 
+                 ...prev, 
+                 product_type: 'library_book', 
+                 is_addon: false, 
+                 goal_config: 'none', 
+                 has_printed_version: true,
+                 // Set default slots when switching to library book
+                 image_slots: [
+                    { id: 'face_image', label: 'صورة وجه الطفل (إلزامي)', required: true },
+                    { id: 'extra_image', label: 'صورة أخرى (اختياري)', required: false }
+                 ]
+             }));
         } else {
+             // Hero Story
              setProduct(prev => ({ ...prev, product_type: value as any, is_addon: false, goal_config: prev.goal_config === 'none' ? 'predefined_and_custom' : prev.goal_config }));
         }
     };
@@ -290,9 +306,30 @@ const AdminProductDetailPage: React.FC = () => {
                         </CardContent>
                     </Card>
                     
-                    {/* Advanced Customization */}
+                    {/* Image Slots Configuration - Now editable/visible for library books */}
                     <Card>
-                        <CardHeader><CardTitle className="flex items-center gap-2"><Type /> حقول التخصيص (للمشتري)</CardTitle></CardHeader>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon /> تخصيص الصور (للعميل)</CardTitle></CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground mb-4">هذه هي الأماكن التي سيرفع فيها العميل صوره عند الشراء (مثل صورة الوجه للغلاف).</p>
+                             <DynamicListManager 
+                                items={product.image_slots || []}
+                                onAdd={() => handleAddItem('image_slots')}
+                                onRemove={(idx) => handleRemoveItem('image_slots', idx)}
+                                onChange={(idx, key, val) => handleDynamicListChange('image_slots', idx, key, val)}
+                                addButtonLabel="إضافة خانة صورة"
+                                // Disable removing mandatory slots for Library Books to prevent user error, but allow adding more? 
+                                // Actually, let's keep it flexible but pre-filled.
+                                fields={[
+                                    { key: 'label', placeholder: 'عنوان الصورة (مثال: صورة الوجه)', width: 'flex-grow' },
+                                    { key: 'required', placeholder: 'إلزامي؟', type: 'checkbox', width: 'w-24' },
+                                ]}
+                            />
+                        </CardContent>
+                    </Card>
+
+                    {/* Text Fields Customization */}
+                    <Card>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><Type /> حقول التخصيص النصية</CardTitle></CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground mb-4">أضف حقولاً ليقوم العميل بملئها عند الشراء (مثال: اسم الطفل للإهداء).</p>
                             <DynamicListManager 

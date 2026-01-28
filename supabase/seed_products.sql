@@ -62,7 +62,7 @@ ON CONFLICT (key) DO UPDATE SET
     image_slots = EXCLUDED.image_slots,
     text_fields = EXCLUDED.text_fields;
 
--- 2. LIBRARY BOOKS (Upsert)
+-- 2. LIBRARY BOOKS (Upsert) - Updated image_slots to be consistent
 INSERT INTO public.personalized_products (
     key, title, product_type, description, image_url, features, sort_order, 
     is_featured, is_addon, is_active, has_printed_version, price_printed, 
@@ -77,7 +77,7 @@ INSERT INTO public.personalized_products (
     '["لغة عربية سهلة وسليمة", "دروس وعبر قيمة", "غلاف مخصص باسم طفلك"]'::jsonb,
     10, false, false, true, true, 350, 150,
     'none',
-    '[{"id": "cover_photo", "label": "صورة للغلاف الخلفي (اختياري)", "required": false}]'::jsonb
+    '[{"id": "face_image", "label": "صورة وجه الطفل (إلزامي للغلاف)", "required": true}, {"id": "extra_image", "label": "صورة أخرى / إهداء (اختياري)", "required": false}]'::jsonb
 ),
 (
     'science_encyclopedia',
@@ -88,7 +88,7 @@ INSERT INTO public.personalized_products (
     '["معلومات علمية دقيقة ومبسطة", "تنمي حب المعرفة", "طباعة فاخرة وغلاف مخصص"]'::jsonb,
     11, true, false, true, true, 400, null,
     'none',
-    '[{"id": "cover_photo", "label": "صورة الطفل (ستوضع في إطار رائد الفضاء)", "required": true}]'::jsonb
+    '[{"id": "face_image", "label": "صورة وجه الطفل (إلزامي للغلاف)", "required": true}, {"id": "extra_image", "label": "صورة أخرى / إهداء (اختياري)", "required": false}]'::jsonb
 ),
 (
     'manners_book',
@@ -99,7 +99,7 @@ INSERT INTO public.personalized_products (
     '["تربية سلوكية ممتعة", "مواقف من الحياة اليومية", "غلاف يحمل اسم طفلك"]'::jsonb,
     12, false, false, true, true, 300, 120,
     'none',
-    '[]'::jsonb
+    '[{"id": "face_image", "label": "صورة وجه الطفل (إلزامي للغلاف)", "required": true}, {"id": "extra_image", "label": "صورة أخرى / إهداء (اختياري)", "required": false}]'::jsonb
 ),
 (
     'bedtime_tales',
@@ -110,7 +110,7 @@ INSERT INTO public.personalized_products (
     '["نصوص مريحة وهادئة", "تعزز العلاقة بين الطفل والوالدين", "غلاف ليلي مميز باسم الطفل"]'::jsonb,
     13, false, false, true, true, 320, 130,
     'none',
-    '[]'::jsonb
+    '[{"id": "face_image", "label": "صورة وجه الطفل (إلزامي للغلاف)", "required": true}, {"id": "extra_image", "label": "صورة أخرى / إهداء (اختياري)", "required": false}]'::jsonb
 )
 ON CONFLICT (key) DO UPDATE SET
     title = EXCLUDED.title,

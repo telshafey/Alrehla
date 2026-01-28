@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useOrderData } from '../hooks/queries/public/usePageDataQuery';
@@ -19,13 +19,14 @@ import AddonsSection from '../components/order/AddonsSection';
 import DeliverySection from '../components/order/DeliverySection';
 import InteractivePreview from '../components/order/InteractivePreview';
 import { Card, CardContent } from '../components/ui/card';
-import { ArrowLeft, ArrowRight, Library } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Library, LogIn } from 'lucide-react';
 import ChildProfileModal from '../components/account/ChildProfileModal';
 import { EGYPTIAN_GOVERNORATES } from '../utils/governorates';
 
 const OrderPage: React.FC = () => {
     const { productKey } = useParams<{ productKey: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const { addItemToCart } = useCart();
     const { addToast } = useToast();
     const { isLoggedIn, currentUser, childProfiles, isProfileComplete, triggerProfileUpdate } = useAuth();
@@ -37,6 +38,9 @@ const OrderPage: React.FC = () => {
     const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isChildModalOpen, setIsChildModalOpen] = useState(false);
+    
+    // State for Image Preview
+    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
     // Get current product
     const product = useMemo(() => 
@@ -101,6 +105,26 @@ const OrderPage: React.FC = () => {
             setValue('governorate', gov);
         }
     }, [isLoggedIn, currentUser, formData.shippingOption, setValue]);
+
+    // --- Image Preview Logic ---
+    useEffect(() => {
+        // Watch for file changes in image slots
+        if (product?.image_slots) {
+            let foundFile = false;
+            for (const slot of product.image_slots) {
+                const file = formData[slot.id];
+                if (file instanceof File) {
+                    const url = URL.createObjectURL(file);
+                    setImagePreviewUrl(url);
+                    foundFile = true;
+                    
+                    // Cleanup function
+                    return () => URL.revokeObjectURL(url);
+                }
+            }
+            if (!foundFile) setImagePreviewUrl(null);
+        }
+    }, [formData, product]);
 
     if (isLoading) return <PageLoader text="جاري تحميل المنتج..." />;
     if (!product) return <div className="text-center py-20">المنتج غير موجود</div>;
@@ -179,11 +203,20 @@ const OrderPage: React.FC = () => {
     };
 
     const onSubmit = async (data: OrderFormValues) => {
+        // 1. Strict Login Check
+        if (!isLoggedIn) {
+            addToast('يجب تسجيل الدخول لإتمام الطلب وإضافته للسلة.', 'info');
+            navigate('/account', { state: { from: location.pathname } });
+            return;
+        }
+
+        // 2. Profile Completion Check
         if (!isProfileComplete) {
             triggerProfileUpdate(true); 
             return;
         }
 
+        // 3. Strict Shipping & Address Check for Printed Items
         if (data.deliveryType === 'printed') {
             if (!data.governorate || data.governorate.trim() === '') {
                  addToast('عذراً، يجب تحديد المحافظة لحساب تكلفة الشحن.', 'error');
@@ -191,6 +224,13 @@ const OrderPage: React.FC = () => {
                  setStep(deliveryStepIndex);
                  return;
             }
+            if (!data.recipientAddress || data.recipientAddress.trim() === '') {
+                addToast('العنوان التفصيلي مطلوب للتوصيل.', 'error');
+                const deliveryStepIndex = steps.findIndex(s => s.key === 'delivery');
+                setStep(deliveryStepIndex);
+                return;
+            }
+
             let calculatedShipping = 0;
             if (shippingCosts && data.governorate) {
                 const egyptCosts = shippingCosts['مصر'] || {};
@@ -198,7 +238,7 @@ const OrderPage: React.FC = () => {
             }
 
             if (calculatedShipping <= 0) {
-                 addToast('حدث خطأ في حساب الشحن للمحافظة المختارة.', 'error');
+                 addToast('حدث خطأ في حساب الشحن للمحافظة المختارة. يرجى التأكد من اختيار محافظة صحيحة.', 'error');
                  const deliveryStepIndex = steps.findIndex(s => s.key === 'delivery');
                  setStep(deliveryStepIndex);
                  return;
@@ -309,6 +349,20 @@ const OrderPage: React.FC = () => {
                                         {currentStepKey === 'review' && (
                                             <div className="space-y-4">
                                                 <h3 className="text-xl font-bold">مراجعة نهائية</h3>
+                                                
+                                                {!isLoggedIn && (
+                                                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 text-orange-800 flex items-center gap-3">
+                                                        <LogIn size={20} />
+                                                        <div>
+                                                            <p className="font-bold">تنبيه: يجب تسجيل الدخول للمتابعة</p>
+                                                            <p className="text-sm">لن تتمكن من إضافة الطلب للسلة دون تسجيل الدخول.</p>
+                                                        </div>
+                                                        <Button as={Link} to="/account" state={{ from: location.pathname }} size="sm" variant="outline" className="mr-auto bg-white">
+                                                            تسجيل الدخول
+                                                        </Button>
+                                                    </div>
+                                                )}
+
                                                 <p className="text-muted-foreground">يرجى التأكد من صحة جميع البيانات قبل الإضافة للسلة.</p>
                                                 <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-sm text-yellow-800">
                                                     <p>بمجرد تأكيد الطلب، سيتم البدء في تجهيز {isLibraryBook ? 'كتابك المختار' : 'قصتك المخصصة'}.</p>
@@ -340,6 +394,7 @@ const OrderPage: React.FC = () => {
                                             icon={<ArrowLeft size={16} />}
                                             variant="success"
                                             className="w-40"
+                                            disabled={!isLoggedIn} // Optionally disable, but the toast in handler is better UX
                                         >
                                             إضافة للسلة
                                         </Button>
@@ -366,7 +421,7 @@ const OrderPage: React.FC = () => {
                                     })}
                                     totalPrice={totalPrice}
                                     shippingPrice={shippingPrice}
-                                    imagePreviewUrl={null} 
+                                    imagePreviewUrl={imagePreviewUrl} 
                                     storyGoals={product.story_goals || []}
                                 />
                             </div>
