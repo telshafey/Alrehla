@@ -20,7 +20,6 @@ import DeliverySection from '../components/order/DeliverySection';
 import InteractivePreview from '../components/order/InteractivePreview';
 import { Card, CardContent } from '../components/ui/card';
 import { ArrowLeft, ArrowRight, Library, LogIn } from 'lucide-react';
-import ChildProfileModal from '../components/account/ChildProfileModal';
 import { EGYPTIAN_GOVERNORATES } from '../utils/governorates';
 
 const OrderPage: React.FC = () => {
@@ -37,7 +36,6 @@ const OrderPage: React.FC = () => {
     const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
     const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isChildModalOpen, setIsChildModalOpen] = useState(false);
     
     // State for Image Preview
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -64,7 +62,7 @@ const OrderPage: React.FC = () => {
         }
     });
 
-    const { handleSubmit, watch, setValue, trigger, reset, getValues } = methods;
+    const { handleSubmit, watch, setValue, trigger, reset, getValues, formState: { errors } } = methods;
     const formData = watch() as OrderFormValues;
 
     // --- Dynamic Steps Logic ---
@@ -195,11 +193,34 @@ const OrderPage: React.FC = () => {
                      addToast("يرجى رفع الصور المطلوبة للمتابعة.", "error");
                  }
              }
+             addToast("يرجى إكمال البيانات المطلوبة في هذه الخطوة.", "warning");
         }
     };
 
     const handleBack = () => {
         setStep(prev => prev - 1);
+    };
+    
+    // Redirect to Family Center
+    const handleAddChild = () => {
+        navigate('/account', { 
+            state: { defaultTab: 'familyCenter', from: location.pathname } 
+        });
+    };
+
+    const onError = (errors: any) => {
+        console.error("Form Validation Errors:", errors);
+        const errorMessages = Object.values(errors).map((e: any) => e.message).join('، ');
+        addToast(`عذراً، يوجد بيانات ناقصة: ${errorMessages.substring(0, 50)}...`, "error");
+        
+        // محاولة العودة للخطوة التي تحتوي على الخطأ (بسيط)
+        if(errors.childName || errors.childBirthDate) {
+             const childStep = steps.findIndex(s => s.key === 'child');
+             if(step !== childStep) setStep(childStep);
+        } else if (errors.recipientAddress || errors.governorate) {
+             const deliveryStep = steps.findIndex(s => s.key === 'delivery');
+             if(step !== deliveryStep) setStep(deliveryStep);
+        }
     };
 
     const onSubmit = async (data: OrderFormValues) => {
@@ -231,6 +252,7 @@ const OrderPage: React.FC = () => {
                 return;
             }
 
+            // إعادة حساب الشحن للتأكد
             let calculatedShipping = 0;
             if (shippingCosts && data.governorate) {
                 const egyptCosts = shippingCosts['مصر'] || {};
@@ -238,59 +260,68 @@ const OrderPage: React.FC = () => {
             }
 
             if (calculatedShipping <= 0) {
-                 addToast('حدث خطأ في حساب الشحن للمحافظة المختارة. يرجى التأكد من اختيار محافظة صحيحة.', 'error');
-                 const deliveryStepIndex = steps.findIndex(s => s.key === 'delivery');
-                 setStep(deliveryStepIndex);
-                 return;
+                 // في حالة عدم تحميل تكاليف الشحن، نحاول استخدام قيمة افتراضية بدلاً من منع الطلب تماماً
+                 // أو نطلب من المستخدم المحاولة مرة أخرى
+                 console.warn("Shipping cost is 0 or missing, defaulting to safe fallback or blocking.");
+                 // إذا كانت البيانات محملة ولكن المحافظة غير موجودة، هذا خطأ
+                 if (shippingCosts && Object.keys(shippingCosts).length > 0) {
+                     addToast('حدث خطأ في حساب الشحن للمحافظة المختارة.', 'error');
+                     return;
+                 }
             }
         }
 
         setIsSubmitting(true);
         
-        const files: Record<string, File> = {};
-        if (product.image_slots) {
-            product.image_slots.forEach(slot => {
-                if ((data as any)[slot.id] instanceof File) {
-                    files[slot.id] = (data as any)[slot.id];
+        try {
+            const files: Record<string, File> = {};
+            if (product.image_slots) {
+                product.image_slots.forEach(slot => {
+                    if ((data as any)[slot.id] instanceof File) {
+                        files[slot.id] = (data as any)[slot.id];
+                    }
+                });
+            }
+            
+            let finalShippingPrice = 0;
+            if (data.deliveryType === 'printed' && shippingCosts) {
+                 const egyptCosts = shippingCosts['مصر'] || {};
+                 finalShippingPrice = egyptCosts[data.governorate || ''] || egyptCosts['باقي المحافظات'] || 0;
+            }
+
+            const finalTotal = totalPrice; 
+
+            addItemToCart({
+                type: 'order',
+                payload: {
+                    productKey: product.key,
+                    formData: data, 
+                    files, 
+                    selectedAddons,
+                    totalPrice: finalTotal,
+                    shippingPrice: finalShippingPrice,
+                    summary: `${product.title} لـ ${data.childName}`,
+                    details: {
+                        ...data,
+                        productTitle: product.title,
+                        isPrinted: data.deliveryType === 'printed',
+                        productType: product.product_type
+                    }
                 }
             });
+
+            addToast('تمت إضافة الطلب للسلة بنجاح!', 'success');
+            navigate('/cart');
+        } catch (error) {
+            console.error("Cart Error", error);
+            addToast('حدث خطأ أثناء الإضافة للسلة. يرجى المحاولة مرة أخرى.', 'error');
+        } finally {
+            setIsSubmitting(false);
         }
-        
-        let finalShippingPrice = 0;
-        if (data.deliveryType === 'printed' && shippingCosts) {
-             const egyptCosts = shippingCosts['مصر'] || {};
-             finalShippingPrice = egyptCosts[data.governorate || ''] || egyptCosts['باقي المحافظات'] || 0;
-        }
-
-        const finalTotal = totalPrice; 
-
-        addItemToCart({
-            type: 'order',
-            payload: {
-                productKey: product.key,
-                formData: data, 
-                files, 
-                selectedAddons,
-                totalPrice: finalTotal,
-                shippingPrice: finalShippingPrice,
-                summary: `${product.title} لـ ${data.childName}`,
-                details: {
-                    ...data,
-                    productTitle: product.title,
-                    isPrinted: data.deliveryType === 'printed',
-                    productType: product.product_type
-                }
-            }
-        });
-
-        addToast('تمت إضافة الطلب للسلة بنجاح!', 'success');
-        navigate('/cart');
-        setIsSubmitting(false);
     };
 
     return (
         <FormProvider {...methods}>
-            <ChildProfileModal isOpen={isChildModalOpen} onClose={() => setIsChildModalOpen(false)} childToEdit={null} />
             <div className="bg-muted/30 py-12 sm:py-16 min-h-screen">
                 <div className="container mx-auto px-4">
                     <div className="max-w-6xl mx-auto">
@@ -313,7 +344,7 @@ const OrderPage: React.FC = () => {
                                                 onSelectChild={(child) => setSelectedChildId(child ? child.id : null)}
                                                 selectedChildId={selectedChildId}
                                                 currentUser={currentUser}
-                                                onAddChild={() => setIsChildModalOpen(true)}
+                                                onAddChild={handleAddChild}
                                             />
                                             {/* Show basic cover customization for Library Books here since Story step is skipped */}
                                             {isLibraryBook && (
@@ -389,12 +420,12 @@ const OrderPage: React.FC = () => {
                                     
                                     {step === steps.length - 1 ? (
                                         <Button 
-                                            onClick={handleSubmit(onSubmit)} 
+                                            onClick={handleSubmit(onSubmit, onError)} 
                                             loading={isSubmitting} 
                                             icon={<ArrowLeft size={16} />}
                                             variant="success"
                                             className="w-40"
-                                            disabled={!isLoggedIn} // Optionally disable, but the toast in handler is better UX
+                                            disabled={!isLoggedIn} 
                                         >
                                             إضافة للسلة
                                         </Button>

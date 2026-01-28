@@ -36,12 +36,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             sessionStorage.setItem('alrehlaCart', JSON.stringify(cart));
         } catch (error) {
             console.error("Could not save cart to sessionStorage", error);
+            // If storage is full, we could alert the user, but typically we just log it.
+            // Consider using localStorage if persistent or handling QuotaExceededError
+            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+                 console.warn("SessionStorage is full. Cart items might be lost on refresh.");
+            }
         }
     }, [cart]);
 
     const addItemToCart = useCallback((item: Omit<CartItem, 'timestamp' | 'id'>) => {
-        const newItem: CartItem = { ...item, id: uuidv4(), timestamp: Date.now() };
-        setCart(prevCart => [...prevCart, newItem]);
+        try {
+            const newItem: CartItem = { ...item, id: uuidv4(), timestamp: Date.now() };
+            setCart(prevCart => [...prevCart, newItem]);
+        } catch (e) {
+            console.error("Failed to add item to cart state", e);
+        }
     }, []);
     
     const removeItemFromCart = useCallback((itemId: string) => {
@@ -50,7 +59,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const clearCart = useCallback(() => {
         setCart([]);
-        sessionStorage.removeItem('alrehlaCart');
+        try {
+            sessionStorage.removeItem('alrehlaCart');
+        } catch (e) {
+            console.error("Failed to clear cart storage", e);
+        }
     }, []);
     
     const getCartTotal = useCallback(() => {

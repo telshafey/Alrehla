@@ -16,7 +16,6 @@ import { Button } from '../components/ui/Button';
 import { ArrowLeft, Info } from 'lucide-react';
 import type { ChildProfile, CreativeWritingPackage, Instructor } from '../lib/database.types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import ChildProfileModal from '../components/account/ChildProfileModal';
 import { bookingService } from '../services/bookingService'; 
 
 type BookingStep = 'package' | 'child' | 'instructor' | 'schedule';
@@ -43,7 +42,6 @@ const CreativeWritingBookingPage: React.FC = () => {
     const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
     const [selectedDateTime, setSelectedDateTime] = useState<{ date: Date, time: string } | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isChildModalOpen, setIsChildModalOpen] = useState(false);
 
     useEffect(() => {
         if (location.state?.selectedPackage) {
@@ -159,6 +157,12 @@ const CreativeWritingBookingPage: React.FC = () => {
         }
     };
 
+    const handleAddChild = () => {
+        navigate('/account', { 
+            state: { defaultTab: 'familyCenter', from: location.pathname } 
+        });
+    };
+
     const handleSubmit = async () => {
         // Enforce Profile Completion
         if (!isProfileComplete) {
@@ -221,7 +225,6 @@ const CreativeWritingBookingPage: React.FC = () => {
 
     return (
         <>
-            <ChildProfileModal isOpen={isChildModalOpen} onClose={() => setIsChildModalOpen(false)} childToEdit={null} />
             <div className="bg-muted/50 py-12 sm:py-16">
                 <div className="container mx-auto px-4">
                     <div className="max-w-6xl mx-auto">
@@ -247,26 +250,15 @@ const CreativeWritingBookingPage: React.FC = () => {
                                           pricingConfig={pricingConfig} // نمرر إعدادات التسعير هنا
                                       />
                                   )}
-                                  {step === 'child' && <ChildDetailsSection childProfiles={childProfiles} onSelectChild={handleSelectChild} selectedChildId={selectedChildId} formData={childData} handleChange={(e) => setChildData(p => ({...p, [e.target.name]: e.target.value}))} errors={{}} currentUser={currentUser} onSelectSelf={handleSelectSelf} onAddChild={() => setIsChildModalOpen(true)} />}
+                                  {step === 'child' && <ChildDetailsSection childProfiles={childProfiles} onSelectChild={handleSelectChild} selectedChildId={selectedChildId} formData={childData} handleChange={(e) => setChildData(p => ({...p, [e.target.name]: e.target.value}))} errors={{}} currentUser={currentUser} onSelectSelf={handleSelectSelf} onAddChild={handleAddChild} />}
                                   
                                   {step === 'instructor' && (
-                                      <>
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-                                            <Info className="text-blue-600 mt-0.5 shrink-0" size={20} />
-                                            <div>
-                                                <p className="font-bold text-blue-800 text-sm">تنويه بخصوص الأسعار</p>
-                                                <p className="text-sm text-blue-700">
-                                                    السعر المعروض في بطاقة المدرب هو السعر النهائي الشامل (بما في ذلك رسوم المنصة).
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <InstructorSelection 
-                                            instructors={instructors as Instructor[]} 
-                                            onSelect={setSelectedInstructor} 
-                                            selectedPackage={selectedPackage}
-                                            pricingConfig={pricingConfig}
-                                        />
-                                      </>
+                                      <InstructorSelection 
+                                          instructors={instructors as Instructor[]} 
+                                          onSelect={setSelectedInstructor} 
+                                          selectedPackage={selectedPackage}
+                                          pricingConfig={pricingConfig}
+                                      />
                                   )}
                                   
                                   {step === 'schedule' && selectedInstructor && <CalendarSelection instructor={selectedInstructor} holidays={holidays as string[]} activeBookings={activeBookings as any[]} onSelect={(date, time) => setSelectedDateTime({ date, time })} />}

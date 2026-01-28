@@ -1,7 +1,7 @@
 
 // ... existing imports
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Check, Star, Shield, Gift } from 'lucide-react';
 import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
 import { useCart } from '../contexts/CartContext';
@@ -16,7 +16,6 @@ import ChildDetailsSection from '../components/order/ChildDetailsSection';
 import ShippingAddressForm from '../components/shared/ShippingAddressForm';
 import SubscriptionSummary from '../components/subscription/SubscriptionSummary';
 import AddonsSection from '../components/order/AddonsSection';
-import ChildProfileModal from '../components/account/ChildProfileModal';
 import { EGYPTIAN_GOVERNORATES } from '../utils/governorates';
 
 const steps = [
@@ -28,6 +27,7 @@ const steps = [
 
 const SubscriptionPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { data, isLoading } = usePublicData();
     const { addItemToCart } = useCart();
     const { addToast } = useToast();
@@ -53,7 +53,6 @@ const SubscriptionPage: React.FC = () => {
     const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
     const [errors, setErrors] = useState<any>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isChildModalOpen, setIsChildModalOpen] = useState(false);
 
     const plans = data?.subscriptionPlans || [];
     const addonProducts = data?.personalizedProducts.filter(p => p.is_addon) || [];
@@ -89,6 +88,12 @@ const SubscriptionPage: React.FC = () => {
             setSelectedChildId(null);
             setFormData(prev => ({ ...prev, childName: '', childBirthDate: '', childGender: '', childInterests: '' }));
         }
+    };
+    
+    const handleAddChild = () => {
+        navigate('/account', { 
+            state: { defaultTab: 'familyCenter', from: location.pathname } 
+        });
     };
 
     const validateStep = (currentStepKey: string) => {
@@ -200,7 +205,6 @@ const SubscriptionPage: React.FC = () => {
 
     return (
         <div className="bg-gray-50 py-16 animate-fadeIn min-h-screen">
-             <ChildProfileModal isOpen={isChildModalOpen} onClose={() => setIsChildModalOpen(false)} childToEdit={null} />
             <div className="container mx-auto px-4 max-w-5xl">
                 <div className="text-center mb-10">
                     <h1 className="text-3xl font-extrabold text-foreground">{boxContent?.heroTitle || 'صندوق الرحلة الشهري'}</h1>
@@ -241,7 +245,7 @@ const SubscriptionPage: React.FC = () => {
                                             onSelectChild={handleChildSelect}
                                             selectedChildId={selectedChildId}
                                             currentUser={currentUser}
-                                            onAddChild={() => setIsChildModalOpen(true)}
+                                            onAddChild={handleAddChild}
                                             formData={formData}
                                             handleChange={(e) => setFormData({...formData, [e.target.name]: e.target.value})}
                                             errors={errors}
