@@ -33,11 +33,9 @@ export const supportedCountries = [
     { code: 'other', name: 'دولة أخرى', currency: 'USD', timezone: 'UTC', label: '$' }
 ];
 
-// ... (Rest of imports and arrays like mockUsers, mockChildProfiles etc. kept same)
-// Approximate Exchange Rates (Relative to EGP for estimation, ideally fetched live)
 export const exchangeRates: Record<string, number> = {
     'EGP': 1,
-    'SAR': 0.08, // 1 EGP = 0.08 SAR (Approx)
+    'SAR': 0.08,
     'AED': 0.075,
     'KWD': 0.006,
     'QAR': 0.075,
@@ -47,7 +45,6 @@ export const exchangeRates: Record<string, number> = {
     'USD': 0.02
 };
 
-// New Comparison Criteria Data (Removed num_sessions)
 export const mockComparisonItems: ComparisonItem[] = [
     { id: 'level_compare', label: 'المستوى التعليمي', type: 'text', sort_order: 1 },
     { id: 'target_age_compare', label: 'الفئة العمرية', type: 'text', sort_order: 2 },
@@ -75,7 +72,6 @@ export const mockSessionMessages: SessionMessage[] = [];
 export const mockSessionAttachments: SessionAttachment[] = [];
 export const mockSupportSessionRequests: SupportSessionRequest[] = [];
 
-// --- Mock Publishers ---
 export const mockPublishers: PublisherProfile[] = [
     {
         id: 1,
@@ -106,8 +102,6 @@ export const mockPublishers: PublisherProfile[] = [
     }
 ];
 
-// --- CONSTANTS & SETTINGS (Used for Seeding) ---
-
 export const mockSiteBranding: SiteBranding = {
     logoUrl: "https://placehold.co/500x150?text=Logo",
     heroImageUrl: "https://placehold.co/1920x800?text=Hero+Image",
@@ -118,14 +112,61 @@ export const mockSiteBranding: SiteBranding = {
     enhaLakPortalImageUrl: "https://placehold.co/600x400?text=Enha+Lak"
 };
 
-// ... (mockBlogPosts content kept same to save space, assuming it's there)
-export const mockBlogPosts: BlogPost[] = [
-    // ... (Keep existing posts)
-];
+export const mockBlogPosts: BlogPost[] = [];
 
-// ... (mockSiteContent content kept same)
+// --- Rich Content for Policies (This will seed the DB) ---
+// Note: We use \n for line breaks which the frontend renderer will respect
+const privacyContent = `تاريخ السريان: 1 يناير 2024
+
+تولي "منصة الرحلة" ("نحن"، "المنصة") أهمية قصوى لخصوصية زوارها ومشتركيها، وبشكل خاص الأطفال. تهدف هذه السياسة إلى توضيح نوع البيانات التي نجمعها، وكيفية استخدامها، وحقوقك فيما يتعلق بها.
+
+1. المعلومات التي نجمعها
+نقوم بجمع المعلومات لغرضين أساسيين: تقديم خدمات مخصصة عالية الجودة، وضمان تجربة تعليمية آمنة.
+* **بيانات ولي الأمر:** الاسم، البريد الإلكتروني، رقم الهاتف، وعنوان الشحن.
+* **بيانات الطفل (لأغراض التخصيص):** الاسم الأول، العمر، الجنس، الاهتمامات.
+* **الصور الشخصية:** في حال طلب منتج "قصة مخصصة"، قد نطلب صورة للطفل لرسم الشخصية الرئيسية لتشبهه. يتم استخدام هذه الصور حصراً لهذا الغرض الفني.
+* **محتوى الجلسات:** قد يتم تسجيل جلسات الفيديو التعليمية (في برنامج "بداية الرحلة") لأغراض ضمان الجودة، تدريب المدربين، وسلامة الأطفال.
+
+2. كيف نستخدم معلوماتك
+* **تخصيص المنتجات:** تأليف ورسم قصص يكون طفلك بطلها بناءً على البيانات المقدمة.
+* **تنفيذ الطلبات:** شحن المنتجات المطبوعة والتواصل معك بخصوص حالة الطلب.
+* **تحسين الخدمة:** تحليل كيفية استخدام المنصة لتطوير المحتوى والبرامج التعليمية.
+* **الأمان:** مراقبة الجلسات لضمان بيئة آمنة وخالية من التنمر أو المحتوى غير اللائق.
+
+3. مشاركة المعلومات
+نحن لا نبيع ولا نؤجر بياناتك لأي طرف ثالث. قد نشارك بيانات محدودة مع:
+* **شركات الشحن:** لتوصيل الطلبات.
+* **المدربين:** يتم مشاركة اسم الطفل وعمره واهتماماته مع المدرب المعين فقط لغرض التعليم.
+
+4. أمن البيانات
+نستخدم تقنيات تشفير متقدمة (SSL) لحماية بياناتك أثناء النقل والتخزين. يتم تخزين الصور والملفات الشخصية في خوادم مؤمنة ولا يتم الوصول إليها إلا من قبل الموظفين المصرح لهم.
+
+5. حقوقك
+لك الحق في طلب الاطلاع على بياناتك، تصحيحها، أو حذفها في أي وقت. يمكنك القيام بذلك عبر إعدادات الحساب أو التواصل مع الدعم الفني.`;
+
+const termsContent = `مرحباً بك في منصة الرحلة. باستخدامك لهذا الموقع، فإنك توافق على الالتزام بالشروط والأحكام التالية. يرجى قراءتها بعناية.
+
+1. شروط الاشتراك والعضوية
+* يجب أن يتم إنشاء الحسابات وإدارتها من قبل ولي الأمر أو الوصي القانوني لمن هم دون سن 18 عاماً.
+* أنت مسؤول عن الحفاظ على سرية بيانات الدخول الخاصة بحسابك.
+
+2. المنتجات المخصصة (إنها لك)
+* نظراً لطبيعة المنتجات المخصصة (التي يتم طباعتها خصيصاً لطفلك)، لا يمكن إلغاء الطلب أو استرداد المبلغ بعد مرور 24 ساعة من تأكيد الطلب.
+* في حال وجود خطأ مطبعي أو عيب في المنتج ناتج عن المنصة، نلتزم بإعادة طباعة المنتج وإرساله مجاناً.
+
+3. برامج الكتابة الإبداعية (بداية الرحلة)
+* **الالتزام بالمواعيد:** يجب حضور الجلسات في موعدها المحدد. في حال الرغبة في التأجيل، يجب إبلاغنا قبل 24 ساعة على الأقل.
+* **سلوك الطالب:** نتوقع من جميع الطلاب الالتزام بآداب السلوك والاحترام خلال الجلسات الجماعية أو الفردية. يحق للمنصة إنهاء اشتراك أي طالب يخالف قواعد السلوك دون استرداد الرسوم.
+
+4. حقوق الملكية الفكرية
+* جميع المحتويات الموجودة على المنصة (نصوص، رسومات، شعارات، مناهج) هي ملكية حصرية لمنصة الرحلة ومحمية بموجب قوانين حقوق النشر.
+* يمنع نسخ أو إعادة نشر أو توزيع أي جزء من المحتوى دون إذن كتابي مسبق.
+* بالنسبة لكتابات الطلاب: يحتفظ الطالب بملكية حقوق التأليف لقصصه، وتمنح المنصة رخصة غير حصرية لعرضها في "معرض الأعمال" أو المواد التسويقية بموافقة ولي الأمر.
+
+5. التعديلات
+نحتفظ بالحق في تعديل هذه الشروط في أي وقت. سيتم إشعار المستخدمين بأي تغييرات جوهرية عبر البريد الإلكتروني أو إشعار داخل الموقع.`;
+
 export const mockSiteContent: SiteContent = {
-    // ... (Keep existing content)
     portalPage: {
         heroTitle: 'رحلة كل طفل تبدأ بقصة... وقصته تبدأ هنا',
         heroSubtitle: 'منصة تربوية عربية متكاملة تصنع قصصاً مخصصة تجعل طفلك بطلاً، وتطلق مواهبه في الكتابة الإبداعية',
@@ -139,8 +180,6 @@ export const mockSiteContent: SiteContent = {
         creativeWritingTitle: 'بداية الرحلة',
         creativeWritingDescription: 'برنامج متكامل لتنمية مهارات الكتابة الإبداعية.',
         creativeWritingBtnText: 'ابدأ الرحلة',
-        valuePropositionTitle: 'لماذا تختار منصة الرحلة؟',
-        socialProofTitle: 'قصص نجاح ملهمة',
         aboutSectionTitle: 'قصتنا: من فكرة إلى رحلة',
         aboutSectionContent: 'نحن منصة تسعى لتمكين الأطفال من خلال القصص والكتابة...',
         aboutBtnText: 'تعرف علينا أكثر',
@@ -182,21 +221,15 @@ export const mockSiteContent: SiteContent = {
             heroBtnText: 'تصفح المنتجات واطلب الآن',
             productsTitle: 'منتجاتنا المميزة',
             howItWorksTitle: 'كيف تعمل؟',
-            galleryTitle: 'معرض الصور',
-            gallerySubtitle: 'لقطات من قصصنا',
             testimonialsTitle: 'آراء العملاء',
             testimonialsSubtitle: 'ماذا قالوا عنا',
             finalCtaTitle: 'جاهز للطلب؟',
             finalCtaSubtitle: 'ابدأ الآن بتخصيص قصة لطفلك.',
-            customStoryImageUrl: 'https://placehold.co/800x800?text=Custom+Story',
-            subscriptionBoxImageUrl: 'https://placehold.co/800x800?text=Subscription+Box'
         },
         store: {
             heroTitle: 'متجر القصص',
             heroSubtitle: 'اختر القصة التي تناسب طفلك.',
             subscriptionBannerTitle: 'اشترك في صندوق الرحلة',
-            featuredProductsTitle: 'منتجات مميزة',
-            coreProductsTitle: 'قصص أساسية',
             addonProductsTitle: 'إضافات'
         },
         subscription: {
@@ -212,7 +245,6 @@ export const mockSiteContent: SiteContent = {
             methodologyTitle: 'منهجيتنا',
             methodologySubtitle: 'كيف نعلم الكتابة',
             transformationTitle: 'رحلة التحول',
-            transformationSubtitle: 'من قارئ إلى كاتب',
             packagesTitle: 'باقات الاشتراك',
             packagesSubtitle: 'اختر الباقة المناسبة',
             servicesTitle: 'خدمات إضافية',
@@ -246,10 +278,23 @@ export const mockSiteContent: SiteContent = {
     supportPage: {
         heroTitle: 'كيف يمكننا مساعدتك؟',
         heroSubtitle: 'نحن هنا للإجابة على استفساراتك',
-        faqs: []
+        faqs: [
+             { question: 'كيف يمكنني تتبع طلبي؟', answer: 'يمكنك تتبع طلبك من خلال لوحة التحكم الخاصة بك في قسم "مكتبتي".', category: 'إنها لك' },
+             { question: 'كم يستغرق شحن القصة المخصصة؟', answer: 'تستغرق عملية الطباعة والتجهيز من 3 إلى 5 أيام عمل، ثم يتم الشحن خلال 2-3 أيام حسب المحافظة.', category: 'إنها لك' },
+             { question: 'هل يمكنني تعديل القصة بعد الطلب؟', answer: 'نظراً لأن القصة تطبع خصيصاً لطفلك، لا يمكن التعديل بعد مرور 24 ساعة من الطلب. يرجى مراجعة البيانات بدقة قبل التأكيد.', category: 'إنها لك' },
+             
+             { question: 'ما هي طرق الدفع المتاحة؟', answer: 'نقبل الدفع عبر Instapay، المحافظ الإلكترونية (فودافون كاش وغيرها)، والبطاقات البنكية.', category: 'عامة' },
+             { question: 'هل يمكنني استرداد المبلغ؟', answer: 'بالنسبة للمنتجات الرقمية والخدمات التي تم تقديمها، لا يمكن استرداد المبلغ. المنتجات المطبوعة التي بها عيب مصنعي يتم استبدالها مجاناً.', category: 'عامة' },
+             
+             { question: 'هل يمكنني تغيير موعد الجلسة؟', answer: 'نعم، يمكنك طلب تغيير الموعد قبل 24 ساعة من خلال التواصل مع المدرب أو الإدارة عبر لوحة التحكم.', category: 'بداية الرحلة' },
+             { question: 'كيف تتم الجلسات الأونلاين؟', answer: 'تتم الجلسات عبر منصة فيديو مدمجة في موقعنا. لا تحتاج لتحميل أي برامج، فقط اضغط على "انضم للجلسة" في موعدها.', category: 'بداية الرحلة' },
+             
+             { question: 'كيف يمكنني الانضمام كمدرب؟', answer: 'يمكنك تقديم طلب انضمام عبر صفحة "انضم إلينا" وسنقوم بمراجعة طلبك.', category: 'الشركاء' },
+             { question: 'أنا دار نشر، كيف أعرض كتبي لديكم؟', answer: 'نرحب بالشراكات مع دور النشر المتميزة. يرجى التواصل معنا عبر نموذج "الشراكات" لإنشاء حساب ناشر خاص بكم.', category: 'الشركاء' }
+        ]
     },
-    privacyPage: { title: 'سياسة الخصوصية', content: '...' },
-    termsPage: { title: 'شروط الاستخدام', content: '...' },
+    privacyPage: { title: 'سياسة الخصوصية', content: privacyContent },
+    termsPage: { title: 'شروط الاستخدام', content: termsContent },
     footer: {
         copyrightText: "منصة الرحلة. جميع الحقوق محفوظة.",
         description: "نؤمن أن كل طفل هو بطل حكايته الخاصة."
@@ -265,14 +310,14 @@ export const mockSocialLinks: SocialLinks = {
 
 export const mockPricingSettings: PricingSettings = {
     id: 1,
-    company_percentage: 1.2, // 20% markup
-    fixed_fee: 50 // 50 EGP fixed fee
+    company_percentage: 1.2, 
+    fixed_fee: 50 
 };
 
 export const mockLibraryPricingSettings: LibraryPricingSettings = {
     id: 1,
-    company_percentage: 1.3, // 30% markup for products
-    fixed_fee: 30 // 30 EGP fixed fee
+    company_percentage: 1.3, 
+    fixed_fee: 30 
 };
 
 export const mockMaintenanceSettings: MaintenanceSettings = {
@@ -302,11 +347,6 @@ export const mockJitsiSettings: JitsiSettings = {
     start_with_video_muted: false
 };
 
-export const mockAdditionalServices: AdditionalService[] = [
-    { id: 1, name: 'طباعة فاخرة', price: 100, description: 'ورق مقوى وغلاف سميك.' },
-    { id: 2, name: 'تغليف هدايا', price: 50, description: 'تغليف مميز مع بطاقة إهداء.' }
-];
-
 export const mockPrices: Prices = {
     'custom_story_base': 450,
     'subscription_monthly': 250
@@ -321,7 +361,3 @@ export const mockShippingCosts: ShippingCosts = {
         'باقي المحافظات': 75
     }
 };
-
-export const mockPublicHolidays: string[] = [
-    '2024-01-01', '2024-01-07', '2024-01-25', '2024-04-10', '2024-04-11', '2024-04-25', '2024-05-01', '2024-06-16', '2024-06-17', '2024-06-30', '2024-07-08', '2024-07-23', '2024-09-16', '2024-10-06'
-];
