@@ -41,9 +41,11 @@ const AccountPage: React.FC = () => {
     const shouldRedirect = useMemo(() => {
         if (!isLoggedIn || !currentUser) return false;
         
-        // إذا كان طالباً أو موظفاً، يجب توجيهه
+        // إذا كان طالباً أو موظفاً أو ناشراً، يجب توجيهه للوحة الخاصة به
         if (currentUser.role === 'student') return '/student/dashboard';
-        if (STAFF_ROLES.includes(currentUser.role)) return '/admin';
+        
+        // الناشرون والموظفون يذهبون إلى لوحة الإدارة
+        if (STAFF_ROLES.includes(currentUser.role) || currentUser.role === 'publisher') return '/admin';
         
         return false;
     }, [isLoggedIn, currentUser]);
@@ -57,7 +59,7 @@ const AccountPage: React.FC = () => {
 
     // عرض شاشة تحميل إذا كنا نتحقق من الجلسة أو إذا كان هناك توجيه قادم
     if (authLoading || shouldRedirect) {
-        return <PageLoader text={shouldRedirect ? "جاري التوجيه..." : "جاري التحقق من الحساب..."} />;
+        return <PageLoader text={shouldRedirect ? "جاري التوجيه للوحة التحكم..." : "جاري التحقق من الحساب..."} />;
     }
 
     if (!isLoggedIn) {

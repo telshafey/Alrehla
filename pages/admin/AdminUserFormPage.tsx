@@ -15,6 +15,16 @@ import PageLoader from '../../components/ui/PageLoader';
 import { useAuth } from '../../contexts/AuthContext';
 import Modal from '../../components/ui/Modal';
 
+// تعريف الواجهة لحل مشاكل الأنواع
+interface UserFormData {
+    name: string;
+    email: string;
+    password?: string;
+    role: UserRole;
+    phone: string;
+    address: string;
+}
+
 const AdminUserFormPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [searchParams] = useSearchParams();
@@ -39,7 +49,8 @@ const AdminUserFormPage: React.FC = () => {
     const { data: children = [] } = useAdminAllChildProfiles();
     const { updateUser, createUser, bulkDeleteUsers } = useUserMutations(); 
 
-    const [formData, setFormData] = useState({
+    // استخدام الواجهة المحددة للحالة
+    const [formData, setFormData] = useState<UserFormData>({
         name: '',
         email: '',
         password: '',
@@ -76,7 +87,9 @@ const AdminUserFormPage: React.FC = () => {
         e.preventDefault();
         try {
             if (isNew) {
-                await createUser.mutateAsync(formData);
+                // Remove optional password if empty when sending to create (though create usually needs it)
+                // The mutation handles empty password by setting a default if needed
+                await createUser.mutateAsync(formData as any);
             } else {
                 // updateUser now handles password updates internally if provided
                 await updateUser.mutateAsync({ id: id!, ...formData });
@@ -233,7 +246,7 @@ const AdminUserFormPage: React.FC = () => {
                                     id="password" 
                                     name="password" 
                                     type="password" 
-                                    value={formData.password} 
+                                    value={formData.password || ''} 
                                     onChange={e => setFormData({...formData, password: e.target.value})} 
                                     required 
                                     placeholder="كلمة المرور للحساب الجديد"
@@ -272,7 +285,7 @@ const AdminUserFormPage: React.FC = () => {
                             <div className="pt-4 border-t">
                                 <h4 className="font-bold text-sm text-gray-700 mb-2">تحديث الأمان</h4>
                                 <FormField label="كلمة مرور جديدة (اختياري)" htmlFor="password">
-                                    <Input id="password" name="password" type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="اتركه فارغاً لعدم التغيير" />
+                                    <Input id="password" name="password" type="password" value={formData.password || ''} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="اتركه فارغاً لعدم التغيير" />
                                 </FormField>
                             </div>
                         )}
