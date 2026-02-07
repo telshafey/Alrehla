@@ -82,15 +82,25 @@ const AdminOrderDetailPage: React.FC = () => {
         if (!val) return 'غير محدد';
         if (val === 'custom') return 'هدف مخصص (أنظر أدناه)';
         
-        // 1. Try to find in the specific product configuration
-        const productKey = details.productKey;
-        const product = products.find(p => p.key === productKey);
-        if (product && product.story_goals) {
-            const goal = product.story_goals.find((g: any) => g.key === val);
-            if (goal) return goal.title;
+        // 1. Try to find in the specific product configuration (if productKey is linked)
+        if (details.productKey) {
+            const product = products.find(p => p.key === details.productKey);
+            if (product && product.story_goals) {
+                const goal = product.story_goals.find((g: any) => g.key === val);
+                if (goal) return goal.title;
+            }
         }
 
-        // 2. Fallback to legacy static map or return value itself
+        // 2. Global Search: Try to find the goal key in ANY product
+        // This fixes cases where productKey is missing in older orders or mismatch occurs
+        for (const prod of products) {
+             if (prod.story_goals) {
+                 const goal = prod.story_goals.find((g: any) => g.key === val);
+                 if (goal) return goal.title;
+             }
+        }
+
+        // 3. Fallback to legacy static map or return value itself
         return emotionMap[val] || val;
     };
 
@@ -113,10 +123,18 @@ const AdminOrderDetailPage: React.FC = () => {
     const formatLabel = (key: string) => {
         // Try to find label from product text fields if possible
         const productKey = details.productKey;
-        const product = products.find(p => p.key === productKey);
-        if (product && product.text_fields) {
-            const fieldConfig = product.text_fields.find(f => f.id === key);
-            if (fieldConfig) return fieldConfig.label;
+        if (productKey) {
+            const product = products.find(p => p.key === productKey);
+            if (product && product.text_fields) {
+                const fieldConfig = product.text_fields.find(f => f.id === key);
+                if (fieldConfig) return fieldConfig.label;
+            }
+        } else {
+             // Fallback search for label across all products if key matches
+             for (const prod of products) {
+                 const field = prod.text_fields?.find(f => f.id === key);
+                 if (field) return field.label;
+             }
         }
 
         return key

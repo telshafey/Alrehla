@@ -122,9 +122,11 @@ const CheckoutPage: React.FC = () => {
                  }
             }
 
+            // Inject productKey into details for easier access in admin panel
             const finalDetails = {
                 ...item.payload.details,
-                ...uploadedImages
+                ...uploadedImages,
+                productKey: item.payload.productKey
             };
 
             const shippingCost = item.payload.shippingPrice || 0;

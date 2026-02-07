@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Star, BookOpen, CreditCard, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Package } from 'lucide-react';
 import { useUserAccountData } from '../../hooks/queries/user/useUserDataQuery';
 import { useAuth } from '../../contexts/AuthContext';
-import { formatDate, daysInMonth, firstDayOfMonth } from '../../utils/helpers';
+import { formatDate, daysInMonth } from '../../utils/helpers';
 import EmptyState from './EmptyState';
 import { Button } from '../ui/Button';
 import type { Order, Subscription, CreativeWritingBooking, ScheduledSession, CreativeWritingPackage } from '../../lib/database.types';
@@ -47,9 +47,14 @@ const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }
         });
     };
     
-    const dayNames = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+    // Saturday Start Configuration
+    const dayNames = ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'];
     const daysArray = Array.from({ length: daysInMonth(currentDate) }, (_, i) => i + 1);
-    const startingDay = firstDayOfMonth(currentDate);
+    
+    // Helper to get first day index (0=Sun, ..., 6=Sat)
+    const getFirstDayIndex = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    // Offset for Saturday Start: (day + 1) % 7
+    const startingDay = (getFirstDayIndex(currentDate) + 1) % 7;
 
     return (
         <Card className="border shadow-sm overflow-hidden h-full flex flex-col hover:shadow-md transition-all duration-300">

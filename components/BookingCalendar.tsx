@@ -20,12 +20,18 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
     }, [instructor]);
 
     const daysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const firstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    
+    // Helper to get first day index (0=Sun, ..., 6=Sat)
+    const getFirstDayIndex = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
     const monthName = currentDate.toLocaleString('ar-EG', { month: 'long' });
     const year = currentDate.getFullYear();
     const totalDays = daysInMonth(currentDate);
-    const startingDay = firstDayOfMonth(currentDate);
+    
+    // Adjust starting day for Saturday start (Sat=0, Sun=1, ... Fri=6)
+    // Original getDay(): Sun=0, Mon=1, ..., Sat=6
+    // Formula: (day + 1) % 7  => Sat(6)->0, Sun(0)->1
+    const startingDay = (getFirstDayIndex(currentDate) + 1) % 7;
 
     const handlePrevMonth = () => {
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -61,7 +67,8 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ instructor, onDateTim
         return 1; // الافتراضي
     };
 
-    const dayNames = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+    // ترتيب الأيام بدأً من السبت
+    const dayNames = ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'];
     const daysArray = Array.from({ length: totalDays }, (_, i) => i + 1);
     
     const availableTimes = useMemo(() => {

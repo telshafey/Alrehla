@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar, CheckCircle, Clock, XCircle, Star, Package, Gift, ShieldQuestion, Check, X, Filter, RefreshCw } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, XCircle, Star, Package, Gift, ShieldQuestion, Check, X, Filter, RefreshCw, ArrowRightCircle, CalendarDays } from 'lucide-react';
 import { useAdminScheduledSessions } from '../../hooks/queries/admin/useAdminSchedulingQuery';
 import { useAdminSupportSessionRequests } from '../../hooks/queries/admin/useAdminCommunicationQuery';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
@@ -29,10 +29,33 @@ const getStatusInfo = (status: SessionStatus) => {
 
 type EnrichedSession = ScheduledSession & { instructor_name: string; child_name: string; type: string; package_name: string | null };
 
+// Helper to parse reschedule requests
+const parseRescheduleRequest = (rawReason: string) => {
+    if (!rawReason || !rawReason.startsWith('RESCHEDULE|')) return null;
+    
+    try {
+        const parts = rawReason.split('|');
+        const sessionId = parts.find(p => p.startsWith('SID:'))?.split(':')[1];
+        const newDateTimeStr = parts.find(p => p.startsWith('NEW:'))?.replace('NEW:', '');
+        const userReason = parts.find(p => p.startsWith('REASON:'))?.replace('REASON:', '');
+
+        if (!sessionId || !newDateTimeStr) return null;
+
+        return {
+            isReschedule: true,
+            sessionId,
+            newDateTime: newDateTimeStr, // ISO string likely
+            displayReason: userReason
+        };
+    } catch (e) {
+        return null;
+    }
+};
+
 const AdminScheduledSessionsPage: React.FC = () => {
     const { data: sessions = [], isLoading: sessionsLoading, error: sessionsError, refetch: refetchSessions, isRefetching } = useAdminScheduledSessions();
     const { data: supportRequests = [], isLoading: supportLoading, error: supportError, refetch: refetchSupport } = useAdminSupportSessionRequests();
-    const { approveSupportSessionRequest, rejectSupportSessionRequest } = useInstructorMutations();
+    const { approveSupportSessionRequest, rejectSupportSessionRequest, approveRescheduleRequest } = useInstructorMutations();
     
     const [isSchedulerModalOpen, setIsSchedulerModalOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState<SessionStatus | 'all'>('all');
@@ -119,22 +142,83 @@ const AdminScheduledSessionsPage: React.FC = () => {
                             <TabsTrigger value="intro"><Star className="ml-2 text-yellow-500" /> الجلسات التعريفية</TabsTrigger>
                             <TabsTrigger value="package"><Package className="ml-2" /> جلسات الباقات</TabsTrigger>
                             <TabsTrigger value="subscription"><Gift className="ml-2" /> جلسات الاشتراك</TabsTrigger>
-                            <TabsTrigger value="support"><ShieldQuestion className="ml-2 text-orange-500" /> طلبات الدعم</TabsTrigger>
+                            <TabsTrigger value="support" className="relative">
+                                <ShieldQuestion className="ml-2 text-orange-500" /> 
+                                طلبات الدعم
+                                {(supportRequests as any[]).filter(r => r.status === 'pending').length > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                    </span>
+                                )}
+                            </TabsTrigger>
                         </TabsList>
                         
                         <TabsContent value="support">
                              <Table>
-                                <TableHeader><TableRow><TableHead>المدرب</TableHead><TableHead>الطالب</TableHead><TableHead>السبب</TableHead><TableHead>التاريخ</TableHead><TableHead>الإجراء</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>النوع</TableHead><TableHead>المدرب</TableHead><TableHead>الطالب</TableHead><TableHead>التفاصيل</TableHead><TableHead>تاريخ الطلب</TableHead><TableHead>الإجراء</TableHead></TableRow></TableHeader>
                                 <TableBody>
-                                    {(supportRequests as any[]).filter(r => r.status === 'pending').map(req => (
-                                        <TableRow key={req.id}>
-                                            <TableCell className="font-semibold">{req.instructor_name}</TableCell>
-                                            <TableCell className="font-semibold">{req.child_name}</TableCell>
-                                            <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{req.reason}</TableCell>
-                                            <TableCell className="text-sm text-muted-foreground">{formatDate(req.requested_at)}</TableCell>
-                                            <TableCell><div className="flex gap-2"><Button variant="success" size="icon" onClick={() => approveSupportSessionRequest.mutate({ requestId: req.id })} title="موافقة"><Check size={18} /></Button><Button variant="destructive" size="icon" onClick={() => rejectSupportSessionRequest.mutate({ requestId: req.id })} title="رفض"><X size={18} /></Button></div></TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {(supportRequests as any[]).filter(r => r.status === 'pending').map(req => {
+                                        const parsedReschedule = parseRescheduleRequest(req.reason);
+                                        const isReschedule = !!parsedReschedule;
+
+                                        return (
+                                            <TableRow key={req.id}>
+                                                <TableCell>
+                                                    {isReschedule ? (
+                                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold flex items-center gap-1 w-fit">
+                                                            <CalendarDays size={12} /> تغيير موعد
+                                                        </span>
+                                                    ) : (
+                                                        <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-bold flex items-center gap-1 w-fit">
+                                                            <ShieldQuestion size={12} /> دعم عام
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="font-semibold">{req.instructor_name}</TableCell>
+                                                <TableCell className="font-semibold">{req.child_name}</TableCell>
+                                                <TableCell>
+                                                    {isReschedule ? (
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center gap-2 text-sm">
+                                                                <span className="text-muted-foreground text-xs">المقترح:</span>
+                                                                <span className="font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded dir-ltr">
+                                                                    {new Date(parsedReschedule!.newDateTime).toLocaleString('ar-EG')}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs text-muted-foreground italic">"{(parsedReschedule!.displayReason || '').substring(0, 50)}..."</p>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-sm text-muted-foreground max-w-sm block truncate" title={req.reason}>{req.reason}</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-sm text-muted-foreground">{formatDate(req.requested_at)}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex gap-2">
+                                                        {isReschedule ? (
+                                                            <Button 
+                                                                variant="success" 
+                                                                size="sm" 
+                                                                className="h-8 text-xs"
+                                                                onClick={() => approveRescheduleRequest.mutate({ 
+                                                                    requestId: req.id, 
+                                                                    sessionId: parsedReschedule!.sessionId, 
+                                                                    newDateTime: parsedReschedule!.newDateTime 
+                                                                })} 
+                                                                loading={approveRescheduleRequest.isPending}
+                                                                icon={<ArrowRightCircle size={14} />}
+                                                            >
+                                                                اعتماد ونقل
+                                                            </Button>
+                                                        ) : (
+                                                            <Button variant="success" size="icon" onClick={() => approveSupportSessionRequest.mutate({ requestId: req.id })} title="موافقة"><Check size={18} /></Button>
+                                                        )}
+                                                        <Button variant="destructive" size="icon" onClick={() => rejectSupportSessionRequest.mutate({ requestId: req.id })} title="رفض"><X size={18} /></Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                             {(supportRequests as any[]).filter(r => r.status === 'pending').length === 0 && <p className="text-center py-8 text-muted-foreground">لا توجد طلبات دعم معلقة حاليًا.</p>}

@@ -1,586 +1,265 @@
-
 import { supabase } from '../lib/supabaseClient';
-import { cloudinaryService } from './cloudinaryService';
+import { v4 as uuidv4 } from 'uuid';
 import { storageService } from './storageService';
-import { reportingService } from './reportingService';
 import { communicationService } from './communicationService';
+import { reportingService } from './reportingService';
 import type { 
     CreativeWritingBooking, 
+    CreativeWritingPackage, 
+    StandaloneService, 
+    ComparisonItem, 
+    Instructor, 
     ScheduledSession, 
-    Instructor,
-    BookingStatus,
-    CreativeWritingPackage,
-    StandaloneService,
-    SessionAttachment,
-    ComparisonItem
+    BookingStatus, 
+    UserRole 
 } from '../lib/database.types';
-import { v4 as uuidv4 } from 'uuid';
-
-// Types for Mutations
-interface CreateBookingPayload {
-    child: { id: number; name: string };
-    package: { name: string };
-    instructor: { id: number };
-    dateTime: { date: Date; time: string };
-    total: number;
-}
-
-interface CreateInstructorPayload {
-    name: string;
-    specialty: string;
-    slug: string;
-    bio: string;
-    avatarFile?: File | null;
-    avatar_url?: string | null;
-    [key: string]: any;
-}
-
-interface GetBookingsOptions {
-    page?: number;
-    pageSize?: number;
-    search?: string;
-    statusFilter?: string; // active, archived, etc.
-}
-
-const parseSessionCount = (sessionString: string | undefined): number => {
-    if (!sessionString) return 1;
-    if (sessionString.includes('واحدة')) return 1;
-    const match = sessionString.match(/^(\d+)/);
-    return match ? parseInt(match[1], 10) : 1;
-};
-
-const getSessionCountFromPackage = (packageName: string): number => {
-    const match = packageName.match(/(\d+)/);
-    if (match && match[1]) return parseInt(match[1], 10);
-    if (packageName.includes('أربع') || packageName.includes('4')) return 4;
-    if (packageName.includes('ثمان') || packageName.includes('8')) return 8;
-    return 1;
-};
-
-// --- FAIL-FAST HELPER ---
-const executeWithRetry = async <T>(operation: () => Promise<{ data: T | null; error: any }>): Promise<T | null> => {
-    let { data, error } = await operation();
-    
-    if (!error) return data;
-
-    const errorMsg = error.message || '';
-    
-    if (errorMsg.includes('Could not find the') && errorMsg.includes('column')) {
-         console.error("❌ Schema Mismatch: Column missing in DB.");
-         if (typeof window !== 'undefined') localStorage.setItem('db_schema_error', 'true');
-         throw new Error(`خطأ في قاعدة البيانات: العمود المطلوب غير موجود. يرجى الذهاب إلى: لوحة التحكم -> إعدادات النظام -> إصلاح الطوارئ، وتنفيذ كود SQL.`);
-    }
-
-    if (error.code === 'PGRST204' && !errorMsg.includes('column')) {
-        console.warn("⚠️ Stale Cache detected. Trying reload...");
-        await supabase.rpc('reload_schema_cache');
-        await new Promise(r => setTimeout(r, 1000));
-        const res2 = await operation();
-        if (!res2.error) return res2.data;
-    }
-
-    throw error;
-};
 
 export const bookingService = {
-    // --- Optimized Queries ---
-    
-    // Updated to support pagination and direct joins
-    async getAllBookings(options: GetBookingsOptions = {}) {
-        try {
-            const { page, pageSize, search, statusFilter } = options;
-            
-            // Join relations directly to avoid separate fetches
-            let query = supabase
-                .from('bookings')
-                .select('*, child_profiles(name), instructors(name), users:profiles!bookings_user_id_fkey(name, email)', { count: 'exact' });
+    async getAllBookings(options: { page?: number; pageSize?: number; search?: string; statusFilter?: string } = {}) {
+        const { page = 1, pageSize = 10, search, statusFilter } = options;
+        let query = supabase
+            .from('bookings')
+            .select('*, child_profiles:child_profiles!fk_bookings_child(name), instructors:instructors!fk_bookings_instructor(name, user_id), users:profiles!fk_bookings_user(email, name)', { count: 'exact' });
 
-            // Apply Filters
-            if (statusFilter && statusFilter !== 'all') {
-                if (statusFilter === 'active') {
-                    // Active bookings: Pending Payment, Confirmed, Completed (Usually kept in active view until archived)
-                    query = query.neq('status', 'ملغي');
-                } else if (statusFilter === 'archived') {
-                    query = query.eq('status', 'ملغي');
-                } else {
-                    query = query.eq('status', statusFilter);
-                }
+        if (statusFilter && statusFilter !== 'all') {
+            if (statusFilter === 'active') {
+                query = query.neq('status', 'ملغي').neq('status', 'مكتمل');
+            } else if (statusFilter === 'archived') {
+                query = query.or('status.eq.ملغي,status.eq.مكتمل');
+            } else {
+                query = query.eq('status', statusFilter);
             }
+        }
 
-            if (search) {
-                // Search by Booking ID (as text) or Package Name
-                // Note: Searching joined tables (child name) requires different syntax or filter, limiting to main table for perf
-                query = query.or(`id.ilike.%${search}%,package_name.ilike.%${search}%`);
-            }
+        if (search) {
+            query = query.or(`id.ilike.%${search}%,package_name.ilike.%${search}%`);
+        }
 
-            // Apply Pagination
-            if (page && pageSize) {
-                const from = (page - 1) * pageSize;
-                const to = from + pageSize - 1;
-                query = query.range(from, to);
-            }
-            
-            query = query.order('created_at', { ascending: false });
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to).order('created_at', { ascending: false });
 
-            const { data, error, count } = await query;
-
-            if (error) {
-                 console.warn("getAllBookings failed:", error.message);
-                 return { bookings: [], count: 0 };
-            }
-
-            return { bookings: data as any[], count: count || 0 };
-        } catch { return { bookings: [], count: 0 }; }
+        const { data, count, error } = await query;
+        if (error) {
+            console.error("Error fetching bookings:", error);
+            return { bookings: [], count: 0 };
+        }
+        return { bookings: (data || []) as CreativeWritingBooking[], count: count || 0 };
     },
 
-    async getAllInstructors() {
-        try {
-            const { data, error } = await supabase.from('instructors').select('*').is('deleted_at', null);
-            if (error) return [];
-            return data as Instructor[];
-        } catch { return []; }
-    },
-
-    async getInstructorByUserId(userId: string) {
-        try {
-            const { data, error } = await supabase.from('instructors').select('*').eq('user_id', userId).maybeSingle();
-            if (error) return null;
-            return data as Instructor | null;
-        } catch { return null; }
-    },
-
-    async getInstructorBookings(instructorId: number) {
-        try {
-            const { data, error } = await supabase.from('bookings').select('*').eq('instructor_id', instructorId);
-            if (error) return [];
-            return data as CreativeWritingBooking[];
-        } catch { return []; }
-    },
-
-    async getAllScheduledSessions() {
-        try {
-            const { data, error } = await supabase.from('scheduled_sessions').select('*').order('session_date', { ascending: true });
-            if (error) return [];
-            return data as ScheduledSession[];
-        } catch { return []; }
-    },
-
-    async getAllPackages() {
-        try {
-            const { data, error } = await supabase.from('creative_writing_packages').select('*');
-            if (error) return [];
-            return data as CreativeWritingPackage[];
-        } catch { return []; }
-    },
-
-    async getAllStandaloneServices() {
-        try {
-            const { data, error } = await supabase.from('standalone_services').select('*');
-            if (error) return [];
-            return data as StandaloneService[];
-        } catch { return []; }
-    },
-
-    async getAllComparisonItems() {
-        try {
-            const { data, error } = await supabase.from('comparison_items').select('*').order('sort_order', { ascending: true });
-            if (error) return [];
-            return data as ComparisonItem[];
-        } catch { return []; }
-    },
-
-    async getAllAttachments() {
-        try {
-            const { data, error } = await supabase.from('session_attachments').select('*').order('created_at', { ascending: false });
-            if (error) return [];
-            return data as SessionAttachment[];
-        } catch { return []; }
-    },
-
-    // --- Validation (Deep Check) ---
-    
-    async checkSlotAvailability(instructorId: number, dateStr: string, time: string): Promise<boolean> {
-        try {
-            const { data: bookingsData, error } = await supabase
-                .from('bookings')
-                .select('booking_date, package_name')
-                .eq('instructor_id', instructorId)
-                .eq('booking_time', time)
-                .neq('status', 'ملغي');
-
-            if (error || !bookingsData) return true; 
-
-            const bookings = bookingsData as any[];
-            const requestedDate = new Date(dateStr);
-            requestedDate.setHours(0, 0, 0, 0);
-
-            for (const booking of bookings) {
-                const bookingStart = new Date(booking.booking_date);
-                bookingStart.setHours(0, 0, 0, 0);
-
-                const diffTime = requestedDate.getTime() - bookingStart.getTime();
-                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays >= 0 && diffDays % 7 === 0) {
-                    const sessionCount = getSessionCountFromPackage(booking.package_name);
-                    const sessionIndex = diffDays / 7;
-                    
-                    if (sessionIndex < sessionCount) {
-                         return false; 
-                    }
-                }
-            }
-
-            return true;
-        } catch { return true; }
-    },
-
-    // --- Mutations (Can Throw) ---
-
-    async createBooking(payload: { userId: string, payload: CreateBookingPayload, receiptUrl: string }) {
-        const { userId, payload: bookingData, receiptUrl } = payload;
-        const bookingId = `BK-${Date.now().toString().slice(-6)}`;
+    async createBooking(payload: any) {
+        const bookingId = `BKG-${Date.now().toString().slice(-6)}`;
+        const status = payload.total === 0 ? 'مؤكد' : (payload.receiptUrl ? 'بانتظار المراجعة' : 'بانتظار الدفع');
         
-        const [hours, minutes] = bookingData.dateTime.time.split(':');
-        const bookingDate = new Date(bookingData.dateTime.date);
-        bookingDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
-        // 1. Create Booking Record
         const { data, error } = await (supabase.from('bookings') as any).insert([{
             id: bookingId,
-            user_id: userId,
-            child_id: bookingData.child.id,
-            package_name: bookingData.package.name,
-            instructor_id: bookingData.instructor.id,
-            booking_date: bookingDate.toISOString(),
-            booking_time: bookingData.dateTime.time,
-            total: bookingData.total,
-            status: receiptUrl ? 'بانتظار المراجعة' : 'بانتظار الدفع',
-            receipt_url: receiptUrl,
-            session_id: `ses-${uuidv4().slice(0,8)}`
+            user_id: payload.userId, // passed from caller
+            child_id: payload.payload.child.id,
+            instructor_id: payload.payload.instructor.id,
+            package_name: payload.payload.package.name,
+            booking_date: payload.payload.dateTime.date,
+            booking_time: payload.payload.dateTime.time,
+            total: payload.payload.total,
+            status: status,
+            receipt_url: payload.receiptUrl || null,
+            created_at: new Date().toISOString()
         }]).select().single();
 
-        if (error) throw error;
-
-        // 2. Notify Instructor & Admin
-        const studentName = bookingData.child.name;
-        const packageName = bookingData.package.name;
-
-        // Notify Admins
-        communicationService.notifyAdmins(
-            `حجز جديد: ${packageName} للطالب ${studentName} (بانتظار المراجعة)`,
-            `/admin/creative-writing/bookings/${bookingId}`,
-            'booking'
-        );
-
-        // Notify Instructor
-        try {
-            const { data: instructorData } = await supabase
-                .from('instructors')
-                .select('user_id')
-                .eq('id', bookingData.instructor.id)
-                .single();
-            
-            const safeInstructor = instructorData as any;
-            if (safeInstructor && safeInstructor.user_id) {
-                communicationService.sendNotification(
-                    safeInstructor.user_id,
-                    `حجز جديد: ${packageName} للطالب ${studentName}`,
-                    '/admin/journeys',
-                    'booking'
-                );
-            }
-        } catch (e) { console.error("Failed to notify instructor:", e); }
-
-        return data as CreativeWritingBooking;
+        if (error) throw new Error(error.message);
+        return data;
     },
 
     async updateBookingStatus(bookingId: string, newStatus: BookingStatus) {
-        const { data: booking, error } = await (supabase.from('bookings') as any)
+        const { error } = await (supabase.from('bookings') as any)
             .update({ status: newStatus })
-            .eq('id', bookingId)
-            .select('*, instructors(user_id, name), child_profiles(name)')
-            .single();
-
+            .eq('id', bookingId);
         if (error) throw new Error(error.message);
-
-        await reportingService.logAction('UPDATE_BOOKING_STATUS', bookingId, `حجز: ${booking.package_name}`, `تغيير الحالة إلى: ${newStatus}`);
-
-        // Notify User
-        communicationService.sendNotification(
-            booking.user_id,
-            `تم تحديث حالة حجزك (${booking.package_name}) إلى: ${newStatus}`,
-            `/journey/${bookingId}`,
-            'booking'
-        );
-
-        if (newStatus === 'مؤكد') {
-            // Notify Instructor too if confirmed
-            if (booking.instructors?.user_id) {
-                 communicationService.sendNotification(
-                    booking.instructors.user_id,
-                    `تم تأكيد حجز ${booking.package_name} للطالب ${booking.child_profiles?.name}`,
-                    `/admin/journeys`,
-                    'booking'
-                );
-            }
-
-            await supabase.from('scheduled_sessions').delete().eq('booking_id', bookingId).eq('status', 'upcoming');
-            
-            const { data: pkgData } = await supabase.from('creative_writing_packages').select('sessions').eq('name', booking.package_name).single();
-            const pkg = pkgData as any;
-            const sessionCount = pkg ? parseSessionCount(pkg.sessions) : 1;
-            
-            const now = new Date();
-            const originalDate = new Date(booking.booking_date);
-            let startDate = originalDate;
-            
-            if (startDate < now) {
-                while (startDate < now) { 
-                    startDate.setDate(startDate.getDate() + 7); 
-                }
-            }
-
-            const sessionsToInsert = [];
-            for (let i = 0; i < sessionCount; i++) {
-                const sDate = new Date(startDate);
-                sDate.setDate(startDate.getDate() + (i * 7));
-                
-                sessionsToInsert.push({
-                    id: uuidv4(),
-                    booking_id: bookingId,
-                    child_id: booking.child_id,
-                    instructor_id: booking.instructor_id,
-                    session_date: sDate.toISOString(),
-                    status: 'upcoming'
-                });
-            }
-            
-            await (supabase.from('scheduled_sessions') as any).insert(sessionsToInsert);
-        }
-
-        if (newStatus === 'ملغي') {
-            await supabase.from('scheduled_sessions').delete().eq('booking_id', bookingId).eq('status', 'upcoming');
-        }
-
-        return { success: true };
-    },
-
-    async updateScheduledSession(sessionId: string, updates: any) {
-        const { error } = await (supabase.from('scheduled_sessions') as any).update(updates).eq('id', sessionId);
-        if (error) throw error;
-        return { success: true };
-    },
-    
-    async submitRescheduleRequest(payload: { sessionId: string; oldDate: string; newDate: string; newTime: string; reason: string; instructorName: string }) {
-        const { sessionId, oldDate, newDate, newTime, reason, instructorName } = payload;
-        
-        const message = `طلب المدرب ${instructorName} تغيير موعد جلسة.\n` +
-                        `الموعد القديم: ${new Date(oldDate).toLocaleDateString()}\n` +
-                        `الموعد الجديد المقترح: ${newDate} الساعة ${newTime}\n` +
-                        `السبب: ${reason}`;
-                        
-        // We notify admins using the communication service. 
-        // In a real app, this might insert into a specific 'requests' table, but admin notification is sufficient here.
-        await communicationService.notifyAdmins(
-            message,
-            `/admin/scheduled-sessions`, // Direct link to schedule page
-            'schedule_change'
-        );
-
         return { success: true };
     },
 
     async updateBookingProgressNotes(bookingId: string, notes: string) {
-        const { error } = await (supabase.from('bookings') as any).update({ progress_notes: notes }).eq('id', bookingId);
-        if (error) throw error;
-        
-        // Notify User about progress report
-        const { data: booking } = await supabase.from('bookings').select('user_id, package_name').eq('id', bookingId).single();
-        if (booking) {
-            communicationService.sendNotification(
-                (booking as any).user_id,
-                `قام المدرب بإضافة تقرير جديد لرحلة: ${(booking as any).package_name}`,
-                `/journey/${bookingId}`,
-                'report'
-            );
-        }
-
+        const { error } = await (supabase.from('bookings') as any)
+            .update({ progress_notes: notes })
+            .eq('id', bookingId);
+        if (error) throw new Error(error.message);
         return { success: true };
     },
 
-    // Fixed: More robust draft saving
     async saveBookingDraft(bookingId: string, draft: string) {
-        // 1. Fetch existing details first to avoid overwriting other keys
-        const { data: current, error: fetchError } = await supabase
-            .from('bookings')
-            .select('details')
-            .eq('id', bookingId)
-            .single();
-
-        if (fetchError) throw new Error(fetchError.message);
-
-        // 2. Ensure details is an object
-        let currentDetails = (current as any)?.details;
-        if (typeof currentDetails !== 'object' || currentDetails === null) {
-            currentDetails = {};
-        }
-
-        // 3. Merge and Update
-        const updatedDetails = { ...currentDetails, draft };
-
+        // Assuming 'details' jsonb column stores drafts or similar structure
+        const { data: currentData } = await supabase.from('bookings').select('details').eq('id', bookingId).single();
+        const currentDetails = (currentData as any)?.details || {};
+        
         const { error } = await (supabase.from('bookings') as any)
-            .update({ details: updatedDetails })
+            .update({ details: { ...currentDetails, draft } })
             .eq('id', bookingId);
 
-        if (error) throw error;
+        if (error) throw new Error(error.message);
         return { success: true };
     },
 
-    async sendSessionMessage(payload: { bookingId: string, senderId: string, role: string, message: string }) {
-        if (!payload.role) throw new Error("Role is missing");
-        
-        let safeRole = payload.role;
-        if (!['user', 'parent', 'student', 'instructor', 'super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(safeRole)) {
-             safeRole = 'user'; 
-        }
+    async getAllInstructors() {
+        const { data, error } = await supabase.from('instructors').select('*').is('deleted_at', null);
+        if (error) return [];
+        return data as Instructor[];
+    },
 
-        await executeWithRetry(() => (supabase.from('session_messages') as any).insert([{
+    async getInstructorByUserId(userId: string) {
+        const { data } = await supabase.from('instructors').select('*').eq('user_id', userId).maybeSingle();
+        return data as Instructor | null;
+    },
+
+    async getInstructorBookings(instructorId: number) {
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('*, child_profiles:child_profiles!fk_bookings_child(id, name, avatar_url)')
+            .eq('instructor_id', instructorId)
+            .order('booking_date', { ascending: false });
+        
+        if (error) return [];
+        return data as CreativeWritingBooking[];
+    },
+
+    async getAllPackages() {
+        const { data } = await supabase.from('creative_writing_packages').select('*').order('price');
+        return (data || []) as CreativeWritingPackage[];
+    },
+
+    async getAllStandaloneServices() {
+        const { data } = await supabase.from('standalone_services').select('*');
+        return (data || []) as StandaloneService[];
+    },
+
+    async getAllComparisonItems() {
+        const { data } = await supabase.from('comparison_items').select('*').order('sort_order');
+        return (data || []) as ComparisonItem[];
+    },
+
+    async getAllScheduledSessions() {
+        const { data } = await supabase.from('scheduled_sessions').select('*');
+        return (data || []) as ScheduledSession[];
+    },
+    
+    async updateScheduledSession(sessionId: string, updates: any) {
+        const { error } = await (supabase.from('scheduled_sessions') as any)
+            .update(updates)
+            .eq('id', sessionId);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    async getAllAttachments() {
+        const { data } = await supabase.from('session_attachments').select('*');
+        return data || [];
+    },
+
+    // --- Messaging & Attachments ---
+    async sendSessionMessage(payload: { bookingId: string, senderId: string, role: UserRole, message: string }) {
+        const { error } = await (supabase.from('session_messages') as any).insert([{
             booking_id: payload.bookingId,
             sender_id: payload.senderId,
-            sender_role: safeRole, 
+            sender_role: payload.role,
             message_text: payload.message,
             created_at: new Date().toISOString()
-        }]));
-
+        }]);
+        if (error) throw new Error(error.message);
         return { success: true };
     },
 
-    async uploadSessionAttachment(payload: { bookingId: string, uploaderId: string, role: string, file: File }) {
-        let publicUrl = '';
-
-        if (payload.file.type.startsWith('image/')) {
-            publicUrl = await cloudinaryService.uploadImage(payload.file, 'alrehla_attachments');
-        } else {
-            const folderPath = `session_files/${payload.bookingId}`;
-            publicUrl = await storageService.uploadFile(payload.file, 'receipts', folderPath);
-        }
-
-        let safeRole = payload.role;
-        if (!['user', 'parent', 'student', 'instructor', 'super_admin', 'general_supervisor', 'creative_writing_supervisor'].includes(safeRole)) {
-             safeRole = 'user';
-        }
-
-        await executeWithRetry(() => (supabase.from('session_attachments') as any).insert([{
+    async uploadSessionAttachment(payload: { bookingId: string, uploaderId: string, role: UserRole, file: File }) {
+        const url = await storageService.uploadFile(payload.file, 'receipts', `attachments/${payload.bookingId}`);
+        const { error } = await (supabase.from('session_attachments') as any).insert([{
             booking_id: payload.bookingId,
             uploader_id: payload.uploaderId,
-            uploader_role: safeRole,
+            uploader_role: payload.role,
             file_name: payload.file.name,
-            file_url: publicUrl,
+            file_url: url,
             created_at: new Date().toISOString()
-        }]));
+        }]);
+        if (error) throw new Error(error.message);
+        return { success: true };
+    },
+
+    // --- Settings Mutations (Packages, Services, Comparison Items) ---
+    async createPackage(payload: any) {
+        const { id, ...data } = payload; // remove id if new (undefined)
+        const { error } = await (supabase.from('creative_writing_packages') as any).insert([data]);
+        if (error) throw new Error(error.message);
+    },
+    async updatePackage(payload: any) {
+        const { id, ...data } = payload;
+        const { error } = await (supabase.from('creative_writing_packages') as any).update(data).eq('id', id);
+        if (error) throw new Error(error.message);
+    },
+    async deletePackage(id: number) {
+        const { error } = await supabase.from('creative_writing_packages').delete().eq('id', id);
+        if (error) throw new Error(error.message);
+    },
+
+    async createStandaloneService(payload: any) {
+        const { id, ...data } = payload;
+        const { error } = await (supabase.from('standalone_services') as any).insert([data]);
+        if (error) throw new Error(error.message);
+    },
+    async updateStandaloneService(payload: any) {
+        const { id, ...data } = payload;
+        const { error } = await (supabase.from('standalone_services') as any).update(data).eq('id', id);
+        if (error) throw new Error(error.message);
+    },
+    async deleteStandaloneService(id: number) {
+        const { error } = await supabase.from('standalone_services').delete().eq('id', id);
+        if (error) throw new Error(error.message);
+    },
+
+    async createComparisonItem(payload: any) {
+         const { error } = await (supabase.from('comparison_items') as any).insert([payload]);
+         if (error) throw new Error(error.message);
+    },
+    async updateComparisonItem(payload: any) {
+         const { id, ...data } = payload;
+         const { error } = await (supabase.from('comparison_items') as any).update(data).eq('id', id);
+         if (error) throw new Error(error.message);
+    },
+    async deleteComparisonItem(id: string) {
+         const { error } = await supabase.from('comparison_items').delete().eq('id', id);
+         if (error) throw new Error(error.message);
+    },
+
+    // --- Reschedule Request ---
+    async submitRescheduleRequest(payload: { sessionId: string; oldDate: string; newDate: string; newTime: string; reason: string; instructorName: string }) {
+        const { sessionId, newDate, newTime, reason, instructorName } = payload;
         
-        // Notify if uploaded by student
-        if (safeRole === 'student') {
-             const { data: booking } = await supabase.from('bookings').select('instructors(user_id)').eq('id', payload.bookingId).single();
-             const instructorUserId = (booking as any)?.instructors?.user_id;
-             if (instructorUserId) {
-                 communicationService.sendNotification(instructorUserId, 'قام الطالب برفع ملف جديد.', `/journey/${payload.bookingId}`, 'attachment');
-             }
-        }
+        // 1. Fetch session details to get relations
+        const { data: sessionData, error: sessionError } = await supabase
+            .from('scheduled_sessions')
+            .select('child_id, instructor_id')
+            .eq('id', sessionId)
+            .single();
 
-        return { success: true, url: publicUrl };
-    },
+        if (sessionError || !sessionData) throw new Error("الجلسة غير موجودة.");
 
-    async createInstructor(payload: CreateInstructorPayload) {
-        let avatarUrl = null;
-        if (payload.avatarFile) {
-            avatarUrl = await cloudinaryService.uploadImage(payload.avatarFile, 'alrehla_instructors');
-        }
-        const { avatarFile, ...rest } = payload;
-        const { data, error } = await (supabase.from('instructors') as any).insert([{ ...rest, avatar_url: avatarUrl }]).select().single();
+        // 2. Format a structured string for the 'reason' field to be parsed by Admin UI
+        // Format: RESCHEDULE|SID:{sessionId}|NEW:{newDate}T{newTime}|REASON:{reason}
+        const structuredReason = `RESCHEDULE|SID:${sessionId}|NEW:${newDate}T${newTime}|REASON:${reason}`;
+
+        // 3. Insert into support_session_requests table
+        const { error } = await (supabase.from('support_session_requests') as any).insert([{
+            instructor_id: (sessionData as any).instructor_id,
+            child_id: (sessionData as any).child_id,
+            reason: structuredReason,
+            status: 'pending',
+            requested_at: new Date().toISOString()
+        }]);
+
         if (error) throw error;
-        return data as Instructor;
-    },
+                        
+        // Notify Admins
+        await communicationService.notifyAdmins(
+            `طلب المدرب ${instructorName} تغيير موعد جلسة إلى ${newDate} ${newTime}`,
+            `/admin/scheduled-sessions?tab=support`, 
+            'schedule_change'
+        );
 
-    async updateInstructor(payload: Partial<Instructor> & { avatarFile?: File | null }) {
-        let avatarUrl = payload.avatar_url;
-        if (payload.avatarFile) {
-            avatarUrl = await cloudinaryService.uploadImage(payload.avatarFile, 'alrehla_instructors');
-        }
-        const { id, avatarFile, ...updates } = payload;
-        if (!id) throw new Error("Instructor ID is required");
-        
-        const { data, error } = await (supabase.from('instructors') as any).update({ ...updates, avatar_url: avatarUrl }).eq('id', id).select().single();
-        if (error) throw error;
-        return data as Instructor;
-    },
-
-    async deleteInstructor(instructorId: number) {
-        const { error } = await (supabase.from('instructors') as any).update({ deleted_at: new Date().toISOString() }).eq('id', instructorId);
-        if (error) throw error;
         return { success: true };
-    },
-
-    async createPackage(payload: Partial<CreativeWritingPackage>) {
-        const payloadWithId = {
-            ...payload,
-            id: payload.id || Math.floor(Math.random() * 2147483647) 
-        };
-        const { data, error } = await (supabase.from('creative_writing_packages') as any).insert([payloadWithId]).select().single();
-        if (error) throw error;
-        return data as CreativeWritingPackage;
-    },
-    async updatePackage(payload: Partial<CreativeWritingPackage>) {
-        const { id, ...updates } = payload;
-        if (!id) throw new Error("ID required");
-        const { data, error } = await (supabase.from('creative_writing_packages') as any).update(updates).eq('id', id).select().single();
-        if (error) throw error;
-        return data as CreativeWritingPackage;
-    },
-    async deletePackage(packageId: number) {
-        const { error } = await supabase.from('creative_writing_packages').delete().eq('id', packageId);
-        if (error) throw error;
-        return { success: true };
-    },
-
-    async createStandaloneService(payload: Partial<StandaloneService>) {
-        const payloadWithId = {
-            ...payload,
-            id: payload.id || Math.floor(Math.random() * 2147483647)
-        };
-        const { data, error } = await (supabase.from('standalone_services') as any).insert([payloadWithId]).select().single();
-        if (error) throw error;
-        return data as StandaloneService;
-    },
-    async updateStandaloneService(payload: Partial<StandaloneService>) {
-        const { id, ...updates } = payload;
-        if (!id) throw new Error("ID required");
-        const { data, error } = await (supabase.from('standalone_services') as any).update(updates).eq('id', id).select().single();
-        if (error) throw error;
-        return data as StandaloneService;
-    },
-    async deleteStandaloneService(serviceId: number) {
-        const { error } = await supabase.from('standalone_services').delete().eq('id', serviceId);
-        if (error) throw error;
-        return { success: true };
-    },
-
-    async createComparisonItem(payload: Partial<ComparisonItem>) {
-        const { data, error } = await (supabase.from('comparison_items') as any).insert([payload]).select().single();
-        if (error) throw error;
-        return data as ComparisonItem;
-    },
-    async updateComparisonItem(payload: Partial<ComparisonItem>) {
-        const { id, ...updates } = payload;
-        if (!id) throw new Error("ID required");
-        const { data, error } = await (supabase.from('comparison_items') as any).update(updates).eq('id', id).select().single();
-        if (error) throw error;
-        return data as ComparisonItem;
-    },
-    async deleteComparisonItem(itemId: string) {
-        const { error } = await supabase.from('comparison_items').delete().eq('id', itemId);
-        if (error) throw error;
-        return { success: true };
-    },
+    }
 };
