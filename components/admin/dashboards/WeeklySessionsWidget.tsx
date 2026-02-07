@@ -220,6 +220,10 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
                 </div>
             </div>
 
+            {/* Note: The parent component (InstructorDashboardPage) typically doesn't hold the instructor object for the widget
+                if used deeply. However, checking conflict requires instructor data. 
+                If 'instructor' is not passed here, the modal will fetch it or rely on context. 
+                The modal update handles this. */}
             {rescheduleModalSession && (
                 <RequestSessionChangeModal 
                     isOpen={!!rescheduleModalSession}

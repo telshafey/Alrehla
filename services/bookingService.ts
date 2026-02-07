@@ -371,6 +371,25 @@ export const bookingService = {
         if (error) throw error;
         return { success: true };
     },
+    
+    async submitRescheduleRequest(payload: { sessionId: string; oldDate: string; newDate: string; newTime: string; reason: string; instructorName: string }) {
+        const { sessionId, oldDate, newDate, newTime, reason, instructorName } = payload;
+        
+        const message = `طلب المدرب ${instructorName} تغيير موعد جلسة.\n` +
+                        `الموعد القديم: ${new Date(oldDate).toLocaleDateString()}\n` +
+                        `الموعد الجديد المقترح: ${newDate} الساعة ${newTime}\n` +
+                        `السبب: ${reason}`;
+                        
+        // We notify admins using the communication service. 
+        // In a real app, this might insert into a specific 'requests' table, but admin notification is sufficient here.
+        await communicationService.notifyAdmins(
+            message,
+            `/admin/scheduled-sessions`, // Direct link to schedule page
+            'schedule_change'
+        );
+
+        return { success: true };
+    },
 
     async updateBookingProgressNotes(bookingId: string, notes: string) {
         const { error } = await (supabase.from('bookings') as any).update({ progress_notes: notes }).eq('id', bookingId);

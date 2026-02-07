@@ -258,6 +258,16 @@ export const useInstructorMutations = () => {
         }
     });
 
+    const submitRescheduleRequest = useMutation({
+        mutationFn: bookingService.submitRescheduleRequest,
+        onSuccess: () => {
+            addToast('تم إرسال طلب تغيير الموعد للإدارة بنجاح.', 'success');
+        },
+        onError: (err: Error) => {
+            addToast(`فشل إرسال الطلب: ${err.message}`, 'error');
+        }
+    });
+
     const updateInstructorAvailability = useMutation({
         mutationFn: async ({ instructorId, availability }: { instructorId: number, availability: AvailableSlots }) => {
             const { error } = await (supabase.from('instructors') as any).update({ availability }).eq('id', instructorId);
@@ -334,7 +344,7 @@ export const useInstructorMutations = () => {
     return { 
         createInstructor, updateInstructor, deleteInstructor,
         approveInstructorSchedule, rejectInstructorSchedule, updateInstructorAvailability, 
-        requestScheduleChange, requestProfileUpdate, 
+        requestScheduleChange, requestProfileUpdate, submitRescheduleRequest,
         approveInstructorProfileUpdate, rejectInstructorProfileUpdate,
         approveSupportSessionRequest, rejectSupportSessionRequest,
         createSupportSessionRequest, requestIntroAvailabilityChange

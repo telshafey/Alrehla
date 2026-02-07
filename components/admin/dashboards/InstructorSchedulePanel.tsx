@@ -108,6 +108,7 @@ const InstructorSchedulePanel: React.FC<InstructorSchedulePanelProps> = ({ instr
                 onClose={() => setIsModalOpen(false)}
                 session={selectedSession}
                 childName={bookings.find(b => b.id === (selectedSession as any)?.booking_id)?.child_profiles?.name}
+                instructor={instructor} // Pass instructor to validate schedule
             />
             <div className="space-y-8">
                 <AdminSection title="إدارة الجلسات الحالية" icon={<Calendar />}>
