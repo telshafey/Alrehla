@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Layout, Database, RefreshCw, AlertTriangle, PenTool, Library } from 'lucide-react';
+import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Layout, Database, RefreshCw, AlertTriangle, PenTool, Library, GitMerge } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
 import { useAdminSocialLinks, useAdminPricingSettings, useAdminCommunicationSettings, useAdminMaintenanceSettings, useAdminLibraryPricingSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Ta
 import PermissionsManager from '../../components/admin/PermissionsManager';
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 import { settingsService } from '../../services/settingsService';
+import { userService } from '../../services/userService';
 import { useToast } from '../../contexts/ToastContext';
 import type { SocialLinks, PricingSettings, MaintenanceSettings, LibraryPricingSettings } from '../../lib/database.types';
 import { Checkbox } from '../../components/ui/Checkbox';
@@ -45,6 +46,7 @@ const AdminSettingsPage: React.FC = () => {
     const [maintenance, setMaintenance] = useState<MaintenanceSettings>({ isActive: false, message: '' });
     
     const [isSeeding, setIsSeeding] = useState(false);
+    const [isMerging, setIsMerging] = useState(false);
     const { addToast } = useToast();
 
     useEffect(() => {
@@ -109,6 +111,20 @@ const AdminSettingsPage: React.FC = () => {
             addToast(`فشل العملية: ${error.message}`, 'error');
         } finally {
             setIsSeeding(false);
+        }
+    };
+    
+    const handleMergeDuplicates = async () => {
+        if (!window.confirm("سيقوم هذا الإجراء بفحص جميع ملفات الأطفال، ودمج الملفات التي تحمل نفس الاسم وتتبع لنفس الأب في ملف واحد، مع نقل كافة الطلبات والحجوزات إليه. هل أنت متأكد من المتابعة؟")) return;
+        
+        setIsMerging(true);
+        try {
+            const result = await userService.mergeDuplicateChildren();
+            addToast(`تمت العملية بنجاح! تم دمج ${result.mergedCount} مجموعة، وحذف ${result.deletedCount} ملف مكرر.`, 'success');
+        } catch (error: any) {
+            addToast(`فشل الدمج: ${error.message}`, 'error');
+        } finally {
+            setIsMerging(false);
         }
     };
 
@@ -276,23 +292,39 @@ const AdminSettingsPage: React.FC = () => {
                      <Card className="border-t-4 border-yellow-400">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-yellow-700">
-                                <Database /> التهيئة الأولية للمحتوى
+                                <Database /> صيانة البيانات
                             </CardTitle>
                             <CardDescription>
-                                استخدم هذه الأداة لملء قاعدة البيانات بالبيانات الافتراضية (النصوص، الأسعار، الإعدادات) في حال كانت القاعدة فارغة أو أردت إعادة التعيين.
+                                أدوات إصلاح وتنظيف قاعدة البيانات.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 flex items-start gap-3 text-sm text-yellow-800 mb-6">
-                                <AlertTriangle className="flex-shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="font-bold">تنبيه هام:</p>
-                                    <p>هذا الإجراء سيقوم بحفظ البيانات الافتراضية في قاعدة البيانات (Supabase). إذا قمت بتعديل محتوى الموقع سابقاً، قد يتم استبداله بالقيم الافتراضية.</p>
+                        <CardContent className="space-y-6">
+                             {/* أداة دمج التكرارات */}
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                <div className="flex items-start gap-3">
+                                    <GitMerge className="text-blue-600 mt-1" />
+                                    <div>
+                                        <p className="font-bold text-blue-900 text-sm">دمج ملفات الأطفال المكررة</p>
+                                        <p className="text-xs text-blue-700 mt-1">يصلح مشكلة تكرار ملف الطفل عند الطلب المتكرر. يقوم بدمج الملفات المتشابهة ونقل سجلاتها لملف واحد.</p>
+                                    </div>
                                 </div>
+                                <Button onClick={handleMergeDuplicates} loading={isMerging} variant="outline" className="border-blue-300 text-blue-800 hover:bg-blue-100 whitespace-nowrap">
+                                    فحص ودمج التكرارات
+                                </Button>
                             </div>
-                            <Button onClick={handleSeedDatabase} loading={isSeeding} variant="outline" className="w-full sm:w-auto" icon={<RefreshCw />}>
-                                استعادة/تثبيت المحتوى الافتراضي
-                            </Button>
+
+                            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="text-yellow-600 mt-1" />
+                                    <div>
+                                        <p className="font-bold text-yellow-900 text-sm">التهيئة الأولية (Seed)</p>
+                                        <p className="text-xs text-yellow-700 mt-1">إعادة تعيين المحتوى والإعدادات للقيم الافتراضية. (تحذير: يحذف التعديلات الحالية)</p>
+                                    </div>
+                                </div>
+                                <Button onClick={handleSeedDatabase} loading={isSeeding} variant="outline" className="border-yellow-300 text-yellow-800 hover:bg-yellow-100 whitespace-nowrap" icon={<RefreshCw />}>
+                                    استعادة المحتوى الافتراضي
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

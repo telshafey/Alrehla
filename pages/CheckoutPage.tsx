@@ -19,7 +19,7 @@ import Image from '../components/ui/Image';
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
     const { cart, clearCart, getCartTotal } = useCart();
-    const { currentUser, isProfileComplete, triggerProfileUpdate, currentChildProfile } = useAuth();
+    const { currentUser, isProfileComplete, triggerProfileUpdate, currentChildProfile, childProfiles } = useAuth();
     const { addToast } = useToast();
     const { createOrder } = useOrderMutations();
     const { createChildProfile } = useUserMutations();
@@ -55,9 +55,22 @@ const CheckoutPage: React.FC = () => {
     }
 
     const ensureChildId = async (childData: any) => {
+        // 1. Check if ID exists directly in the passed data
         if (childData.id && childData.id !== -1) return childData.id;
+        if (childData.childId && childData.childId !== -1) return childData.childId;
+
+        // 2. Intelligent Check: Look for existing child with the exact same name in user's profile
+        // This prevents duplicate creation if the user selected a child but ID wasn't passed correctly,
+        // or if they typed the name of an existing child.
+        const nameToFind = (childData.name || childData.childName || '').trim();
+        if (nameToFind && childProfiles.length > 0) {
+            const existingChild = childProfiles.find(c => c.name.trim() === nameToFind);
+            if (existingChild) {
+                return existingChild.id;
+            }
+        }
         
-        // If child doesn't exist, create profile first
+        // 3. If child doesn't exist, create profile first
         // Note: Students shouldn't reach here for creating profiles usually, but safe to keep
         const newChild = await createChildProfile.mutateAsync({
             name: childData.name || childData.childName,

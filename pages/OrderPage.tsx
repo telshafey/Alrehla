@@ -260,10 +260,7 @@ const OrderPage: React.FC = () => {
             }
 
             if (calculatedShipping <= 0) {
-                 // في حالة عدم تحميل تكاليف الشحن، نحاول استخدام قيمة افتراضية بدلاً من منع الطلب تماماً
-                 // أو نطلب من المستخدم المحاولة مرة أخرى
                  console.warn("Shipping cost is 0 or missing, defaulting to safe fallback or blocking.");
-                 // إذا كانت البيانات محملة ولكن المحافظة غير موجودة، هذا خطأ
                  if (shippingCosts && Object.keys(shippingCosts).length > 0) {
                      addToast('حدث خطأ في حساب الشحن للمحافظة المختارة.', 'error');
                      return;
@@ -301,11 +298,14 @@ const OrderPage: React.FC = () => {
                     totalPrice: finalTotal,
                     shippingPrice: finalShippingPrice,
                     summary: `${product.title} لـ ${data.childName}`,
+                    // IMPORTANT: Explicitly passing childId to avoid duplication in checkout
+                    childId: selectedChildId, 
                     details: {
                         ...data,
                         productTitle: product.title,
                         isPrinted: data.deliveryType === 'printed',
-                        productType: product.product_type
+                        productType: product.product_type,
+                        childId: selectedChildId 
                     }
                 }
             });

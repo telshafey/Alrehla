@@ -347,5 +347,64 @@ export const userService = {
 
         if (error) throw new Error(error.message);
         return data as PublisherProfile;
+    },
+    
+    // --- UTILITY: MERGE DUPLICATE CHILDREN (NEW) ---
+    async mergeDuplicateChildren() {
+        // 1. Fetch all child profiles
+        const { data: allChildren, error } = await supabase.from('child_profiles').select('*').order('id', { ascending: true });
+        
+        if (error || !allChildren) {
+            throw new Error("فشل جلب بيانات الأطفال.");
+        }
+
+        // 2. Group by Parent ID -> Name (Normalized)
+        const groups: Record<string, ChildProfile[]> = {};
+        
+        allChildren.forEach((child: ChildProfile) => {
+            if (!child.user_id) return;
+            const normalizedName = child.name.trim().toLowerCase();
+            const key = `${child.user_id}_${normalizedName}`;
+            
+            if (!groups[key]) {
+                groups[key] = [];
+            }
+            groups[key].push(child);
+        });
+
+        // 3. Process groups with duplicates
+        let mergedCount = 0;
+        let deletedCount = 0;
+
+        for (const key in groups) {
+            const childrenGroup = groups[key];
+            
+            if (childrenGroup.length > 1) {
+                // Keep the first one (sorted by ID asc, so oldest created) as Master
+                const master = childrenGroup[0];
+                const duplicates = childrenGroup.slice(1);
+                const duplicateIds = duplicates.map(d => d.id);
+
+                // Transfer Records from Duplicates to Master
+                const tablesToUpdate = [
+                    'orders', 'bookings', 'subscriptions', 'service_orders', 
+                    'child_badges', 'support_session_requests', 'scheduled_sessions'
+                ];
+
+                for (const table of tablesToUpdate) {
+                    await (supabase.from(table) as any)
+                        .update({ child_id: master.id })
+                        .in('child_id', duplicateIds);
+                }
+
+                // Delete Duplicates
+                await supabase.from('child_profiles').delete().in('id', duplicateIds);
+                
+                mergedCount++;
+                deletedCount += duplicates.length;
+            }
+        }
+        
+        return { mergedCount, deletedCount };
     }
 };
