@@ -25,6 +25,15 @@ function App() {
 
   // Listen for Password Recovery Event
   useEffect(() => {
+    // 1. الفحص اليدوي: التحقق مما إذا كان الرابط يحتوي على رمز استعادة كلمة المرور
+    // هذا يحل المشكلة إذا لم يعمل المستمع التلقائي لسبب ما
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=recovery')) {
+        console.log("Recovery link detected in URL, redirecting...");
+        navigate('/reset-password');
+    }
+
+    // 2. مستمع Supabase الرسمي
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         // عند الضغط على الرابط، سيتم تسجيل دخول المستخدم تلقائياً

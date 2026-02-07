@@ -19,13 +19,16 @@ export const useModalAccessibility = ({
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
+                // Ensure event doesn't bubble up unnecessarily
+                event.stopPropagation();
                 onClose();
             }
         };
 
         document.addEventListener('keydown', handleKeyDown);
         
-        // Prevent background scroll
+        // Prevent background scroll while modal is open
+        const originalStyle = window.getComputedStyle(document.body).overflow;
         document.body.style.overflow = 'hidden';
 
         const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
@@ -33,39 +36,43 @@ export const useModalAccessibility = ({
         );
 
         if (focusableElements.length === 0) {
-            // If no focusable elements, focus the container so Escape key works
-            // Only force focus if we aren't already focused inside
+            // No focusable elements? Focus the container itself so Escape works.
             if (!modalRef.current.contains(document.activeElement)) {
                 (modalRef.current as HTMLElement).focus();
             }
             
             return () => {
                  document.removeEventListener('keydown', handleKeyDown);
-                 document.body.style.overflow = 'auto';
+                 document.body.style.overflow = originalStyle;
             }
         }
 
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
         
-        // --- CRITICAL FIX ---
-        // Check if the currently focused element is ALREADY inside the modal.
-        // If yes (e.g., user is typing in an input causing a re-render), DO NOT reset focus.
-        // If no (e.g., modal just opened), set initial focus.
-        if (!modalRef.current.contains(document.activeElement)) {
+        // --- FOCUS MANAGEMENT FIX ---
+        // Check if focus is already inside the modal (e.g. user typing triggering a re-render).
+        // We only force focus to the first element if the user is currently focused OUTSIDE the modal.
+        const isFocusInside = modalRef.current.contains(document.activeElement);
+        
+        if (!isFocusInside) {
             const elementToFocus = initialFocusRef?.current || firstElement;
-            elementToFocus?.focus();
+            if (elementToFocus) {
+                elementToFocus.focus();
+            }
         }
-        // --------------------
+        // ----------------------------
 
         const handleTabKeyPress = (event: KeyboardEvent) => {
             if (event.key === 'Tab') {
                 if (event.shiftKey) {
+                    // Shift + Tab
                     if (document.activeElement === firstElement) {
                         lastElement.focus();
                         event.preventDefault();
                     }
                 } else {
+                    // Tab
                     if (document.activeElement === lastElement) {
                         firstElement.focus();
                         event.preventDefault();
@@ -79,8 +86,10 @@ export const useModalAccessibility = ({
 
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
-            currentModal?.removeEventListener('keydown', handleTabKeyPress);
-            document.body.style.overflow = 'auto';
+            if (currentModal) {
+                currentModal.removeEventListener('keydown', handleTabKeyPress);
+            }
+            document.body.style.overflow = originalStyle;
         };
     }, [isOpen, onClose, modalRef, initialFocusRef]);
 };
