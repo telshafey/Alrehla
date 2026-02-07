@@ -30,7 +30,7 @@ export const communicationService = {
     async notifyAdmins(message: string, link: string, type: string = 'admin_alert') {
         try {
             // 1. Fetch admins with relevant roles
-            // NOTE: Requires "profiles" table to be readable (See fix_notifications.sql)
+            // Requires "profiles" table to be readable
             const { data: admins, error } = await supabase
                 .from('profiles')
                 .select('id')

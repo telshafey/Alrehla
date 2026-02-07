@@ -2,8 +2,6 @@
 import { getToken, clearToken } from './tokenManager';
 
 // Use relative path for Vercel deployment. 
-// This allows the app to communicate with Vercel Serverless Functions (e.g. /api/sendEmail)
-// or a proxy configured in vercel.json.
 const API_BASE_URL = '/api';
 
 export class ApiError extends Error {
@@ -17,6 +15,22 @@ export class ApiError extends Error {
         this.data = data;
     }
 }
+
+// مترجم الأخطاء التقنية إلى العربية
+const translateErrorMessage = (status: number, originalMessage: string): string => {
+    if (status === 401) return 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً.';
+    if (status === 403) return 'عذراً، ليس لديك صلاحية للقيام بهذا الإجراء.';
+    if (status === 404) return 'عذراً، البيانات المطلوبة غير موجودة.';
+    if (status === 429) return 'تم تجاوز حد الطلبات المسموح به، يرجى الانتظار قليلاً.';
+    if (status >= 500) return 'واجهنا مشكلة في الخادم، يرجى المحاولة لاحقاً.';
+    
+    // ترجمة بعض رسائل Supabase الشائعة
+    if (originalMessage.includes('Network request failed')) return 'تأكد من اتصالك بالإنترنت.';
+    if (originalMessage.includes('duplicate key')) return 'هذه البيانات مسجلة مسبقاً (مكررة).';
+    if (originalMessage.includes('violates foreign key')) return 'لا يمكن حذف هذا العنصر لارتباطه ببيانات أخرى.';
+    
+    return originalMessage || 'حدث خطأ غير متوقع.';
+};
 
 const makeRequest = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
     const token = getToken();
@@ -36,43 +50,38 @@ const makeRequest = async <T>(endpoint: string, options: RequestInit = {}): Prom
     try {
         response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
     } catch (error) {
-        // Handle network errors (fetch throws TypeError on network failure)
         throw new ApiError('حدث خطأ في الاتصال بالشبكة. يرجى التحقق من الإنترنت.', 0);
     }
 
     if (!response.ok) {
-        // Handle 401 Unauthorized globally
         if (response.status === 401) {
             clearToken();
-            // Optional: Redirect to login if not already there
-            if (!window.location.hash.includes('/account')) {
-                window.location.hash = '#/account';
+            if (!window.location.hash.includes('/account') && !window.location.hash.includes('/admin/login')) {
+                 // توجيه ذكي حسب المكان الحالي
+                 const isStudent = window.location.hash.includes('/student');
+                 const isAdmin = window.location.hash.includes('/admin');
+                 if(!isAdmin) window.location.hash = isStudent ? '#/account' : '#/account'; 
             }
-            throw new ApiError('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً.', 401);
         }
 
-        let errorMessage = `فشل الطلب: ${response.status} ${response.statusText}`;
+        let rawMessage = `فشل الطلب: ${response.status}`;
         let errorData = null;
 
         try {
-            // Try to parse JSON error, fallback to text if parsing fails (e.g., HTML 500 error)
             const textBody = await response.text();
             try {
                 const jsonBody = JSON.parse(textBody);
-                errorMessage = jsonBody.message || errorMessage;
+                rawMessage = jsonBody.message || jsonBody.error || rawMessage;
                 errorData = jsonBody;
             } catch {
-                // If it's not JSON, stick to the status text or a slice of the body if it's short
-                if (textBody.length < 100) errorMessage = textBody;
+                if (textBody.length < 200) rawMessage = textBody;
             }
-        } catch (e) {
-            // Failed to read body
-        }
+        } catch (e) {}
 
-        throw new ApiError(errorMessage, response.status, errorData);
+        const friendlyMessage = translateErrorMessage(response.status, rawMessage);
+        throw new ApiError(friendlyMessage, response.status, errorData);
     }
     
-    // Handle empty response body for 204 No Content
     if (response.status === 204 || response.headers.get('Content-Length') === '0') {
         return null as T;
     }
@@ -81,7 +90,7 @@ const makeRequest = async <T>(endpoint: string, options: RequestInit = {}): Prom
         const data = await response.json();
         return data; 
     } catch (error) {
-        throw new ApiError('فشل تحليل استجابة الخادم.', response.status);
+        throw new ApiError('فشل قراءة استجابة الخادم.', response.status);
     }
 };
 

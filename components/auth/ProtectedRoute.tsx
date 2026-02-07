@@ -15,32 +15,43 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
   const location = useLocation();
 
   if (loading) {
-    return <PageLoader text="جاري التحقق من صلاحيات الدخول..." />;
+    return <PageLoader text="جاري التحقق من الصلاحيات..." />;
   }
 
-  // 1. If user is not logged in
-  if (!isLoggedIn) {
-    // If trying to access admin area, redirect to Admin Login
+  // 1. التحقق من تسجيل الدخول
+  if (!isLoggedIn || !currentUser) {
     if (adminOnly) {
         return <Navigate to="/admin/login" state={{ from: location }} replace />;
     }
-    // Otherwise redirect to standard Account Login
     return <Navigate to="/account" state={{ from: location }} replace />;
   }
   
-  // 2. If it's an admin-only route, check for admin access
+  // 2. حماية مسارات الإدارة
   if (adminOnly && !hasAdminAccess) {
-    // Redirect non-admins to the main account page
     return <Navigate to="/account" replace />;
   }
 
-  // 3. If it's a student-only route, check for student role
-  if (studentOnly && currentUser?.role !== 'student') {
-     // Redirect non-students to the main account page
-    return <Navigate to="/account" replace />;
+  // 3. حماية مسارات الطالب (ومنع أولياء الأمور من دخولها بالخطأ)
+  if (studentOnly) {
+      if (currentUser.role !== 'student') {
+          return <Navigate to="/account" replace />;
+      }
   }
 
-  // 4. If all checks pass, render the requested component
+  // 4. حماية مسارات ولي الأمر/العامة من الطلاب
+  // الطلاب يجب أن يبقوا داخل /student أو المسارات المشتركة مثل /journey
+  // إذا حاول الطالب دخول /account (لوحة ولي الأمر)، نرجعه للوحته
+  if (!studentOnly && !adminOnly && currentUser.role === 'student') {
+      // السماح ببعض المسارات المشتركة مثل الجلسات والرحلات والدفع
+      const allowedSharedPaths = ['/journey', '/session', '/checkout', '/payment-status'];
+      const isAllowed = allowedSharedPaths.some(path => location.pathname.startsWith(path));
+      
+      if (!isAllowed) {
+           return <Navigate to="/student/dashboard" replace />;
+      }
+  }
+
+  // 5. السماح بالدخول
   return <>{children}</>;
 };
 

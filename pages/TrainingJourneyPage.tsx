@@ -3,13 +3,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTrainingJourneyData } from '../hooks/queries/user/useJourneyDataQuery';
 import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
 import { useBookingMutations } from '../hooks/mutations/useBookingMutations';
 import PageLoader from '../components/ui/PageLoader';
 import ErrorState from '../components/ui/ErrorState';
 import { 
     MessageSquare, Paperclip, FileText, Send, Upload, 
-    ArrowLeft, Download, Loader2, User, ShieldAlert, GraduationCap, Users, UserCheck, Clock, CheckCircle2, RefreshCw, AlertCircle, Shield
+    ArrowLeft, Download, Loader2, User, GraduationCap, UserCheck, Clock, CheckCircle2, RefreshCw, AlertCircle, Shield, Award
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
@@ -22,7 +21,6 @@ import Image from '../components/ui/Image';
 const TrainingJourneyPage: React.FC = () => {
     const { journeyId } = useParams<{ journeyId: string }>();
     const { currentUser } = useAuth();
-    const { addToast } = useToast();
     const { data: journeyData, isLoading, refetch, isRefetching } = useTrainingJourneyData(journeyId);
     const { sendSessionMessage, uploadSessionAttachment } = useBookingMutations();
 
@@ -31,7 +29,6 @@ const TrainingJourneyPage: React.FC = () => {
     const chatEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // التمرير لأسفل المحادثة تلقائياً عند وصول رسائل جديدة
     useEffect(() => {
         if (activeTab === 'discussion') {
             setTimeout(() => {
@@ -45,7 +42,7 @@ const TrainingJourneyPage: React.FC = () => {
         if (!newMessage.trim() || !journeyId || !currentUser) return;
         
         const messageToSend = newMessage;
-        setNewMessage(''); // Optimistic clear
+        setNewMessage(''); 
         
         try {
             await sendSessionMessage.mutateAsync({
@@ -56,7 +53,7 @@ const TrainingJourneyPage: React.FC = () => {
             });
             refetch();
         } catch (error: any) {
-            setNewMessage(messageToSend); // Restore message on fail
+            setNewMessage(messageToSend);
         }
     };
 
@@ -123,8 +120,10 @@ const TrainingJourneyPage: React.FC = () => {
     
     const upcomingSession = scheduledSessions.find((s: any) => s.status === 'upcoming');
     const isPendingApproval = booking.status === 'بانتظار المراجعة' || booking.status === 'بانتظار الدفع';
+    
+    // --- تقرير المدرب (النتيجة) ---
+    const progressReport = (booking as any).progress_notes;
 
-    // Smart Back Link Logic
     let backLink = "/account";
     if (currentUser?.role === 'student') {
         backLink = "/student/dashboard";
@@ -184,7 +183,22 @@ const TrainingJourneyPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)] min-h-[600px]">
-                    <div className="lg:col-span-3 flex flex-col h-full">
+                    <div className="lg:col-span-3 flex flex-col h-full space-y-6">
+                        
+                        {/* Instructor Feedback / Result Section */}
+                        {progressReport && (
+                             <Card className="bg-yellow-50/50 border-yellow-200 border-l-4 border-l-yellow-400">
+                                <CardContent className="p-4">
+                                    <h3 className="font-bold text-yellow-800 flex items-center gap-2 mb-2">
+                                        <Award size={18} /> ملاحظات وتقرير المدرب
+                                    </h3>
+                                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                        {progressReport}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         <Card className="flex-grow flex flex-col shadow-sm border overflow-hidden h-full">
                             <CardContent className="p-0 flex-grow flex flex-col h-full">
                                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-grow flex flex-col h-full">
@@ -264,7 +278,7 @@ const TrainingJourneyPage: React.FC = () => {
                                                     <div className="w-12 h-12 bg-blue-100 text-primary rounded-full flex items-center justify-center mb-3">
                                                         <Upload size={24} />
                                                     </div>
-                                                    <h3 className="font-bold text-gray-800 text-sm">رفع ملف جديد</h3>
+                                                    <h3 className="font-bold text-gray-800 text-sm">رفع ملف جديد (واجب / نشاط)</h3>
                                                     <input 
                                                         type="file" 
                                                         ref={fileInputRef}
