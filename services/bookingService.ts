@@ -261,5 +261,20 @@ export const bookingService = {
         );
 
         return { success: true };
+    },
+
+    async checkSlotAvailability(instructorId: number, date: string, time: string) {
+        const dateStr = date.split('T')[0];
+        
+        const { data } = await supabase
+            .from('bookings')
+            .select('id')
+            .eq('instructor_id', instructorId)
+            .eq('booking_date', dateStr)
+            .eq('booking_time', time)
+            .neq('status', 'ملغي')
+            .maybeSingle();
+
+        return !data;
     }
 };
