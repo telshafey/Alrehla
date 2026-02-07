@@ -163,7 +163,10 @@ export const authService = {
     },
 
     async resetPasswordForEmail(email: string) {
-        const redirectTo = `${window.location.origin}/reset-password`;
+        // نستخدم الأصل فقط (Origin) لضمان عدم حدوث مشاكل في التوجيه مع HashRouter
+        // سيقوم التطبيق (في App.tsx) باكتشاف حدث PASSWORD_RECOVERY وتوجيه المستخدم للصفحة الصحيحة
+        const redirectTo = window.location.origin; 
+        
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
             redirectTo: redirectTo,
         });

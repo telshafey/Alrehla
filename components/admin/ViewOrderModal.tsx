@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Link as LinkIcon } from 'lucide-react';
 import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
+import { useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import type { Order, OrderStatus } from '../../lib/database.types';
 import { formatDate, getStatusColor, calculateAge } from '../../utils/helpers';
 import Modal from '../ui/Modal';
@@ -18,8 +19,17 @@ interface ViewOrderModalProps {
     order: OrderWithRelations | null;
 }
 
+const emotionMap: { [key: string]: string } = {
+    anger: 'الغضب', fear: 'الخوف', jealousy: 'الغيرة',
+    frustration: 'الإحباط', anxiety: 'القلق', sadness: 'الحزن',
+    respect: 'الاحترام', cooperation: 'التعاون', honesty: 'الصدق',
+    courage: 'الشجاعة', curiosity: 'حب الاستطلاع', kindness: 'اللطف',
+    patience: 'الصبر', responsibility: 'المسؤولية', gratitude: 'الامتنان'
+};
+
 const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order }) => {
     const { updateOrderStatus, updateOrderComment } = useOrderMutations();
+    const { data: products = [] } = useAdminPersonalizedProducts();
     const [comment, setComment] = useState('');
 
     useEffect(() => {
@@ -43,6 +53,39 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
 
     const statuses: OrderStatus[] = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "قيد التنفيذ", "تم الشحن", "تم التسليم", "مكتمل", "ملغي"];
     
+    // Resolve Goal Label
+    const getGoalLabel = (val: string) => {
+        if (!val) return 'غير محدد';
+        if (val === 'custom') return 'هدف مخصص';
+        
+        // 1. Try to find in the specific product configuration
+        const productKey = details.productKey;
+        const product = products.find(p => p.key === productKey);
+        if (product && product.story_goals) {
+            const goal = product.story_goals.find((g: any) => g.key === val);
+            if (goal) return goal.title;
+        }
+
+        // 2. Fallback
+        return emotionMap[val] || val;
+    };
+    
+    // Helper to format keys (e.g. child_photo_1 -> Child Photo 1)
+    const formatLabel = (key: string) => {
+        // Try to find label from product text fields if possible
+        const productKey = details.productKey;
+        const product = products.find(p => p.key === productKey);
+        if (product && product.text_fields) {
+            const fieldConfig = product.text_fields.find(f => f.id === key);
+            if (fieldConfig) return fieldConfig.label;
+        }
+
+        return key
+            .replace(/_/g, ' ')
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, str => str.toUpperCase());
+    };
+
     // Fields we know are standard and handled in the top section
     const excludedFields = [
         'childName', 'childBirthDate', 'childGender', 'deliveryType', 'shippingOption', 
@@ -53,12 +96,6 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
 
     // Get all other custom fields (Dynamic Content)
     const customFields = Object.keys(details).filter(key => !excludedFields.includes(key));
-
-    const emotionMap: { [key: string]: string } = {
-        anger: 'الغضب', fear: 'الخوف', jealousy: 'الغيرة',
-        frustration: 'الإحباط', anxiety: 'القلق', sadness: 'الحزن',
-        respect: 'الاحترام', cooperation: 'التعاون', honesty: 'الصدق'
-    };
 
     return (
         <Modal 
@@ -96,7 +133,7 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
                 
                 {/* 1. Goal (if exists) */}
                 {details.storyValue && (
-                    <DetailRow label="الهدف من القصة" value={emotionMap[details.storyValue] || details.storyValue} />
+                    <DetailRow label="الهدف من القصة" value={getGoalLabel(details.storyValue)} />
                 )}
                 {details.customGoal && (
                     <DetailRow label="الهدف المخصص" value={details.customGoal} isTextArea />
@@ -108,7 +145,7 @@ const ViewOrderModal: React.FC<ViewOrderModalProps> = ({ isOpen, onClose, order 
                         <DetailRow 
                             key={key} 
                             // Try to format key from camelCase to readable label if possible, or just use key
-                            label={key} 
+                            label={formatLabel(key)} 
                             value={details[key]} 
                             isTextArea={typeof details[key] === 'string' && details[key].length > 50} 
                         />

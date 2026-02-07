@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAdminOrders } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
+import { useAdminOrders, useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
 import PageLoader from '../../components/ui/PageLoader';
 import ErrorState from '../../components/ui/ErrorState';
@@ -16,10 +16,13 @@ import type { OrderStatus } from '../../lib/database.types';
 
 const orderStatuses: OrderStatus[] = ["بانتظار الدفع", "بانتظار المراجعة", "قيد التجهيز", "يحتاج مراجعة", "قيد التنفيذ", "تم الشحن", "تم التسليم", "مكتمل", "ملغي"];
 
+// Legacy map for older orders
 const emotionMap: { [key: string]: string } = {
     anger: 'الغضب', fear: 'الخوف', jealousy: 'الغيرة',
     frustration: 'الإحباط', anxiety: 'القلق', sadness: 'الحزن',
-    respect: 'الاحترام', cooperation: 'التعاون', honesty: 'الصدق'
+    respect: 'الاحترام', cooperation: 'التعاون', honesty: 'الصدق',
+    courage: 'الشجاعة', curiosity: 'حب الاستطلاع', kindness: 'اللطف',
+    patience: 'الصبر', responsibility: 'المسؤولية', gratitude: 'الامتنان'
 };
 
 const AdminOrderDetailPage: React.FC = () => {
@@ -29,6 +32,9 @@ const AdminOrderDetailPage: React.FC = () => {
     // Correctly extract data. data structure is { orders: [], count: number }
     const { data, isLoading } = useAdminOrders();
     const orders = data?.orders || [];
+    
+    // Fetch products to resolve dynamic goal names
+    const { data: products = [] } = useAdminPersonalizedProducts();
     
     const { updateOrderStatus, updateOrderComment } = useOrderMutations();
     
@@ -45,6 +51,17 @@ const AdminOrderDetailPage: React.FC = () => {
         }
     }, [order]);
 
+    const handleSave = async () => {
+        const promises = [];
+        if (status !== order?.status) {
+            promises.push(updateOrderStatus.mutateAsync({ orderId: order!.id, newStatus: status }));
+        }
+        if (comment !== (order?.admin_comment || '')) {
+            promises.push(updateOrderComment.mutateAsync({ orderId: order!.id, comment }));
+        }
+        await Promise.all(promises);
+    };
+
     if (isLoading) return <PageLoader text="جاري تحميل تفاصيل الطلب..." />;
     
     if (!order) {
@@ -57,19 +74,25 @@ const AdminOrderDetailPage: React.FC = () => {
         );
     }
 
-    const handleSave = async () => {
-        const promises = [];
-        if (status !== order.status) {
-            promises.push(updateOrderStatus.mutateAsync({ orderId: order.id, newStatus: status }));
-        }
-        if (comment !== (order.admin_comment || '')) {
-            promises.push(updateOrderComment.mutateAsync({ orderId: order.id, comment }));
-        }
-        await Promise.all(promises);
-    };
-
     const details = order.details as any || {};
     const age = calculateAge(details.childBirthDate);
+
+    // Resolve Goal Label
+    const getGoalLabel = (val: string) => {
+        if (!val) return 'غير محدد';
+        if (val === 'custom') return 'هدف مخصص (أنظر أدناه)';
+        
+        // 1. Try to find in the specific product configuration
+        const productKey = details.productKey;
+        const product = products.find(p => p.key === productKey);
+        if (product && product.story_goals) {
+            const goal = product.story_goals.find((g: any) => g.key === val);
+            if (goal) return goal.title;
+        }
+
+        // 2. Fallback to legacy static map or return value itself
+        return emotionMap[val] || val;
+    };
 
     // Filter out standard fields to show custom ones
     const excludedFields = [
@@ -88,6 +111,14 @@ const AdminOrderDetailPage: React.FC = () => {
 
     // Helper to format keys (e.g. child_photo_1 -> Child Photo 1)
     const formatLabel = (key: string) => {
+        // Try to find label from product text fields if possible
+        const productKey = details.productKey;
+        const product = products.find(p => p.key === productKey);
+        if (product && product.text_fields) {
+            const fieldConfig = product.text_fields.find(f => f.id === key);
+            if (fieldConfig) return fieldConfig.label;
+        }
+
         return key
             .replace(/_/g, ' ')
             .replace(/([A-Z])/g, ' $1')
@@ -150,8 +181,8 @@ const AdminOrderDetailPage: React.FC = () => {
                         <CardContent className="space-y-4">
                             {(details.storyValue || details.customGoal) && (
                                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
-                                    {details.storyValue && <DetailRow label="الهدف المختار" value={emotionMap[details.storyValue] || details.storyValue} />}
-                                    {details.customGoal && <DetailRow label="الهدف المخصص" value={details.customGoal} isTextArea />}
+                                    {details.storyValue && <DetailRow label="الهدف المختار" value={getGoalLabel(details.storyValue)} />}
+                                    {details.customGoal && <DetailRow label="الهدف المخصص (كتابة العميل)" value={details.customGoal} isTextArea />}
                                 </div>
                             )}
                             
