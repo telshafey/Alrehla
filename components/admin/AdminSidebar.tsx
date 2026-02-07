@@ -2,6 +2,7 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useProduct } from '../../contexts/ProductContext';
 import {
     LayoutDashboard, Users, ShoppingBag, BookOpen, UserCog, MessageSquare, UserPlus,
     FileText, Settings, Star, Package, Sparkles, CalendarCheck, Plug, DollarSign, BarChart, History, X,
@@ -55,6 +56,7 @@ interface AdminSidebarProps {
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, onMobileClose }) => {
     const { permissions } = useAuth();
+    const { siteBranding } = useProduct();
     
     const isInstructorOnly = permissions.isInstructor && !permissions.canViewGlobalStats;
     const isPublisherOnly = permissions.isPublisher && !permissions.canViewGlobalStats;
@@ -193,7 +195,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
                 <Link to="/" className="flex items-center gap-2" onClick={onMobileClose}>
                     <div className="h-8 w-8 relative">
                         <Image 
-                            src="https://i.ibb.co/C0bSJJT/favicon.png" 
+                            src={siteBranding?.logoUrl || "https://i.ibb.co/C0bSJJT/favicon.png"} 
                             alt="شعار" 
                             className="h-full w-full !bg-transparent" 
                             objectFit="contain"

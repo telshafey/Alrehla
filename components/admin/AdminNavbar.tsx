@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserNotifications } from '../../hooks/queries/user/useUserDataQuery';
 import { useNotificationMutations } from '../../hooks/mutations/useNotificationMutations';
+import { useProduct } from '../../contexts/ProductContext';
 import { Link } from 'react-router-dom';
 import { Menu, LogOut, PanelRightOpen, PanelRightClose, User, Settings, Bell } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '../ui/card';
@@ -19,6 +20,7 @@ interface AdminNavbarProps {
 
 const AdminNavbar: React.FC<AdminNavbarProps> = ({ onMobileMenuToggle, isSidebarCollapsed, onSidebarToggle }) => {
     const { currentUser, signOut } = useAuth();
+    const { siteBranding } = useProduct();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     
@@ -62,7 +64,7 @@ const AdminNavbar: React.FC<AdminNavbarProps> = ({ onMobileMenuToggle, isSidebar
                     {/* Logo for Mobile - Visible only on small screens */}
                      <div className="h-8 w-8 relative md:hidden">
                         <Image 
-                            src="https://i.ibb.co/C0bSJJT/favicon.png" 
+                            src={siteBranding?.logoUrl || "https://i.ibb.co/C0bSJJT/favicon.png"} 
                             alt="شعار" 
                             className="h-full w-full !bg-transparent" 
                             objectFit="contain"
