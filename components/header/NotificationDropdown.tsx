@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../ui/Button';
@@ -21,35 +22,36 @@ interface NotificationDropdownProps {
 }
 
 const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notifications, onClose, onMarkAsRead, onDelete }) => (
-    <Card className="absolute top-full left-0 mt-2 w-80 animate-fadeIn z-50">
+    <Card className="absolute top-full left-0 mt-2 w-80 animate-fadeIn z-50 shadow-xl border-gray-200">
         <CardHeader className="p-3 border-b">
             <h3 className="font-semibold text-sm">الإشعارات</h3>
         </CardHeader>
-        <CardContent className="p-0 max-h-80 overflow-y-auto">
+        <CardContent className="p-0 max-h-80 overflow-y-auto custom-scrollbar">
             {notifications.length > 0 ? notifications.map((notif: any) => (
                 <Link
                     key={notif.id}
                     to={notif.link}
+                    // إذا كان الرابط هو الحساب، نوجه للصفحة الجديدة لتجنب إعادة التوجيه
                     state={notif.link === '/account' ? { defaultTab: 'myLibrary' } : undefined}
                     onClick={() => { onClose(); onMarkAsRead(notif.id); }}
-                    className={`flex items-start gap-3 p-3 text-sm hover:bg-accent ${!notif.read ? 'bg-blue-50' : ''}`}
+                    className={`flex items-start gap-3 p-3 text-sm hover:bg-accent border-b last:border-0 ${!notif.read ? 'bg-blue-50' : ''}`}
                 >
                     <NotificationIcon type={notif.type} />
-                    <div className="flex-grow">
-                        <p className="text-foreground">{notif.message}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{formatDate(notif.created_at)}</p>
+                    <div className="flex-grow min-w-0">
+                        <p className="text-foreground text-xs font-medium leading-relaxed line-clamp-2">{notif.message}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">{formatDate(notif.created_at)}</p>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => onDelete(e, notif.id)}>
-                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive"/>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-red-500 shrink-0" onClick={(e) => onDelete(e, notif.id)}>
+                        <Trash2 className="h-3 w-3"/>
                     </Button>
                 </Link>
             )) : (
-                <p className="p-4 text-center text-sm text-muted-foreground">لا توجد إشعارات.</p>
+                <p className="p-6 text-center text-sm text-muted-foreground">لا توجد إشعارات جديدة.</p>
             )}
         </CardContent>
-        <CardFooter className="p-2 border-t">
-            <Button as={Link} to="/account" state={{ defaultTab: 'notifications' }} onClick={onClose} variant="link" size="sm" className="w-full">
-                عرض كل الإشعارات
+        <CardFooter className="p-2 border-t bg-gray-50">
+            <Button as={Link} to="/notifications" onClick={onClose} variant="link" size="sm" className="w-full text-xs font-bold">
+                عرض سجل الإشعارات الكامل
             </Button>
         </CardFooter>
     </Card>

@@ -49,6 +49,7 @@ const SessionPage = lazy(() => import('./pages/SessionPage'));
 
 // New Instructor Pages
 const SessionReportPage = lazy(() => import('./pages/admin/instructor/SessionReportPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 
 const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
@@ -95,6 +96,9 @@ const AppRoutes: React.FC = () => {
                     <Route path="/instructor/:slug" element={<InstructorProfilePage />} />
                     <Route path="/creative-writing/booking" element={<ProtectedRoute><CreativeWritingBookingPage /></ProtectedRoute>} />
                     
+                    {/* صفحة الإشعارات الجديدة */}
+                    <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+
                     <Route path="/student" element={<ProtectedRoute studentOnly><StudentLayout /></ProtectedRoute>}>
                         <Route index element={<Navigate to="dashboard" replace />} />
                         <Route path="dashboard" element={<StudentDashboardPage />} />
