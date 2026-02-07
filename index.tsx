@@ -14,10 +14,11 @@ import './styles.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false, // Don't fetch when window gains focus
-      retry: 1, // Only retry once on failure
-      staleTime: 1000 * 60 * 5, // Data is considered fresh for 5 minutes (Aggressive Caching)
-      gcTime: 1000 * 60 * 30, // Keep unused data in cache for 30 minutes
+      refetchOnWindowFocus: false, // Don't fetch when window gains focus (feels faster)
+      refetchOnMount: false, // Don't refetch immediately if data is stale but available
+      retry: 1, // Only retry once on failure to fail fast
+      staleTime: 1000 * 60 * 10, // Data is fresh for 10 minutes (Aggressive Caching)
+      gcTime: 1000 * 60 * 60, // Keep unused data in cache for 1 hour
     },
   },
 });

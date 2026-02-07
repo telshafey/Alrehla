@@ -50,10 +50,15 @@ const Image = React.forwardRef<HTMLImageElement, ImageProps>(
     };
 
     return (
-      <div className={cn("relative overflow-hidden bg-gray-100 flex items-center justify-center isolate", className)}>
-        {/* Skeleton Loader */}
-        {status === 'loading' && showSkeleton && (
-          <div className="absolute inset-0 bg-gray-200 animate-pulse z-10" />
+      <div className={cn("relative overflow-hidden bg-gray-50 flex items-center justify-center isolate", className)}>
+        {/* Skeleton Loader - يختفي بسلاسة عند التحميل */}
+        {showSkeleton && (
+          <div 
+            className={cn(
+                "absolute inset-0 bg-gray-200 animate-pulse z-10 transition-opacity duration-500",
+                status === 'loaded' ? 'opacity-0' : 'opacity-100'
+            )} 
+          />
         )}
         
         {/* Error State Icon */}
@@ -69,10 +74,11 @@ const Image = React.forwardRef<HTMLImageElement, ImageProps>(
           src={displaySrc}
           alt={alt || 'image'}
           loading="lazy"
+          decoding="async"
           onLoad={handleLoad}
           onError={handleError}
           className={cn(
-            "w-full h-full transition-opacity duration-700 ease-in-out relative z-10",
+            "w-full h-full transition-opacity duration-500 ease-in-out relative z-10",
             objectFit === 'cover' ? 'object-cover' : objectFit === 'contain' ? 'object-contain' : 'object-fill',
             status === 'loaded' ? "opacity-100" : "opacity-0"
           )}

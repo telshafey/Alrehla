@@ -42,7 +42,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer,
         }, 200); // Wait for animation
     };
 
-    // Cast refs to any to bypass strict type checking between HTMLElement and specific element types
+    // Cast refs to any to bypass strict type checking
     useModalAccessibility({ 
         modalRef, 
         isOpen, 
@@ -99,7 +99,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer,
                 </CardContent>
                 
                 {footer && (
-                    <CardFooter className="justify-end gap-3 bg-muted/30 px-6 py-4 rounded-b-xl mt-auto border-t">
+                    <CardFooter className="justify-end gap-3 bg-muted/30 px-6 py-4 rounded-b-xl mt-auto border-t pb-8 sm:pb-4">
                         {footer}
                     </CardFooter>
                 )}

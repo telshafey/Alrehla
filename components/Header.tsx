@@ -70,15 +70,16 @@ const Header: React.FC = () => {
             
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
-                    <Link to="/" className="flex items-center gap-3" onClick={closeAllMenus}>
-                        {/* Fixed width container for logo to prevent layout shifts and ensure visibility */}
-                        <div className="h-10 w-28 relative flex items-center justify-start">
+                    <Link to="/" className="flex items-center gap-3 group" onClick={closeAllMenus}>
+                        {/* Fixed width container for logo to prevent layout shifts (CLS Optimization) */}
+                        <div className="h-10 w-10 sm:w-28 relative flex items-center justify-start overflow-hidden">
                             <Image 
                                 src={siteBranding?.logoUrl || "https://i.ibb.co/C0bSJJT/favicon.png"} 
                                 alt="شعار منصة الرحلة" 
-                                className="h-full w-full !bg-transparent" 
+                                className="h-full w-full !bg-transparent object-contain transition-transform group-hover:scale-105" 
                                 objectFit="contain"
                                 loading="eager" 
+                                showSkeleton={false}
                             />
                         </div>
                          <div className="hidden sm:flex items-baseline gap-2">
@@ -95,7 +96,7 @@ const Header: React.FC = () => {
                         <Button as={Link} to="/cart" variant="ghost" size="icon" aria-label="Shopping Cart" className="relative">
                             <ShoppingCart className="h-5 w-5" />
                             {itemCount > 0 && (
-                                <span className="absolute -top-1 -right-1 block h-4 w-4 rounded-full bg-pink-500 text-white text-[10px] flex items-center justify-center">
+                                <span className="absolute -top-1 -right-1 block h-4 w-4 rounded-full bg-pink-500 text-white text-[10px] flex items-center justify-center animate-pulse">
                                     {itemCount}
                                 </span>
                             )}
@@ -105,7 +106,7 @@ const Header: React.FC = () => {
                             <>
                                 <div ref={el => (menusRef.current['notifications'] = el)} className="relative">
                                      <Button variant="ghost" size="icon" onClick={() => toggleMenu('notifications')} aria-label="Notifications">
-                                        <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'animate-pulse text-primary' : ''}`} />
+                                        <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'text-primary' : ''}`} />
                                         {unreadCount > 0 && (
                                             <span className="absolute -top-1 -right-1 block h-4 w-4 rounded-full bg-destructive text-white text-[10px] flex items-center justify-center">
                                                 {unreadCount}
@@ -123,8 +124,8 @@ const Header: React.FC = () => {
                                 </div>
                                 
                                 <div ref={el => (menusRef.current['user'] = el)} className="relative">
-                                    <Button variant="ghost" size="icon" onClick={() => toggleMenu('user')} aria-label="User Menu">
-                                        <User className="h-5 w-5" />
+                                    <Button variant="ghost" size="icon" onClick={() => toggleMenu('user')} aria-label="User Menu" className="bg-primary/5 hover:bg-primary/10 rounded-full">
+                                        <User className="h-5 w-5 text-primary" />
                                     </Button>
                                     {openMenu === 'user' && (
                                         <UserDropdown 

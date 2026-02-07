@@ -130,11 +130,12 @@ function DataTable<T extends { id: any }>({
             </div>
 
             <div className="rounded-xl border bg-white shadow-sm overflow-hidden relative">
+                {/* Mobile Scroll Hint */}
                 <div className="sm:hidden absolute top-2 left-2 z-10 pointer-events-none opacity-60 bg-white/90 px-2 py-1 rounded text-[10px] flex items-center gap-1 text-gray-600 shadow-sm border">
                     <Hand size={12} /> اسحب للعرض
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto custom-scrollbar">
                     <Table className="min-w-[800px] sm:min-w-full">
                         <TableHeader>
                             <TableRow className="bg-muted/40 hover:bg-muted/50">
