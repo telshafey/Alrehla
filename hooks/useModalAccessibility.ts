@@ -33,7 +33,12 @@ export const useModalAccessibility = ({
         );
 
         if (focusableElements.length === 0) {
-            (modalRef.current as HTMLElement).focus();
+            // If no focusable elements, focus the container so Escape key works
+            // Only force focus if we aren't already focused inside
+            if (!modalRef.current.contains(document.activeElement)) {
+                (modalRef.current as HTMLElement).focus();
+            }
+            
             return () => {
                  document.removeEventListener('keydown', handleKeyDown);
                  document.body.style.overflow = 'auto';
@@ -43,8 +48,15 @@ export const useModalAccessibility = ({
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
         
-        const elementToFocus = initialFocusRef?.current || firstElement;
-        elementToFocus.focus();
+        // --- CRITICAL FIX ---
+        // Check if the currently focused element is ALREADY inside the modal.
+        // If yes (e.g., user is typing in an input causing a re-render), DO NOT reset focus.
+        // If no (e.g., modal just opened), set initial focus.
+        if (!modalRef.current.contains(document.activeElement)) {
+            const elementToFocus = initialFocusRef?.current || firstElement;
+            elementToFocus?.focus();
+        }
+        // --------------------
 
         const handleTabKeyPress = (event: KeyboardEvent) => {
             if (event.key === 'Tab') {
