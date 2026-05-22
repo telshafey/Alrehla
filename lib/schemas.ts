@@ -5,6 +5,12 @@ import { PersonalizedProduct } from './database.types';
 // تعبير نمطي لأرقام الهواتف المصرية (يبدأ بـ 01 ويتبعه 9 أرقام)
 const phoneRegex = /^01[0125][0-9]{8}$/;
 
+// دالة للتحقق من صحة البريد الإلكتروني
+const isValidEmail = (email: string | undefined): boolean => {
+  if (!email || email.trim() === '') return false;
+  return z.string().email().safeParse(email).success;
+};
+
 // Base Schema parts
 export const childDetailsSchema = z.object({
   childName: z.string().min(1, "اسم الطفل مطلوب"),
@@ -123,16 +129,20 @@ export const createOrderSchema = (product: PersonalizedProduct | undefined) => {
           }
        }
 
-      // البريد الإلكتروني: يجب أن يكون صحيحاً إذا تم تفعيل البطاقة الرقمية أو إذا تم إدخاله
-      if (data.sendDigitalCard) {
-          if (!data.recipientEmail || data.recipientEmail.trim() === '') {
-              ctx.addIssue({ code: z.ZodIssueCode.custom, message: "البريد الإلكتروني مطلوب لإرسال البطاقة الرقمية", path: ["recipientEmail"] });
-          } else if (!z.string().email().safeParse(data.recipientEmail).success) {
-              ctx.addIssue({ code: z.ZodIssueCode.custom, message: "صيغة البريد الإلكتروني غير صحيحة", path: ["recipientEmail"] });
-          }
-      } else if (data.recipientEmail && data.recipientEmail.trim() !== '' && !z.string().email().safeParse(data.recipientEmail).success) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "صيغة البريد الإلكتروني غير صحيحة", path: ["recipientEmail"] });
-      }
+       // البريد الإلكتروني: التحقق الموحد
+       if (data.sendDigitalCard && !data.recipientEmail?.trim()) {
+         ctx.addIssue({ 
+           code: z.ZodIssueCode.custom, 
+           message: "البريد الإلكتروني مطلوب لإرسال البطاقة الرقمية", 
+           path: ["recipientEmail"] 
+         });
+       } else if (data.recipientEmail && !isValidEmail(data.recipientEmail)) {
+         ctx.addIssue({ 
+           code: z.ZodIssueCode.custom, 
+           message: "صيغة البريد الإلكتروني غير صحيحة", 
+           path: ["recipientEmail"] 
+         });
+       }
     }
   });
 };
