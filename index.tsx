@@ -1,7 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, HashRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProductProvider } from './contexts/ProductContext';
@@ -23,11 +23,13 @@ const queryClient = new QueryClient({
   },
 });
 
-// Intelligent Router: Use HashRouter for the specific preview environment,
-// and BrowserRouter for all other environments (like production on Vercel).
-const isPreviewEnvironment = window.location.href.includes('usercontent.goog');
-const Router = isPreviewEnvironment ? HashRouter : BrowserRouter;
-
+// استخدام BrowserRouter دائماً
+// ملاحظة: تأكد من تكوين Vercel لدعم SPA routing:
+// {
+//   "rewrites": [
+//     { "source": "/(.*)", "destination": "/index.html" }
+//   ]
+// }
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('Failed to find the root element');
@@ -36,7 +38,7 @@ if (!rootElement) {
 ReactDOM.createRoot(rootElement as HTMLElement).render(
   <React.StrictMode>
     <GlobalErrorBoundary>
-      <Router>
+      <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <ToastProvider>
             <AuthProvider>
@@ -48,7 +50,7 @@ ReactDOM.createRoot(rootElement as HTMLElement).render(
             </AuthProvider>
           </ToastProvider>
         </QueryClientProvider>
-      </Router>
+      </BrowserRouter>
     </GlobalErrorBoundary>
   </React.StrictMode>
 );
