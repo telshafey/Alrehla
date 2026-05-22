@@ -38,8 +38,16 @@ const makeRequest = async <T>(endpoint: string, options: RequestInit = {}): Prom
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...options.headers,
     };
+
+    // لا تسمح بتجاوز headers الأساسية الحرجة
+    if (options.headers) {
+        Object.entries(options.headers).forEach(([key, value]) => {
+            if (key.toLowerCase() !== 'content-type' && key.toLowerCase() !== 'accept') {
+                headers[key] = value;
+            }
+        });
+    }
 
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -56,11 +64,14 @@ const makeRequest = async <T>(endpoint: string, options: RequestInit = {}): Prom
     if (!response.ok) {
         if (response.status === 401) {
             clearToken();
+            // توجيه ذكي حسب المكان الحالي - إصلاح المنطق
             if (!window.location.hash.includes('/account') && !window.location.hash.includes('/admin/login')) {
-                 // توجيه ذكي حسب المكان الحالي
-                 const isStudent = window.location.hash.includes('/student');
-                 const isAdmin = window.location.hash.includes('/admin');
-                 if(!isAdmin) window.location.hash = isStudent ? '#/account' : '#/account'; 
+                const currentPath = window.location.hash;
+                if (currentPath.includes('/admin')) {
+                    window.location.hash = '#/admin/login';
+                } else {
+                    window.location.hash = '#/account';
+                }
             }
         }
 
