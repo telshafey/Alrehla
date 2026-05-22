@@ -7,29 +7,29 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import ProfileCompletionGuard from './components/auth/ProfileCompletionGuard';
 import NotFoundPage from './components/shared/NotFoundPage';
 
-// --- Core Pages ---
-import PortalPage from './pages/PortalPage';
-import AboutPage from './pages/AboutPage';
-import SupportPage from './pages/SupportPage';
-import JoinUsPage from './pages/JoinUsPage';
-import AccountPage from './pages/AccountPage';
-import RegisterPage from './pages/RegisterPage';
-import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
-import PaymentStatusPage from './pages/PaymentStatusPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import TermsOfUsePage from './pages/TermsOfUsePage';
-import PublisherPublicProfilePage from './pages/PublisherPublicProfilePage';
+// --- Core Pages (Lazy loaded for better performance)
+const PortalPage = lazy(() => import('./pages/PortalPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const SupportPage = lazy(() => import('./pages/SupportPage'));
+const JoinUsPage = lazy(() => import('./pages/JoinUsPage'));
+const AccountPage = lazy(() => import('./pages/AccountPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const CartPage = lazy(() => import('./pages/CartPage'));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
+const PaymentStatusPage = lazy(() => import('./pages/PaymentStatusPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsOfUsePage = lazy(() => import('./pages/TermsOfUsePage'));
+const PublisherPublicProfilePage = lazy(() => import('./pages/PublisherPublicProfilePage'));
 
-// --- Auth Pages ---
-import AdminLoginPage from './pages/admin/AdminLoginPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
+// --- Auth Pages
+const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
-import StudentLayout from './components/student/StudentLayout';
-import StudentDashboardPage from './pages/student/StudentDashboardPage';
-import StudentPortfolioPage from './pages/student/StudentPortfolioPage';
+const StudentLayout = lazy(() => import('./components/student/StudentLayout'));
+const StudentDashboardPage = lazy(() => import('./pages/student/StudentDashboardPage'));
+const StudentPortfolioPage = lazy(() => import('./pages/student/StudentPortfolioPage'));
 
-// --- Feature Pages ---
+// --- Feature Pages
 const EnhaLakPage = lazy(() => import('./pages/EnhaLakPage'));
 const PersonalizedStoriesPage = lazy(() => import('./pages/PersonalizedStoriesPage'));
 const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage'));
