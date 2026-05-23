@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -13,58 +12,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind Play CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              border: 'hsl(var(--border))',
-              input: 'hsl(var(--input))',
-              ring: 'hsl(var(--ring))',
-              background: 'hsl(var(--background))',
-              foreground: 'hsl(var(--foreground))',
-              primary: {
-                DEFAULT: 'hsl(var(--primary))',
-                foreground: 'hsl(var(--primary-foreground))',
-              },
-              secondary: {
-                DEFAULT: 'hsl(var(--secondary))',
-                foreground: 'hsl(var(--secondary-foreground))',
-              },
-              destructive: {
-                DEFAULT: 'hsl(var(--destructive))',
-                foreground: 'hsl(var(--destructive-foreground))',
-              },
-              muted: {
-                DEFAULT: 'hsl(var(--muted))',
-                foreground: 'hsl(var(--muted-foreground))',
-              },
-              accent: {
-                DEFAULT: 'hsl(var(--accent))',
-                foreground: 'hsl(var(--accent-foreground))',
-              },
-              popover: {
-                DEFAULT: 'hsl(var(--popover))',
-                foreground: 'hsl(var(--popover-foreground))',
-              },
-              card: {
-                DEFAULT: 'hsl(var(--card))',
-                foreground: 'hsl(var(--card-foreground))',
-              },
-            },
-            borderRadius: {
-              lg: 'var(--radius)',
-              md: 'calc(var(--radius) - 2px)',
-              sm: 'calc(var(--radius) - 4px)',
-            }
-          }
-        }
-      }
-    </script>
     
     <style>
       :root {
@@ -94,47 +41,12 @@
         font-family: 'Cairo', sans-serif;
       }
 
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: hsl(var(--secondary));
-      }
-      ::-webkit-scrollbar-thumb {
-        background: hsl(var(--muted-foreground));
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: hsl(var(--foreground));
-      }
-      
-      *:focus-visible {
-        outline: 2px solid hsl(var(--primary));
-        outline-offset: 2px;
-        border-radius: 2px;
-      }
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: hsl(var(--secondary)); }
+      ::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground)); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: hsl(var(--foreground)); }
+      *:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; border-radius: 2px; }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.1",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.544.0",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.57.4",
-    "@tanstack/react-query": "https://aistudiocdn.com/@tanstack/react-query@^5.51.1",
-    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
-    "react-hook-form": "https://aistudiocdn.com/react-hook-form@^7.54.2",
-    "zod": "https://aistudiocdn.com/zod@^3.24.1",
-    "@hookform/resolvers/zod": "https://aistudiocdn.com/@hookform/resolvers@^3.10.0/zod",
-    "vite": "https://esm.sh/vite@^7.3.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "@hookform/resolvers/": "https://esm.sh/@hookform/resolvers@^5.2.2/"
-  }
-}
-</script>
 </head>
 <body class="bg-muted/50 antialiased">
     <noscript>You need to enable JavaScript to run this app.</noscript>
