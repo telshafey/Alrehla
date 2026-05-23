@@ -1,11 +1,13 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
-import { DEFAULT_CONFIG } from './config';
 
-// استخدام القيم من ملف التكوين المركزي
-const SUPABASE_URL = DEFAULT_CONFIG.supabase.projectUrl;
-const SUPABASE_ANON_KEY = DEFAULT_CONFIG.supabase.anonKey;
+// استخدام المتغيرات مباشرة بدون config
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// للتشخيص المؤقت
+console.log('Supabase URL:', SUPABASE_URL);
+console.log('Anon Key exists:', !!SUPABASE_ANON_KEY);
 
 // إنشاء العميل الرئيسي
 export const supabase = createClient<Database>(
@@ -20,14 +22,10 @@ export const supabase = createClient<Database>(
   }
 );
 
-/**
- * إنشاء عميل مؤقت لا يحفظ الجلسة في المتصفح.
- * يستخدم لإنشاء حسابات فرعية (مثل الطلاب) دون تسجيل خروج ولي الأمر.
- */
 export const getTemporaryClient = () => {
     return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: {
-            persistSession: false, // مهم جداً: منع حفظ الجلسة
+            persistSession: false,
             autoRefreshToken: false,
             detectSessionInUrl: false
         }
