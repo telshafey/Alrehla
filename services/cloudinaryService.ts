@@ -83,7 +83,7 @@ export const cloudinaryService = {
         }
 
         // إذا لم يكن رابط Cloudinary، أعده كما هو (للروابط الخارجية أو Placeholders)
-        if (!url.includes('cloudinary.com')) return url;
+       if (!url.match(/^https:\/\/res\.cloudinary\.com\//)) return url;
         
         // إذا كان الرابط محسناً بالفعل، لا تلمسه
         if (url.includes('f_auto,q_auto')) return url;
