@@ -1,15 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
-// استخدام المتغيرات مباشرة بدون config
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = 'https://mqsmgtparbdpvnbyxokh.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_ul6GGt6kKAa6wapZNTLQnA_go19Zi1A';
 
-// للتشخيص المؤقت
-console.log('Supabase URL:', SUPABASE_URL);
-console.log('Anon Key exists:', !!SUPABASE_ANON_KEY);
-
-// إنشاء العميل الرئيسي
 export const supabase = createClient<Database>(
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
