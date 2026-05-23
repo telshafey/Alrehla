@@ -11,32 +11,46 @@ export const useInstructorMutations = () => {
 
     // 1. Manage Instructors (CRUD)
     const createInstructor = useMutation({
-        mutationFn: async (payload: any) => {
-            let avatarUrl = null;
-            const { avatarFile, ...data } = payload;
-            // Insert
-             const { error } = await (supabase.from('instructors') as any).insert([{...data, avatar_url: avatarUrl}]);
-             if(error) throw new Error(error.message);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
-            addToast('تم إضافة المدرب بنجاح.', 'success');
-        },
-        onError: (err: Error) => addToast(`فشل إضافة المدرب: ${err.message}`, 'error')
-    });
+    mutationFn: async (payload: any) => {
+        const { avatarFile, ...data } = payload;
+        let avatarUrl = null;
+
+        // رفع الصورة إذا تم اختيار صورة
+        if (avatarFile) {
+            const { cloudinaryService } = await import('../../services/cloudinaryService');
+            avatarUrl = await cloudinaryService.uploadImage(avatarFile, 'instructors');
+        }
+
+        const { error } = await (supabase.from('instructors') as any).insert([{ ...data, avatar_url: avatarUrl }]);
+        if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+        addToast('تم إضافة المدرب بنجاح.', 'success');
+    },
+    onError: (err: Error) => addToast(`فشل إضافة المدرب: ${err.message}`, 'error')
+});
 
     const updateInstructor = useMutation({
-        mutationFn: async (payload: any) => {
-            const { id, avatarFile, ...data } = payload;
-            let updates = { ...data };
-            const { error } = await (supabase.from('instructors') as any).update(updates).eq('id', id);
-            if(error) throw new Error(error.message);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
-            addToast('تم تحديث بيانات المدرب.', 'success');
-        },
-        onError: (err: Error) => addToast(`فشل التحديث: ${err.message}`, 'error')
+    mutationFn: async (payload: any) => {
+        const { id, avatarFile, ...data } = payload;
+        let updates = { ...data };
+
+        // رفع الصورة إذا تم اختيار صورة جديدة
+        if (avatarFile) {
+            const { cloudinaryService } = await import('../../services/cloudinaryService');
+            const imageUrl = await cloudinaryService.uploadImage(avatarFile, 'instructors');
+            updates.avatar_url = imageUrl;
+        }
+
+        const { error } = await (supabase.from('instructors') as any).update(updates).eq('id', id);
+        if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['adminInstructors'] });
+        addToast('تم تحديث بيانات المدرب.', 'success');
+    },
+    onError: (err: Error) => addToast(`فشل التحديث: ${err.message}`, 'error')
     });
 
     const deleteInstructor = useMutation({
