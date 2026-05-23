@@ -23,13 +23,8 @@ const queryClient = new QueryClient({
   },
 });
 
-// استخدام BrowserRouter دائماً
-// ملاحظة: تأكد من تكوين Vercel لدعم SPA routing:
-// {
-//   "rewrites": [
-//     { "source": "/(.*)", "destination": "/index.html" }
-//   ]
-// }
+// استخدام BrowserRouter دائماً لتحسين التوافقية مع Supabase و SEO
+// تأكد من تكوين Vercel مع SPA rewrites في vercel.json
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('Failed to find the root element');
