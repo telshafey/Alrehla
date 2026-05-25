@@ -1,10 +1,16 @@
-// v3
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
-const SUPABASE_URL = 'https://mqsmgtparbdpvnbyxokh.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_ul6GGt6kKAa6wapZNTLQnA_go19Zi1A';
+// استخدام environment variables - لا تستخدم hardcoded values
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+// التحقق من وجود الـ credentials
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.warn('⚠️ Supabase credentials are missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+}
+
+// إنشاء العميل الرئيسي
 export const supabase = createClient<Database>(
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
@@ -17,6 +23,10 @@ export const supabase = createClient<Database>(
   }
 );
 
+/**
+ * عميل مؤقت لا يحفظ الجلسة في المتصفح
+ * يستخدم لإنشاء حسابات فرعية (مثل الطلاب) دون تسجيل خروج ولي الأمر
+ */
 export const getTemporaryClient = () => {
     return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: {
