@@ -11,36 +11,28 @@ import OfflineBanner from './components/shared/OfflineBanner';
 import DevelopmentBanner from './components/shared/DevelopmentBanner';
 import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './lib/supabaseClient';
+import { initGA, pageview } from './lib/ga';
 
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Determine if the current route should hide the standard layout (Header/Footer)
   const isAdminRoute = location.pathname.startsWith('/admin');
-  // const isStudentArea = location.pathname.startsWith('/student'); // Removed to show header in student area
   const isSessionRoute = location.pathname.startsWith('/session');
-  
-  // Show layout for everyone except Admin pages and active Session pages
   const showLayout = !isAdminRoute && !isSessionRoute;
 
-  // Listen for Password Recovery Event
   useEffect(() => {
-    // مستمع Supabase الرسمي لمعالجة استعادة كلمة المرور
     const handleAuthStateChange = async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // عند الضغط على الرابط، سيتم تسجيل دخول المستخدم تلقائياً
-        // نقوم هنا بتوجيهه لصفحة تعيين كلمة المرور الجديدة
         navigate('/reset-password');
       }
     };
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
-
-    return () => {
-      subscription?.unsubscribe();
-    };
+    return () => { subscription?.unsubscribe(); };
   }, [navigate]);
+
+  useEffect(() => { initGA(); }, []);
+  useEffect(() => { pageview(location.pathname + location.search); }, [location]);
 
   return (
     <ErrorBoundary>
@@ -54,10 +46,10 @@ function App() {
         </main>
         {showLayout && <Footer />}
         {showLayout && (
-            <>
-              <WhatsAppButton />
-              <ScrollToTopButton />
-            </>
+          <>
+            <WhatsAppButton />
+            <ScrollToTopButton />
+          </>
         )}
       </div>
     </ErrorBoundary>
