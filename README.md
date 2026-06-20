@@ -4,7 +4,7 @@
 
 The "Alrehla" Platform is an integrated, creative educational system. It guides a child's journey from being the hero of their own personalized story ("It's for You" project) to becoming a creator of their own worlds through the "Start of the Journey" creative writing program.
 
-This project is a comprehensive full-stack application built with a modern tech stack, featuring a complete user-facing e-commerce and educational platform, alongside a powerful, role-based admin and instructor dashboard. The backend is simulated using mock data files.
+This project is a comprehensive full-stack application built with a modern tech stack, featuring a complete user-facing e-commerce and educational platform, alongside a powerful, role-based admin and instructor dashboard. The backend is powered by Supabase (PostgreSQL + Auth + Realtime + Storage).
 
 ---
 
@@ -22,7 +22,7 @@ This project is a comprehensive full-stack application built with a modern tech 
     - **My Library**: View all orders, subscriptions, and booked journeys.
     - **Family Center**: Manage child profiles and create linked student accounts.
     - **Settings**: Update profile and address information.
-- **E-commerce Functionality**: Fully featured shopping cart and checkout process with mock payment receipt uploads.
+- **E-commerce Functionality**: Fully featured shopping cart and checkout process with payment integration.
 - **Interactive Learning**:
     - **Student Portal**: A dedicated dashboard for students to view their creative writing journeys and upcoming sessions.
     - **Live Sessions**: Real-time video-conferencing for writing sessions, integrated with Jitsi Meet.
@@ -53,21 +53,47 @@ This project is a comprehensive full-stack application built with a modern tech 
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React, TypeScript
+- **Frontend**: React, TypeScript, Vite
 - **Styling**: Tailwind CSS
 - **Routing**: React Router
-- **Data Fetching & State Management**: Tanstack Query
-- **Backend (Simulated)**: Mock data files (`/src/data/mockData.ts`) are used to simulate a Supabase backend, providing a realistic development experience without a live database.
+- **Data Fetching & State Management**: Tanstack Query (React Query)
+- **Backend**: Supabase (PostgreSQL + Auth + Realtime + Storage)
 - **Video Conferencing**: Jitsi Meet External API
+- **Deployment**: Vercel
 
 ---
 
 ## 🚀 Getting Started
 
-This application is designed to run in a pre-configured web-based environment.
+### Prerequisites
+- Node.js 18+
+- npm or pnpm
 
-1.  All dependencies are managed via an `importmap`.
-2.  The application uses mock data, so no database setup is required.
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/telshafey/Alrehla.git
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your Supabase credentials
+
+# Run the development server
+npm run dev
+```
+
+### Environment Variables
+
+Create a `.env.local` file with the following variables:
+
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
 ---
 
@@ -89,3 +115,41 @@ The platform supports multiple user roles for demonstration purposes. Use the "Q
 | Instructor                       | `instructor@alrehlah.com` |
 | Support Agent                    | `support@alrehlah.com`    |
 | Content Editor                   | `editor@alrehlah.com`     |
+
+---
+
+## 📁 Project Structure
+
+```
+Alrehla/
+├── components/          # React components
+│   ├── ui/             # Reusable UI components
+│   ├── auth/           # Authentication components
+│   ├── admin/          # Admin dashboard components
+│   ├── student/        # Student portal components
+│   └── shared/         # Shared components
+├── pages/              # Page components
+│   ├── admin/          # Admin pages
+│   ├── student/        # Student pages
+│   └── creative-writing/ # Creative writing pages
+├── contexts/           # React contexts (Auth, Cart, Toast, etc.)
+├── hooks/              # Custom React hooks
+├── features/           # Feature-based modules
+├── lib/                # Utilities and configurations
+├── services/           # API services
+├── data/               # Static data and configurations
+├── public/             # Static assets
+└── supabase/           # Supabase configurations and migrations
+```
+
+---
+
+## 📝 License
+
+This project is proprietary and confidential. All rights reserved.
+
+---
+
+## 🤝 Support
+
+For support, email support@alrehlah.com or visit our [Support Page](https://alrehla.vercel.app/support).
