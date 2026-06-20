@@ -9,6 +9,7 @@ import ScrollToTopButton from './components/ScrollToTopButton';
 import AppRoutes from './AppRoutes';
 import OfflineBanner from './components/shared/OfflineBanner';
 import DevelopmentBanner from './components/shared/DevelopmentBanner';
+import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './lib/supabaseClient';
 
 function App() {
@@ -42,22 +43,24 @@ function App() {
   }, [navigate]);
 
   return (
-    <div className="flex flex-col min-h-screen" dir="rtl">
-      <DevelopmentBanner />
-      <OfflineBanner />
-      {showLayout && <Header />}
-      <ScrollToTop />
-      <main className="flex-grow">
-        <AppRoutes />
-      </main>
-      {showLayout && <Footer />}
-      {showLayout && (
-          <>
-            <WhatsAppButton />
-            <ScrollToTopButton />
-          </>
-      )}
-    </div>
+    <ErrorBoundary>
+      <div className="flex flex-col min-h-screen" dir="rtl">
+        <DevelopmentBanner />
+        <OfflineBanner />
+        {showLayout && <Header />}
+        <ScrollToTop />
+        <main className="flex-grow">
+          <AppRoutes />
+        </main>
+        {showLayout && <Footer />}
+        {showLayout && (
+            <>
+              <WhatsAppButton />
+              <ScrollToTopButton />
+            </>
+        )}
+      </div>
+    </ErrorBoundary>
   );
 }
 
