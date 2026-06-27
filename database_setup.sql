@@ -423,6 +423,22 @@ ALTER TABLE public.instructor_payouts ENABLE ROW LEVEL SECURITY;
 -- RLS Policies (Basic)
 -- =============================================
 
+-- Drop existing policies to prevent duplicates when re-running
+DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Parents can manage own children" ON public.child_profiles;
+DROP POLICY IF EXISTS "Users can view own orders" ON public.orders;
+DROP POLICY IF EXISTS "Users can view own notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Everyone can read published posts" ON public.blog_posts;
+DROP POLICY IF EXISTS "Everyone can read instructors" ON public.instructors;
+DROP POLICY IF EXISTS "Everyone can read active products" ON public.personalized_products;
+DROP POLICY IF EXISTS "Everyone can read active packages" ON public.creative_writing_packages;
+DROP POLICY IF EXISTS "Everyone can read active services" ON public.standalone_services;
+DROP POLICY IF EXISTS "Everyone can read active plans" ON public.subscription_plans;
+DROP POLICY IF EXISTS "Everyone can read site settings" ON public.site_settings;
+DROP POLICY IF EXISTS "Everyone can read site content" ON public.site_content;
+
 -- Profiles: Users can read their own profile, admins can read all
 CREATE POLICY "Users can read own profile" 
     ON public.profiles FOR SELECT 
@@ -513,6 +529,19 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Drop existing triggers before creating
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
+DROP TRIGGER IF EXISTS update_child_profiles_updated_at ON public.child_profiles;
+DROP TRIGGER IF EXISTS update_instructors_updated_at ON public.instructors;
+DROP TRIGGER IF EXISTS update_products_updated_at ON public.personalized_products;
+DROP TRIGGER IF EXISTS update_packages_updated_at ON public.creative_writing_packages;
+DROP TRIGGER IF EXISTS update_services_updated_at ON public.standalone_services;
+DROP TRIGGER IF EXISTS update_orders_updated_at ON public.orders;
+DROP TRIGGER IF EXISTS update_subscriptions_updated_at ON public.subscriptions;
+DROP TRIGGER IF EXISTS update_bookings_updated_at ON public.creative_writing_bookings;
+DROP TRIGGER IF EXISTS update_blog_posts_updated_at ON public.blog_posts;
+DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON public.support_tickets;
 
 -- Triggers for updated_at
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles 
